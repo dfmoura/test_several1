@@ -9,6 +9,7 @@ use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\Produto;
 use App\Services\Comercial\Orcamento\OrcamentoCatalogo;
+use App\Support\InsumoEscolhaRelacao;
 use App\Support\PadraoDecimal;
 
 /**
@@ -341,28 +342,22 @@ class OpBomDeriver
             return null;
         }
 
-        $normMedida = $this->normalize($medida);
-        $best = $candidatos->first();
-        $bestScore = 1;
-        $best->setAttribute('_score', 1);
-
-        if ($normMedida !== '') {
-            foreach ($candidatos as $p) {
-                $hay = $this->normalize(($p->codigo ?? '').' '.($p->descricao_fiscal ?? ''));
-                $score = str_contains($hay, 'CAIXA') ? 2 : 0;
-                // Dimensões numéricas da medida
-                preg_match_all('/\d+/', $normMedida, $nums);
-                foreach ($nums[0] ?? [] as $n) {
-                    if (str_contains($hay, $n)) {
-                        $score += 3;
-                    }
-                }
-                if ($score > $bestScore) {
-                    $bestScore = $score;
-                    $p->setAttribute('_score', $score);
-                    $best = $p;
-                }
+        $best = null;
+        $bestScore = 0;
+        $aprovada = InsumoEscolhaRelacao::rotuloMedidaCaixa($medida);
+        foreach ($candidatos as $p) {
+            $texto = trim(($p->codigo ?? '').' '.($p->descricao_fiscal ?? '').' '.($p->descricao_comercial ?? ''));
+            if (! InsumoEscolhaRelacao::caixaCompativel($medida, $texto)) {
+                continue;
             }
+            $rotulo = InsumoEscolhaRelacao::rotuloMedidaCaixa($medida, $texto);
+            $score = $rotulo !== null && $rotulo === $aprovada ? 20 : 10;
+            if ($score <= $bestScore) {
+                continue;
+            }
+            $bestScore = $score;
+            $p->setAttribute('_score', $score);
+            $best = $p;
         }
 
         return $best;

@@ -77,6 +77,36 @@ final class InsumoEscolhaRelacao
         return false;
     }
 
+    /** Medida da caixa no mesmo papel da polegada do tubete: 500x300x300. */
+    public static function rotuloMedidaCaixa(string $medidaAprovada, string $textoProduto = ''): ?string
+    {
+        $aprovada = self::gruposMedida($medidaAprovada);
+        $doProduto = self::gruposMedida($textoProduto);
+        if ($aprovada !== [] && $doProduto !== [] && self::caixaCompativel($medidaAprovada, $textoProduto)) {
+            $n = count($aprovada);
+            $m = count($doProduto);
+            for ($i = 0; $i <= $m - $n; $i++) {
+                $ok = true;
+                for ($j = 0; $j < $n; $j++) {
+                    if ($doProduto[$i + $j] !== $aprovada[$j]) {
+                        $ok = false;
+                        break;
+                    }
+                }
+                if ($ok) {
+                    $comprimento = $n < 3 && $i + $n < $m ? $n + 1 : $n;
+
+                    return implode('x', array_slice($doProduto, $i, $comprimento));
+                }
+            }
+        }
+        if (count($aprovada) >= 2) {
+            return implode('x', $aprovada);
+        }
+
+        return null;
+    }
+
     /**
      * @return list<string>
      */

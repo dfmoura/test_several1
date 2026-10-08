@@ -220,6 +220,12 @@ function BalancoPapel({
   );
 }
 
+function rotuloMedidaLinha(origem: string | null | undefined): string | null {
+  const nums = (origem ?? '').match(/\d+/g) ?? [];
+  if (nums.length < 2) return null;
+  return nums.slice(0, 3).join('x');
+}
+
 function rotuloOpcao(o: OpInsumoOpcao, unidade?: string): string {
   const codigo = o.codigo.trim();
   const desc = o.descricao.trim();
@@ -849,7 +855,9 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                 );
                 const componente = (m.componente ?? '').toUpperCase();
                 const ehTubete = componente === 'TUBETE';
-                const localSomenteLeitura = ehTubete || componente === 'CAIXA';
+                const ehCaixa = componente === 'CAIXA';
+                const medidaCaixaRotulo = ehCaixa ? rotuloMedidaLinha(m.origem_texto) : null;
+                const localSomenteLeitura = ehTubete || ehCaixa;
                 const rotuloLocal =
                   localDaEscolha?.nome?.trim() || localDaEscolha?.codigo?.trim() || '';
                 const qtdeLabel = `Quantidade (${un})`;
@@ -962,7 +970,11 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                                 volume: vol ? formatLotePick(vol) : `Lote ${linha.lote_id}`,
                                 local: vol?.endereco?.codigo ?? '—',
                                 polegada: ehTubete && polegada ? polegada : null,
-                                medida: mostrarMedidaPendentes ? medidaVol ?? '—' : null,
+                                medida: ehCaixa
+                                  ? medidaCaixaRotulo
+                                  : mostrarMedidaPendentes
+                                    ? medidaVol ?? '—'
+                                    : null,
                                 m2: metragem ? leitura?.m2 ?? '—' : null,
                                 metros: metragem ? leitura?.metros ?? '—' : null,
                                 qtdeLabel,
@@ -1029,7 +1041,11 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                                 volume: formatLotePick(vol),
                                 local: vol.endereco?.codigo ?? '—',
                                 polegada: ehTubete && polegada ? polegada : null,
-                                medida: mostrarMedidaBaixados ? medidaVol ?? '—' : null,
+                                medida: ehCaixa
+                                  ? medidaCaixaRotulo
+                                  : mostrarMedidaBaixados
+                                    ? medidaVol ?? '—'
+                                    : null,
                                 m2: metragem ? leitura?.m2 ?? '—' : null,
                                 metros: metragem ? leitura?.metros ?? '—' : null,
                                 qtdeLabel,

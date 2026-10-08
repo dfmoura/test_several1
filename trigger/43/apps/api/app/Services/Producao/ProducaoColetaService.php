@@ -479,7 +479,10 @@ class ProducaoColetaService
             }
             $detalhe = $comp === 'TUBETE'
                 ? InsumoEscolhaRelacao::rotuloPolegada($polegadaBruta)
-                : (trim((string) ($mat->origem_texto ?? '')) !== '' ? trim((string) $mat->origem_texto) : null);
+                : InsumoEscolhaRelacao::rotuloMedidaCaixa(
+                    (string) ($mat->origem_texto ?? ''),
+                    trim($produto->codigo.' '.$produto->descricao_fiscal.' '.($produto->descricao_comercial ?? '')),
+                );
             $linhas[] = [
                 'produto_id' => (int) $produto->id,
                 'codigo' => $produto->codigo,

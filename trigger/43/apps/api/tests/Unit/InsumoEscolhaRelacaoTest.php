@@ -35,5 +35,13 @@ class InsumoEscolhaRelacaoTest extends TestCase
             'CAIXA PAPELAO 500X400X300',
         ));
         $this->assertFalse(InsumoEscolhaRelacao::caixaCompativel('caixa', 'CAIXA PAPELAO 200X150X120'));
+        $this->assertSame(
+            '500x300x300',
+            InsumoEscolhaRelacao::rotuloMedidaCaixa('500x300', 'CAIXA PAPELAO 500X300X300'),
+        );
+        $this->assertSame(
+            '500x300x300',
+            InsumoEscolhaRelacao::rotuloMedidaCaixa('500x300', 'CAIXA PAPELAO 500X300X300 2KG'),
+        );
     }
 }
