@@ -231,7 +231,7 @@ class OrdemProducaoService
         foreach ($linhas as $linha) {
             $grupoId = (int) ($linha['grupo_id'] ?? 0);
             $comp = (string) $linha['componente'];
-            if ($grupoId <= 0 && $comp !== 'ACABAMENTO') {
+            if (! in_array($comp, ['PAPEL', 'ACABAMENTO'], true)) {
                 continue;
             }
             $mat = $op->materiais->first(
@@ -327,10 +327,8 @@ class OrdemProducaoService
             $matPendente->loadMissing('produto:id,controla_lote,grupo_id');
             $compEscolha = strtoupper((string) $matPendente->componente);
             $escolhaGrupo = $matPendente->saida_movimento_id === null
-                && (
-                    $compEscolha === 'ACABAMENTO'
-                    || ((int) $matPendente->grupo_id > 0 && $compEscolha === 'PAPEL')
-                );
+                && (int) $matPendente->produto_id <= 0
+                && in_array($compEscolha, ['PAPEL', 'ACABAMENTO'], true);
             if ($volumesIn !== [] && ! $escolhaGrupo && $matPendente->produto && ! $matPendente->produto->controla_lote) {
                 throw ValidationException::withMessages([
                     'volumes' => ['Este item não usa volume. Informe a quantidade.'],
@@ -350,9 +348,7 @@ class OrdemProducaoService
                 }
                 if ($alvo <= 0 || ! $this->coleta->produtoEscolhaPermitido($empresa, $matPendente, $alvo)) {
                     throw ValidationException::withMessages([
-                        'produto_id' => [$compEscolha === 'ACABAMENTO'
-                            ? 'Escolha uma bobina de matéria-prima com saldo.'
-                            : 'Escolha um item com saldo do grupo de matéria-prima.'],
+                        'produto_id' => ['Escolha uma bobina de matéria-prima com saldo.'],
                     ]);
                 }
                 $produtoId = $alvo;
@@ -558,7 +554,7 @@ class OrdemProducaoService
             ->reject(function (OrdemProducaoMaterial $mat): bool {
                 $comp = strtoupper((string) $mat->componente);
 
-                return $comp === 'ACABAMENTO' || ((int) $mat->grupo_id > 0 && $comp === 'PAPEL');
+                return (int) $mat->produto_id <= 0 && in_array($comp, ['PAPEL', 'ACABAMENTO'], true);
             })
             ->values();
 
@@ -1614,10 +1610,9 @@ class OrdemProducaoService
             }
             $aguardando = $pendente && bccomp($faltante, '0', PadraoDecimal::SCALE_QTY) > 0;
             $comp = strtoupper((string) $m->componente);
-            $escolher = $pendente && (
-                $comp === 'ACABAMENTO'
-                || ($comp === 'PAPEL' && $m->grupo)
-            );
+            $escolher = $pendente
+                && ! $m->produto
+                && in_array($comp, ['PAPEL', 'ACABAMENTO'], true);
             if ($escolher) {
                 $disponivel = PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);
                 $faltante = bccomp($planejada, '0', PadraoDecimal::SCALE_QTY) > 0
@@ -1650,9 +1645,7 @@ class OrdemProducaoService
                 ] : null,
                 'escolher_produto' => $escolher,
                 'opcoes' => $escolher
-                    ? ($comp === 'ACABAMENTO'
-                        ? $this->coleta->opcoesBobina($empresa, $m)
-                        : $this->coleta->opcoesGrupo($empresa, $m))
+                    ? $this->coleta->opcoesBobina($empresa, $m)
                     : ($pendente && $m->produto && ! $m->produto->controla_lote
                         ? $this->coleta->opcoesUnidade($empresa, $m)
                         : []),

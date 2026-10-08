@@ -23,6 +23,8 @@ class Demanda extends Model
 
     protected $guarded = ['id'];
 
+    protected $hidden = ['acessos'];
+
     protected function casts(): array
     {
         return [
@@ -30,6 +32,7 @@ class Demanda extends Model
             'aguardando_cliente' => 'boolean',
             'encerrada_em' => 'datetime',
             'criada_em' => 'datetime',
+            'acessos' => 'encrypted',
         ];
     }
 

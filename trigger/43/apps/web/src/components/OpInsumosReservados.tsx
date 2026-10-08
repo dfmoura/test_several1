@@ -223,12 +223,38 @@ function BalancoPapel({
 function rotuloOpcao(o: OpInsumoOpcao, unidade?: string): string {
   const codigo = o.codigo.trim();
   const desc = o.descricao.trim();
-  const grupo = (o.detalhe ?? '').trim();
-  const base = codigo && desc ? `${codigo} — ${desc}` : desc || codigo || '—';
-  const nome = grupo && !base.includes(grupo) ? `${grupo} · ${base}` : base;
+  const nome = codigo && desc ? `${codigo} — ${desc}` : desc || codigo || '—';
   if (!unidade) return nome;
   const qtde = parseQtdeDigitada(o.qtde_disponivel);
   return qtde > 0 ? `${nome} · ${formatQtdePick(qtde, unidade)}` : nome;
+}
+
+function OpcoesBobina({
+  opcoes,
+  grupo,
+  unidade,
+}: {
+  opcoes: OpInsumoOpcao[];
+  grupo?: { codigo: string; nome: string } | null;
+  unidade?: string;
+}) {
+  const item = (o: OpInsumoOpcao) => (
+    <option key={o.produto_id} value={o.produto_id}>
+      {rotuloOpcao(o, unidade)}
+    </option>
+  );
+  const codigo = grupo?.codigo ?? '';
+  if (!codigo) return <>{opcoes.map(item)}</>;
+  const doGrupo = opcoes.filter((o) => (o.detalhe ?? '') === codigo);
+  const demais = opcoes.filter((o) => (o.detalhe ?? '') !== codigo);
+  if (demais.length === 0) return <>{opcoes.map(item)}</>;
+  const rotuloGrupo = grupo?.nome ? `${codigo} · ${grupo.nome}` : codigo;
+  return (
+    <>
+      {doGrupo.length > 0 ? <optgroup label={rotuloGrupo}>{doGrupo.map(item)}</optgroup> : null}
+      <optgroup label="Outras bobinas">{demais.map(item)}</optgroup>
+    </>
+  );
 }
 
 type CelulaInsumo = {
@@ -816,39 +842,21 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                     {m.escolher_produto && estado !== 'ja_saiu' ? (
                       <div className="form-group" style={{ marginBottom: '0.75rem' }}>
                         <label>
-                          {componente === 'ACABAMENTO'
-                            ? 'Bobina de matéria-prima'
-                            : `Item do grupo ${m.grupo?.codigo ?? ''}${m.grupo?.nome ? ` · ${m.grupo.nome}` : ''}`}
+                          {m.grupo
+                            ? `Item do grupo ${m.grupo.codigo}${m.grupo.nome ? ` · ${m.grupo.nome}` : ''}`
+                            : 'Item'}
                         </label>
                         <select
                           value={produtoId > 0 ? String(produtoId) : ''}
                           disabled={busy || !canWrite}
-                          aria-label={
-                            componente === 'ACABAMENTO'
-                              ? 'Escolher bobina de matéria-prima'
-                              : `Escolher item de ${m.grupo?.codigo ?? 'matéria-prima'}`
-                          }
+                          aria-label={`Escolher item de ${m.grupo?.codigo ?? 'matéria-prima'}`}
                           onChange={(e) => escolherProduto(e.target.value)}
                         >
                           <option value="">Escolher</option>
-                          {opcoes.map((o) => (
-                            <option key={o.produto_id} value={o.produto_id}>
-                              {rotuloOpcao(o, un)}
-                            </option>
-                          ))}
+                          <OpcoesBobina opcoes={opcoes} grupo={m.grupo} unidade={un} />
                         </select>
-                        {componente === 'ACABAMENTO' && m.grupo ? (
-                          <p className="form-hint">
-                            No orçamento: {m.grupo.codigo}
-                            {m.grupo.nome ? ` · ${m.grupo.nome}` : ''}. Pode ser outra bobina com saldo.
-                          </p>
-                        ) : null}
                         {opcoes.length === 0 ? (
-                          <p className="form-hint">
-                            {componente === 'ACABAMENTO'
-                              ? 'Nenhuma bobina com saldo.'
-                              : 'Nenhum item com saldo neste grupo.'}
-                          </p>
+                          <p className="form-hint">Nenhum item com saldo.</p>
                         ) : null}
                       </div>
                     ) : null}

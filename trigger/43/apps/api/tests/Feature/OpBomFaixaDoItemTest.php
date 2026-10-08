@@ -53,11 +53,13 @@ class OpBomFaixaDoItemTest extends TestCase
         ]);
 
         $diag = app(OpBomDeriver::class)->diagnostico($empresa, $pedido, $item);
-        $this->assertNull(collect($diag['linhas'])->firstWhere('componente', 'PAPEL'));
-        $papel = collect($diag['nao_casados'])->firstWhere('componente', 'PAPEL');
+        $papel = collect($diag['linhas'])->firstWhere('componente', 'PAPEL');
 
         $this->assertNotNull($papel);
+        $this->assertNull($papel['produto_id']);
+        $this->assertNull($papel['grupo_id']);
         $this->assertSame(0, bccomp((string) $papel['qtde'], '40', 4));
+        $this->assertNull(collect($diag['nao_casados'])->firstWhere('componente', 'PAPEL'));
     }
 
     public function test_item_antigo_sem_faixa_cai_no_cabecalho(): void
@@ -90,11 +92,12 @@ class OpBomFaixaDoItemTest extends TestCase
         ]);
 
         $diag = app(OpBomDeriver::class)->diagnostico($empresa, $pedido, $item);
-        $this->assertNull(collect($diag['linhas'])->firstWhere('componente', 'PAPEL'));
-        $papel = collect($diag['nao_casados'])->firstWhere('componente', 'PAPEL');
+        $papel = collect($diag['linhas'])->firstWhere('componente', 'PAPEL');
 
         $this->assertNotNull($papel);
+        $this->assertNull($papel['produto_id']);
         $this->assertSame(0, bccomp((string) $papel['qtde'], '10', 4));
+        $this->assertNull(collect($diag['nao_casados'])->firstWhere('componente', 'PAPEL'));
     }
 
     public function test_guia_aponta_tinta_e_acabamento_sem_sku(): void

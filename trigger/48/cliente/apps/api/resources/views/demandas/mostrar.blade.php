@@ -11,8 +11,15 @@
     <section class="card">
       <h2>Pedido</h2>
       <p><strong>Sistema atual.</strong> {{ $demanda->sistema_atual }}</p>
-      <p><strong>Objetivo.</strong> {{ $demanda->objetivo }}</p>
-      <p>{{ $demanda->descricao }}</p>
+      <p><strong>O que precisa ficar pronto.</strong></p>
+      <p class="prose">{{ $demanda->objetivo }}</p>
+      <p class="prose">{{ $demanda->descricao }}</p>
+      @if(filled($demanda->acessos))
+        <details class="segredo-box">
+          <summary>Acessos e senhas informados</summary>
+          <pre class="segredo">{{ $demanda->acessos }}</pre>
+        </details>
+      @endif
       <p class="muted">{{ \App\Suporte\Rotulos::TIPOS_DEMANDA[$demanda->tipo] ?? $demanda->tipo }} · {{ \App\Suporte\Rotulos::PRIORIDADES[$demanda->prioridade] ?? $demanda->prioridade }} · {{ $demanda->contato_tecnico }}</p>
       @if($demanda->status === 'RASCUNHO')
         <form method="post" action="{{ route('demandas.enviar', $demanda->codigo) }}">@csrf<button type="submit">Enviar demanda</button></form>

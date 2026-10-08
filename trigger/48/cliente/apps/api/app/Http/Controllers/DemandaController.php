@@ -154,10 +154,30 @@ class DemandaController extends Controller
             'prazo_desejado' => ['nullable', 'date'],
             'contato_tecnico' => ['required', 'string', 'max:160'],
             'observacoes' => ['nullable', 'string', 'max:2000'],
+            'acessos' => ['nullable', 'string', 'max:4000'],
             'anexos' => ['nullable', 'array', 'max:5'],
             'anexos.*' => ['file', 'mimes:pdf,png,jpg,jpeg,webp,txt,zip', 'max:10240'],
+        ], [
+            'required' => 'Preencha :attribute.',
+            'max.string' => ':attribute passou do limite.',
+            'max.array' => 'Envie no máximo 5 arquivos.',
+            'max.file' => 'Cada arquivo pode ter no máximo 10 MB.',
+            'mimes' => 'Use PDF, PNG, JPG, WEBP, TXT ou ZIP.',
+            'date' => 'Informe uma data válida em :attribute.',
+        ], [
+            'titulo' => 'o título',
+            'descricao' => 'a descrição da demanda',
+            'objetivo' => 'o que precisa ficar pronto',
+            'sistema_atual' => 'o sistema ou processo atual',
+            'tipo' => 'o tipo',
+            'prioridade' => 'a prioridade',
+            'prazo_desejado' => 'o prazo desejado',
+            'contato_tecnico' => 'o contato técnico',
+            'acessos' => 'os acessos',
+            'anexos' => 'os arquivos',
         ]);
         unset($dados['anexos']);
+        $dados['acessos'] = blank($dados['acessos'] ?? null) ? null : trim((string) $dados['acessos']);
 
         return $dados;
     }

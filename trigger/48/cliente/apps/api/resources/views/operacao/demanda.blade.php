@@ -6,8 +6,15 @@
   <p><span class="badge">{{ \App\Suporte\Rotulos::statusDemanda($demanda->status) }}</span></p>
   <section class="card">
     <p><strong>Sistema.</strong> {{ $demanda->sistema_atual }}</p>
-    <p><strong>Objetivo.</strong> {{ $demanda->objetivo }}</p>
-    <p>{{ $demanda->descricao }}</p>
+    <p><strong>O que precisa ficar pronto.</strong></p>
+    <p class="prose">{{ $demanda->objetivo }}</p>
+    <p class="prose">{{ $demanda->descricao }}</p>
+    <h2>Acessos</h2>
+    @if(filled($demanda->acessos))
+      <pre class="segredo">{{ $demanda->acessos }}</pre>
+    @else
+      <p class="muted">Nenhum acesso informado.</p>
+    @endif
     <p class="muted">{{ $demanda->contato_tecnico }} · prazo desejado {{ $demanda->prazo_desejado?->format('d/m/Y') ?: 'não informado' }}</p>
   </section>
   <div class="grid grid-2" style="margin-top:1rem">

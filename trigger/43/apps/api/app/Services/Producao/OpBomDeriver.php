@@ -13,7 +13,7 @@ use App\Support\PadraoDecimal;
 
 /**
  * Deriva BOM leve da OP a partir do snapshot do PED/ORC (estudo 32 PRODUCAO §2.2).
- * Papel e acabamento em bobina usam o grupo do catálogo. Não casa SKU pelo texto.
+ * Papel e acabamento em bobina guardam o grupo do catálogo, sem escolher SKU.
  * Não baixa estoque — só qtde planejada (empenho leve).
  */
 class OpBomDeriver
@@ -67,27 +67,15 @@ class OpBomDeriver
         $usedProdutoIds = [];
 
         if ($ctx['papel'] !== '' && $ctx['papel_m2'] > 0) {
-            $grupoId = $this->grupoDoCatalogo($empresa, 'papel', $ctx['papel']);
-            if ($grupoId) {
-                $out[] = [
-                    'produto_id' => null,
-                    'grupo_id' => $grupoId,
-                    'qtde' => $this->qtdeSnapshot($ctx['papel_m2']),
-                    'unidade' => 'M2',
-                    'componente' => 'PAPEL',
-                    'origem_texto' => $ctx['papel'],
-                    'match_score' => 0,
-                ];
-            } else {
-                $naoCasados[] = [
-                    'componente' => 'PAPEL',
-                    'origem_texto' => $ctx['papel'],
-                    'qtde' => $this->qtdeSnapshot($ctx['papel_m2']),
-                    'unidade' => 'M2',
-                    'metragem' => $ctx['metragem'] > 0 ? $this->qtdeSnapshot($ctx['metragem']) : null,
-                    'motivo' => 'Informe o grupo de matéria-prima deste papel no catálogo do orçamento.',
-                ];
-            }
+            $out[] = [
+                'produto_id' => null,
+                'grupo_id' => $this->grupoDoCatalogo($empresa, 'papel', $ctx['papel']),
+                'qtde' => $this->qtdeSnapshot($ctx['papel_m2']),
+                'unidade' => 'M2',
+                'componente' => 'PAPEL',
+                'origem_texto' => $ctx['papel'],
+                'match_score' => 0,
+            ];
         }
 
         if ($ctx['tubete'] !== '' && $ctx['rolos'] > 0) {

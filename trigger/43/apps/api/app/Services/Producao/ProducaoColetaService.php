@@ -25,6 +25,9 @@ class ProducaoColetaService
     /** Grupos de bobina em matéria-prima (ADR_CADASTRO_INSUMO_VOLUME). */
     private const GRUPOS_BOBINA = ['MP-PAP', 'MP-FLM', 'MP-LAM', 'MP-RET', 'MP-TEC', 'MP-CLD', 'MP-ADF'];
 
+    /** @var array<int, list<array<string, mixed>>> */
+    private array $bobinasPorEmpresa = [];
+
     public function __construct(private readonly EstoqueSaldoWriter $saldos) {}
 
     /**
@@ -602,13 +605,44 @@ class ProducaoColetaService
     }
 
     /**
-     * Bobinas de matéria-prima com saldo. Qualquer uma serve no acabamento.
+     * Bobinas de matéria-prima com saldo. Papel e acabamento escolhem qualquer uma.
      * Se o catálogo aponta um grupo, as bobinas desse grupo ficam no topo.
      *
      * @return list<array<string, mixed>>
      */
     public function opcoesBobina(Empresa $empresa, OrdemProducaoMaterial $mat): array
     {
+        $linhas = array_map(fn (array $linha): array => $linha, $this->bobinasDaEmpresa($empresa));
+        $preferido = (int) $mat->grupo_id;
+        usort($linhas, function (array $a, array $b) use ($preferido): int {
+            if ($preferido > 0) {
+                $pa = ((int) $a['grupo_id']) === $preferido ? 0 : 1;
+                $pb = ((int) $b['grupo_id']) === $preferido ? 0 : 1;
+                if ($pa !== $pb) {
+                    return $pa <=> $pb;
+                }
+            }
+
+            return strcmp((string) $a['codigo'], (string) $b['codigo']);
+        });
+        foreach ($linhas as &$linha) {
+            unset($linha['grupo_id']);
+        }
+        unset($linha);
+
+        return $linhas;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function bobinasDaEmpresa(Empresa $empresa): array
+    {
+        $empresaId = (int) $empresa->id;
+        if (isset($this->bobinasPorEmpresa[$empresaId])) {
+            return $this->bobinasPorEmpresa[$empresaId];
+        }
+
         $produtos = Produto::query()
             ->with('grupoCatalogo:id,codigo,nome')
             ->where('empresa_id', $empresa->id)
@@ -677,29 +711,13 @@ class ProducaoColetaService
             ];
         }
 
-        $preferido = (int) $mat->grupo_id;
-        usort($linhas, function (array $a, array $b) use ($preferido): int {
-            if ($preferido > 0) {
-                $pa = ((int) $a['grupo_id']) === $preferido ? 0 : 1;
-                $pb = ((int) $b['grupo_id']) === $preferido ? 0 : 1;
-                if ($pa !== $pb) {
-                    return $pa <=> $pb;
-                }
-            }
-
-            return strcmp((string) $a['codigo'], (string) $b['codigo']);
-        });
-        foreach ($linhas as &$linha) {
-            unset($linha['grupo_id']);
-        }
-        unset($linha);
-
-        return $linhas;
+        return $this->bobinasPorEmpresa[$empresaId] = $linhas;
     }
 
     public function produtoEscolhaPermitido(Empresa $empresa, OrdemProducaoMaterial $mat, int $produtoId): bool
     {
-        if (strtoupper((string) $mat->componente) === 'ACABAMENTO') {
+        $comp = strtoupper((string) $mat->componente);
+        if (in_array($comp, ['PAPEL', 'ACABAMENTO'], true)) {
             return $this->ehBobinaMp($empresa, $produtoId);
         }
 
@@ -1048,7 +1066,7 @@ class ProducaoColetaService
 
         $produtoLinha = $mat->produto;
         $comp = strtoupper((string) $mat->componente);
-        if ($comp === 'ACABAMENTO' || ((int) $mat->grupo_id > 0 && $comp === 'PAPEL')) {
+        if ((int) $mat->produto_id <= 0 && in_array($comp, ['PAPEL', 'ACABAMENTO'], true)) {
             $produtoEscolhido = (int) $produtoEscolhido;
             if ($produtoEscolhido <= 0 || ! $this->produtoEscolhaPermitido($empresa, $mat, $produtoEscolhido)) {
                 return [];

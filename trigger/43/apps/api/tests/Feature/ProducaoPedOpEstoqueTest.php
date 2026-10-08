@@ -1273,6 +1273,10 @@ class ProducaoPedOpEstoqueTest extends TestCase
         Sanctum::actingAs($this->comercial);
         $h = ['X-Empresa-Id' => (string) $this->empresa->id];
         [, , $opId] = $this->abrirOpAprovada($h);
+        OrdemProducaoMaterial::query()
+            ->where('ordem_producao_id', $opId)
+            ->where('componente', 'PAPEL')
+            ->update(['produto_id' => null]);
 
         Sanctum::actingAs($this->producao);
         $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
