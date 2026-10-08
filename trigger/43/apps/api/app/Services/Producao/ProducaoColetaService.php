@@ -22,6 +22,9 @@ use Illuminate\Validation\ValidationException;
  */
 class ProducaoColetaService
 {
+    /** Grupos de bobina em matéria-prima (ADR_CADASTRO_INSUMO_VOLUME). */
+    private const GRUPOS_BOBINA = ['MP-PAP', 'MP-FLM', 'MP-LAM', 'MP-RET', 'MP-TEC', 'MP-CLD', 'MP-ADF'];
+
     public function __construct(private readonly EstoqueSaldoWriter $saldos) {}
 
     /**
@@ -599,6 +602,142 @@ class ProducaoColetaService
     }
 
     /**
+     * Bobinas de matéria-prima com saldo. Qualquer uma serve no acabamento.
+     * Se o catálogo aponta um grupo, as bobinas desse grupo ficam no topo.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function opcoesBobina(Empresa $empresa, OrdemProducaoMaterial $mat): array
+    {
+        $produtos = Produto::query()
+            ->with('grupoCatalogo:id,codigo,nome')
+            ->where('empresa_id', $empresa->id)
+            ->where('situacao', 'ATIVO')
+            ->where('familia', 'MP')
+            ->where(fn ($q) => $this->restringeBobinaMp($q))
+            ->orderBy('codigo')
+            ->get([
+                'id',
+                'codigo',
+                'descricao_fiscal',
+                'descricao_comercial',
+                'controla_lote',
+                'unidade_interna',
+                'grupo_id',
+            ]);
+        if ($produtos->isEmpty()) {
+            return [];
+        }
+
+        $ids = $produtos->pluck('id')->all();
+        $saldos = EstoqueSaldo::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('produto_id', $ids)
+            ->get()
+            ->groupBy('produto_id');
+        $lotes = EstoqueLote::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('produto_id', $ids)
+            ->where('qtde', '>', 0)
+            ->get(['produto_id', 'qtde'])
+            ->groupBy('produto_id');
+
+        $linhas = [];
+        foreach ($produtos as $produto) {
+            $qtde = '0';
+            foreach ($saldos->get($produto->id) ?? [] as $saldo) {
+                $qtde = PadraoDecimal::roundHalfUp(
+                    bcadd($qtde, (string) $saldo->qtde, PadraoDecimal::SCALE_QTY + 4),
+                    PadraoDecimal::SCALE_QTY
+                );
+            }
+            $qtdeLote = '0';
+            foreach ($lotes->get($produto->id) ?? [] as $lote) {
+                $qtdeLote = PadraoDecimal::roundHalfUp(
+                    bcadd($qtdeLote, (string) $lote->qtde, PadraoDecimal::SCALE_QTY + 4),
+                    PadraoDecimal::SCALE_QTY
+                );
+            }
+            if (bccomp($qtdeLote, $qtde, PadraoDecimal::SCALE_QTY) > 0) {
+                $qtde = $qtdeLote;
+            }
+            if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                continue;
+            }
+            $linhas[] = [
+                'produto_id' => (int) $produto->id,
+                'codigo' => $produto->codigo,
+                'descricao' => $this->nomeProduto($produto),
+                'qtde_disponivel' => $qtde,
+                'local' => null,
+                'detalhe' => $produto->grupoCatalogo?->codigo,
+                'controla_lote' => (bool) $produto->controla_lote || bccomp($qtdeLote, '0', PadraoDecimal::SCALE_QTY) > 0,
+                'unidade' => $produto->unidade_interna,
+                'grupo_id' => (int) ($produto->grupo_id ?? 0),
+            ];
+        }
+
+        $preferido = (int) $mat->grupo_id;
+        usort($linhas, function (array $a, array $b) use ($preferido): int {
+            if ($preferido > 0) {
+                $pa = ((int) $a['grupo_id']) === $preferido ? 0 : 1;
+                $pb = ((int) $b['grupo_id']) === $preferido ? 0 : 1;
+                if ($pa !== $pb) {
+                    return $pa <=> $pb;
+                }
+            }
+
+            return strcmp((string) $a['codigo'], (string) $b['codigo']);
+        });
+        foreach ($linhas as &$linha) {
+            unset($linha['grupo_id']);
+        }
+        unset($linha);
+
+        return $linhas;
+    }
+
+    public function produtoEscolhaPermitido(Empresa $empresa, OrdemProducaoMaterial $mat, int $produtoId): bool
+    {
+        if (strtoupper((string) $mat->componente) === 'ACABAMENTO') {
+            return $this->ehBobinaMp($empresa, $produtoId);
+        }
+
+        return $this->produtoNoGrupo($empresa, $mat, $produtoId);
+    }
+
+    private function ehBobinaMp(Empresa $empresa, int $produtoId): bool
+    {
+        if ($produtoId <= 0) {
+            return false;
+        }
+
+        return Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('id', $produtoId)
+            ->where('situacao', 'ATIVO')
+            ->where('familia', 'MP')
+            ->where(fn ($q) => $this->restringeBobinaMp($q))
+            ->exists();
+    }
+
+    private function restringeBobinaMp($query): void
+    {
+        $query->where(function ($q) {
+            $q->whereHas('grupoCatalogo', function ($g) {
+                $g->whereIn('codigo', self::GRUPOS_BOBINA);
+            });
+            foreach (self::GRUPOS_BOBINA as $prefixo) {
+                $q->orWhere('codigo', 'like', $prefixo.'-%');
+            }
+            $q->orWhere(function ($q) {
+                $q->where('controla_lote', true)
+                    ->whereIn('unidade_interna', ['M2', 'M', 'ML']);
+            });
+        });
+    }
+
+    /**
      * @param  array<string, mixed>  $linha
      * @return array<string, mixed>
      */
@@ -909,9 +1048,9 @@ class ProducaoColetaService
 
         $produtoLinha = $mat->produto;
         $comp = strtoupper((string) $mat->componente);
-        if ((int) $mat->grupo_id > 0 && in_array($comp, ['PAPEL', 'ACABAMENTO'], true)) {
+        if ($comp === 'ACABAMENTO' || ((int) $mat->grupo_id > 0 && $comp === 'PAPEL')) {
             $produtoEscolhido = (int) $produtoEscolhido;
-            if ($produtoEscolhido <= 0 || ! $this->produtoNoGrupo($empresa, $mat, $produtoEscolhido)) {
+            if ($produtoEscolhido <= 0 || ! $this->produtoEscolhaPermitido($empresa, $mat, $produtoEscolhido)) {
                 return [];
             }
 

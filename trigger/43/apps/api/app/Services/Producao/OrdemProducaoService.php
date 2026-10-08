@@ -230,10 +230,10 @@ class OrdemProducaoService
         $ordem = (int) $op->materiais->max('ordem');
         foreach ($linhas as $linha) {
             $grupoId = (int) ($linha['grupo_id'] ?? 0);
-            if ($grupoId <= 0) {
+            $comp = (string) $linha['componente'];
+            if ($grupoId <= 0 && $comp !== 'ACABAMENTO') {
                 continue;
             }
-            $comp = (string) $linha['componente'];
             $mat = $op->materiais->first(
                 fn (OrdemProducaoMaterial $m) => strtoupper((string) $m->componente) === $comp
             );
@@ -243,7 +243,7 @@ class OrdemProducaoService
                     'empresa_id' => $empresa->id,
                     'ordem_producao_id' => $op->id,
                     'produto_id' => null,
-                    'grupo_id' => $grupoId,
+                    'grupo_id' => $grupoId > 0 ? $grupoId : null,
                     'qtde_planejada' => $linha['qtde'],
                     'qtde_requisitada' => '0',
                     'qtde_consumida' => '0',
@@ -261,7 +261,7 @@ class OrdemProducaoService
             if ($mat->saida_movimento_id) {
                 continue;
             }
-            if ((int) $mat->grupo_id !== $grupoId) {
+            if ($grupoId > 0 && (int) $mat->grupo_id !== $grupoId) {
                 $mat->grupo_id = $grupoId;
                 $mat->save();
             }
@@ -325,9 +325,12 @@ class OrdemProducaoService
             }
             $produtoId = (int) $matPendente->produto_id;
             $matPendente->loadMissing('produto:id,controla_lote,grupo_id');
-            $escolhaGrupo = (int) $matPendente->grupo_id > 0
-                && in_array(strtoupper((string) $matPendente->componente), ['PAPEL', 'ACABAMENTO'], true)
-                && $matPendente->saida_movimento_id === null;
+            $compEscolha = strtoupper((string) $matPendente->componente);
+            $escolhaGrupo = $matPendente->saida_movimento_id === null
+                && (
+                    $compEscolha === 'ACABAMENTO'
+                    || ((int) $matPendente->grupo_id > 0 && $compEscolha === 'PAPEL')
+                );
             if ($volumesIn !== [] && ! $escolhaGrupo && $matPendente->produto && ! $matPendente->produto->controla_lote) {
                 throw ValidationException::withMessages([
                     'volumes' => ['Este item não usa volume. Informe a quantidade.'],
@@ -341,13 +344,15 @@ class OrdemProducaoService
                 $alvo = $produtoDosVolumes ?: $pedidoProduto;
                 if ($alvo <= 0) {
                     $gravado = (int) $matPendente->produto_id;
-                    if ($gravado > 0 && $this->coleta->produtoNoGrupo($empresa, $matPendente, $gravado)) {
+                    if ($gravado > 0 && $this->coleta->produtoEscolhaPermitido($empresa, $matPendente, $gravado)) {
                         $alvo = $gravado;
                     }
                 }
-                if ($alvo <= 0 || ! $this->coleta->produtoNoGrupo($empresa, $matPendente, $alvo)) {
+                if ($alvo <= 0 || ! $this->coleta->produtoEscolhaPermitido($empresa, $matPendente, $alvo)) {
                     throw ValidationException::withMessages([
-                        'produto_id' => ['Escolha um item com saldo do grupo de matéria-prima.'],
+                        'produto_id' => [$compEscolha === 'ACABAMENTO'
+                            ? 'Escolha uma bobina de matéria-prima com saldo.'
+                            : 'Escolha um item com saldo do grupo de matéria-prima.'],
                     ]);
                 }
                 $produtoId = $alvo;
@@ -553,7 +558,7 @@ class OrdemProducaoService
             ->reject(function (OrdemProducaoMaterial $mat): bool {
                 $comp = strtoupper((string) $mat->componente);
 
-                return (int) $mat->grupo_id > 0 && in_array($comp, ['PAPEL', 'ACABAMENTO'], true);
+                return $comp === 'ACABAMENTO' || ((int) $mat->grupo_id > 0 && $comp === 'PAPEL');
             })
             ->values();
 
@@ -1609,9 +1614,10 @@ class OrdemProducaoService
             }
             $aguardando = $pendente && bccomp($faltante, '0', PadraoDecimal::SCALE_QTY) > 0;
             $comp = strtoupper((string) $m->componente);
-            $escolher = $pendente
-                && $m->grupo
-                && in_array($comp, ['PAPEL', 'ACABAMENTO'], true);
+            $escolher = $pendente && (
+                $comp === 'ACABAMENTO'
+                || ($comp === 'PAPEL' && $m->grupo)
+            );
             if ($escolher) {
                 $disponivel = PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);
                 $faltante = bccomp($planejada, '0', PadraoDecimal::SCALE_QTY) > 0
@@ -1644,7 +1650,9 @@ class OrdemProducaoService
                 ] : null,
                 'escolher_produto' => $escolher,
                 'opcoes' => $escolher
-                    ? $this->coleta->opcoesGrupo($empresa, $m)
+                    ? ($comp === 'ACABAMENTO'
+                        ? $this->coleta->opcoesBobina($empresa, $m)
+                        : $this->coleta->opcoesGrupo($empresa, $m))
                     : ($pendente && $m->produto && ! $m->produto->controla_lote
                         ? $this->coleta->opcoesUnidade($empresa, $m)
                         : []),

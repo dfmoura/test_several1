@@ -137,6 +137,13 @@ class OpBomFaixaDoItemTest extends TestCase
         ]);
         $sem = app(OpBomDeriver::class)->guiaApontada($empresa, $pedido, $itemSem);
         $this->assertNull(collect($sem)->firstWhere('componente', 'ACABAMENTO'));
+
+        $linhas = app(OpBomDeriver::class)->derivar($empresa, $pedido, $item);
+        $linha = collect($linhas)->firstWhere('componente', 'ACABAMENTO');
+        $this->assertNotNull($linha);
+        $this->assertNull($linha['produto_id']);
+        $this->assertNull($linha['grupo_id']);
+        $this->assertNull(collect(app(OpBomDeriver::class)->derivar($empresa, $pedido, $itemSem))->firstWhere('componente', 'ACABAMENTO'));
     }
 
     public function test_grupo_do_catalogo_nao_escolhe_sku_pelo_texto(): void

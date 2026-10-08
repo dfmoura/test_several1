@@ -135,19 +135,16 @@ class OpBomDeriver
             }
         }
 
-        if ($ctx['acabamento'] !== '' && $ctx['acab_m2'] > 0) {
-            $grupoAcab = $this->grupoDoCatalogo($empresa, 'acabamento', $ctx['acabamento']);
-            if ($grupoAcab) {
-                $out[] = [
-                    'produto_id' => null,
-                    'grupo_id' => $grupoAcab,
-                    'qtde' => $this->qtdeSnapshot($ctx['acab_m2']),
-                    'unidade' => 'M2',
-                    'componente' => 'ACABAMENTO',
-                    'origem_texto' => $ctx['acabamento'],
-                    'match_score' => 0,
-                ];
-            }
+        if ($this->acabamentoConsomeBobina($ctx['acabamento']) && $ctx['acab_m2'] > 0) {
+            $out[] = [
+                'produto_id' => null,
+                'grupo_id' => $this->grupoDoCatalogo($empresa, 'acabamento', $ctx['acabamento']),
+                'qtde' => $this->qtdeSnapshot($ctx['acab_m2']),
+                'unidade' => 'M2',
+                'componente' => 'ACABAMENTO',
+                'origem_texto' => $ctx['acabamento'],
+                'match_score' => 0,
+            ];
         }
 
         return [
@@ -278,6 +275,16 @@ class OpBomDeriver
             ->value('grupo_id');
 
         return $grupoId ? (int) $grupoId : null;
+    }
+
+    private function acabamentoConsomeBobina(string $nome): bool
+    {
+        $nome = OrcamentoCatalogo::norm($nome);
+        if ($nome === '' || preg_match('/^sem\s/i', $nome) === 1) {
+            return false;
+        }
+
+        return mb_strtoupper($nome, 'UTF-8') !== 'REBOBINAÇÃO';
     }
 
     /**

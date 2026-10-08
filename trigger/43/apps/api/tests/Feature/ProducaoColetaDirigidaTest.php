@@ -12,11 +12,13 @@ use App\Models\Orcamento;
 use App\Models\OrdemProducao;
 use App\Models\OrdemProducaoMaterial;
 use App\Models\Parceiro;
+use App\Models\ProdutoGrupo;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\Produto;
 use App\Models\User;
 use App\Services\Financeiro\AdiantamentoService;
+use App\Services\Producao\ProducaoColetaService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
@@ -721,5 +723,75 @@ class ProducaoColetaDirigidaTest extends TestCase
                 'linhas' => [['material_id' => $this->matTubete->id]],
             ])
             ->assertForbidden();
+    }
+
+    public function test_acabamento_lista_qualquer_bobina_e_poe_o_grupo_na_frente(): void
+    {
+        $filmeGrupo = ProdutoGrupo::query()->create([
+            'codigo' => 'MP-FLM',
+            'nome' => 'Filmes',
+            'familia' => 'MP',
+            'natureza' => 'COMPRA',
+            'tipo_item_sped' => '01',
+            'situacao' => 'ATIVO',
+        ]);
+        $filme = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MP-FLM-COL',
+            'familia' => 'MP',
+            'grupo_id' => $filmeGrupo->id,
+            'descricao_fiscal' => 'BOPP COLETA',
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'controla_lote' => true,
+        ]);
+        $tinta = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MP-TIN-COL',
+            'familia' => 'MP',
+            'descricao_fiscal' => 'TINTA COLETA',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'controla_lote' => false,
+        ]);
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $filme->id,
+            'qtde' => '40.0000',
+            'unidade' => 'M2',
+            'custo_medio' => '4.000000',
+        ]);
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $tinta->id,
+            'qtde' => '9.0000',
+            'unidade' => 'UN',
+            'custo_medio' => '2.000000',
+        ]);
+
+        $coleta = app(ProducaoColetaService::class);
+        $semGrupo = new OrdemProducaoMaterial([
+            'componente' => 'ACABAMENTO',
+            'grupo_id' => null,
+        ]);
+        $ids = array_column($coleta->opcoesBobina($this->empresa, $semGrupo), 'produto_id');
+        $this->assertContains($this->mp->id, $ids);
+        $this->assertContains($filme->id, $ids);
+        $this->assertNotContains($this->emb->id, $ids);
+        $this->assertNotContains($tinta->id, $ids);
+
+        $comGrupo = new OrdemProducaoMaterial([
+            'componente' => 'ACABAMENTO',
+            'grupo_id' => $filmeGrupo->id,
+        ]);
+        $ordenados = array_column($coleta->opcoesBobina($this->empresa, $comGrupo), 'produto_id');
+        $this->assertSame($filme->id, $ordenados[0]);
+        $this->assertContains($this->mp->id, $ordenados);
+        $this->assertTrue($coleta->produtoEscolhaPermitido($this->empresa, $comGrupo, $this->mp->id));
+        $this->assertFalse($coleta->produtoEscolhaPermitido($this->empresa, $comGrupo, $tinta->id));
     }
 }

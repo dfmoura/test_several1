@@ -223,7 +223,9 @@ function BalancoPapel({
 function rotuloOpcao(o: OpInsumoOpcao, unidade?: string): string {
   const codigo = o.codigo.trim();
   const desc = o.descricao.trim();
-  const nome = codigo && desc ? `${codigo} — ${desc}` : desc || codigo || '—';
+  const grupo = (o.detalhe ?? '').trim();
+  const base = codigo && desc ? `${codigo} — ${desc}` : desc || codigo || '—';
+  const nome = grupo && !base.includes(grupo) ? `${grupo} · ${base}` : base;
   if (!unidade) return nome;
   const qtde = parseQtdeDigitada(o.qtde_disponivel);
   return qtde > 0 ? `${nome} · ${formatQtdePick(qtde, unidade)}` : nome;
@@ -792,7 +794,11 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                       <h4 className="orc-subsection-title">
                         {opKitNome(m)}
                         <span className="muted" style={{ fontWeight: 500, marginLeft: 8 }}>
-                          {m.escolher_produto && produtoId <= 0 ? 'Escolher' : opKitEstadoLabel(estado)}
+                          {m.escolher_produto && estado !== 'ja_saiu'
+                            ? produtoId <= 0
+                              ? 'Escolher'
+                              : 'Falta pegar'
+                            : opKitEstadoLabel(estado)}
                         </span>
                       </h4>
                       {podeEditar && porVolume ? (
@@ -810,13 +816,18 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                     {m.escolher_produto && estado !== 'ja_saiu' ? (
                       <div className="form-group" style={{ marginBottom: '0.75rem' }}>
                         <label>
-                          Item do grupo {m.grupo?.codigo}
-                          {m.grupo?.nome ? ` · ${m.grupo.nome}` : ''}
+                          {componente === 'ACABAMENTO'
+                            ? 'Bobina de matéria-prima'
+                            : `Item do grupo ${m.grupo?.codigo ?? ''}${m.grupo?.nome ? ` · ${m.grupo.nome}` : ''}`}
                         </label>
                         <select
                           value={produtoId > 0 ? String(produtoId) : ''}
                           disabled={busy || !canWrite}
-                          aria-label={`Escolher item de ${m.grupo?.codigo ?? 'matéria-prima'}`}
+                          aria-label={
+                            componente === 'ACABAMENTO'
+                              ? 'Escolher bobina de matéria-prima'
+                              : `Escolher item de ${m.grupo?.codigo ?? 'matéria-prima'}`
+                          }
                           onChange={(e) => escolherProduto(e.target.value)}
                         >
                           <option value="">Escolher</option>
@@ -826,8 +837,18 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                             </option>
                           ))}
                         </select>
+                        {componente === 'ACABAMENTO' && m.grupo ? (
+                          <p className="form-hint">
+                            No orçamento: {m.grupo.codigo}
+                            {m.grupo.nome ? ` · ${m.grupo.nome}` : ''}. Pode ser outra bobina com saldo.
+                          </p>
+                        ) : null}
                         {opcoes.length === 0 ? (
-                          <p className="form-hint">Nenhum item com saldo neste grupo.</p>
+                          <p className="form-hint">
+                            {componente === 'ACABAMENTO'
+                              ? 'Nenhuma bobina com saldo.'
+                              : 'Nenhum item com saldo neste grupo.'}
+                          </p>
                         ) : null}
                       </div>
                     ) : null}
@@ -1013,7 +1034,7 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                               {
                                 key: 'produto',
                                 label: 'Produto',
-                                node: podeTrocar ? (
+                                node: podeTrocar && !m.escolher_produto ? (
                                   <select
                                     value={produtoId > 0 ? String(produtoId) : ''}
                                     disabled={busy}
@@ -1034,7 +1055,7 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                                   </span>
                                 ),
                               },
-                              ...(opcao?.detalhe
+                              ...(opcao?.detalhe && (ehTubete || componente === 'CAIXA')
                                 ? [
                                     {
                                       key: 'detalhe',
