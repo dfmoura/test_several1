@@ -684,6 +684,73 @@ export function formatLeituraBobina(
   };
 }
 
+export type BalancoMetragem = {
+  precisaM2: number;
+  precisaM: number | null;
+  escolhidoM2: number;
+  escolhidoM: number | null;
+  faltaM2: number;
+  faltaM: number | null;
+  passaM2: number;
+  passaM: number | null;
+};
+
+/**
+ * Necessidade da bobina em m² e metro linear da ordem, menos o que já está na escolha.
+ * O metro linear da ordem usa a largura da etiqueta. A escolha abate os dois na mesma base.
+ */
+export function balancoMetragem(
+  m: OrdemProducaoMaterial,
+  op: OrdemProducao | null | undefined,
+  linhas: Array<{ vol?: OpRetiradaVolume; qtde: string | number }>,
+): BalancoMetragem | null {
+  if (!insumoComMetragem(m)) return null;
+  const qtde = qtdeLinhaPick(m);
+  if (!(qtde > 0)) return null;
+  const largura = larguraMmNecessidadeOp(m, op);
+  const linear = bobinaEmMetroLinear(m);
+  const precisaM = linear ? qtde : m2ParaMetros(qtde, largura);
+  const precisaM2 = linear ? (largura > 0 ? (largura / 1000) * qtde : 0) : qtde;
+
+  let escolhidoM2 = 0;
+  let escolhidoMdireto = 0;
+  for (const linha of linhas) {
+    const qtdeLinha = typeof linha.qtde === 'number' ? linha.qtde : parseQtdeDigitada(linha.qtde);
+    if (!(qtdeLinha > 0)) continue;
+    if (!linha.vol) {
+      if (linear) escolhidoMdireto += qtdeLinha;
+      else if (qtdeGravadaEhArea(m.unidade)) escolhidoM2 += qtdeLinha;
+      continue;
+    }
+    const leitura = leituraBobinaDaQtde(linha.vol, qtdeLinha, larguraMmDoMaterial(m));
+    if (linear) {
+      if (leitura.metros != null && leitura.metros > 0) escolhidoMdireto += leitura.metros;
+      else escolhidoMdireto += qtdeLinha;
+      continue;
+    }
+    if (leitura.m2 != null && leitura.m2 > 0) escolhidoM2 += leitura.m2;
+    else if (qtdeGravadaEhArea(m.unidade)) escolhidoM2 += qtdeLinha;
+  }
+  const escolhidoM = linear ? escolhidoMdireto : largura > 0 ? escolhidoM2 / (largura / 1000) : null;
+  if (linear && largura > 0) escolhidoM2 = (largura / 1000) * escolhidoMdireto;
+
+  const faltaM2 = precisaM2 > 1e-4 ? Math.max(0, precisaM2 - escolhidoM2) : 0;
+  const passaM2 = precisaM2 > 1e-4 ? Math.max(0, escolhidoM2 - precisaM2) : 0;
+  const faltaM = precisaM == null || escolhidoM == null ? null : Math.max(0, precisaM - escolhidoM);
+  const passaM = precisaM == null || escolhidoM == null ? null : Math.max(0, escolhidoM - precisaM);
+
+  return {
+    precisaM2,
+    precisaM,
+    escolhidoM2,
+    escolhidoM,
+    faltaM2,
+    faltaM,
+    passaM2,
+    passaM,
+  };
+}
+
 export function rotuloPolegada(raw: string | null | undefined): string | null {
   switch (chavePolegada(raw)) {
     case '1':

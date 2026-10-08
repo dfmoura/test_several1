@@ -12,6 +12,7 @@ import {
 } from '../lib/api';
 import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
 import {
+  balancoMetragem,
   formatLeituraBobina,
   formatLotePick,
   formatQtdePick,
@@ -115,6 +116,68 @@ function agrupar(linhas: OrdemProducaoMaterial[]) {
     }));
 }
 
+function textoMetragem(m2: number, metros: number | null): string {
+  const temArea = m2 > 1e-4;
+  const area = temArea ? formatQtdePick(m2, 'm²') : '';
+  const metro = metros != null ? formatQtdePick(Math.max(metros, 0), 'm') : '';
+  if (area && metro) return `${area} · ${metro}`;
+  return area || metro || formatQtdePick(0, 'm²');
+}
+
+function BalancoPapel({
+  material,
+  op,
+  linhas,
+  saiu = false,
+}: {
+  material: OrdemProducaoMaterial;
+  op: OrdemProducao;
+  linhas: Array<{ vol?: OpRetiradaVolume; qtde: string | number }>;
+  saiu?: boolean;
+}) {
+  const saldo = balancoMetragem(material, op, linhas);
+  if (!saldo) return null;
+  const coberto =
+    saldo.passaM2 <= 1e-4 &&
+    (saldo.passaM ?? 0) <= 1e-4 &&
+    saldo.faltaM2 <= 1e-4 &&
+    (saldo.faltaM == null || saldo.faltaM <= 1e-4) &&
+    (saldo.escolhidoM2 > 1e-4 || (saldo.escolhidoM ?? 0) > 1e-4);
+  const passa = saldo.passaM2 > 1e-4 || (saldo.passaM ?? 0) > 1e-4;
+  return (
+    <p
+      className="op-insumo-balanco"
+      aria-live="polite"
+      title="Metro linear da etiqueta. A área escolhida abate os dois."
+    >
+      <span>
+        <em>Precisa</em>
+        <strong>{textoMetragem(saldo.precisaM2, saldo.precisaM)}</strong>
+      </span>
+      <span>
+        <em>{saiu ? 'Saiu' : 'Escolhido'}</em>
+        <strong>{textoMetragem(saldo.escolhidoM2, saldo.escolhidoM)}</strong>
+      </span>
+      {passa ? (
+        <span className="op-insumo-balanco__passa">
+          <em>Passa</em>
+          <strong>{textoMetragem(saldo.passaM2, saldo.passaM)}</strong>
+        </span>
+      ) : coberto ? (
+        <span className="op-insumo-balanco__coberto">
+          <em>Falta</em>
+          <strong>Coberto</strong>
+        </span>
+      ) : (
+        <span className="op-insumo-balanco__falta">
+          <em>Falta</em>
+          <strong>{textoMetragem(saldo.faltaM2, saldo.faltaM)}</strong>
+        </span>
+      )}
+    </p>
+  );
+}
+
 function rotuloOpcao(o: OpInsumoOpcao, unidade?: string): string {
   const codigo = o.codigo.trim();
   const desc = o.descricao.trim();
@@ -213,7 +276,7 @@ function colunasVolume(args: {
 /**
  * Insumos já apontados no kit da ordem, grupo a grupo.
  * Cada item escolhido fica numa linha, dentro da largura do cartão.
- * Bobina: produto, m² e metro linear em cada volume.
+ * Bobina: o que a ordem precisa em m² e metro linear, abatido pela escolha.
  * Tubete e caixa sem lote: escolha entre os SKUs da polegada ou da medida aprovada.
  */
 export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, onOp }: Props) {
@@ -639,6 +702,25 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                         </button>
                       ) : null}
                     </div>
+
+                    {metragem ? (
+                      <BalancoPapel
+                        material={m}
+                        op={op}
+                        saiu={estado === 'ja_saiu'}
+                        linhas={
+                          estado === 'ja_saiu'
+                            ? baixados.map((vol) => ({
+                                vol,
+                                qtde: parseQtdeDigitada(vol.qtde_retirar || vol.qtde_volume),
+                              }))
+                            : escolhidos.map((linha) => ({
+                                vol: volDo(m, linha.lote_id),
+                                qtde: linha.qtde,
+                              }))
+                        }
+                      />
+                    ) : null}
 
                     {porVolume && estado !== 'ja_saiu' ? (
                       escolhidos.length === 0 ? (

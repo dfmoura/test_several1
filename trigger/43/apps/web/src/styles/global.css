@@ -13068,6 +13068,42 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   color: var(--text);
 }
 
+.op-insumo-balanco {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  margin: 0.35rem 0 0.45rem;
+  font-size: 0.84rem;
+}
+
+.op-insumo-balanco em {
+  margin-right: 0.35rem;
+  font-style: normal;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.op-insumo-balanco strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: var(--navy, #1a3568);
+}
+
+.op-insumo-balanco__falta strong {
+  font-size: 0.95rem;
+}
+
+.op-insumo-balanco__passa strong {
+  color: var(--warning);
+}
+
+.op-insumo-balanco__coberto strong {
+  color: #2f6b4f;
+}
+
 .op-insumos .op-insumo-linha {
   margin-top: 0.35rem;
 }
