@@ -3,6 +3,7 @@
 namespace App\Services\Comercial\Orcamento;
 
 use App\Models\OrcCatalogoAcabamento;
+use App\Models\ProdutoGrupo;
 use App\Models\OrcCatalogoEstrutura;
 use App\Models\OrcCatalogoHoraMaquina;
 use App\Models\OrcCatalogoMaquina;
@@ -298,7 +299,7 @@ class OrcamentoCatalogoAdminService
     /** @return list<array<string, mixed>> */
     public function listPapeis(bool $incluirInativos = true): array
     {
-        $q = $this->scoped(OrcCatalogoPapel::query())->orderBy('ordem')->orderBy('nome');
+        $q = $this->scoped(OrcCatalogoPapel::query())->with('grupo:id,codigo,nome')->orderBy('ordem')->orderBy('nome');
         if (! $incluirInativos) {
             $q->where('ativo', true);
         }
@@ -316,6 +317,7 @@ class OrcamentoCatalogoAdminService
         $papel = OrcCatalogoPapel::query()->create([
             'empresa_id' => $this->empresaId(),
             'nome' => $nome,
+            'grupo_id' => $this->grupoMp(isset($data['grupo_id']) ? (int) $data['grupo_id'] : null),
             'preco_m2' => (float) $data['preco_m2'],
             'ativo' => (bool) ($data['ativo'] ?? true),
             'ordem' => (int) ($data['ordem'] ?? ((int) $this->scoped(OrcCatalogoPapel::query())->max('ordem') + 1)),
@@ -341,6 +343,9 @@ class OrcamentoCatalogoAdminService
             }
             $papel->nome = $nome;
         }
+        if (array_key_exists('grupo_id', $data)) {
+            $papel->grupo_id = $this->grupoMp($data['grupo_id'] !== null && $data['grupo_id'] !== '' ? (int) $data['grupo_id'] : null);
+        }
         if (array_key_exists('preco_m2', $data)) {
             $papel->preco_m2 = (float) $data['preco_m2'];
         }
@@ -360,7 +365,7 @@ class OrcamentoCatalogoAdminService
     /** @return list<array<string, mixed>> */
     public function listAcabamentos(bool $incluirInativos = true): array
     {
-        $q = $this->scoped(OrcCatalogoAcabamento::query())->orderBy('ordem')->orderBy('nome');
+        $q = $this->scoped(OrcCatalogoAcabamento::query())->with('grupo:id,codigo,nome')->orderBy('ordem')->orderBy('nome');
         if (! $incluirInativos) {
             $q->where('ativo', true);
         }
@@ -378,6 +383,7 @@ class OrcamentoCatalogoAdminService
         $row = OrcCatalogoAcabamento::query()->create([
             'empresa_id' => $this->empresaId(),
             'nome' => $nome,
+            'grupo_id' => $this->grupoMp(isset($data['grupo_id']) ? (int) $data['grupo_id'] : null),
             'preco_m2' => (float) $data['preco_m2'],
             'perda_m2' => (float) ($data['perda_m2'] ?? 0),
             'ativo' => (bool) ($data['ativo'] ?? true),
@@ -403,6 +409,9 @@ class OrcamentoCatalogoAdminService
                 throw ValidationException::withMessages(['nome' => 'Já existe acabamento com este nome.']);
             }
             $acabamento->nome = $nome;
+        }
+        if (array_key_exists('grupo_id', $data)) {
+            $acabamento->grupo_id = $this->grupoMp($data['grupo_id'] !== null && $data['grupo_id'] !== '' ? (int) $data['grupo_id'] : null);
         }
         if (array_key_exists('preco_m2', $data)) {
             $acabamento->preco_m2 = (float) $data['preco_m2'];
@@ -821,12 +830,45 @@ class OrcamentoCatalogoAdminService
         }
     }
 
+    private function grupoMp(?int $id): ?int
+    {
+        if (! $id) {
+            return null;
+        }
+        $grupo = ProdutoGrupo::query()->find($id);
+        if (! $grupo || ! $grupo->isAtivo() || $grupo->familia !== 'MP') {
+            throw ValidationException::withMessages([
+                'grupo_id' => ['Escolha um grupo de matéria-prima ativo.'],
+            ]);
+        }
+
+        return (int) $grupo->id;
+    }
+
+    /** @return array{id: int, codigo: string, nome: string}|null */
+    private function grupoOut(?ProdutoGrupo $grupo): ?array
+    {
+        if (! $grupo) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $grupo->id,
+            'codigo' => $grupo->codigo,
+            'nome' => $grupo->nome,
+        ];
+    }
+
     /** @return array<string, mixed> */
     private function papelOut(OrcCatalogoPapel $p): array
     {
+        $p->loadMissing('grupo:id,codigo,nome');
+
         return [
             'id' => $p->id,
             'nome' => $p->nome,
+            'grupo_id' => $p->grupo_id ? (int) $p->grupo_id : null,
+            'grupo' => $this->grupoOut($p->grupo),
             'preco_m2' => (float) $p->preco_m2,
             'ativo' => (bool) $p->ativo,
             'ordem' => (int) $p->ordem,
@@ -837,9 +879,13 @@ class OrcamentoCatalogoAdminService
     /** @return array<string, mixed> */
     private function acabamentoOut(OrcCatalogoAcabamento $a): array
     {
+        $a->loadMissing('grupo:id,codigo,nome');
+
         return [
             'id' => $a->id,
             'nome' => $a->nome,
+            'grupo_id' => $a->grupo_id ? (int) $a->grupo_id : null,
+            'grupo' => $this->grupoOut($a->grupo),
             'preco_m2' => (float) $a->preco_m2,
             'perda_m2' => (float) $a->perda_m2,
             'ativo' => (bool) $a->ativo,

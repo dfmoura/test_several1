@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
-import { ApiError, api, type AtivacaoData, type OrcCatalogoResumo } from '../lib/api';
+import { ApiError, api, fiscalConsulta, type AtivacaoData, type OrcCatalogoResumo, type ProdutoGrupo } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { bemStatusLabel } from '../lib/patrimonio';
 import { useTableSort } from '../lib/useTableSort';
@@ -22,6 +22,8 @@ type TabId =
 type PapelRow = {
   id: number;
   nome: string;
+  grupo_id?: number | null;
+  grupo?: { id: number; codigo: string; nome: string } | null;
   preco_m2: number;
   ativo: boolean;
   ordem: number;
@@ -30,6 +32,8 @@ type PapelRow = {
 type AcabamentoRow = {
   id: number;
   nome: string;
+  grupo_id?: number | null;
+  grupo?: { id: number; codigo: string; nome: string } | null;
   preco_m2: number;
   perda_m2: number;
   ativo: boolean;
@@ -94,8 +98,8 @@ type CaixaEmpRow = {
 };
 
 const TABS: Array<{ id: TabId; label: string; hint: string }> = [
-  { id: 'papeis', label: 'Papel', hint: 'R$/m² usado no custo de material' },
-  { id: 'acabamentos', label: 'Acabamento', hint: 'R$/m² + perda m²' },
+  { id: 'papeis', label: 'Papel', hint: 'R$/m² e o grupo de matéria-prima da bobina' },
+  { id: 'acabamentos', label: 'Acabamento', hint: 'R$/m² + perda m². Bobina: o grupo de matéria-prima' },
   {
     id: 'trocas',
     label: 'Tipo troca produto',
@@ -185,12 +189,13 @@ export function OrcamentoCatalogoPage() {
   const [message, setMessage] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [ativacao, setAtivacao] = useState<AtivacaoData | null>(null);
+  const [gruposMp, setGruposMp] = useState<ProdutoGrupo[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [r, p, a, t, m, params, est, at] = await Promise.all([
+      const [r, p, a, t, m, params, est, at, grupos] = await Promise.all([
         api.get<{ data: OrcCatalogoResumo }>('/orcamento-catalogo/resumo'),
         api.get<{ data: PapelRow[] }>('/orcamento-catalogo/papeis'),
         api.get<{ data: AcabamentoRow[] }>('/orcamento-catalogo/acabamentos'),
@@ -199,10 +204,12 @@ export function OrcamentoCatalogoPage() {
         api.get<{ data: ParametroRow[] }>('/orcamento-catalogo/parametros'),
         api.get<{ data: EstruturaRow[] }>('/orcamento-catalogo/estruturas'),
         api.get<{ data: AtivacaoData }>('/ativacao').catch(() => null),
+        fiscalConsulta.produtoGrupos('MP').catch(() => ({ data: [] as ProdutoGrupo[] })),
       ]);
       setResumo(r.data);
       setPapeis(p.data);
       setAcabamentos(a.data);
+      setGruposMp(grupos.data ?? []);
       setTrocas(t.data);
       setMaquinas(m.data);
       setParametros(params.data);
@@ -378,6 +385,7 @@ export function OrcamentoCatalogoPage() {
           {showNew && !TAB_SEM_NOVO.includes(tab) ? (
             <NewItemForm
               tab={tab as Exclude<TabId, 'matriz' | 'maquinas' | 'parametros' | 'perdas' | 'embalagem'>}
+              gruposMp={gruposMp}
               onCancel={() => setShowNew(false)}
               onSaved={async (msg) => {
                 setShowNew(false);
@@ -391,6 +399,7 @@ export function OrcamentoCatalogoPage() {
           {tab === 'papeis' ? (
             <PapeisTable
               rows={papeis}
+              gruposMp={gruposMp}
               onSaved={async (msg) => {
                 setMessage(msg);
                 await load();
@@ -401,6 +410,7 @@ export function OrcamentoCatalogoPage() {
           {tab === 'acabamentos' ? (
             <AcabamentosTable
               rows={acabamentos}
+              gruposMp={gruposMp}
               onSaved={async (msg) => {
                 setMessage(msg);
                 await load();
@@ -1130,12 +1140,46 @@ function MatrizParametrosPanel({
   );
 }
 
+function rotuloGrupoMp(g: ProdutoGrupo): string {
+  return `${g.codigo} — ${g.nome}`;
+}
+
+function GrupoMpSelect({
+  value,
+  grupos,
+  disabled,
+  onChange,
+}: {
+  value: number | null;
+  grupos: ProdutoGrupo[];
+  disabled?: boolean;
+  onChange: (grupoId: number | null) => void;
+}) {
+  return (
+    <select
+      value={value ?? ''}
+      disabled={disabled}
+      aria-label="Grupo de matéria-prima"
+      onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+    >
+      <option value="">Sem grupo</option>
+      {grupos.map((g) => (
+        <option key={g.id} value={g.id}>
+          {rotuloGrupoMp(g)}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function PapeisTable({
   rows,
+  gruposMp,
   onSaved,
   onError,
 }: {
   rows: PapelRow[];
+  gruposMp: ProdutoGrupo[];
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
@@ -1153,6 +1197,7 @@ function PapeisTable({
                 <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Nome
                 </SortableTh>
+                <th>Grupo MP</th>
                 <SortableTh column="preco_m2" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   R$/m²
                 </SortableTh>
@@ -1164,7 +1209,7 @@ function PapeisTable({
             </thead>
             <tbody>
               {sorted.map((row) => (
-                <PapelEditRow key={row.id} row={row} onSaved={onSaved} onError={onError} />
+                <PapelEditRow key={row.id} row={row} gruposMp={gruposMp} onSaved={onSaved} onError={onError} />
               ))}
             </tbody>
           </table>
@@ -1176,10 +1221,12 @@ function PapeisTable({
 
 function PapelEditRow({
   row,
+  gruposMp,
   onSaved,
   onError,
 }: {
   row: PapelRow;
+  gruposMp: ProdutoGrupo[];
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
@@ -1187,7 +1234,7 @@ function PapelEditRow({
   const [saving, setSaving] = useState(false);
   useEffect(() => setPreco(String(row.preco_m2)), [row.preco_m2]);
 
-  const save = async (patch: Partial<{ preco_m2: number; ativo: boolean }>) => {
+  const save = async (patch: Partial<{ preco_m2: number; ativo: boolean; grupo_id: number | null }>) => {
     setSaving(true);
     onError('');
     try {
@@ -1204,6 +1251,14 @@ function PapelEditRow({
     <tr className={row.ativo ? undefined : 'row-inactive'}>
       <td>
         <strong>{row.nome}</strong>
+      </td>
+      <td>
+        <GrupoMpSelect
+          value={row.grupo_id ?? null}
+          grupos={gruposMp}
+          disabled={saving}
+          onChange={(grupoId) => void save({ grupo_id: grupoId })}
+        />
       </td>
       <td>
         <input
@@ -1252,10 +1307,12 @@ const ACABAMENTO_SORT = {
 
 function AcabamentosTable({
   rows,
+  gruposMp,
   onSaved,
   onError,
 }: {
   rows: AcabamentoRow[];
+  gruposMp: ProdutoGrupo[];
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
@@ -1273,6 +1330,7 @@ function AcabamentosTable({
                 <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Nome
                 </SortableTh>
+                <th>Grupo MP</th>
                 <SortableTh column="preco_m2" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   R$/m²
                 </SortableTh>
@@ -1287,7 +1345,13 @@ function AcabamentosTable({
             </thead>
             <tbody>
               {sorted.map((row) => (
-                <AcabamentoEditRow key={row.id} row={row} onSaved={onSaved} onError={onError} />
+                <AcabamentoEditRow
+                  key={row.id}
+                  row={row}
+                  gruposMp={gruposMp}
+                  onSaved={onSaved}
+                  onError={onError}
+                />
               ))}
             </tbody>
           </table>
@@ -1299,10 +1363,12 @@ function AcabamentosTable({
 
 function AcabamentoEditRow({
   row,
+  gruposMp,
   onSaved,
   onError,
 }: {
   row: AcabamentoRow;
+  gruposMp: ProdutoGrupo[];
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
@@ -1316,7 +1382,9 @@ function AcabamentoEditRow({
 
   const dirty = num(preco) !== row.preco_m2 || num(perda) !== row.perda_m2;
 
-  const save = async (patch: Partial<{ preco_m2: number; perda_m2: number; ativo: boolean }>) => {
+  const save = async (
+    patch: Partial<{ preco_m2: number; perda_m2: number; ativo: boolean; grupo_id: number | null }>,
+  ) => {
     setSaving(true);
     onError('');
     try {
@@ -1338,6 +1406,18 @@ function AcabamentoEditRow({
             Uso interno de rebobinação — não aparece no orçamento
           </span>
         ) : null}
+      </td>
+      <td>
+        {row.eh_rebobinacao ? (
+          '—'
+        ) : (
+          <GrupoMpSelect
+            value={row.grupo_id ?? null}
+            grupos={gruposMp}
+            disabled={saving}
+            onChange={(grupoId) => void save({ grupo_id: grupoId })}
+          />
+        )}
       </td>
       <td>
         <input
@@ -1789,16 +1869,19 @@ function MaquinaEditRow({
 
 function NewItemForm({
   tab,
+  gruposMp,
   onCancel,
   onSaved,
   onError,
 }: {
   tab: Exclude<TabId, 'matriz' | 'maquinas' | 'parametros' | 'perdas' | 'embalagem'>;
+  gruposMp: ProdutoGrupo[];
   onCancel: () => void;
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
   const [nome, setNome] = useState('');
+  const [grupoId, setGrupoId] = useState<number | null>(null);
   const [preco, setPreco] = useState('');
   const [perda, setPerda] = useState('0');
   const [tempoMin, setTempoMin] = useState('0');
@@ -1821,12 +1904,14 @@ function NewItemForm({
       if (tab === 'papeis') {
         await api.post('/orcamento-catalogo/papeis', {
           nome: nome.trim(),
+          grupo_id: grupoId,
           preco_m2: num(preco),
         });
         await onSaved(`Papel “${nome.trim()}” criado.`);
       } else if (tab === 'acabamentos') {
         await api.post('/orcamento-catalogo/acabamentos', {
           nome: nome.trim(),
+          grupo_id: grupoId,
           preco_m2: num(preco),
           perda_m2: num(perda),
         });
@@ -1861,6 +1946,12 @@ function NewItemForm({
                 placeholder="ex: BOPP BRILHO"
               />
             </div>
+            {tab === 'papeis' || tab === 'acabamentos' ? (
+              <div className="form-group span-2">
+                <label>Grupo de matéria-prima</label>
+                <GrupoMpSelect value={grupoId} grupos={gruposMp} disabled={saving} onChange={setGrupoId} />
+              </div>
+            ) : null}
             {tab === 'papeis' || tab === 'acabamentos' ? (
               <div className="form-group">
                 <label>R$/m² *</label>

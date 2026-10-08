@@ -5,7 +5,7 @@ import { opKitEstado, opKitNome, opKitOnde, parseQtdeDigitada } from './producao
 /** Como o chão escolhe o que pegar — bobina, tubete e caixa com lote = volume; o resto = unidade. */
 export type ModoRetirada = 'volume' | 'unidade';
 
-const COMPONENTES_VOLUME = new Set(['PAPEL', 'TUBETE', 'CAIXA']);
+const COMPONENTES_VOLUME = new Set(['PAPEL', 'ACABAMENTO', 'TUBETE', 'CAIXA']);
 /** Grupo no código do SKU (MP-PAP-001). Família do produto é MP, não o grupo. */
 const GRUPOS_VOLUME = ['MP-PAP', 'MP-FLM', 'MP-TEC', 'MP-LAM', 'MP-CLD', 'MP-ADF', 'MP-RET', 'PA-BOB'];
 
@@ -823,6 +823,7 @@ export function volumeCabeNaLinha(m: OrdemProducaoMaterial, v: OpRetiradaVolume)
 export function insumoComMetragem(m: OrdemProducaoMaterial): boolean {
   const comp = (m.componente ?? '').trim().toUpperCase();
   if (comp === 'TUBETE' || comp === 'CAIXA') return false;
+  if (comp === 'PAPEL' || comp === 'ACABAMENTO') return true;
   return modoRetirada(m) === 'volume';
 }
 

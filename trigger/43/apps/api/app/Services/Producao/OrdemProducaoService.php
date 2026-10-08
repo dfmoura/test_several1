@@ -85,8 +85,15 @@ class OrdemProducaoService
             'pedido.parceiro:id,codigo,razao_social',
             'pedido.orcamento:id,codigo,tolerancia_qtd_pct',
             'pedidoItem.produtoPa:id,codigo,descricao_fiscal',
-            'materiais.produto:id,codigo,descricao_fiscal,descricao_comercial,unidade_interna,familia,controla_lote,atributos',
             'paMovimento:id,codigo,tipo',
+        ]);
+
+        $empresa = Empresa::query()->findOrFail($op->empresa_id);
+        $this->sincronizarEscolhaGrupo($empresa, $op);
+
+        $op->load([
+            'materiais.produto:id,codigo,descricao_fiscal,descricao_comercial,unidade_interna,familia,grupo_id,controla_lote,atributos',
+            'materiais.grupo:id,codigo,nome',
         ]);
 
         return $this->toOut($op, true);
@@ -173,9 +180,15 @@ class OrdemProducaoService
             ->max('ordem');
 
         foreach ($linhas as $linha) {
+            $produtoId = isset($linha['produto_id']) ? (int) $linha['produto_id'] : 0;
+            $grupoId = isset($linha['grupo_id']) ? (int) $linha['grupo_id'] : 0;
             $exists = OrdemProducaoMaterial::query()
                 ->where('ordem_producao_id', $op->id)
-                ->where('produto_id', $linha['produto_id'])
+                ->when(
+                    $produtoId > 0,
+                    fn ($q) => $q->where('produto_id', $produtoId),
+                    fn ($q) => $q->where('componente', $linha['componente'])->whereNull('produto_id'),
+                )
                 ->exists();
             if ($exists) {
                 continue;
@@ -185,7 +198,8 @@ class OrdemProducaoService
             OrdemProducaoMaterial::query()->create([
                 'empresa_id' => $empresa->id,
                 'ordem_producao_id' => $op->id,
-                'produto_id' => $linha['produto_id'],
+                'produto_id' => $produtoId > 0 ? $produtoId : null,
+                'grupo_id' => $grupoId > 0 ? $grupoId : null,
                 'qtde_planejada' => $linha['qtde'],
                 'qtde_requisitada' => '0',
                 'qtde_consumida' => '0',
@@ -200,11 +214,66 @@ class OrdemProducaoService
     }
 
     /**
+     * OP já aberta: o grupo marcado no catálogo entra na linha, sem trocar um SKU já retirado.
+     */
+    private function sincronizarEscolhaGrupo(Empresa $empresa, OrdemProducao $op): void
+    {
+        if (! in_array($op->status, OrdemProducao::STATUSES_ABERTOS, true)) {
+            return;
+        }
+        $op->loadMissing(['pedido', 'pedidoItem', 'materiais']);
+        if (! $op->pedido || ! $op->pedidoItem) {
+            return;
+        }
+
+        $linhas = $this->bom->diagnostico($empresa, $op->pedido, $op->pedidoItem)['linhas'];
+        $ordem = (int) $op->materiais->max('ordem');
+        foreach ($linhas as $linha) {
+            $grupoId = (int) ($linha['grupo_id'] ?? 0);
+            if ($grupoId <= 0) {
+                continue;
+            }
+            $comp = (string) $linha['componente'];
+            $mat = $op->materiais->first(
+                fn (OrdemProducaoMaterial $m) => strtoupper((string) $m->componente) === $comp
+            );
+            if (! $mat) {
+                $ordem++;
+                $criada = OrdemProducaoMaterial::query()->create([
+                    'empresa_id' => $empresa->id,
+                    'ordem_producao_id' => $op->id,
+                    'produto_id' => null,
+                    'grupo_id' => $grupoId,
+                    'qtde_planejada' => $linha['qtde'],
+                    'qtde_requisitada' => '0',
+                    'qtde_consumida' => '0',
+                    'qtde_retorno' => '0',
+                    'qtde_perda' => '0',
+                    'unidade' => $linha['unidade'],
+                    'componente' => $comp,
+                    'origem_texto' => $linha['origem_texto'],
+                    'ordem' => $ordem,
+                ]);
+                $op->materiais->push($criada);
+
+                continue;
+            }
+            if ($mat->saida_movimento_id) {
+                continue;
+            }
+            if ((int) $mat->grupo_id !== $grupoId) {
+                $mat->grupo_id = $grupoId;
+                $mat->save();
+            }
+        }
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
-    public function volumesParaEscolha(Empresa $empresa, OrdemProducao $op, int $materialId): array
+    public function volumesParaEscolha(Empresa $empresa, OrdemProducao $op, int $materialId, ?int $produtoId = null): array
     {
-        return $this->coleta->volumesParaEscolha($empresa, $op, $materialId);
+        return $this->coleta->volumesParaEscolha($empresa, $op, $materialId, $produtoId);
     }
 
     /**
@@ -255,8 +324,11 @@ class OrdemProducaoService
                 ]);
             }
             $produtoId = (int) $matPendente->produto_id;
-            $matPendente->loadMissing('produto:id,controla_lote');
-            if ($volumesIn !== [] && $matPendente->produto && ! $matPendente->produto->controla_lote) {
+            $matPendente->loadMissing('produto:id,controla_lote,grupo_id');
+            $escolhaGrupo = (int) $matPendente->grupo_id > 0
+                && in_array(strtoupper((string) $matPendente->componente), ['PAPEL', 'ACABAMENTO'], true)
+                && $matPendente->saida_movimento_id === null;
+            if ($volumesIn !== [] && ! $escolhaGrupo && $matPendente->produto && ! $matPendente->produto->controla_lote) {
                 throw ValidationException::withMessages([
                     'volumes' => ['Este item não usa volume. Informe a quantidade.'],
                 ]);
@@ -265,7 +337,21 @@ class OrdemProducaoService
                 $produtoId = $produtoDosVolumes;
             }
             $pedidoProduto = isset($data['produto_id']) ? (int) $data['produto_id'] : 0;
-            if (! $matPendente->saida_movimento_id
+            if ($escolhaGrupo) {
+                $alvo = $produtoDosVolumes ?: $pedidoProduto;
+                if ($alvo <= 0) {
+                    $gravado = (int) $matPendente->produto_id;
+                    if ($gravado > 0 && $this->coleta->produtoNoGrupo($empresa, $matPendente, $gravado)) {
+                        $alvo = $gravado;
+                    }
+                }
+                if ($alvo <= 0 || ! $this->coleta->produtoNoGrupo($empresa, $matPendente, $alvo)) {
+                    throw ValidationException::withMessages([
+                        'produto_id' => ['Escolha um item com saldo do grupo de matéria-prima.'],
+                    ]);
+                }
+                $produtoId = $alvo;
+            } elseif (! $matPendente->saida_movimento_id
                 && $produtoDosVolumes === null
                 && $pedidoProduto > 0
                 && $pedidoProduto !== $produtoId
@@ -463,7 +549,13 @@ class OrdemProducaoService
             ->whereNull('saida_movimento_id')
             ->where('qtde_planejada', '>', 0)
             ->orderBy('ordem')
-            ->get();
+            ->get()
+            ->reject(function (OrdemProducaoMaterial $mat): bool {
+                $comp = strtoupper((string) $mat->componente);
+
+                return (int) $mat->grupo_id > 0 && in_array($comp, ['PAPEL', 'ACABAMENTO'], true);
+            })
+            ->values();
 
         if ($pendentes->isEmpty()) {
             throw ValidationException::withMessages([
@@ -1516,13 +1608,24 @@ class OrdemProducaoService
                     : PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);
             }
             $aguardando = $pendente && bccomp($faltante, '0', PadraoDecimal::SCALE_QTY) > 0;
+            $comp = strtoupper((string) $m->componente);
+            $escolher = $pendente
+                && $m->grupo
+                && in_array($comp, ['PAPEL', 'ACABAMENTO'], true);
+            if ($escolher) {
+                $disponivel = PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);
+                $faltante = bccomp($planejada, '0', PadraoDecimal::SCALE_QTY) > 0
+                    ? $planejada
+                    : PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);
+                $aguardando = bccomp($faltante, '0', PadraoDecimal::SCALE_QTY) > 0;
+            }
             if ($aguardando) {
                 $linhasComFaltante++;
             }
 
             return [
                 'id' => $m->id,
-                'produto' => $m->produto ? [
+                'produto' => ! $escolher && $m->produto ? [
                     'id' => $m->produto->id,
                     'codigo' => $m->produto->codigo,
                     'descricao_fiscal' => $m->produto->descricao_fiscal,
@@ -1534,9 +1637,17 @@ class OrdemProducaoService
                 ] : null,
                 'componente' => $m->componente,
                 'origem_texto' => $m->origem_texto,
-                'opcoes' => $pendente && $m->produto && ! $m->produto->controla_lote
-                    ? $this->coleta->opcoesUnidade($empresa, $m)
-                    : [],
+                'grupo' => $m->grupo ? [
+                    'id' => (int) $m->grupo->id,
+                    'codigo' => $m->grupo->codigo,
+                    'nome' => $m->grupo->nome,
+                ] : null,
+                'escolher_produto' => $escolher,
+                'opcoes' => $escolher
+                    ? $this->coleta->opcoesGrupo($empresa, $m)
+                    : ($pendente && $m->produto && ! $m->produto->controla_lote
+                        ? $this->coleta->opcoesUnidade($empresa, $m)
+                        : []),
                 'qtde_planejada' => (string) $m->qtde_planejada,
                 'qtde_requisitada' => (string) $m->qtde_requisitada,
                 'qtde_avaria' => (string) ($m->qtde_avaria ?? '0'),
@@ -1548,14 +1659,14 @@ class OrdemProducaoService
                 'unidade' => $m->unidade,
                 'pendente' => $pendente,
                 'qtde_disponivel' => $disponivel,
-                'local' => $m->produto?->controla_lote
+                'local' => $escolher || $m->produto?->controla_lote
                     ? null
                     : $saldos->get((int) $m->produto_id)?->endereco?->resumo(),
                 'qtde_faltante' => $faltante,
                 'aguardando_material' => $aguardando,
                 'saida_movimento_id' => $m->saida_movimento_id,
                 'retorno_movimento_id' => $m->retorno_movimento_id,
-                'retirada' => $m->produto ? $this->coleta->daLinha($empresa, $o, $m) : null,
+                'retirada' => ! $escolher && $m->produto ? $this->coleta->daLinha($empresa, $o, $m) : null,
             ];
         })->all();
 

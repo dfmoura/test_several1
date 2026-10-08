@@ -26,6 +26,7 @@ class OrdemProducaoMaterial extends Model
         'unidade',
         'componente',
         'origem_texto',
+        'grupo_id',
         'saida_movimento_id',
         'retorno_movimento_id',
         'ordem',
@@ -63,6 +64,11 @@ class OrdemProducaoMaterial extends Model
     public function produto(): BelongsTo
     {
         return $this->belongsTo(Produto::class);
+    }
+
+    public function grupo(): BelongsTo
+    {
+        return $this->belongsTo(ProdutoGrupo::class, 'grupo_id');
     }
 
     public function saidaMovimento(): BelongsTo

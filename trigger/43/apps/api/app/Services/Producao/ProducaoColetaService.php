@@ -518,6 +518,87 @@ class ProducaoColetaService
     }
 
     /**
+     * SKU ativo do grupo da linha, com saldo. A tela não pré-seleciona.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function opcoesGrupo(Empresa $empresa, OrdemProducaoMaterial $mat): array
+    {
+        $grupoId = (int) $mat->grupo_id;
+        if ($grupoId <= 0) {
+            return [];
+        }
+
+        $produtos = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('situacao', 'ATIVO')
+            ->where('familia', 'MP')
+            ->where('grupo_id', $grupoId)
+            ->orderBy('codigo')
+            ->get([
+                'id',
+                'codigo',
+                'descricao_fiscal',
+                'descricao_comercial',
+                'controla_lote',
+                'unidade_interna',
+            ]);
+        if ($produtos->isEmpty()) {
+            return [];
+        }
+
+        $saldos = EstoqueSaldo::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('produto_id', $produtos->pluck('id'))
+            ->get()
+            ->groupBy('produto_id');
+
+        $linhas = [];
+        foreach ($produtos as $produto) {
+            $rows = $saldos->get($produto->id);
+            $qtde = '0';
+            if ($rows) {
+                foreach ($rows as $saldo) {
+                    $qtde = PadraoDecimal::roundHalfUp(
+                        bcadd($qtde, (string) $saldo->qtde, PadraoDecimal::SCALE_QTY + 4),
+                        PadraoDecimal::SCALE_QTY
+                    );
+                }
+            }
+            if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                continue;
+            }
+            $linhas[] = [
+                'produto_id' => (int) $produto->id,
+                'codigo' => $produto->codigo,
+                'descricao' => $this->nomeProduto($produto),
+                'qtde_disponivel' => $qtde,
+                'local' => null,
+                'detalhe' => null,
+                'controla_lote' => (bool) $produto->controla_lote,
+                'unidade' => $produto->unidade_interna,
+            ];
+        }
+
+        return $linhas;
+    }
+
+    public function produtoNoGrupo(Empresa $empresa, OrdemProducaoMaterial $mat, int $produtoId): bool
+    {
+        if ($produtoId <= 0 || (int) $mat->grupo_id <= 0) {
+            return false;
+        }
+
+        return Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('id', $produtoId)
+            ->where('situacao', 'ATIVO')
+            ->where('familia', 'MP')
+            ->where('grupo_id', $mat->grupo_id)
+            ->exists();
+    }
+
+    /**
      * @param  array<string, mixed>  $linha
      * @return array<string, mixed>
      */
@@ -808,7 +889,7 @@ class ProducaoColetaService
      *
      * @return list<array<string, mixed>>
      */
-    public function volumesParaEscolha(Empresa $empresa, OrdemProducao $op, int $materialId): array
+    public function volumesParaEscolha(Empresa $empresa, OrdemProducao $op, int $materialId, ?int $produtoEscolhido = null): array
     {
         if ($op->empresa_id !== $empresa->id) {
             abort(404);
@@ -827,6 +908,16 @@ class ProducaoColetaService
         }
 
         $produtoLinha = $mat->produto;
+        $comp = strtoupper((string) $mat->componente);
+        if ((int) $mat->grupo_id > 0 && in_array($comp, ['PAPEL', 'ACABAMENTO'], true)) {
+            $produtoEscolhido = (int) $produtoEscolhido;
+            if ($produtoEscolhido <= 0 || ! $this->produtoNoGrupo($empresa, $mat, $produtoEscolhido)) {
+                return [];
+            }
+
+            return $this->volumesDoProduto($empresa, $produtoEscolhido);
+        }
+
         $texto = trim(implode(' ', array_filter([
             (string) ($mat->origem_texto ?? ''),
             (string) ($produtoLinha->descricao_fiscal ?? ''),
@@ -902,6 +993,35 @@ class ProducaoColetaService
 
             return strcmp((string) ($a['sku'] ?? ''), (string) ($b['sku'] ?? ''));
         });
+
+        return $linhas;
+    }
+
+    /**
+     * Bobinas de um SKU já escolhido no grupo. Sem sugerir outro produto.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function volumesDoProduto(Empresa $empresa, int $produtoId): array
+    {
+        $lotes = EstoqueLote::query()
+            ->with([
+                'endereco:id,codigo',
+                'produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_interna,controla_lote,empresa_id',
+            ])
+            ->where('empresa_id', $empresa->id)
+            ->where('produto_id', $produtoId)
+            ->where('qtde', '>', 0)
+            ->orderByRaw('data_validade is null')
+            ->orderBy('data_validade')
+            ->orderBy('id')
+            ->get();
+
+        $linhas = [];
+        foreach ($lotes as $lote) {
+            $row = $this->volumeToOut($lote, '0', false, 'ESTOQUE', null);
+            $linhas[] = $this->identificarProduto($row, $lote->produto);
+        }
 
         return $linhas;
     }

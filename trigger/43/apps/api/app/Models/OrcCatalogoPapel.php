@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrcCatalogoPapel extends Model
 {
@@ -11,6 +12,7 @@ class OrcCatalogoPapel extends Model
     protected $fillable = [
         'empresa_id',
         'nome',
+        'grupo_id',
         'preco_m2',
         'ativo',
         'ordem',
@@ -23,5 +25,10 @@ class OrcCatalogoPapel extends Model
             'ativo' => 'boolean',
             'ordem' => 'integer',
         ];
+    }
+
+    public function grupo(): BelongsTo
+    {
+        return $this->belongsTo(ProdutoGrupo::class, 'grupo_id');
     }
 }

@@ -47,6 +47,7 @@ class OrdemProducaoController extends Controller
 
         $data = $request->validate([
             'material_id' => ['required', 'integer'],
+            'produto_id' => ['nullable', 'integer'],
         ]);
 
         return response()->json([
@@ -54,6 +55,7 @@ class OrdemProducaoController extends Controller
                 $this->empresa(),
                 $ordemProducao,
                 (int) $data['material_id'],
+                isset($data['produto_id']) ? (int) $data['produto_id'] : null,
             ),
         ]);
     }

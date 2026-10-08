@@ -3,31 +3,21 @@
 namespace App\Services\Producao;
 
 use App\Models\Empresa;
+use App\Models\OrcCatalogoAcabamento;
+use App\Models\OrcCatalogoPapel;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\Produto;
+use App\Services\Comercial\Orcamento\OrcamentoCatalogo;
 use App\Support\PadraoDecimal;
 
 /**
  * Deriva BOM leve da OP a partir do snapshot do PED/ORC (estudo 32 PRODUCAO §2.2).
- * Não baixa estoque — só sugere SKU + qtde planejada (empenho leve).
+ * Papel e acabamento em bobina usam o grupo do catálogo. Não casa SKU pelo texto.
+ * Não baixa estoque — só qtde planejada (empenho leve).
  */
 class OpBomDeriver
 {
-    /** Tokens genéricos que não ajudam no match. */
-    private const STOP = [
-        'AUTOADESIVO', 'AUTO', 'ADESIVO', 'PAPEL', 'FILME', 'DE', 'DA', 'DO', 'COM',
-        'PARA', 'THE', 'AND', 'COLACRIL', 'FASSON', 'VERTEX', 'RITRAMA', 'G',
-    ];
-
-    /** Sinônimos comerciais → tokens de cadastro. */
-    private const SYNONYMS = [
-        'PRATA' => ['METALIZADO', 'PRATA'],
-        'METALIZADO' => ['METALIZADO', 'PRATA'],
-        'TRANSP' => ['TRANSPARENTE'],
-        'TRANSPARENTE' => ['TRANSPARENTE'],
-    ];
-
     /**
      * @return list<array{
      *   produto_id: int,
@@ -56,7 +46,8 @@ class OpBomDeriver
     /**
      * @return array{
      *   linhas: list<array{
-     *     produto_id: int,
+     *     produto_id: int|null,
+     *     grupo_id?: int|null,
      *     qtde: string,
      *     unidade: string,
      *     componente: string,
@@ -76,18 +67,17 @@ class OpBomDeriver
         $usedProdutoIds = [];
 
         if ($ctx['papel'] !== '' && $ctx['papel_m2'] > 0) {
-            $match = $this->matchProduto($empresa, $ctx['papel'], ['MP'], $usedProdutoIds);
-            if ($match) {
-                $qtde = $this->qtdeParaUnidade($match, $ctx['papel_m2'], $ctx['metragem']);
+            $grupoId = $this->grupoDoCatalogo($empresa, 'papel', $ctx['papel']);
+            if ($grupoId) {
                 $out[] = [
-                    'produto_id' => (int) $match->id,
-                    'qtde' => $qtde,
-                    'unidade' => (string) ($match->unidade_interna ?: 'M2'),
+                    'produto_id' => null,
+                    'grupo_id' => $grupoId,
+                    'qtde' => $this->qtdeSnapshot($ctx['papel_m2']),
+                    'unidade' => 'M2',
                     'componente' => 'PAPEL',
                     'origem_texto' => $ctx['papel'],
-                    'match_score' => (int) ($match->getAttribute('_score') ?? 0),
+                    'match_score' => 0,
                 ];
-                $usedProdutoIds[] = (int) $match->id;
             } else {
                 $naoCasados[] = [
                     'componente' => 'PAPEL',
@@ -95,7 +85,7 @@ class OpBomDeriver
                     'qtde' => $this->qtdeSnapshot($ctx['papel_m2']),
                     'unidade' => 'M2',
                     'metragem' => $ctx['metragem'] > 0 ? $this->qtdeSnapshot($ctx['metragem']) : null,
-                    'motivo' => 'Nenhum SKU MP casado ao texto do orçamento nesta empresa.',
+                    'motivo' => 'Informe o grupo de matéria-prima deste papel no catálogo do orçamento.',
                 ];
             }
         }
@@ -141,6 +131,21 @@ class OpBomDeriver
                     'qtde' => $this->qtdeSnapshot($ctx['caixas']),
                     'unidade' => 'UN',
                     'motivo' => 'Nenhum SKU de caixa (EMB) cadastrado nesta empresa.',
+                ];
+            }
+        }
+
+        if ($ctx['acabamento'] !== '' && $ctx['acab_m2'] > 0) {
+            $grupoAcab = $this->grupoDoCatalogo($empresa, 'acabamento', $ctx['acabamento']);
+            if ($grupoAcab) {
+                $out[] = [
+                    'produto_id' => null,
+                    'grupo_id' => $grupoAcab,
+                    'qtde' => $this->qtdeSnapshot($ctx['acab_m2']),
+                    'unidade' => 'M2',
+                    'componente' => 'ACABAMENTO',
+                    'origem_texto' => $ctx['acabamento'],
+                    'match_score' => 0,
                 ];
             }
         }
@@ -250,53 +255,29 @@ class OpBomDeriver
     }
 
     /**
-     * @param  list<string>  $familias
-     * @param  list<int>  $excludeIds
+     * Grupo de matéria-prima marcado no catálogo. Nome exato. Sem ler o texto para achar SKU.
      */
-    private function matchProduto(Empresa $empresa, string $needle, array $familias, array $excludeIds): ?Produto
+    private function grupoDoCatalogo(Empresa $empresa, string $tipo, string $nome): ?int
     {
-        $tokens = $this->tokens($needle);
-        if ($tokens === []) {
+        $nome = OrcamentoCatalogo::norm($nome);
+        if ($nome === '' || preg_match('/^sem\s/i', $nome) === 1) {
+            return null;
+        }
+        if ($tipo === 'acabamento' && mb_strtoupper($nome, 'UTF-8') === 'REBOBINAÇÃO') {
             return null;
         }
 
-        $expanded = $this->expandTokens($tokens);
+        $query = $tipo === 'acabamento'
+            ? OrcCatalogoAcabamento::query()
+            : OrcCatalogoPapel::query();
 
-        $candidatos = Produto::query()
+        $grupoId = $query
             ->where('empresa_id', $empresa->id)
-            ->where('situacao', 'ATIVO')
-            ->whereIn('familia', $familias)
-            ->when($excludeIds !== [], fn ($q) => $q->whereNotIn('id', $excludeIds))
-            ->get(['id', 'codigo', 'descricao_fiscal', 'descricao_comercial', 'unidade_interna', 'familia', 'atributos', 'fator_conversao']);
+            ->where('ativo', true)
+            ->where('nome', $nome)
+            ->value('grupo_id');
 
-        $best = null;
-        $bestScore = 0;
-
-        foreach ($candidatos as $p) {
-            $hay = $this->normalize(
-                ($p->codigo ?? '').' '.($p->descricao_fiscal ?? '').' '.($p->descricao_comercial ?? '')
-            );
-            $score = 0;
-            foreach ($expanded as $tok) {
-                if ($tok !== '' && str_contains($hay, $tok)) {
-                    $score += strlen($tok) >= 4 ? 3 : 2;
-                }
-            }
-            // Bônus se a frase do ORC aparece quase inteira
-            $frase = $this->normalize($needle);
-            if ($frase !== '' && str_contains($hay, $frase)) {
-                $score += 10;
-            }
-
-            if ($score > $bestScore) {
-                $bestScore = $score;
-                $p->setAttribute('_score', $score);
-                $best = $p;
-            }
-        }
-
-        // Exige pelo menos 1 token forte (score >= 2)
-        return $bestScore >= 2 ? $best : null;
+        return $grupoId ? (int) $grupoId : null;
     }
 
     /**
@@ -390,66 +371,6 @@ class OpBomDeriver
         }
 
         return $best;
-    }
-
-    private function qtdeParaUnidade(Produto $produto, float $papelM2, float $metragem): string
-    {
-        $u = strtoupper(trim((string) ($produto->unidade_interna ?: 'M2')));
-
-        if (in_array($u, ['M2', 'M²'], true)) {
-            return PadraoDecimal::roundHalfUp((string) $papelM2, PadraoDecimal::SCALE_QTY);
-        }
-        if (in_array($u, ['M', 'MT', 'ML'], true) && $metragem > 0) {
-            return PadraoDecimal::roundHalfUp((string) $metragem, PadraoDecimal::SCALE_QTY);
-        }
-
-        $attrs = is_array($produto->atributos) ? $produto->atributos : [];
-        $gramatura = isset($attrs['gramatura_g_m2']) ? (float) $attrs['gramatura_g_m2'] : 0.0;
-        if ($u === 'KG' && $gramatura > 0 && $papelM2 > 0) {
-            $kg = ($papelM2 * $gramatura) / 1000.0;
-
-            return PadraoDecimal::roundHalfUp((string) $kg, PadraoDecimal::SCALE_QTY);
-        }
-
-        // Fallback: usa m² (operador ajusta na requisição se a unidade divergir)
-        return PadraoDecimal::roundHalfUp((string) $papelM2, PadraoDecimal::SCALE_QTY);
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function tokens(string $text): array
-    {
-        $norm = $this->normalize($text);
-        $parts = preg_split('/[^A-Z0-9]+/', $norm) ?: [];
-        $out = [];
-        foreach ($parts as $p) {
-            if ($p === '' || strlen($p) < 2) {
-                continue;
-            }
-            if (in_array($p, self::STOP, true)) {
-                continue;
-            }
-            $out[] = $p;
-        }
-
-        return array_values(array_unique($out));
-    }
-
-    /**
-     * @param  list<string>  $tokens
-     * @return list<string>
-     */
-    private function expandTokens(array $tokens): array
-    {
-        $out = $tokens;
-        foreach ($tokens as $t) {
-            foreach (self::SYNONYMS[$t] ?? [] as $syn) {
-                $out[] = $syn;
-            }
-        }
-
-        return array_values(array_unique($out));
     }
 
     private function normalize(string $text): string

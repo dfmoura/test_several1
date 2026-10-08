@@ -53,6 +53,7 @@ class OrcamentoCatalogoController extends Controller
         $this->authorizeManage($request);
         $data = $request->validate([
             'nome' => ['required', 'string', 'min:2', 'max:160'],
+            'grupo_id' => ['nullable', 'integer', 'exists:produto_grupos,id'],
             'preco_m2' => ['required', 'numeric', 'min:0', 'max:999999'],
             'ativo' => ['sometimes', 'boolean'],
             'ordem' => ['sometimes', 'integer', 'min:0', 'max:9999'],
@@ -66,6 +67,7 @@ class OrcamentoCatalogoController extends Controller
         $this->authorizeManage($request);
         $data = $request->validate([
             'nome' => ['sometimes', 'string', 'min:2', 'max:160'],
+            'grupo_id' => ['nullable', 'integer', 'exists:produto_grupos,id'],
             'preco_m2' => ['sometimes', 'numeric', 'min:0', 'max:999999'],
             'ativo' => ['sometimes', 'boolean'],
             'ordem' => ['sometimes', 'integer', 'min:0', 'max:9999'],
@@ -86,6 +88,7 @@ class OrcamentoCatalogoController extends Controller
         $this->authorizeManage($request);
         $data = $request->validate([
             'nome' => ['required', 'string', 'min:2', 'max:160'],
+            'grupo_id' => ['nullable', 'integer', 'exists:produto_grupos,id'],
             'preco_m2' => ['required', 'numeric', 'min:0', 'max:999999'],
             'perda_m2' => ['sometimes', 'numeric', 'min:0', 'max:999999'],
             'ativo' => ['sometimes', 'boolean'],
@@ -100,6 +103,7 @@ class OrcamentoCatalogoController extends Controller
         $this->authorizeManage($request);
         $data = $request->validate([
             'nome' => ['sometimes', 'string', 'min:2', 'max:160'],
+            'grupo_id' => ['nullable', 'integer', 'exists:produto_grupos,id'],
             'preco_m2' => ['sometimes', 'numeric', 'min:0', 'max:999999'],
             'perda_m2' => ['sometimes', 'numeric', 'min:0', 'max:999999'],
             'ativo' => ['sometimes', 'boolean'],

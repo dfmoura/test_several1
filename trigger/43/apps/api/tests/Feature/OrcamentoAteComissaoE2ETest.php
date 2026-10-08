@@ -12,7 +12,9 @@ use App\Models\EstoqueMovimento;
 use App\Models\EstoqueSaldo;
 use App\Models\Faturamento;
 use App\Models\NaturezaGerencial;
+use App\Models\OrcCatalogoPapel;
 use App\Models\Orcamento;
+use App\Models\ProdutoGrupo;
 use App\Models\Parceiro;
 use App\Models\ParceiroContato;
 use App\Models\Pedido;
@@ -170,10 +172,19 @@ class OrcamentoAteComissaoE2ETest extends TestCase
             'ordem' => 0,
         ]);
 
+        $filme = ProdutoGrupo::query()->create([
+            'codigo' => 'MP-FLM',
+            'nome' => 'Filmes',
+            'familia' => 'MP',
+            'natureza' => 'COMPRA',
+            'tipo_item_sped' => '01',
+            'situacao' => 'ATIVO',
+        ]);
         $this->mp = Produto::query()->create([
             'empresa_id' => $this->empresa->id,
             'codigo' => 'MP-FLM-901',
             'familia' => 'MP',
+            'grupo_id' => $filme->id,
             'descricao_fiscal' => 'BOPP PRATA AUTOADESIVO COLACRIL BXT',
             'unidade_comercial' => 'M2',
             'unidade_interna' => 'M2',
@@ -204,6 +215,15 @@ class OrcamentoAteComissaoE2ETest extends TestCase
             'fator_conversao' => '1',
             'situacao' => 'ATIVO',
             'custo_medio' => '0',
+        ]);
+
+        OrcCatalogoPapel::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'nome' => 'BOPP PRATA BXT',
+            'grupo_id' => $filme->id,
+            'preco_m2' => 1,
+            'ativo' => true,
+            'ordem' => 1,
         ]);
 
         EstoqueSaldo::query()->create([
@@ -362,8 +382,16 @@ class OrcamentoAteComissaoE2ETest extends TestCase
         $opId = (int) $op->json('data.id');
         $papel = collect($op->json('data.materiais'))->firstWhere('componente', 'PAPEL');
         $this->assertNotNull($papel);
-        $this->assertSame($this->mp->id, $papel['produto']['id']);
+        $this->assertTrue($papel['escolher_produto']);
+        $this->assertNull($papel['produto']);
+        $this->assertSame('MP-FLM', $papel['grupo']['codigo']);
 
+        $this->withHeaders($h)
+            ->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+                'material_id' => $papel['id'],
+                'produto_id' => $this->mp->id,
+            ])
+            ->assertOk();
         $this->withHeaders($h)
             ->postJson("/api/v1/ordens-producao/{$opId}/requisitar-pendentes")
             ->assertOk();

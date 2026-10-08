@@ -3332,6 +3332,7 @@ export type OpInsumoOpcao = {
   qtde_disponivel: string;
   local?: { id: number; codigo: string; nome?: string | null } | null;
   detalhe?: string | null;
+  controla_lote?: boolean;
 };
 
 export type OrdemProducaoMaterial = {
@@ -3346,11 +3347,13 @@ export type OrdemProducaoMaterial = {
     controla_lote?: boolean;
     largura_mm?: string | null;
   } | null;
-  /** Tubete da polegada aprovada, ou caixa da medida aprovada, com saldo. */
+  /** Tubete da polegada aprovada, caixa da medida, ou bobina do grupo de matéria-prima, com saldo. */
   opcoes?: OpInsumoOpcao[];
   retirada?: OpRetiradaPreview;
   componente?: string | null;
   origem_texto?: string | null;
+  grupo?: { id: number; codigo: string; nome: string } | null;
+  escolher_produto?: boolean;
   qtde_planejada?: string;
   qtde_requisitada: string;
   qtde_avaria?: string;

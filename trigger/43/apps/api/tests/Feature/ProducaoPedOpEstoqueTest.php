@@ -5,7 +5,10 @@ namespace Tests\Feature;
 use App\Models\Empresa;
 use App\Models\EstoqueMovimento;
 use App\Models\EstoqueSaldo;
+use App\Models\OrcCatalogoPapel;
 use App\Models\Orcamento;
+use App\Models\OrdemProducaoMaterial;
+use App\Models\ProdutoGrupo;
 use App\Models\OrcamentoLinkAprovacao;
 use App\Models\Parceiro;
 use App\Models\ParceiroContato;
@@ -87,10 +90,19 @@ class ProducaoPedOpEstoqueTest extends TestCase
             'ordem' => 0,
         ]);
 
+        $filme = ProdutoGrupo::query()->create([
+            'codigo' => 'MP-FLM',
+            'nome' => 'Filmes',
+            'familia' => 'MP',
+            'natureza' => 'COMPRA',
+            'tipo_item_sped' => '01',
+            'situacao' => 'ATIVO',
+        ]);
         $this->mp = Produto::query()->create([
             'empresa_id' => $this->empresa->id,
             'codigo' => 'MP-FLM-901',
             'familia' => 'MP',
+            'grupo_id' => $filme->id,
             'descricao_fiscal' => 'BOPP PRATA AUTOADESIVO COLACRIL BXT',
             'unidade_comercial' => 'M2',
             'unidade_interna' => 'M2',
@@ -121,6 +133,15 @@ class ProducaoPedOpEstoqueTest extends TestCase
             'fator_conversao' => '1',
             'situacao' => 'ATIVO',
             'custo_medio' => '0',
+        ]);
+
+        OrcCatalogoPapel::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'nome' => 'BOPP PRATA BXT',
+            'grupo_id' => $filme->id,
+            'preco_m2' => 1,
+            'ativo' => true,
+            'ordem' => 1,
         ]);
 
         EstoqueSaldo::query()->create([
@@ -254,13 +275,16 @@ class ProducaoPedOpEstoqueTest extends TestCase
         $papelLinha = collect($materiais)->firstWhere('componente', 'PAPEL');
         $this->assertNotNull($papelLinha);
         $this->assertTrue($papelLinha['pendente']);
-        $this->assertSame($this->mp->id, $papelLinha['produto']['id']);
+        $this->assertTrue($papelLinha['escolher_produto']);
+        $this->assertNull($papelLinha['produto']);
+        $this->assertSame('MP-FLM', $papelLinha['grupo']['codigo']);
 
         $qtdePlanejada = (string) $papelLinha['qtde_planejada'];
         $this->assertTrue(bccomp($qtdePlanejada, '0', 4) > 0);
 
         $req = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
             'material_id' => $papelLinha['id'],
+            'produto_id' => $this->mp->id,
         ]);
         $req->assertOk();
         $this->assertSame('EM_ANDAMENTO', $req->json('data.status'));
@@ -449,7 +473,7 @@ class ProducaoPedOpEstoqueTest extends TestCase
         $this->assertNotNull($tubete, 'Fixture deve casar tubete para este cenário');
 
         EstoqueSaldo::query()->updateOrCreate(
-            ['empresa_id' => $this->empresa->id, 'produto_id' => (int) $papel['produto']['id']],
+            ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
             [
                 'qtde' => bcadd((string) $papel['qtde_planejada'], '50.0000', 4),
                 'unidade' => 'M2',
@@ -1256,10 +1280,14 @@ class ProducaoPedOpEstoqueTest extends TestCase
 
         $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
         $this->assertNotNull($papel);
+        $this->assertTrue($papel['escolher_produto']);
+        $this->assertNull($papel['produto']);
         $this->assertArrayHasKey('qtde_disponivel', $papel);
         $this->assertArrayHasKey('qtde_faltante', $papel);
         $this->assertArrayHasKey('aguardando_material', $papel);
-        $this->assertSame('500.0000', $papel['qtde_disponivel']);
+        $opcaoPapel = collect($papel['opcoes'])->firstWhere('produto_id', $this->mp->id);
+        $this->assertNotNull($opcaoPapel);
+        $this->assertSame('500.0000', $opcaoPapel['qtde_disponivel']);
         $this->assertIsArray($show->json('data.disponibilidade.componentes_nao_casados'));
 
         // Abastece todos os SKUs da OP com folga sobre o planejado.
@@ -1277,10 +1305,9 @@ class ProducaoPedOpEstoqueTest extends TestCase
 
         $ok = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
         $papelOk = collect($ok->json('data.materiais'))->firstWhere('componente', 'PAPEL');
-        $this->assertFalse($papelOk['aguardando_material']);
-        $this->assertSame('0.0000', $papelOk['qtde_faltante']);
-        $this->assertFalse($ok->json('data.disponibilidade.aguardando_material'));
-        $this->assertSame(0, (int) $ok->json('data.disponibilidade.linhas_com_faltante'));
+        $this->assertTrue($papelOk['escolher_produto']);
+        $this->assertTrue($papelOk['aguardando_material']);
+        $this->assertNotNull(collect($papelOk['opcoes'])->firstWhere('produto_id', $this->mp->id));
     }
 
     public function test_op_marca_aguardando_material_quando_saldo_insuficiente(): void
@@ -1367,6 +1394,10 @@ class ProducaoPedOpEstoqueTest extends TestCase
         $opId = (int) $this->withHeaders($h)->postJson("/api/v1/pedidos/{$pedido->id}/abrir-op", [
             'pedido_item_id' => $itemId,
         ])->assertCreated()->json('data.id');
+        OrdemProducaoMaterial::query()
+            ->where('ordem_producao_id', $opId)
+            ->where('componente', 'PAPEL')
+            ->update(['produto_id' => $this->mp->id]);
 
         return [$pedido, $itemId, $opId];
     }

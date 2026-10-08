@@ -3,9 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Empresa;
+use App\Models\OrcCatalogoAcabamento;
+use App\Models\OrcCatalogoPapel;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\Produto;
+use App\Models\ProdutoGrupo;
 use App\Services\Producao\OpBomDeriver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -49,8 +52,9 @@ class OpBomFaixaDoItemTest extends TestCase
             ],
         ]);
 
-        $linhas = app(OpBomDeriver::class)->derivar($empresa, $pedido, $item);
-        $papel = collect($linhas)->firstWhere('componente', 'PAPEL');
+        $diag = app(OpBomDeriver::class)->diagnostico($empresa, $pedido, $item);
+        $this->assertNull(collect($diag['linhas'])->firstWhere('componente', 'PAPEL'));
+        $papel = collect($diag['nao_casados'])->firstWhere('componente', 'PAPEL');
 
         $this->assertNotNull($papel);
         $this->assertSame(0, bccomp((string) $papel['qtde'], '40', 4));
@@ -85,8 +89,9 @@ class OpBomFaixaDoItemTest extends TestCase
             'especificacao' => ['papel' => 'BOPP PRATA'],
         ]);
 
-        $linhas = app(OpBomDeriver::class)->derivar($empresa, $pedido, $item);
-        $papel = collect($linhas)->firstWhere('componente', 'PAPEL');
+        $diag = app(OpBomDeriver::class)->diagnostico($empresa, $pedido, $item);
+        $this->assertNull(collect($diag['linhas'])->firstWhere('componente', 'PAPEL'));
+        $papel = collect($diag['nao_casados'])->firstWhere('componente', 'PAPEL');
 
         $this->assertNotNull($papel);
         $this->assertSame(0, bccomp((string) $papel['qtde'], '10', 4));
@@ -132,5 +137,81 @@ class OpBomFaixaDoItemTest extends TestCase
         ]);
         $sem = app(OpBomDeriver::class)->guiaApontada($empresa, $pedido, $itemSem);
         $this->assertNull(collect($sem)->firstWhere('componente', 'ACABAMENTO'));
+    }
+
+    public function test_grupo_do_catalogo_nao_escolhe_sku_pelo_texto(): void
+    {
+        $empresa = Empresa::query()->create([
+            'codigo' => 'EMP-BOM4',
+            'razao_social' => 'Grafica BOM 4',
+            'cnpj' => '00000000000434',
+            'situacao' => 'ATIVA',
+        ]);
+        $filme = ProdutoGrupo::query()->create([
+            'codigo' => 'MP-FLM',
+            'nome' => 'Filmes',
+            'familia' => 'MP',
+            'natureza' => 'COMPRA',
+            'tipo_item_sped' => '01',
+            'situacao' => 'ATIVO',
+        ]);
+        $lam = ProdutoGrupo::query()->create([
+            'codigo' => 'MP-LAM',
+            'nome' => 'Laminação',
+            'familia' => 'MP',
+            'natureza' => 'COMPRA',
+            'tipo_item_sped' => '01',
+            'situacao' => 'ATIVO',
+        ]);
+        Produto::query()->create([
+            'empresa_id' => $empresa->id,
+            'codigo' => 'MP-FLM-901',
+            'familia' => 'MP',
+            'grupo_id' => $filme->id,
+            'descricao_fiscal' => 'BOPP PRATA AUTOADESIVO',
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+        ]);
+        OrcCatalogoPapel::query()->create([
+            'empresa_id' => $empresa->id,
+            'nome' => 'BOPP PRATA',
+            'grupo_id' => $filme->id,
+            'preco_m2' => 1,
+            'ativo' => true,
+            'ordem' => 1,
+        ]);
+        OrcCatalogoAcabamento::query()->create([
+            'empresa_id' => $empresa->id,
+            'nome' => 'VERNIZ',
+            'grupo_id' => $lam->id,
+            'preco_m2' => 1,
+            'perda_m2' => 0,
+            'ativo' => true,
+            'ordem' => 1,
+        ]);
+
+        $pedido = new Pedido(['snapshot' => ['input' => []]]);
+        $item = new PedidoItem([
+            'especificacao' => [
+                'papel' => 'BOPP PRATA',
+                'acabamento' => 'VERNIZ',
+                'faixa' => ['m2' => 40, 'perda_acerto' => 1, 'perda_acabamento' => 2],
+            ],
+        ]);
+
+        $linhas = app(OpBomDeriver::class)->derivar($empresa, $pedido, $item);
+        $papel = collect($linhas)->firstWhere('componente', 'PAPEL');
+        $acab = collect($linhas)->firstWhere('componente', 'ACABAMENTO');
+
+        $this->assertNotNull($papel);
+        $this->assertNull($papel['produto_id']);
+        $this->assertSame($filme->id, $papel['grupo_id']);
+        $this->assertSame(0, bccomp((string) $papel['qtde'], '41', 4));
+        $this->assertNotNull($acab);
+        $this->assertNull($acab['produto_id']);
+        $this->assertSame($lam->id, $acab['grupo_id']);
+        $this->assertSame(0, bccomp((string) $acab['qtde'], '43', 4));
     }
 }
