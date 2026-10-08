@@ -641,8 +641,9 @@ final class OrcamentoCatalogo
     /** @return array<string, mixed> */
     public function empacotamentoTubete(string $tubete): array
     {
+        $exato = self::norm($tubete);
         $t = self::normTubete($tubete);
-        $emp = $this->caixaEmpacotamento[$t] ?? $this->caixaEmpacotamento[self::norm($tubete)] ?? null;
+        $emp = $this->caixaEmpacotamento[$exato] ?? $this->caixaEmpacotamento[$t] ?? null;
         if (is_array($emp)) {
             return $emp;
         }
@@ -944,11 +945,15 @@ final class OrcamentoCatalogo
             if ($rolos < 1) {
                 continue;
             }
+            $codigo = isset($v['produto_codigo']) ? trim((string) $v['produto_codigo']) : '';
             $out[$tubete] = [
                 'caixa_id' => isset($v['caixa_id']) ? (int) $v['caixa_id'] : null,
                 'medida' => isset($v['medida']) ? trim((string) $v['medida']) : '',
                 'rolos_por_caixa' => $rolos,
             ];
+            if ($codigo !== '') {
+                $out[$tubete]['produto_codigo'] = $codigo;
+            }
         }
 
         return $out;

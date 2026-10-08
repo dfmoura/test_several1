@@ -124,6 +124,13 @@ export function decideCadastroOrientacao(input: {
     };
   }
 
+  if (grupo === 'EMB-CX') {
+    return {
+      lead: 'Uma caixa, um SKU. Comprimento, largura e altura em mm são a medida nominal do nome e identificam a caixa no estoque e na ordem.',
+      preferM2Igual: false,
+    };
+  }
+
   if (familia === 'MP' || familia === 'EMB' || familia === 'REV') {
     return {
       lead: 'SKU operacional (compra/estoque/OP). Vincule o cProd do fornecedor no de-para para a entrada por XML. Unidades: comercial (NF) ↔ estoque (saldo único).',
@@ -150,6 +157,10 @@ export function buildCadastroChecklist(input: {
   gramaturaGm2?: string | null;
   programaCompra?: string | null;
   exigeDimensaoSku?: boolean;
+  grupoCodigo?: string | null;
+  compMm?: string | null;
+  largMm?: string | null;
+  altMm?: string | null;
   deParaCount: number;
   isNew: boolean;
   /** Rascunho de de-para no formulário de criação (fornecedor + cProd). */
@@ -233,6 +244,18 @@ export function buildCadastroChecklist(input: {
       label: 'Gramatura total (ponte KG ↔ M²/M)',
       ok: (input.gramaturaGm2 || '').trim() !== '',
       required: true,
+    });
+  }
+
+  if ((input.grupoCodigo || '').toUpperCase() === 'EMB-CX') {
+    const medidaOk = [input.compMm, input.largMm, input.altMm].every(
+      (v) => (v || '').trim() !== '',
+    );
+    items.push({
+      id: 'medida_caixa',
+      label: 'Medida da caixa (comprimento × largura × altura, mm)',
+      ok: medidaOk,
+      required: false,
     });
   }
 

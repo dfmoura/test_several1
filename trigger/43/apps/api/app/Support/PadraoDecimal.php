@@ -115,6 +115,9 @@ final class PadraoDecimal
             'largura_mm' => self::SCALE_DIM,
             'comprimento_m' => self::SCALE_DIM,
             'gramatura_g_m2' => self::SCALE_GRAMATURA,
+            'comp_mm' => self::SCALE_DIM,
+            'larg_mm' => self::SCALE_DIM,
+            'alt_mm' => self::SCALE_DIM,
         ];
     }
 

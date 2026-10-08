@@ -16,6 +16,9 @@ final class ProdutoAtributos
         'largura_mm',
         'comprimento_m',
         'gramatura_g_m2',
+        'comp_mm',
+        'larg_mm',
+        'alt_mm',
         'grupo_estoque',
         'programa_compra',
     ];

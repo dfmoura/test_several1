@@ -189,6 +189,22 @@ class ProdutoCadastroServiceTest extends TestCase
         $this->assertSame('3" × 3,0 × 100 S/LOGO', $tubete3->descricao_comercial);
         $this->assertFalse((bool) ($tubete3->atributos['com_logo'] ?? true));
 
+        $caixa = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('codigo', 'EMB-CX-002')
+            ->firstOrFail();
+        $this->assertSame('250', $caixa->atributos['comp_mm'] ?? null);
+        $this->assertSame('200', $caixa->atributos['larg_mm'] ?? null);
+        $this->assertSame('200', $caixa->atributos['alt_mm'] ?? null);
+
+        $caixaGrande = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('codigo', 'EMB-CX-007')
+            ->firstOrFail();
+        $this->assertSame('500', $caixaGrande->atributos['comp_mm'] ?? null);
+        $this->assertSame('300', $caixaGrande->atributos['larg_mm'] ?? null);
+        $this->assertSame('300', $caixaGrande->atributos['alt_mm'] ?? null);
+
         $seqPap = CodigoSequence::query()
             ->where('empresa_id', $empresa->id)
             ->where('prefixo', 'MP-PAP')

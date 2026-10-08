@@ -6,6 +6,7 @@ use App\Models\CodigoSequence;
 use App\Models\Empresa;
 use App\Models\Produto;
 use App\Models\ProdutoGrupo;
+use App\Support\CaixaMedida;
 use App\Support\ProdutoDescricoes;
 use App\Support\ProdutoLotePolitica;
 use Illuminate\Support\Facades\DB;
@@ -138,6 +139,11 @@ class ProdutoCadastroService
                 'fonte_catalogo' => ProdutoCadastroCatalogData::FONTE,
             ],
         ];
+
+        $medidaCaixa = CaixaMedida::atributosDoCodigo($row['codigo']);
+        if ($medidaCaixa !== null) {
+            $payload['atributos'] = array_merge($payload['atributos'], $medidaCaixa);
+        }
 
         $this->upsertProduto($empresa, $row['codigo'], $payload);
     }

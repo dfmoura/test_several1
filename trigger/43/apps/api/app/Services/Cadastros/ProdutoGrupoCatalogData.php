@@ -244,7 +244,7 @@ final class ProdutoGrupoCatalogData
                 'exige_dimensao_sku' => false,
                 'ncm_confirmado' => true,
                 'ordenacao' => 110,
-                'observacao' => 'Acondicionamento do produto acabado — tipo SPED 02.',
+                'observacao' => 'Acondicionamento do produto acabado — tipo SPED 02. Medida nominal no SKU: comprimento, largura e altura em mm.',
             ],
 
             // ——— Revenda (compra + venda, mesmo SKU) ———

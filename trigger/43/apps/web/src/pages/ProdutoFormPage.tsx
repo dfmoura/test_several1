@@ -27,6 +27,9 @@ const ATRIBUTOS_FORM_KEYS = [
   'largura_mm',
   'comprimento_m',
   'gramatura_g_m2',
+  'comp_mm',
+  'larg_mm',
+  'alt_mm',
   'grupo_estoque',
   'programa_compra',
 ] as const;
@@ -119,6 +122,9 @@ type ProdutoFormData = {
   largura_mm: string;
   comprimento_m: string;
   gramatura_g_m2: string;
+  comp_mm: string;
+  larg_mm: string;
+  alt_mm: string;
   programa_compra: string;
   grupo_estoque: string;
   cfop_saida_padrao: string;
@@ -157,6 +163,9 @@ const emptyForm = (): ProdutoFormData => ({
   largura_mm: '',
   comprimento_m: '',
   gramatura_g_m2: '',
+  comp_mm: '',
+  larg_mm: '',
+  alt_mm: '',
   programa_compra: '',
   grupo_estoque: '',
   cfop_saida_padrao: '',
@@ -216,6 +225,9 @@ function fromProduto(p: Produto): ProdutoFormData {
     largura_mm: attrStr(p.atributos, 'largura_mm'),
     comprimento_m: attrStr(p.atributos, 'comprimento_m'),
     gramatura_g_m2: attrStr(p.atributos, 'gramatura_g_m2'),
+    comp_mm: attrStr(p.atributos, 'comp_mm'),
+    larg_mm: attrStr(p.atributos, 'larg_mm'),
+    alt_mm: attrStr(p.atributos, 'alt_mm'),
     programa_compra: attrStr(p.atributos, 'programa_compra'),
     grupo_estoque: attrStr(p.atributos, 'grupo_estoque'),
     cfop_saida_padrao: p.cfop_saida_padrao ?? '',
@@ -305,6 +317,12 @@ function toPayload(
   else delete atributos.comprimento_m;
   if (form.gramatura_g_m2) atributos.gramatura_g_m2 = form.gramatura_g_m2;
   else delete atributos.gramatura_g_m2;
+  if (form.comp_mm) atributos.comp_mm = form.comp_mm;
+  else delete atributos.comp_mm;
+  if (form.larg_mm) atributos.larg_mm = form.larg_mm;
+  else delete atributos.larg_mm;
+  if (form.alt_mm) atributos.alt_mm = form.alt_mm;
+  else delete atributos.alt_mm;
   if (form.programa_compra.trim()) atributos.programa_compra = form.programa_compra.trim();
   else delete atributos.programa_compra;
   if (form.grupo_estoque) atributos.grupo_estoque = form.grupo_estoque;
@@ -739,6 +757,10 @@ export function ProdutoFormPage() {
         gramaturaGm2: form.gramatura_g_m2,
         programaCompra: form.programa_compra,
         exigeDimensaoSku: Boolean(selectedGrupo?.exige_dimensao_sku),
+        grupoCodigo: selectedGrupo?.codigo ?? form.grupo,
+        compMm: form.comp_mm,
+        largMm: form.larg_mm,
+        altMm: form.alt_mm,
         deParaCount: fornecedorCodigos.length,
         isNew,
         deParaDraftOk: Boolean(deParaDraft.fornecedor_id && deParaDraft.c_prod.trim()),
@@ -756,7 +778,12 @@ export function ProdutoFormPage() {
       form.fator_conversao,
       form.gramatura_g_m2,
       form.programa_compra,
+      form.grupo,
+      form.comp_mm,
+      form.larg_mm,
+      form.alt_mm,
       fatorSugestao?.status,
+      selectedGrupo?.codigo,
       selectedGrupo?.exige_dimensao_sku,
       fornecedorCodigos.length,
       isNew,
@@ -869,16 +896,19 @@ export function ProdutoFormPage() {
         grupo_estoque: alinharLinhaEstoque(next.grupo_estoque, grupo),
       };
       // Saiu de grupo de bobina → limpa dimensões (não carregar “Dados da bobina” por resíduo).
-      if (!grupo.exige_dimensao_sku) {
-        return {
-          ...alinhado,
-          largura_mm: '',
-          comprimento_m: '',
-          gramatura_g_m2: '',
-          programa_compra: '',
-        };
+      const semBobina = !grupo.exige_dimensao_sku
+        ? {
+            ...alinhado,
+            largura_mm: '',
+            comprimento_m: '',
+            gramatura_g_m2: '',
+            programa_compra: '',
+          }
+        : alinhado;
+      if (grupo.codigo !== 'EMB-CX') {
+        return { ...semBobina, comp_mm: '', larg_mm: '', alt_mm: '' };
       }
-      return alinhado;
+      return semBobina;
     });
   };
 
@@ -1276,6 +1306,49 @@ export function ProdutoFormPage() {
                   {selectedGrupo?.unidade_interna_padrao ?? '—'}.
                 </span>
               </div>
+
+              {(selectedGrupo?.codigo ?? form.grupo) === 'EMB-CX' && (
+                <>
+                  <div className="fiscal-section-title span-2">Medida da caixa</div>
+                  <div className="form-group">
+                    <label>Comprimento (mm)</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={decimalStep(DECIMAL_SCALE.dim)}
+                      value={form.comp_mm}
+                      disabled={readOnly}
+                      onChange={(e) => update({ comp_mm: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Largura (mm)</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={decimalStep(DECIMAL_SCALE.dim)}
+                      value={form.larg_mm}
+                      disabled={readOnly}
+                      onChange={(e) => update({ larg_mm: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Altura (mm)</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={decimalStep(DECIMAL_SCALE.dim)}
+                      value={form.alt_mm}
+                      disabled={readOnly}
+                      onChange={(e) => update({ alt_mm: e.target.value })}
+                    />
+                    <span className="form-hint">
+                      Medida nominal do SKU, a mesma do nome (ex.: 250 × 200 × 200). Identifica a
+                      caixa no estoque e na ordem.
+                    </span>
+                  </div>
+                </>
+              )}
 
               {showDimensoes.showSection && (
                 <>

@@ -11,6 +11,7 @@ use App\Models\OrdemProducao;
 use App\Models\OrdemProducaoMaterial;
 use App\Models\Produto;
 use App\Services\Estoque\EstoqueSaldoWriter;
+use App\Support\CaixaMedida;
 use App\Support\InsumoEscolhaRelacao;
 use App\Support\PadraoDecimal;
 use App\Support\ProdutoLotePolitica;
@@ -802,9 +803,15 @@ class ProducaoColetaService
             return $doProduto === $aprovada;
         }
         if ($comp === 'CAIXA') {
+            $medida = (string) ($mat->origem_texto ?? '');
+            $attrs = is_array($produto->atributos) ? $produto->atributos : null;
+            $porMedida = CaixaMedida::casaAtributos($attrs, $medida);
+            if ($porMedida !== null) {
+                return $porMedida;
+            }
             $texto = trim($produto->codigo.' '.$produto->descricao_fiscal.' '.($produto->descricao_comercial ?? ''));
 
-            return InsumoEscolhaRelacao::caixaCompativel((string) ($mat->origem_texto ?? ''), $texto);
+            return InsumoEscolhaRelacao::caixaCompativel($medida, $texto);
         }
 
         return false;

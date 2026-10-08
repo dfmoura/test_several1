@@ -224,4 +224,66 @@ class OpBomFaixaDoItemTest extends TestCase
         $this->assertSame($lam->id, $acab['grupo_id']);
         $this->assertSame(0, bccomp((string) $acab['qtde'], '43', 4));
     }
+
+    public function test_caixa_casa_pela_medida_nominal_e_nao_pelo_nome(): void
+    {
+        $empresa = Empresa::query()->create([
+            'codigo' => 'EMP-BOM-CX',
+            'razao_social' => 'Grafica caixa',
+            'cnpj' => '00000000000353',
+            'situacao' => 'ATIVA',
+        ]);
+        $peloNome = Produto::query()->create([
+            'empresa_id' => $empresa->id,
+            'codigo' => 'EMB-CX-NOME',
+            'familia' => 'EMB',
+            'descricao_fiscal' => 'CAIXA PAPELAO 500X300X300',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'atributos' => ['comp_mm' => '200', 'larg_mm' => '150', 'alt_mm' => '120'],
+        ]);
+        $pelaMedida = Produto::query()->create([
+            'empresa_id' => $empresa->id,
+            'codigo' => 'EMB-CX-MED',
+            'familia' => 'EMB',
+            'descricao_fiscal' => 'CAIXA DE EXPEDICAO',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'atributos' => ['comp_mm' => '500', 'larg_mm' => '300', 'alt_mm' => '300'],
+        ]);
+        $legado = Produto::query()->create([
+            'empresa_id' => $empresa->id,
+            'codigo' => 'EMB-CX-LEG',
+            'familia' => 'EMB',
+            'descricao_fiscal' => 'CAIXA PAPELAO 250X200X200',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+        ]);
+
+        $pedido = new Pedido([
+            'snapshot' => ['faixa' => ['qtde_caixas' => 2, 'caixa_medida' => '500x300x300']],
+        ]);
+        $item = new PedidoItem(['especificacao' => []]);
+        $diag = app(OpBomDeriver::class)->diagnostico($empresa, $pedido, $item);
+        $caixa = collect($diag['linhas'])->firstWhere('componente', 'CAIXA');
+
+        $this->assertNotNull($caixa);
+        $this->assertSame($pelaMedida->id, $caixa['produto_id']);
+        $this->assertNotSame($peloNome->id, $caixa['produto_id']);
+
+        $pedidoLegado = new Pedido([
+            'snapshot' => ['faixa' => ['qtde_caixas' => 1, 'caixa_medida' => '250x200x200']],
+        ]);
+        $diagLegado = app(OpBomDeriver::class)->diagnostico($empresa, $pedidoLegado, $item);
+        $caixaLegado = collect($diagLegado['linhas'])->firstWhere('componente', 'CAIXA');
+
+        $this->assertNotNull($caixaLegado);
+        $this->assertSame($legado->id, $caixaLegado['produto_id']);
+    }
 }

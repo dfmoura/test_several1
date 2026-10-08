@@ -9,6 +9,7 @@ use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\Produto;
 use App\Services\Comercial\Orcamento\OrcamentoCatalogo;
+use App\Support\CaixaMedida;
 use App\Support\InsumoEscolhaRelacao;
 use App\Support\PadraoDecimal;
 
@@ -346,12 +347,21 @@ class OpBomDeriver
         $bestScore = 0;
         $aprovada = InsumoEscolhaRelacao::rotuloMedidaCaixa($medida);
         foreach ($candidatos as $p) {
-            $texto = trim(($p->codigo ?? '').' '.($p->descricao_fiscal ?? '').' '.($p->descricao_comercial ?? ''));
-            if (! InsumoEscolhaRelacao::caixaCompativel($medida, $texto)) {
+            $attrs = is_array($p->atributos) ? $p->atributos : null;
+            $porMedida = CaixaMedida::casaAtributos($attrs, $medida);
+            if ($porMedida === false) {
                 continue;
             }
-            $rotulo = InsumoEscolhaRelacao::rotuloMedidaCaixa($medida, $texto);
-            $score = $rotulo !== null && $rotulo === $aprovada ? 20 : 10;
+            if ($porMedida === true) {
+                $score = 30;
+            } else {
+                $texto = trim(($p->codigo ?? '').' '.($p->descricao_fiscal ?? '').' '.($p->descricao_comercial ?? ''));
+                if (! InsumoEscolhaRelacao::caixaCompativel($medida, $texto)) {
+                    continue;
+                }
+                $rotulo = InsumoEscolhaRelacao::rotuloMedidaCaixa($medida, $texto);
+                $score = $rotulo !== null && $rotulo === $aprovada ? 20 : 10;
+            }
             if ($score <= $bestScore) {
                 continue;
             }

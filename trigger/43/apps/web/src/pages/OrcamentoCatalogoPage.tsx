@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
-import { ApiError, api, fiscalConsulta, type AtivacaoData, type OrcCatalogoResumo, type ProdutoGrupo } from '../lib/api';
+import { ApiError, api, fiscalConsulta, type AtivacaoData, type OrcCatalogoResumo, type Produto, type ProdutoGrupo } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { bemStatusLabel } from '../lib/patrimonio';
 import { useTableSort } from '../lib/useTableSort';
@@ -95,7 +95,35 @@ type CaixaEmpRow = {
   caixa_id?: number | null;
   medida?: string;
   rolos_por_caixa: number;
+  produto_codigo?: string | null;
 };
+
+type CaixaDraft = {
+  medida: string;
+  rolos: string;
+  produtoCodigo: string;
+  caixaId: string;
+};
+
+function medidaNominalCaixa(attrs: Record<string, unknown> | null | undefined): string {
+  if (!attrs) return '';
+  const lados = (['comp_mm', 'larg_mm', 'alt_mm'] as const).map((k) => {
+    const raw = String(attrs[k] ?? '')
+      .trim()
+      .replace(',', '.');
+    const n = Number(raw);
+    if (raw === '' || !Number.isFinite(n) || n <= 0) return '';
+    return String(n);
+  });
+  return lados.every((lado) => lado !== '') ? lados.join('x') : '';
+}
+
+function rotuloCaixaEstoque(p: Pick<Produto, 'codigo' | 'descricao_comercial' | 'descricao_fiscal' | 'atributos'>): string {
+  const med = medidaNominalCaixa(p.atributos);
+  if (med) return `${p.codigo} · ${med}`;
+  const nome = (p.descricao_comercial || p.descricao_fiscal || '').trim();
+  return nome ? `${p.codigo} · ${nome}` : p.codigo;
+}
 
 const TABS: Array<{ id: TabId; label: string; hint: string }> = [
   { id: 'papeis', label: 'Papel', hint: 'R$/m² e o grupo de matéria-prima da bobina' },
@@ -882,24 +910,75 @@ function CaixaEmpacotamentoPanel({
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
-  const [drafts, setDrafts] = useState<
-    Record<string, { medida: string; rolos: string; caixaId: string }>
-  >({});
+  const [drafts, setDrafts] = useState<Record<string, CaixaDraft>>({});
+  const [caixas, setCaixas] = useState<Produto[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const src = estruturaPayload<Record<string, CaixaEmpRow>>(estruturas, 'caixa_empacotamento') ?? {};
-    const next: Record<string, { medida: string; rolos: string; caixaId: string }> = {};
+    const next: Record<string, CaixaDraft> = {};
     for (const tub of TUBETES_EMBALAGEM) {
       const row = src[tub];
       next[tub] = {
         medida: row?.medida ?? '',
         rolos: row?.rolos_por_caixa != null ? String(row.rolos_por_caixa) : '',
+        produtoCodigo: row?.produto_codigo ?? '',
         caixaId: row?.caixa_id != null ? String(row.caixa_id) : '',
       };
     }
     setDrafts(next);
   }, [estruturas]);
+
+  useEffect(() => {
+    let cancel = false;
+    void api
+      .get<{ data: Produto[] }>('/produtos?familia=EMB&grupo=EMB-CX&limit=50')
+      .then((res) => {
+        if (!cancel) setCaixas(res.data ?? []);
+      })
+      .catch(() => {
+        if (!cancel) setCaixas([]);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (caixas.length === 0) return;
+    setDrafts((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const tub of TUBETES_EMBALAGEM) {
+        const d = next[tub];
+        if (!d || d.produtoCodigo) continue;
+        const alvo = d.medida.trim().toLowerCase();
+        const hit = caixas.find((c) => medidaNominalCaixa(c.atributos).toLowerCase() === alvo);
+        if (!hit) continue;
+        next[tub] = { ...d, produtoCodigo: hit.codigo };
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [caixas]);
+
+  const escolherCaixa = (tub: string, codigo: string) => {
+    setDrafts((prev) => {
+      const atual = prev[tub];
+      if (!atual) return prev;
+      const produto = caixas.find((c) => c.codigo === codigo);
+      const medidaNova = produto ? medidaNominalCaixa(produto.atributos) || atual.medida : atual.medida;
+      return {
+        ...prev,
+        [tub]: {
+          ...atual,
+          produtoCodigo: codigo,
+          medida: codigo ? medidaNova : atual.medida,
+          caixaId: codigo && medidaNova !== atual.medida ? '' : atual.caixaId,
+        },
+      };
+    });
+  };
 
   const save = async () => {
     const payload: Record<string, CaixaEmpRow> = {};
@@ -912,10 +991,12 @@ function CaixaEmpacotamentoPanel({
       if (!Number.isFinite(rolos) || rolos < 1) {
         continue;
       }
+      const codigo = d.produtoCodigo.trim();
       payload[tub] = {
         medida: d.medida.trim(),
         rolos_por_caixa: rolos,
         caixa_id: d.caixaId.trim() === '' ? null : parseInt(d.caixaId, 10),
+        produto_codigo: codigo !== '' ? codigo : null,
       };
     }
     if (Object.keys(payload).length === 0) {
@@ -939,16 +1020,17 @@ function CaixaEmpacotamentoPanel({
       <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
         <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--navy)' }}>Rolos por caixa (rv4)</h3>
         <p className="catalogo-nota" style={{ margin: 0 }}>
-          Define quantas caixas o motor calcula (R9).
+          Cada tubete aponta para uma caixa do estoque. A quantidade de caixas do orçamento segue os
+          rolos por caixa. O preço da caixa permanece o do catálogo. O tubete 1&quot; 1/2, com linha
+          própria preenchida, usa a caixa dessa linha.
         </p>
         <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
                 <th>Tubete</th>
-                <th>Medida caixa</th>
+                <th>Caixa do estoque</th>
                 <th>Rolos / caixa</th>
-                <th>ID caixa (ref.)</th>
               </tr>
             </thead>
             <tbody>
@@ -956,17 +1038,37 @@ function CaixaEmpacotamentoPanel({
                 <tr key={tub}>
                   <td>{tub}</td>
                   <td>
-                    <input
-                      type="text"
-                      value={drafts[tub]?.medida ?? ''}
-                      disabled={saving}
-                      onChange={(e) =>
-                        setDrafts((prev) => ({
-                          ...prev,
-                          [tub]: { ...prev[tub], medida: e.target.value },
-                        }))
-                      }
-                    />
+                    {caixas.length > 0 ? (
+                      <select
+                        value={drafts[tub]?.produtoCodigo ?? ''}
+                        disabled={saving}
+                        onChange={(e) => escolherCaixa(tub, e.target.value)}
+                      >
+                        <option value="">
+                          {drafts[tub]?.medida
+                            ? `Medida atual ${drafts[tub].medida}`
+                            : '— escolha a caixa —'}
+                        </option>
+                        {caixas.map((c) => (
+                          <option key={c.id} value={c.codigo}>
+                            {rotuloCaixaEstoque(c)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={drafts[tub]?.medida ?? ''}
+                        disabled={saving}
+                        placeholder="250x200x200"
+                        onChange={(e) =>
+                          setDrafts((prev) => ({
+                            ...prev,
+                            [tub]: { ...prev[tub], medida: e.target.value, produtoCodigo: '' },
+                          }))
+                        }
+                      />
+                    )}
                   </td>
                   <td>
                     <input
@@ -982,22 +1084,6 @@ function CaixaEmpacotamentoPanel({
                         }))
                       }
                       style={{ maxWidth: '6rem' }}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min={0}
-                      step={1}
-                      value={drafts[tub]?.caixaId ?? ''}
-                      disabled={saving}
-                      onChange={(e) =>
-                        setDrafts((prev) => ({
-                          ...prev,
-                          [tub]: { ...prev[tub], caixaId: e.target.value },
-                        }))
-                      }
-                      style={{ maxWidth: '5rem' }}
                     />
                   </td>
                 </tr>
