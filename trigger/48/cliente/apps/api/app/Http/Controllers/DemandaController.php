@@ -7,6 +7,7 @@ use App\Domain\Carteira\CarteiraService;
 use App\Domain\Demanda\DemandaService;
 use App\Domain\Empresa\EmpresaAtual;
 use App\Domain\Fatura\FaturaService;
+use App\Models\Aprovacao;
 use App\Models\CobrancaPix;
 use App\Models\Demanda;
 use App\Models\Marco;
@@ -59,6 +60,7 @@ class DemandaController extends Controller
             ->get();
         $vigente = $demanda->propostas->firstWhere('status', 'VIGENTE');
         $aprovada = $demanda->propostas->firstWhere('status', 'APROVADA');
+        $aceite = $this->aceiteCongelado($aprovada);
         $reserva = $carteira->reservaAberta($demanda->id);
         $disponivel = (int) $demanda->empresa->carteira->disponivel_centavos;
         $pix = null;
@@ -74,6 +76,7 @@ class DemandaController extends Controller
             'mensagens' => $mensagens,
             'vigente' => $vigente,
             'aprovada' => $aprovada,
+            'aceite' => $aceite,
             'reserva' => $reserva,
             'disponivel' => $disponivel,
             'falta' => $vigente ? max(0, $vigente->valor_centavos - $reserva - $disponivel) : 0,
@@ -81,6 +84,27 @@ class DemandaController extends Controller
             'eventos' => $demanda->eventos()->orderBy('em')->get(),
             'marcos' => Marco::query()->where('demanda_id', $demanda->id)->where('visivel_ao_cliente', true)->orderBy('criado_em')->get(),
         ]);
+    }
+
+    /**
+     * @return array{valor_centavos: int, prazo_dias_uteis: int|string, descricao_funcional: string, incluso: string, nao_incluso: string, criterios_aceite: string}|null
+     */
+    private function aceiteCongelado(?Proposta $aprovada): ?array
+    {
+        if (! $aprovada) {
+            return null;
+        }
+        $registro = Aprovacao::query()->where('proposta_id', $aprovada->id)->first();
+        $escopo = is_array($registro?->escopo_snapshot) ? $registro->escopo_snapshot : [];
+
+        return [
+            'valor_centavos' => (int) ($registro?->valor_centavos ?? $aprovada->valor_centavos),
+            'prazo_dias_uteis' => $escopo['prazo_dias_uteis'] ?? $aprovada->prazo_dias_uteis,
+            'descricao_funcional' => (string) ($escopo['descricao_funcional'] ?? $aprovada->descricao_funcional),
+            'incluso' => (string) ($escopo['incluso'] ?? $aprovada->incluso),
+            'nao_incluso' => (string) ($escopo['nao_incluso'] ?? $aprovada->nao_incluso),
+            'criterios_aceite' => (string) ($escopo['criterios_aceite'] ?? $aprovada->criterios_aceite),
+        ];
     }
 
     public function enviar(Demanda $demanda, DemandaService $demandas)

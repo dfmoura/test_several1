@@ -63,10 +63,15 @@
           <p class="muted">As duas primeiras recusas em 90 dias devolvem o saldo. A terceira converte o ticket em remuneração da análise.</p>
           <button class="btn-danger" type="submit">Recusar proposta</button>
         </form>
-      @elseif($aprovada)
-        <h2>Valor aprovado</h2>
-        <p class="money">@reais($aprovada->valor_centavos)</p>
+      @elseif($aceite)
+        <h2>Escopo aprovado</h2>
+        <p class="money">@reais($aceite['valor_centavos'])</p>
+        <p>{{ $aceite['prazo_dias_uteis'] }} dias úteis</p>
         <p>A aprovação não marca a fatura como paga. A liquidação acontece na apresentação.</p>
+        <p class="prose">{{ $aceite['descricao_funcional'] }}</p>
+        <p><strong>Incluso.</strong> {{ $aceite['incluso'] }}</p>
+        <p><strong>Não incluso.</strong> {{ $aceite['nao_incluso'] }}</p>
+        <p><strong>Aceite.</strong> {{ $aceite['criterios_aceite'] }}</p>
       @endif
       @if($demanda->apresentacao)
         <h2>Apresentação</h2>

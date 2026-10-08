@@ -66,6 +66,28 @@ class FluxoFinanceiroTest extends AreaTestCase
         $this->assertSame(1, MovimentoSaldo::query()->where('tipo', 'CREDITO_COMPLEMENTO')->count());
     }
 
+    public function test_fatura_usa_o_valor_congelado_na_aprovacao(): void
+    {
+        [$empresa, $usuario] = $this->empresaComSaldo(50000);
+        $demanda = $this->ateAprovada($empresa, $usuario, 150000);
+        Proposta::query()->where('demanda_id', $demanda->id)->where('status', 'APROVADA')->update(['valor_centavos' => 999999]);
+
+        $this->entrarComo($usuario, $empresa)
+            ->get(route('demandas.mostrar', $demanda->codigo))
+            ->assertOk()
+            ->assertSee('Escopo aprovado')
+            ->assertSee('Filtro por período e exportação')
+            ->assertSee('R$ 1.500,00')
+            ->assertDontSee('R$ 9.999,99');
+
+        $operador = $this->operador();
+        app(DemandaService::class)->iniciarExecucao($demanda, $operador->id);
+        $fatura = app(DemandaService::class)->apresentar($demanda, $operador->id, 'Entrega pronta.');
+
+        $this->assertSame(150000, $fatura->valor_centavos);
+        $this->assertSame(100000, $fatura->complemento_centavos);
+    }
+
     public function test_recusa_da_trigger_devolve_e_a_terceira_do_cliente_consome(): void
     {
         [$empresa, $usuario] = $this->empresaComSaldo(50000);

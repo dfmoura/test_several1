@@ -261,7 +261,8 @@ A equipe não entra "como se fosse" o cliente.
   7. O pagamento compensado vira crédito na carteira. A conta fica ATIVA.
   8. Com saldo disponível pelo menos igual ao ticket, o cliente abre
      uma demanda: sistema ou processo atual, o que precisa evoluir,
-     prazo desejado, contato técnico e anexos.
+     prazo desejado, contato técnico e anexos. Acessos e senhas são
+     opcionais e ficam cifrados, fora da descrição e fora do e-mail.
   9. A abertura reserva o ticket. A demanda fica EM_ANALISE.
  10. A Trigger pode pedir um complemento (mensagem na demanda) e
      devolve uma proposta versionada: escopo, valor, prazo em dias
@@ -526,7 +527,10 @@ faturas
 demandas
   id, codigo único, empresa_id, aberto_por (usuario_id),
   titulo, sistema_atual, descricao, objetivo, tipo, prioridade,
-  prazo_desejado, contato_tecnico, status, criada_em
+  prazo_desejado, contato_tecnico, acessos nulo, status, criada_em
+  acessos é texto cifrado (endereço, usuário, senha). Não entra
+  em auditoria nem em e-mail. Vazio quando a execução não precisa
+  entrar em sistema nenhum.
   Tipos: nova funcionalidade, melhoria, correção, integração,
   relatório, automação, manutenção, outro.
   Prioridade: baixa, normal, alta, urgente.
@@ -559,6 +563,8 @@ aprovacoes
   id, proposta_id única, empresa_id, usuario_id, cpf_hash,
   valor_centavos, escopo_snapshot (json ou texto congelado),
   ip, em
+  A fatura usa o valor_centavos desta linha, não um valor alterado
+  depois na proposta. O cliente vê o escopo deste snapshot.
   Gancho futuro de assinatura eletrônica: coluna provedor_assinatura
   nula. Não integrar agora.
 
@@ -775,8 +781,8 @@ Telas do cliente
   Início: disponível, reservado, consumido no período, demanda
     atual ou "Nova demanda" desligado com o motivo escrito
     ("falta saldo", "há demanda em andamento", "conta bloqueada")
-  Nova demanda: os campos que o e-mail da consultoria já pede,
-    mais tipo, prioridade e anexos
+  Nova demanda: pedido, o que precisa ficar pronto, acessos
+    opcionais e arquivos (arrastar ou escolher)
   Detalhe: timeline (aberta, em análise, proposta, em execução,
     apresentada, liquidada) e mensagens visíveis
   Proposta: escopo, incluso, não incluso, valor, prazo, aceite.

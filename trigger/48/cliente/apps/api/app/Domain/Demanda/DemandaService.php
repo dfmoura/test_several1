@@ -282,6 +282,8 @@ class DemandaService
             if (! $proposta) {
                 throw new RegraNegocio('Não há proposta aprovada para faturar.');
             }
+            $aprovacao = Aprovacao::query()->where('proposta_id', $proposta->id)->first();
+            $valor = (int) ($aprovacao?->valor_centavos ?? $proposta->valor_centavos);
             $this->carteira->travar($demanda->empresa_id);
             Apresentacao::query()->create([
                 'demanda_id' => $demanda->id,
@@ -289,12 +291,12 @@ class DemandaService
                 'criada_em' => now(),
             ]);
             $cobertura = $this->faturas->cobertura($demanda);
-            $complemento = max(0, $proposta->valor_centavos - $cobertura);
+            $complemento = max(0, $valor - $cobertura);
             $fatura = Fatura::query()->create([
                 'empresa_id' => $demanda->empresa_id,
                 'demanda_id' => $demanda->id,
                 'proposta_id' => $proposta->id,
-                'valor_centavos' => $proposta->valor_centavos,
+                'valor_centavos' => $valor,
                 'complemento_centavos' => $complemento,
                 'status' => 'ABERTA',
                 'nfse_status' => 'PLANEJADA',
