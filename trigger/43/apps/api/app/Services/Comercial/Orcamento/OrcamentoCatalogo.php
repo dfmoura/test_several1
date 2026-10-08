@@ -8,6 +8,8 @@ use App\Models\OrcCatalogoMaquina;
 use App\Models\OrcCatalogoPapel;
 use App\Models\OrcCatalogoParametro;
 use App\Models\OrcCatalogoTipoTroca;
+use App\Models\Produto;
+use App\Support\CaixaMedida;
 use App\Support\CatalogoOrcEmpresa;
 use Illuminate\Support\Facades\Schema;
 
@@ -110,6 +112,7 @@ final class OrcamentoCatalogo
         /** @var array<string, array<string, mixed>> */
         public array $caixaEmpacotamento = [],
         public string $rebobinacaoNome = 'REBOBINAÇÃO',
+        public ?int $empresaId = null,
     ) {
         if ($this->maquinas === []) {
             $this->maquinas = self::MAQUINAS_CANONICAS;
@@ -125,8 +128,10 @@ final class OrcamentoCatalogo
     public static function load(?string $path = null, ?int $empresaId = null): self
     {
         $cat = self::loadFromJson($path);
+        $id = $empresaId ?? CatalogoOrcEmpresa::id();
+        $cat->empresaId = $id;
 
-        return self::overlayFromDatabase($cat, $empresaId ?? CatalogoOrcEmpresa::id());
+        return self::overlayFromDatabase($cat, $id);
     }
 
     public static function loadFromJson(?string $path = null): self
@@ -669,9 +674,30 @@ final class OrcamentoCatalogo
 
     public function medidaCaixaPreferida(string $tubete): ?string
     {
-        $med = $this->empacotamentoTubete($tubete)['medida'] ?? null;
+        $emp = $this->empacotamentoTubete($tubete);
+        $gravada = isset($emp['medida']) && $emp['medida'] !== '' ? (string) $emp['medida'] : null;
+        $codigo = trim((string) ($emp['produto_codigo'] ?? ''));
+        $viva = $this->medidaVivaDoProduto($codigo);
 
-        return $med !== null && $med !== '' ? (string) $med : null;
+        return $viva ?? $gravada;
+    }
+
+    private function medidaVivaDoProduto(string $codigo): ?string
+    {
+        if ($codigo === '' || $this->empresaId === null) {
+            return null;
+        }
+
+        $produto = Produto::query()
+            ->where('empresa_id', $this->empresaId)
+            ->where('codigo', $codigo)
+            ->where('situacao', 'ATIVO')
+            ->first(['atributos']);
+        if ($produto === null) {
+            return null;
+        }
+
+        return CaixaMedida::rotulo(is_array($produto->atributos) ? $produto->atributos : null);
     }
 
     public function qtdeCaixas(string $tubete, float $rolos): int

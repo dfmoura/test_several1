@@ -1020,9 +1020,10 @@ function CaixaEmpacotamentoPanel({
       <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
         <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--navy)' }}>Rolos por caixa (rv4)</h3>
         <p className="catalogo-nota" style={{ margin: 0 }}>
-          Cada tubete aponta para uma caixa do estoque. A quantidade de caixas do orçamento segue os
-          rolos por caixa. O preço da caixa permanece o do catálogo. O tubete 1&quot; 1/2, com linha
-          própria preenchida, usa a caixa dessa linha.
+          Cada tubete aponta para uma caixa do estoque. A medida é a do cadastro dessa caixa.
+          Aqui ficam a caixa escolhida e os rolos que a proposta considera. O preço da caixa
+          permanece o do catálogo. O tubete 1&quot; 1/2, com linha própria preenchida, usa a caixa
+          dessa linha.
         </p>
         <div className="table-wrap">
           <table className="data-table">

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Empresa;
 use App\Models\OrcCatalogoPapel;
+use App\Models\Produto;
 use App\Models\User;
 use App\Services\Comercial\Orcamento\OrcamentoCatalogo;
 use App\Services\Comercial\Orcamento\OrcamentoCatalogoAdminService;
@@ -405,5 +406,40 @@ class OrcamentoCatalogoTest extends TestCase
 
         $cat3 = OrcamentoCatalogo::load(null, $this->empresa->id);
         $this->assertSame(10, $cat3->rolosPorCaixa('3"'));
+    }
+
+    public function test_medida_da_caixa_acompanha_o_cadastro_e_os_rolos_ficam(): void
+    {
+        Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'EMB-CX-002',
+            'familia' => 'EMB',
+            'descricao_fiscal' => 'CAIXA PAPELAO 260X210X210',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'atributos' => ['comp_mm' => '260', 'larg_mm' => '210', 'alt_mm' => '210'],
+        ]);
+
+        $cat = new OrcamentoCatalogo(
+            caixaEmpacotamento: [
+                '1"' => [
+                    'medida' => '250x200x200',
+                    'rolos_por_caixa' => 12,
+                    'produto_codigo' => 'EMB-CX-002',
+                ],
+                '3"' => [
+                    'medida' => '500x300x300',
+                    'rolos_por_caixa' => 12,
+                    'produto_codigo' => 'EMB-CX-SUMIU',
+                ],
+            ],
+            empresaId: $this->empresa->id,
+        );
+
+        $this->assertSame('260x210x210', $cat->medidaCaixaPreferida('1"'));
+        $this->assertSame(12, $cat->rolosPorCaixa('1"'));
+        $this->assertSame('500x300x300', $cat->medidaCaixaPreferida('3"'));
     }
 }
