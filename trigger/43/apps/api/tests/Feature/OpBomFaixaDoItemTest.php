@@ -91,4 +91,46 @@ class OpBomFaixaDoItemTest extends TestCase
         $this->assertNotNull($papel);
         $this->assertSame(0, bccomp((string) $papel['qtde'], '10', 4));
     }
+
+    public function test_guia_aponta_tinta_e_acabamento_sem_sku(): void
+    {
+        $empresa = Empresa::query()->create([
+            'codigo' => 'EMP-BOM3',
+            'razao_social' => 'Grafica BOM 3',
+            'cnpj' => '00000000000353',
+            'situacao' => 'ATIVA',
+        ]);
+        $pedido = new Pedido(['snapshot' => ['input' => []]]);
+        $item = new PedidoItem([
+            'especificacao' => [
+                'cores' => 2,
+                'acabamento' => 'VERNIZ',
+                'faixa' => [
+                    'm2' => 10,
+                    'perda_acerto' => 1,
+                    'perda_acabamento' => 2,
+                ],
+            ],
+        ]);
+
+        $guia = app(OpBomDeriver::class)->guiaApontada($empresa, $pedido, $item);
+        $tinta = collect($guia)->firstWhere('componente', 'TINTA');
+        $acab = collect($guia)->firstWhere('componente', 'ACABAMENTO');
+
+        $this->assertNotNull($tinta);
+        $this->assertSame('2 cor(es)', $tinta['origem_texto']);
+        $this->assertSame(0, bccomp((string) $tinta['qtde'], '11', 4));
+        $this->assertNotNull($acab);
+        $this->assertSame('VERNIZ', $acab['origem_texto']);
+        $this->assertSame(0, bccomp((string) $acab['qtde'], '13', 4));
+
+        $itemSem = new PedidoItem([
+            'especificacao' => [
+                'acabamento' => 'SEM ACABAMENTO',
+                'faixa' => ['m2' => 10],
+            ],
+        ]);
+        $sem = app(OpBomDeriver::class)->guiaApontada($empresa, $pedido, $itemSem);
+        $this->assertNull(collect($sem)->firstWhere('componente', 'ACABAMENTO'));
+    }
 }

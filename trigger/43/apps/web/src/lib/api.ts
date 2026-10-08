@@ -3377,6 +3377,16 @@ export type OrdemProducaoDisponibilidade = {
     componente: string;
     origem_texto: string;
     motivo: string;
+    qtde?: string;
+    unidade?: string;
+    metragem?: string | null;
+  }>;
+  /** Tinta e acabamento da guia, sem SKU e sem saída de estoque. */
+  guia_apontada?: Array<{
+    componente: string;
+    origem_texto: string;
+    qtde: string;
+    unidade: string;
   }>;
 };
 

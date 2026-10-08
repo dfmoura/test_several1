@@ -56,6 +56,7 @@ const COMPONENTE_LABELS: Record<string, string> = {
   TUBETE: 'Tubete',
   CAIXA: 'Caixa',
   TINTA: 'Tinta',
+  ACABAMENTO: 'Acabamento',
   MANUAL: 'Extra',
 };
 

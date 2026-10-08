@@ -1475,7 +1475,8 @@ class OrdemProducaoService
      *   resumo: array{
      *     aguardando_material: bool,
      *     linhas_com_faltante: int,
-     *     componentes_nao_casados: list<array{componente: string, origem_texto: string, motivo: string}>
+     *     componentes_nao_casados: list<array{componente: string, origem_texto: string, motivo: string}>,
+     *     guia_apontada: list<array{componente: string, origem_texto: string, qtde: string, unidade: string}>
      *   }
      * }
      */
@@ -1559,10 +1560,12 @@ class OrdemProducaoService
         })->all();
 
         $naoCasados = [];
+        $guia = [];
         if ($o->pedido && $o->pedidoItem
             && in_array($o->status, OrdemProducao::STATUSES_ABERTOS, true)
         ) {
             $naoCasados = $this->bom->naoCasados($empresa, $o->pedido, $o->pedidoItem);
+            $guia = $this->bom->guiaApontada($empresa, $o->pedido, $o->pedidoItem);
         }
 
         return [
@@ -1571,6 +1574,7 @@ class OrdemProducaoService
                 'aguardando_material' => $linhasComFaltante > 0,
                 'linhas_com_faltante' => $linhasComFaltante,
                 'componentes_nao_casados' => $naoCasados,
+                'guia_apontada' => $guia,
             ],
         ];
     }

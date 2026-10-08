@@ -63,7 +63,8 @@ class OpBomDeriver
      *     origem_texto: string,
      *     match_score: int
      *   }>,
-     *   nao_casados: list<array{componente: string, origem_texto: string, motivo: string}>
+     *   nao_casados: list<array{componente: string, origem_texto: string, motivo: string, qtde?: string, unidade?: string, metragem?: string|null}>,
+     *   guia: list<array{componente: string, origem_texto: string, qtde: string, unidade: string}>
      * }
      */
     public function diagnostico(Empresa $empresa, Pedido $pedido, PedidoItem $item): array
@@ -91,6 +92,9 @@ class OpBomDeriver
                 $naoCasados[] = [
                     'componente' => 'PAPEL',
                     'origem_texto' => $ctx['papel'],
+                    'qtde' => $this->qtdeSnapshot($ctx['papel_m2']),
+                    'unidade' => 'M2',
+                    'metragem' => $ctx['metragem'] > 0 ? $this->qtdeSnapshot($ctx['metragem']) : null,
                     'motivo' => 'Nenhum SKU MP casado ao texto do orçamento nesta empresa.',
                 ];
             }
@@ -112,6 +116,8 @@ class OpBomDeriver
                 $naoCasados[] = [
                     'componente' => 'TUBETE',
                     'origem_texto' => $ctx['tubete'],
+                    'qtde' => $this->qtdeSnapshot($ctx['rolos']),
+                    'unidade' => 'UN',
                     'motivo' => 'Nenhum SKU de tubete (EMB) casado nesta empresa.',
                 ];
             }
@@ -132,19 +138,39 @@ class OpBomDeriver
                 $naoCasados[] = [
                     'componente' => 'CAIXA',
                     'origem_texto' => $ctx['caixa_medida'] !== '' ? $ctx['caixa_medida'] : 'caixa',
+                    'qtde' => $this->qtdeSnapshot($ctx['caixas']),
+                    'unidade' => 'UN',
                     'motivo' => 'Nenhum SKU de caixa (EMB) cadastrado nesta empresa.',
                 ];
             }
         }
 
-        return ['linhas' => $out, 'nao_casados' => $naoCasados];
+        return [
+            'linhas' => $out,
+            'nao_casados' => $naoCasados,
+            'guia' => $this->apontamentosGuia($ctx),
+        ];
+    }
+
+    /**
+     * Tinta e acabamento da guia, sem SKU. A saída de estoque não nasce aqui.
+     *
+     * @return list<array{componente: string, origem_texto: string, qtde: string, unidade: string}>
+     */
+    public function guiaApontada(Empresa $empresa, Pedido $pedido, PedidoItem $item): array
+    {
+        return $this->diagnostico($empresa, $pedido, $item)['guia'];
     }
 
     /**
      * @return array{
      *   papel: string,
      *   tubete: string,
+     *   cores: string,
+     *   acabamento: string,
      *   papel_m2: float,
+     *   tinta_m2: float,
+     *   acab_m2: float,
      *   metragem: float,
      *   rolos: float,
      *   caixas: float,
@@ -164,21 +190,63 @@ class OpBomDeriver
 
         $papel = trim((string) ($espec['papel'] ?? $input['papel'] ?? ''));
         $tubete = trim((string) ($espec['tubete'] ?? $input['tubete'] ?? ''));
+        $cores = trim((string) ($espec['cores'] ?? $input['cores'] ?? ''));
+        $acabamento = trim((string) ($espec['acabamento'] ?? $input['acabamento'] ?? ''));
 
         $m2 = (float) ($faixa['m2'] ?? 0);
         $perdaAcerto = (float) ($faixa['perda_acerto'] ?? 0);
         $perdaBobina = (float) ($faixa['perda_bobina_m2'] ?? 0);
         $perdaTroca = (float) ($faixa['perda_papel_troca_produto'] ?? 0);
+        $perdaAcab = (float) ($faixa['perda_acabamento'] ?? 0);
 
         return [
             'papel' => $papel,
             'tubete' => $tubete,
+            'cores' => $cores,
+            'acabamento' => $acabamento,
             'papel_m2' => $m2 + $perdaAcerto + $perdaBobina + $perdaTroca,
+            'tinta_m2' => $m2 + $perdaAcerto,
+            'acab_m2' => $m2 + $perdaAcerto + $perdaAcab,
             'metragem' => (float) ($faixa['metragem'] ?? 0),
             'rolos' => (float) ($faixa['rolos'] ?? 0),
             'caixas' => (float) ($faixa['qtde_caixas'] ?? 0),
             'caixa_medida' => trim((string) ($faixa['caixa_medida'] ?? '')),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $ctx
+     * @return list<array{componente: string, origem_texto: string, qtde: string, unidade: string}>
+     */
+    private function apontamentosGuia(array $ctx): array
+    {
+        $out = [];
+        $cores = trim((string) ($ctx['cores'] ?? ''));
+        if ($cores !== '' && $cores !== '0' && $cores !== '—') {
+            $out[] = [
+                'componente' => 'TINTA',
+                'origem_texto' => $cores.' cor(es)',
+                'qtde' => $this->qtdeSnapshot((float) $ctx['tinta_m2']),
+                'unidade' => 'M2',
+            ];
+        }
+
+        $acab = trim((string) ($ctx['acabamento'] ?? ''));
+        if ($acab !== '' && preg_match('/^sem\s/i', $acab) !== 1) {
+            $out[] = [
+                'componente' => 'ACABAMENTO',
+                'origem_texto' => $acab,
+                'qtde' => $this->qtdeSnapshot((float) $ctx['acab_m2']),
+                'unidade' => 'M2',
+            ];
+        }
+
+        return $out;
+    }
+
+    private function qtdeSnapshot(float $qtde): string
+    {
+        return PadraoDecimal::roundHalfUp((string) $qtde, PadraoDecimal::SCALE_QTY);
     }
 
     /**

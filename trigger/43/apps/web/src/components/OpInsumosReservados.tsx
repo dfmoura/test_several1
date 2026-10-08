@@ -44,7 +44,7 @@ import {
 
 type VolumeLinha = { lote_id: number; qtde: string };
 
-const ORDEM_GRUPO = ['PAPEL', 'TINTA', 'TUBETE', 'CAIXA', 'MANUAL'];
+const ORDEM_GRUPO = ['PAPEL', 'TINTA', 'ACABAMENTO', 'TUBETE', 'CAIXA', 'MANUAL'];
 
 type Props = {
   op: OrdemProducao;
@@ -114,6 +114,48 @@ function agrupar(linhas: OrdemProducaoMaterial[]) {
       label: opComponenteLabel(key),
       linhas: map.get(key) ?? [],
     }));
+}
+
+type ApontadoGuia = {
+  componente: string;
+  origem_texto: string;
+  qtde?: string;
+  unidade?: string;
+  metragem?: string | null;
+  motivo?: string;
+};
+
+function textoApontado(a: ApontadoGuia): string {
+  const n = parseQtdeDigitada(a.qtde);
+  const metros = parseQtdeDigitada(a.metragem);
+  const un = (a.unidade ?? '').toUpperCase();
+  const area = un === 'M2' || un === 'M²';
+  if (!(n > 0) && !(metros > 0)) return '—';
+  if (area && metros > 0) return `${formatQtdePick(n, 'm²')} · ${formatQtdePick(metros, 'm')}`;
+  if (area) return formatQtdePick(n, 'm²');
+  return formatQtdePick(n, unidadeExibicao(a.unidade));
+}
+
+function LinhaApontada({ a }: { a: ApontadoGuia }) {
+  return (
+    <div className="orc-faixas-bloco">
+      <div className="orc-section-head">
+        <h4 className="orc-subsection-title">
+          {opKitNome({ componente: a.componente, origem_texto: a.origem_texto })}
+          <span className="muted" style={{ fontWeight: 500, marginLeft: 8 }}>
+            {a.motivo ? 'Sem cadastro' : 'Apontado no orçamento'}
+          </span>
+        </h4>
+      </div>
+      <p className="op-insumo-balanco">
+        <span>
+          <em>Precisa</em>
+          <strong>{textoApontado(a)}</strong>
+        </span>
+      </p>
+      {a.motivo ? <p className="form-hint" style={{ marginTop: 0 }}>{a.motivo}</p> : null}
+    </div>
+  );
 }
 
 function textoMetragem(m2: number, metros: number | null): string {
@@ -282,6 +324,14 @@ function colunasVolume(args: {
 export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, onOp }: Props) {
   const materiais = op.materiais;
   const grupos = useMemo(() => agrupar(materiais ?? []), [materiais]);
+  const apontados = useMemo(() => {
+    const tem = new Set((materiais ?? []).map((m) => (m.componente ?? '').trim().toUpperCase()));
+    const lista: ApontadoGuia[] = [
+      ...(op.disponibilidade?.componentes_nao_casados ?? []),
+      ...(op.disponibilidade?.guia_apontada ?? []),
+    ];
+    return lista.filter((a) => !tem.has((a.componente ?? '').trim().toUpperCase()));
+  }, [materiais, op.disponibilidade]);
   const assinatura = useMemo(
     () =>
       (materiais ?? [])
@@ -602,7 +652,7 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
 
       {err ? <div className="alert alert-error">{err}</div> : null}
 
-      {grupos.length === 0 ? (
+      {grupos.length === 0 && apontados.length === 0 ? (
         <p className="muted">Ainda sem insumos nesta ordem.</p>
       ) : (
         grupos.map((grupo) => (
@@ -992,10 +1042,44 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                   </div>
                 );
               })}
+              {apontados
+                .filter((a) => (a.componente ?? '').trim().toUpperCase() === grupo.key)
+                .map((a) => (
+                  <LinhaApontada key={`${a.componente}-${a.origem_texto}`} a={a} />
+                ))}
             </div>
           </div>
         ))
       )}
+      {apontados
+        .filter((a) => !grupos.some((g) => g.key === (a.componente ?? '').trim().toUpperCase()))
+        .reduce<Array<{ key: string; linhas: ApontadoGuia[] }>>((acc, a) => {
+          const key = (a.componente ?? '').trim().toUpperCase() || 'OUTRO';
+          const grupo = acc.find((g) => g.key === key);
+          if (grupo) grupo.linhas.push(a);
+          else acc.push({ key, linhas: [a] });
+          return acc;
+        }, [])
+        .sort((a, b) => {
+          const ia = ORDEM_GRUPO.indexOf(a.key);
+          const ib = ORDEM_GRUPO.indexOf(b.key);
+          if (ia === -1 && ib === -1) return a.key.localeCompare(b.key, 'pt-BR');
+          if (ia === -1) return 1;
+          if (ib === -1) return -1;
+          return ia - ib;
+        })
+        .map((grupo) => (
+          <div key={grupo.key} className="card">
+            <div className="card-body">
+              <h4 className="orc-subsection-title" style={{ marginBottom: '0.75rem' }}>
+                {opComponenteLabel(grupo.key)}
+              </h4>
+              {grupo.linhas.map((a) => (
+                <LinhaApontada key={`${a.componente}-${a.origem_texto}`} a={a} />
+              ))}
+            </div>
+          </div>
+        ))}
 
       {aberta && canWrite && pendentes.length > 0 ? (
         <div className="btn-row">
