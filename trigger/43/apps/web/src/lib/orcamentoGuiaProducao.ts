@@ -256,10 +256,14 @@ export function buildGuiaProducaoLinhas(
     item: 'Caixa',
     especificacao: txt(faixa.caixa_medida, txt(espec.tubete)),
     quantidade: qty(caixas, 0, 'un.'),
-    nota:
+    nota: [
+      rolos > 0 ? `${qty(rolos, 0, 'rolos')}` : null,
       Number(faixa.rolos_por_caixa) > 0
-        ? `${qty(Number(faixa.rolos_por_caixa), 0, 'rolos/caixa')}`
-        : undefined,
+        ? `${qty(Number(faixa.rolos_por_caixa), 0, 'rolos por caixa')}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(' · ') || undefined,
   });
 
   // Extras operacionais (Totais da composição: Matriz / Faca — sem R$)

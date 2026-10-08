@@ -125,6 +125,17 @@ function rotuloCaixaEstoque(p: Pick<Produto, 'codigo' | 'descricao_comercial' | 
   return nome ? `${p.codigo} · ${nome}` : p.codigo;
 }
 
+const TUBETE_PADRAO = '1"';
+const TUBETE_SEGUE_PADRAO = '1" 1/2';
+const EXEMPLO_ETIQUETAS = 12_000;
+const EXEMPLO_POR_ROLO = 1_000;
+
+function caixasDoExemplo(rolos: number, capacidade: number): string {
+  if (capacidade < 1) return 'caixa ainda sem capacidade';
+  const n = Math.ceil(rolos / capacidade);
+  return n === 1 ? '1 caixa' : `${n.toLocaleString('pt-BR')} caixas`;
+}
+
 const TABS: Array<{ id: TabId; label: string; hint: string }> = [
   { id: 'papeis', label: 'Papel', hint: 'R$/m² e o grupo de matéria-prima da bobina' },
   { id: 'acabamentos', label: 'Acabamento', hint: 'R$/m² + perda m². Bobina: o grupo de matéria-prima' },
@@ -156,7 +167,7 @@ const TABS: Array<{ id: TabId; label: string; hint: string }> = [
   {
     id: 'embalagem',
     label: 'Embalagem',
-    hint: 'Tubete, caixa, rolos por caixa (rv4)',
+    hint: 'Padrão de caixa: quantos rolos prontos cabem',
   },
   {
     id: 'matriz',
@@ -966,6 +977,12 @@ function CaixaEmpacotamentoPanel({
     setDrafts((prev) => {
       const atual = prev[tub];
       if (!atual) return prev;
+      if (tub === TUBETE_SEGUE_PADRAO && codigo === '') {
+        return {
+          ...prev,
+          [tub]: { medida: '', rolos: '', produtoCodigo: '', caixaId: '' },
+        };
+      }
       const produto = caixas.find((c) => c.codigo === codigo);
       const medidaNova = produto ? medidaNominalCaixa(produto.atributos) || atual.medida : atual.medida;
       return {
@@ -979,6 +996,35 @@ function CaixaEmpacotamentoPanel({
       };
     });
   };
+
+  const seguePadrao = (tub: string) => {
+    if (tub !== TUBETE_SEGUE_PADRAO) return false;
+    const d = drafts[tub];
+    if (!d) return true;
+    return d.produtoCodigo.trim() === '' && d.rolos.trim() === '' && d.medida.trim() === '';
+  };
+
+  const rotuloDo = (tub: string) => {
+    const d = drafts[tub];
+    if (!d) return '';
+    if (d.produtoCodigo) {
+      const produto = caixas.find((c) => c.codigo === d.produtoCodigo);
+      if (produto) return rotuloCaixaEstoque(produto);
+      return d.medida ? `${d.produtoCodigo} · ${d.medida}` : d.produtoCodigo;
+    }
+    return d.medida.trim();
+  };
+
+  const rotuloEfetivo = (tub: string) =>
+    seguePadrao(tub) ? rotuloDo(TUBETE_PADRAO) : rotuloDo(tub);
+
+  const capacidadeEfetiva = (tub: string) => {
+    const fonte = seguePadrao(tub) ? TUBETE_PADRAO : tub;
+    const n = parseInt(drafts[fonte]?.rolos ?? '', 10);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  };
+
+  const exemploRolos = EXEMPLO_ETIQUETAS / EXEMPLO_POR_ROLO;
 
   const save = async () => {
     const payload: Record<string, CaixaEmpRow> = {};
@@ -1000,14 +1046,14 @@ function CaixaEmpacotamentoPanel({
       };
     }
     if (Object.keys(payload).length === 0) {
-      onError('Informe rolos por caixa para ao menos um tubete.');
+      onError('Informe quantos rolos cabem para ao menos um tubete.');
       return;
     }
     setSaving(true);
     onError('');
     try {
       await api.put('/orcamento-catalogo/estruturas/caixa_empacotamento', { payload });
-      await onSaved('Capacidade de caixa por tubete (rv4) atualizada.');
+      await onSaved('Padrão de caixa do orçamento atualizado.');
     } catch (e) {
       onError(fieldErrors(e));
     } finally {
@@ -1018,12 +1064,10 @@ function CaixaEmpacotamentoPanel({
   return (
     <div className="card" style={{ marginBottom: '1rem' }}>
       <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
-        <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--navy)' }}>Rolos por caixa (rv4)</h3>
+        <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--navy)' }}>Padrão de caixa do orçamento</h3>
         <p className="catalogo-nota" style={{ margin: 0 }}>
-          Cada tubete aponta para uma caixa do estoque. A medida é a do cadastro dessa caixa.
-          Aqui ficam a caixa escolhida e os rolos que a proposta considera. O preço da caixa
-          permanece o do catálogo. O tubete 1&quot; 1/2, com linha própria preenchida, usa a caixa
-          dessa linha.
+          O orçamento calcula as caixas. Aqui fica quantos rolos prontos cabem em cada uma.
+          A medida é a do cadastro da caixa. O preço da caixa permanece o do catálogo.
         </p>
         <div className="table-wrap">
           <table className="data-table">
@@ -1031,11 +1075,13 @@ function CaixaEmpacotamentoPanel({
               <tr>
                 <th>Tubete</th>
                 <th>Caixa do estoque</th>
-                <th>Rolos / caixa</th>
+                <th>Rolos que cabem</th>
               </tr>
             </thead>
             <tbody>
-              {TUBETES_EMBALAGEM.map((tub) => (
+              {TUBETES_EMBALAGEM.map((tub) => {
+                const segue = seguePadrao(tub);
+                return (
                 <tr key={tub}>
                   <td>{tub}</td>
                   <td>
@@ -1046,9 +1092,15 @@ function CaixaEmpacotamentoPanel({
                         onChange={(e) => escolherCaixa(tub, e.target.value)}
                       >
                         <option value="">
-                          {drafts[tub]?.medida
-                            ? `Medida atual ${drafts[tub].medida}`
-                            : '— escolha a caixa —'}
+                          {tub === TUBETE_SEGUE_PADRAO && (segue || drafts[tub]?.produtoCodigo)
+                            ? rotuloEfetivo(TUBETE_PADRAO)
+                              ? `Mesma do 1" · ${rotuloEfetivo(TUBETE_PADRAO)}`
+                              : 'Mesma do 1"'
+                            : drafts[tub]?.medida
+                              ? `Medida atual ${drafts[tub].medida}`
+                              : tub === TUBETE_SEGUE_PADRAO
+                                ? 'Mesma do 1"'
+                                : '— escolha a caixa —'}
                         </option>
                         {caixas.map((c) => (
                           <option key={c.id} value={c.codigo}>
@@ -1056,6 +1108,8 @@ function CaixaEmpacotamentoPanel({
                           </option>
                         ))}
                       </select>
+                    ) : segue ? (
+                      <span>{rotuloEfetivo(TUBETE_PADRAO) ? `Mesma do 1" · ${rotuloEfetivo(TUBETE_PADRAO)}` : 'Mesma do 1"'}</span>
                     ) : (
                       <input
                         type="text"
@@ -1072,29 +1126,54 @@ function CaixaEmpacotamentoPanel({
                     )}
                   </td>
                   <td>
-                    <input
-                      type="number"
-                      min={1}
-                      step={1}
-                      value={drafts[tub]?.rolos ?? ''}
-                      disabled={saving}
-                      onChange={(e) =>
-                        setDrafts((prev) => ({
-                          ...prev,
-                          [tub]: { ...prev[tub], rolos: e.target.value },
-                        }))
-                      }
-                      style={{ maxWidth: '6rem' }}
-                    />
+                    {segue ? (
+                      <span>{drafts[TUBETE_PADRAO]?.rolos || '—'}</span>
+                    ) : (
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={drafts[tub]?.rolos ?? ''}
+                        disabled={saving}
+                        onChange={(e) =>
+                          setDrafts((prev) => ({
+                            ...prev,
+                            [tub]: { ...prev[tub], rolos: e.target.value },
+                          }))
+                        }
+                        style={{ maxWidth: '6rem' }}
+                      />
+                    )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
+        <div className="catalogo-nota" style={{ margin: 0 }}>
+          <p style={{ margin: '0 0 0.35rem' }}>
+            Exemplo com {EXEMPLO_ETIQUETAS.toLocaleString('pt-BR')} etiquetas e{' '}
+            {EXEMPLO_POR_ROLO.toLocaleString('pt-BR')} por rolo:{' '}
+            {exemploRolos.toLocaleString('pt-BR')} rolos e {exemploRolos.toLocaleString('pt-BR')} tubetes.
+          </p>
+          <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+            {TUBETES_EMBALAGEM.map((tub) => {
+              const caixa = rotuloEfetivo(tub);
+              const cap = capacidadeEfetiva(tub);
+              return (
+                <li key={tub}>
+                  {tub}: {caixasDoExemplo(exemploRolos, cap)}
+                  {caixa ? ` · ${seguePadrao(tub) ? `mesma do 1" · ${caixa}` : caixa}` : ''}
+                  {cap > 0 ? ` · ${cap.toLocaleString('pt-BR')} rolos que cabem` : ''}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
         <div className="btn-row">
           <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={() => void save()}>
-            {saving ? 'Salvando…' : 'Salvar empacotamento'}
+            {saving ? 'Salvando…' : 'Salvar padrão'}
           </button>
         </div>
       </div>

@@ -122,6 +122,39 @@ function qtdeGuiaDoComponente(
   return qtde ? qtde : '—';
 }
 
+function leituraEmbalagemFaixa(
+  fx: OrcamentoFaixaResult,
+  etiqPorRolo: number | null,
+  tubete: string | null,
+): string | null {
+  const q = Number(fx.quantidade);
+  const rolos = Number(fx.rolos);
+  if (!Number.isFinite(q) || q <= 0 || !Number.isFinite(rolos) || rolos <= 0) return null;
+  const etiq = etiqPorRolo != null && etiqPorRolo > 0 ? etiqPorRolo : Math.round(q / rolos);
+  const rolosTxt = Math.round(rolos).toLocaleString('pt-BR');
+  const tub = (tubete ?? '').trim();
+  const caixas = Number(fx.qtde_caixas);
+  const cap = Number(fx.rolos_por_caixa);
+  const medida = (fx.caixa_medida ?? '').trim();
+  const partes = [
+    `${Math.round(q).toLocaleString('pt-BR')} etiquetas`,
+    `${etiq.toLocaleString('pt-BR')} por rolo`,
+    `${rolosTxt} rolos`,
+    tub ? `${rolosTxt} tubetes de ${tub}` : `${rolosTxt} tubetes`,
+  ];
+  if (Number.isFinite(caixas) && caixas > 0) {
+    const detalhe = [
+      medida || null,
+      Number.isFinite(cap) && cap > 0 ? `${Math.round(cap).toLocaleString('pt-BR')} rolos por caixa` : null,
+    ]
+      .filter(Boolean)
+      .join(', ');
+    const caixaTxt = `${Math.round(caixas).toLocaleString('pt-BR')} ${Math.round(caixas) === 1 ? 'caixa' : 'caixas'}`;
+    partes.push(detalhe ? `${caixaTxt} (${detalhe})` : caixaTxt);
+  }
+  return partes.join(' · ');
+}
+
 function ParametrosCalculoPanel({
   faixas,
   snapshot,
@@ -724,6 +757,7 @@ function ComercialFaixasTable({
   freteADefinir,
   modoServico,
   etiqPorRolo,
+  tubete,
 }: {
   faixas: OrcamentoFaixaResult[];
   facaNova: boolean;
@@ -735,6 +769,7 @@ function ComercialFaixasTable({
   modoServico?: boolean;
   /** Embalagem comercial (input) — constante em todas as faixas. */
   etiqPorRolo?: number | null;
+  tubete?: string | null;
 }) {
   const etiqRolo = Number(etiqPorRolo);
   const etiqRoloOk = Number.isFinite(etiqRolo) && etiqRolo > 0;
@@ -856,6 +891,7 @@ function ComercialFaixasTable({
 
   const mostrarArtes = (valorArtes ?? 0) > 0;
   return (
+    <>
     <div className="table-wrap">
       <table className="data-table">
         <thead>
@@ -999,6 +1035,16 @@ function ComercialFaixasTable({
         </tbody>
       </table>
     </div>
+    {sorted.some((fx) => leituraEmbalagemFaixa(fx, etiqRoloOk ? etiqRolo : null, tubete ?? null)) ? (
+      <ul className="orc-result-meta" style={{ margin: '0.75rem 0 0', paddingLeft: '1.1rem' }}>
+        {sorted.map((fx, i) => {
+          const leitura = leituraEmbalagemFaixa(fx, etiqRoloOk ? etiqRolo : null, tubete ?? null);
+          if (!leitura) return null;
+          return <li key={i}>{leitura}</li>;
+        })}
+      </ul>
+    ) : null}
+  </>
   );
 }
 
@@ -1154,6 +1200,7 @@ function PropostaItemBloco({
               ? Number(item.guiaEspec.etiq_por_rolo)
               : null
           }
+          tubete={item.guiaEspec?.tubete ?? null}
         />
       </div>
     </details>
@@ -1488,6 +1535,7 @@ export function OrcamentoResultado({
                       ? Number(guiaEspec.etiq_por_rolo)
                       : null
                   }
+                  tubete={guiaEspec?.tubete ?? null}
                 />
               </>
             )}

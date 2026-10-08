@@ -1711,6 +1711,7 @@ export function OrcamentoFormPage() {
                     </option>
                   ))}
                 </select>
+                <p className="field-note">A quantidade de caixas sai dos rolos deste tubete.</p>
               </div>
               <div className="form-group">
                 <label>Col. rebobinação</label>

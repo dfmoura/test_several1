@@ -127,6 +127,8 @@ export function buildParametrosAjusteLinhas(opts: {
     valor_rebobinacao?: number;
     valor_tubete?: number;
     valor_caixa?: number;
+    rolos_por_caixa?: number | null;
+    caixa_medida?: string | null;
     comissao?: number;
     imposto?: number;
     m2?: number;
@@ -143,6 +145,8 @@ export function buildParametrosAjusteLinhas(opts: {
     d.troca_produto_modo === 'cromia_preto_inteiro' || isTrocaPretoInteiro(t.tipo_troca_produto);
   const cromiaRef = num(d.cromia_referencia) ?? t.cromia_referencia ?? null;
   const fracaoCromia = cromiaRef != null ? cromiaRef / 4 : null;
+  const rolosPorCaixa = num(d.rolos_por_caixa);
+  const medidaCaixa = (d.caixa_medida ?? '').trim();
 
   return [
     {
@@ -230,7 +234,15 @@ export function buildParametrosAjusteLinhas(opts: {
     {
       id: 'caixa',
       label: 'Caixa',
-      parametro: 'R$/caixa',
+      parametro: [
+        'R$/caixa',
+        medidaCaixa || null,
+        rolosPorCaixa != null && rolosPorCaixa > 0
+          ? `${rolosPorCaixa.toLocaleString('pt-BR')} rolos por caixa`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
       unidade: 'R$/cx',
       valorUsado: t.preco_caixa ?? null,
       resultadoRs: num(d.valor_caixa),
