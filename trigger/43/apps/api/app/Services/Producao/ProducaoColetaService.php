@@ -382,8 +382,8 @@ class ProducaoColetaService
     }
 
     /**
-     * SKUs sem lote da mesma polegada (tubete) ou da mesma medida (caixa), com saldo.
-     * O SKU da linha entra mesmo sem saldo, para a escolha não sumir.
+     * SKUs sem lote da mesma polegada (tubete) ou da mesma medida (caixa) que têm saldo.
+     * Sem saldo, o SKU não entra: a tela não pré-seleciona produto.
      *
      * @return list<array<string, mixed>>
      */
@@ -463,7 +463,7 @@ class ProducaoColetaService
                 }
             }
             $atual = (int) $produto->id === (int) $mat->produto_id;
-            if (! $atual && bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
                 continue;
             }
             $attrs = is_array($produto->atributos) ? $produto->atributos : [];

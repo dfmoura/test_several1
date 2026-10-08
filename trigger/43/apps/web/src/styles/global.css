@@ -13126,6 +13126,10 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   color: var(--text);
 }
 
+.op-insumos .op-insumo-linha td.op-insumo-produto select {
+  max-width: 28rem;
+}
+
 .op-insumos .op-insumo-linha td.num input {
   text-align: right;
   font-variant-numeric: tabular-nums;

@@ -86,7 +86,7 @@ function picksDe(materiais: OrdemProducaoMaterial[] | undefined) {
   for (const m of materiais ?? []) {
     if (modoRetirada(m) === 'volume') vols[m.id] = volumesIniciais(m);
     else uns[m.id] = qtdeUnidadeInicial(m);
-    if (m.produto?.id) produtos[m.id] = m.produto.id;
+    if (m.produto?.id && opKitEstado(m) !== 'sem_estoque') produtos[m.id] = m.produto.id;
   }
   return { vols, uns, produtos };
 }
@@ -115,11 +115,13 @@ function agrupar(linhas: OrdemProducaoMaterial[]) {
     }));
 }
 
-function rotuloOpcao(o: OpInsumoOpcao): string {
+function rotuloOpcao(o: OpInsumoOpcao, unidade?: string): string {
   const codigo = o.codigo.trim();
   const desc = o.descricao.trim();
-  if (codigo && desc) return `${codigo} — ${desc}`;
-  return desc || codigo || '—';
+  const nome = codigo && desc ? `${codigo} — ${desc}` : desc || codigo || '—';
+  if (!unidade) return nome;
+  const qtde = parseQtdeDigitada(o.qtde_disponivel);
+  return qtde > 0 ? `${nome} · ${formatQtdePick(qtde, unidade)}` : nome;
 }
 
 type CelulaInsumo = {
@@ -254,14 +256,9 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
     const estado = opKitEstado(m);
     if (estado === 'falta_pegar') return true;
     if (estado !== 'sem_estoque') return false;
-    const produtoId = produtos[m.id] ?? m.produto?.id;
+    const produtoId = produtos[m.id] ?? 0;
     const opcao = (m.opcoes ?? []).find((o) => o.produto_id === produtoId);
-    return Boolean(
-      opcao &&
-        m.produto?.id &&
-        opcao.produto_id !== m.produto.id &&
-        parseQtdeDigitada(opcao.qtde_disponivel) > 0,
-    );
+    return Boolean(opcao && parseQtdeDigitada(opcao.qtde_disponivel) > 0);
   });
 
   const lembrar = (lista: OpRetiradaVolume[]) => {
@@ -451,7 +448,12 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
       }
       const qtde = parseQtdeDigitada(unidades[m.id] ?? '');
       const planejada = qtdeLinhaPick(m);
-      const produtoId = produtos[m.id] ?? m.produto?.id ?? 0;
+      const produtoId =
+        opKitEstado(m) === 'sem_estoque' ? (produtos[m.id] ?? 0) : (produtos[m.id] ?? m.produto?.id ?? 0);
+      if (opKitEstado(m) === 'sem_estoque' && !(produtoId > 0)) {
+        setErr(`Escolha o produto de ${opKitNome(m)}.`);
+        return;
+      }
       const trocou = Boolean(produtoId && m.produto?.id && produtoId !== m.produto.id);
       const opcao = (m.opcoes ?? []).find((o) => o.produto_id === produtoId);
       const teto = opcao
@@ -551,15 +553,40 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                 const porVolume = modoRetirada(m) === 'volume';
                 const podeEditar = Boolean(aberta && canWrite && estado === 'falta_pegar');
                 const opcoes = m.opcoes ?? [];
-                const produtoId = produtos[m.id] ?? m.produto?.id ?? 0;
-                const opcao = opcoes.find((o) => o.produto_id === produtoId) ?? null;
+                const produtoPedido =
+                  estado === 'sem_estoque' ? (produtos[m.id] ?? 0) : (produtos[m.id] ?? m.produto?.id ?? 0);
+                const opcao = opcoes.find((o) => o.produto_id === produtoPedido) ?? null;
+                const produtoId = estado === 'sem_estoque' && produtoPedido > 0 && !opcao ? 0 : produtoPedido;
+                const localDaEscolha =
+                  opcao?.local ?? (produtoId > 0 && produtoId === m.produto?.id ? m.local : null);
                 const podeTrocar = Boolean(
                   !porVolume &&
                     aberta &&
                     canWrite &&
-                    opcoes.length > 1 &&
-                    (estado === 'falta_pegar' || estado === 'sem_estoque'),
+                    opcoes.length > 0 &&
+                    (estado === 'sem_estoque' || (estado === 'falta_pegar' && opcoes.length > 1)),
                 );
+                const escolherProduto = (raw: string) => {
+                  const id = Number(raw);
+                  if (!id) {
+                    setProdutos((prev) => {
+                      const next = { ...prev };
+                      delete next[m.id];
+                      return next;
+                    });
+                    return;
+                  }
+                  const prox = opcoes.find((o) => o.produto_id === id);
+                  const teto = parseQtdeDigitada(prox?.qtde_disponivel);
+                  setProdutos((prev) => ({ ...prev, [m.id]: id }));
+                  setUnidades((prev) => {
+                    const planejada = qtdeLinhaPick(m);
+                    const atual = parseQtdeDigitada(prev[m.id] ?? '');
+                    const base = atual > 0 ? atual : planejada;
+                    const qtde = teto > 0 && base > teto ? String(teto) : base > 0 ? String(base) : '';
+                    return { ...prev, [m.id]: qtde };
+                  });
+                };
                 const saldoOpcao = opcao
                   ? parseQtdeDigitada(opcao.qtde_disponivel)
                   : parseQtdeDigitada(m.qtde_disponivel);
@@ -611,17 +638,21 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
 
                     {porVolume && estado !== 'ja_saiu' ? (
                       escolhidos.length === 0 ? (
-                        <>
-                          <p className="op-insumo-previsto">
-                            <span>Produto</span>
-                            <strong>{nomeProdutoLinha(m.produto)}</strong>
-                          </p>
+                        estado === 'sem_estoque' ? (
                           <p className="form-hint" style={{ marginTop: 0 }}>
-                            {estado === 'sem_estoque'
-                              ? 'Sem saldo neste item.'
-                              : 'Nenhum volume nesta lista.'}
+                            Sem saldo neste item.
                           </p>
-                        </>
+                        ) : (
+                          <>
+                            <p className="op-insumo-previsto">
+                              <span>Produto</span>
+                              <strong>{nomeProdutoLinha(m.produto)}</strong>
+                            </p>
+                            <p className="form-hint" style={{ marginTop: 0 }}>
+                              Nenhum volume nesta lista.
+                            </p>
+                          </>
+                        )
                       ) : (
                         <TabelaRegistro
                           linhas={escolhidos.map((linha) => {
@@ -717,7 +748,44 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                       )
                     ) : null}
 
-                    {!porVolume ? (
+                    {!porVolume && estado === 'sem_estoque' && produtoId <= 0 ? (
+                      !podeTrocar ? (
+                        <p className="form-hint" style={{ marginTop: 0 }}>
+                          Sem saldo neste item.
+                        </p>
+                      ) : (
+                        <TabelaRegistro
+                          linhas={[
+                            {
+                              id: m.id,
+                              cols: [
+                                {
+                                  key: 'produto',
+                                  label: 'Produto',
+                                  node: (
+                                    <select
+                                      value=""
+                                      disabled={busy}
+                                      aria-label="Escolher produto"
+                                      onChange={(e) => escolherProduto(e.target.value)}
+                                    >
+                                      <option value="">Escolher</option>
+                                      {opcoes.map((o) => (
+                                        <option key={o.produto_id} value={o.produto_id}>
+                                          {rotuloOpcao(o, un)}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ),
+                                },
+                              ],
+                            },
+                          ]}
+                        />
+                      )
+                    ) : null}
+
+                    {!porVolume && !(estado === 'sem_estoque' && produtoId <= 0) ? (
                       <TabelaRegistro
                         linhas={[
                           {
@@ -728,26 +796,16 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                                 label: 'Produto',
                                 node: podeTrocar ? (
                                   <select
-                                    value={String(produtoId)}
+                                    value={produtoId > 0 ? String(produtoId) : ''}
                                     disabled={busy}
-                                    title={opcao ? rotuloOpcao(opcao) : nomeProdutoLinha(m.produto)}
-                                    onChange={(e) => {
-                                      const id = Number(e.target.value);
-                                      const prox = opcoes.find((o) => o.produto_id === id);
-                                      const teto = parseQtdeDigitada(prox?.qtde_disponivel);
-                                      setProdutos((prev) => ({ ...prev, [m.id]: id }));
-                                      setUnidades((prev) => {
-                                        const atual = parseQtdeDigitada(prev[m.id] ?? '');
-                                        if (teto > 0 && atual > teto) {
-                                          return { ...prev, [m.id]: String(teto) };
-                                        }
-                                        return prev;
-                                      });
-                                    }}
+                                    title={opcao ? rotuloOpcao(opcao) : undefined}
+                                    aria-label="Escolher produto"
+                                    onChange={(e) => escolherProduto(e.target.value)}
                                   >
+                                    {estado === 'sem_estoque' ? <option value="">Escolher</option> : null}
                                     {opcoes.map((o) => (
                                       <option key={o.produto_id} value={o.produto_id}>
-                                        {rotuloOpcao(o)}
+                                        {rotuloOpcao(o, un)}
                                       </option>
                                     ))}
                                   </select>
@@ -776,15 +834,13 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                                         aberta && canWrite && produtoId > 0 ? (
                                           <LocalSaldoCampo
                                             produtoId={produtoId}
-                                            local={opcao?.local ?? m.local}
+                                            local={localDaEscolha}
                                             disabled={busy}
                                             onSaved={() => void ressincronizar()}
                                           />
                                         ) : (
-                                          opcao?.local?.nome?.trim() ||
-                                          opcao?.local?.codigo ||
-                                          m.local?.nome?.trim() ||
-                                          m.local?.codigo ||
+                                          localDaEscolha?.nome?.trim() ||
+                                          localDaEscolha?.codigo ||
                                           'Sem local'
                                         ),
                                     },
