@@ -607,7 +607,11 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                 const polegada = rotuloPolegada(
                   m.origem_texto ?? m.produto?.descricao_comercial ?? m.produto?.descricao_fiscal,
                 );
-                const ehTubete = (m.componente ?? '').toUpperCase() === 'TUBETE';
+                const componente = (m.componente ?? '').toUpperCase();
+                const ehTubete = componente === 'TUBETE';
+                const localSomenteLeitura = ehTubete || componente === 'CAIXA';
+                const rotuloLocal =
+                  localDaEscolha?.nome?.trim() || localDaEscolha?.codigo?.trim() || '';
                 const qtdeLabel = `Quantidade (${un})`;
                 const mostrarMedidaPendentes =
                   metragem ||
@@ -824,25 +828,29 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                                     },
                                   ]
                                 : []),
-                              ...(!m.produto?.controla_lote && (opcao || m.produto?.id)
+                              ...(!m.produto?.controla_lote &&
+                              (opcao || m.produto?.id) &&
+                              (!localSomenteLeitura || rotuloLocal !== '')
                                 ? [
                                     {
                                       key: 'local',
                                       label: 'Local',
-                                      w: aberta && canWrite && produtoId > 0 ? 'op-insumo-w--lugar' : undefined,
-                                      node:
-                                        aberta && canWrite && produtoId > 0 ? (
-                                          <LocalSaldoCampo
-                                            produtoId={produtoId}
-                                            local={localDaEscolha}
-                                            disabled={busy}
-                                            onSaved={() => void ressincronizar()}
-                                          />
-                                        ) : (
-                                          localDaEscolha?.nome?.trim() ||
-                                          localDaEscolha?.codigo ||
-                                          'Sem local'
-                                        ),
+                                      w:
+                                        !localSomenteLeitura && aberta && canWrite && produtoId > 0
+                                          ? 'op-insumo-w--lugar'
+                                          : undefined,
+                                      node: localSomenteLeitura ? (
+                                        rotuloLocal
+                                      ) : aberta && canWrite && produtoId > 0 ? (
+                                        <LocalSaldoCampo
+                                          produtoId={produtoId}
+                                          local={localDaEscolha}
+                                          disabled={busy}
+                                          onSaved={() => void ressincronizar()}
+                                        />
+                                      ) : (
+                                        rotuloLocal || 'Sem local'
+                                      ),
                                     },
                                   ]
                                 : []),
