@@ -65,7 +65,8 @@ Ficha impressa: link na toolbar. Sem segunda lista embutida na página do chão.
 | Produto | Happy path | Exceção (overlay) |
 |---------|------------|-------------------|
 | Bobina / papel / filme | FEFO automático | Marca outro volume + motivo |
-| Tubete, tinta, caixa, MUC | qtde planejada · FEFO no writer | Ajusta qtde no overlay |
+| Tubete, caixa | Igual ao papel quando o SKU controla volume; senão, qtde | Outro volume do mesmo SKU + motivo |
+| Tinta, MUC | qtde planejada · FEFO no writer | Ajusta qtde no overlay |
 
 Não exigir que a soma case o m²/UN planejado. Motivo só se o volume for outro que o FEFO. Invariante: soma de `volumes[]` = `qtde` da saída.
 

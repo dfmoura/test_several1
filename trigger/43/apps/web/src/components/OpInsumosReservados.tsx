@@ -29,6 +29,19 @@ type VolumeLinha = { lote_id: number; qtde: string };
 
 const ORDEM_GRUPO = ['PAPEL', 'TINTA', 'TUBETE', 'CAIXA', 'MANUAL'];
 
+function embalagemComVolume(m: OrdemProducaoMaterial): boolean {
+  const c = (m.componente ?? '').trim().toUpperCase();
+  return c === 'TUBETE' || c === 'CAIXA';
+}
+
+/** Tubete e caixa: só o SKU da linha. Outro núcleo reescreveria o kit. Papel mantém o catálogo amplo. */
+function volumeDaLinha(m: OrdemProducaoMaterial, v: OpRetiradaVolume): boolean {
+  if (!embalagemComVolume(m)) return true;
+  const produtoId = m.produto?.id;
+  if (!produtoId || !v.produto_id) return true;
+  return v.produto_id === produtoId;
+}
+
 type Props = {
   op: OrdemProducao;
   podeEstoque: boolean;
@@ -99,8 +112,8 @@ function agrupar(linhas: OrdemProducaoMaterial[]) {
 
 /**
  * Insumos já apontados no kit da ordem, grupo a grupo.
- * O formulário é o da faixa do orçamento: acrescenta o próximo volume já conhecido
- * ou remove; unidade ajusta a quantidade. Sem busca no estoque.
+ * O formulário é o da faixa do orçamento. Papel, tubete e caixa com volume
+ * escolhem no mesmo overlay; sem volume, a quantidade. Tinta segue quantidade.
  */
 export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, onOp }: Props) {
   const materiais = op.materiais;
@@ -179,7 +192,7 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
       )
       .then((res) => {
         if (overlayTicket.current !== ticket) return;
-        const lista = juntarCatalogo(base, res.data ?? []);
+        const lista = juntarCatalogo(base, res.data ?? []).filter((v) => volumeDaLinha(m, v));
         lembrar(lista);
         setCatalogoOverlay(lista);
       })
@@ -227,9 +240,6 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
         `/estoque/retiradas/${op.id}/volume?payload=${encodeURIComponent(payload)}`,
       );
       const vol = res.data;
-      if (material.produto?.id && vol.produto?.id && vol.produto.id !== material.produto.id) {
-        throw new Error('Volume de outro produto.');
-      }
       const linha: OpRetiradaVolume = {
         lote_id: vol.lote_id,
         codigo: vol.codigo,
@@ -251,6 +261,17 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
         produto_id: vol.produto?.id ?? null,
         descricao: vol.produto?.descricao_fiscal ?? null,
       };
+      if (!volumeDaLinha(material, linha)) {
+        throw new Error('Volume de outro produto.');
+      }
+      if (
+        !embalagemComVolume(material) &&
+        material.produto?.id &&
+        vol.produto?.id &&
+        vol.produto.id !== material.produto.id
+      ) {
+        throw new Error('Volume de outro produto.');
+      }
       lembrar([linha]);
       setCatalogoOverlay((prev) => juntarCatalogo(prev, [linha]));
       setVolumes((prev) => {

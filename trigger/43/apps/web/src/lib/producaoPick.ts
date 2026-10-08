@@ -2,10 +2,10 @@ import type { OpRetiradaPreview, OpRetiradaVolume, OrdemProducao, OrdemProducaoM
 import { formatDecimalBr } from './format';
 import { opKitEstado, opKitNome, opKitOnde, parseQtdeDigitada } from './producaoUi';
 
-/** Como o chão escolhe o que pegar — bobina = volume; o resto = unidade. */
+/** Como o chão escolhe o que pegar — bobina, tubete e caixa com lote = volume; o resto = unidade. */
 export type ModoRetirada = 'volume' | 'unidade';
 
-const COMPONENTES_VOLUME = new Set(['PAPEL']);
+const COMPONENTES_VOLUME = new Set(['PAPEL', 'TUBETE', 'CAIXA']);
 /** Grupo no código do SKU (MP-PAP-001). Família do produto é MP, não o grupo. */
 const GRUPOS_VOLUME = ['MP-PAP', 'MP-FLM', 'MP-TEC', 'MP-LAM', 'MP-CLD', 'MP-ADF', 'MP-RET', 'PA-BOB'];
 
