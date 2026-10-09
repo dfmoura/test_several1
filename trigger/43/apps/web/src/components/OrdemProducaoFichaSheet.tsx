@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
 import {
@@ -14,14 +15,8 @@ import { BRAND } from '../lib/brand';
 import { formatDateTime, formatDecimalBr } from '../lib/format';
 import { formatEnderecoParceiro } from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
-import { formatQuantoFicha } from '../lib/producaoPick';
-import {
-  opKitEstado,
-  opKitEstadoLabel,
-  opKitNome,
-  opKitOnde,
-  opStatusLabel,
-} from '../lib/producaoUi';
+import { fichaSaidaEstoque } from '../lib/opFichaSaida';
+import { opStatusLabel } from '../lib/producaoUi';
 import { dash, faixaDoItem, formatDateTimeBr, opChipClass, specOperacional } from '../lib/producaoFicha';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import {
@@ -81,7 +76,7 @@ export function OrdemProducaoFichaSheet({
     pedido?.itens.find((i) => i.id === o.pedido_item?.id) ?? pedido?.itens[0] ?? null;
   const spec = pedido && item ? specOperacional(pedido, item) : {};
   const desc = descricaoFromPedidoSpec(spec);
-  const materiais = o.materiais ?? [];
+  const saidaEstoque = fichaSaidaEstoque(o);
   const tol = o.pedido?.tolerancia_qtd_pct ?? pedido?.tolerancia_qtd_pct ?? '20';
   const pedCodigo = o.pedido?.codigo ?? pedido?.codigo ?? '—';
   const parceiro = pedido?.parceiro ?? o.parceiro ?? null;
@@ -270,46 +265,59 @@ export function OrdemProducaoFichaSheet({
       ) : null}
 
       <FichaSection title="Material">
-        {materiais.length === 0 ? (
+        {saidaEstoque.length === 0 ? (
           <p className="ficha-empty">Ainda não há lista de material nesta ordem.</p>
         ) : (
-          <table className="ficha-table ficha-op-materiais">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Item</th>
-                <th>Quanto</th>
-                <th>Local</th>
-                <th>Situação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {materiais.map((m, i) => {
-                const estado = opKitEstado(m);
-                const nome = opKitNome(m);
-                const quanto = formatQuantoFicha(m, o);
-                return (
-                  <tr key={m.id} className={`ficha-op-mat ficha-op-mat--${estado}`}>
-                    <td>{i + 1}</td>
-                    <td>
-                      {nome}
-                      {m.produto?.codigo ? (
-                        <div className="ficha-muted">{m.produto.codigo}</div>
-                      ) : null}
-                    </td>
-                    <td>
-                      {quanto.pedido}
-                      {quanto.volumes ? (
-                        <div className="ficha-op-volumes">{quanto.volumes}</div>
-                      ) : null}
-                    </td>
-                    <td>{opKitOnde(m)}</td>
-                    <td>{opKitEstadoLabel(estado)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="ficha-op-saida">
+            {saidaEstoque.map((grupo) => (
+              <div key={grupo.key} className="ficha-op-saida-grupo">
+                <h4 className="ficha-op-saida-rotulo">{grupo.label}</h4>
+                <table className="ficha-table ficha-table-num ficha-op-saida-tabela">
+                  <colgroup>
+                    {grupo.colunas.map((coluna) => (
+                      <col key={coluna.id} className={`ficha-op-c ficha-op-c--${coluna.id}`} />
+                    ))}
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      {grupo.colunas.map((coluna) => (
+                        <th
+                          key={coluna.id}
+                          className={coluna.num ? 'ficha-th-num' : undefined}
+                          title={coluna.title}
+                        >
+                          {coluna.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {grupo.materiais.map((material) => (
+                      <Fragment key={material.id}>
+                        {material.chamada ? (
+                          <tr className="ficha-op-saida-chamada">
+                            <td colSpan={grupo.colunas.length}>{material.chamada}</td>
+                          </tr>
+                        ) : null}
+                        {material.linhas.map((linha) => (
+                          <tr key={linha.id} className={`ficha-op-mat ficha-op-mat--${linha.estado}`}>
+                            {grupo.colunas.map((coluna) => (
+                              <td
+                                key={coluna.id}
+                                className={coluna.num ? 'ficha-td-num' : undefined}
+                              >
+                                {linha.valores[coluna.id] ?? '—'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
         )}
       </FichaSection>
 

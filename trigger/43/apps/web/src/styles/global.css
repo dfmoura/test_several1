@@ -10584,48 +10584,83 @@ tr.row-inactive td {
   font-variant-numeric: tabular-nums;
 }
 
-.ficha-sheet-op .ficha-op-materiais {
+.ficha-sheet-op .ficha-section:has(.ficha-op-saida) {
+  break-inside: auto;
+}
+
+.ficha-sheet-op .ficha-op-saida-grupo {
+  break-inside: avoid;
+}
+
+.ficha-sheet-op .ficha-op-saida-grupo + .ficha-op-saida-grupo {
+  margin-top: 1.4mm;
+}
+
+.ficha-sheet-op .ficha-op-saida-rotulo {
+  margin: 0;
+  padding: 0.7mm 1.4mm;
+  border: 0.35pt solid var(--border);
+  border-top: 0;
+  background: #e8eef8;
+  color: var(--navy);
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.ficha-sheet-op .ficha-op-saida-grupo + .ficha-op-saida-grupo .ficha-op-saida-rotulo {
+  border-top: 0.35pt solid var(--border);
+}
+
+.ficha-sheet-op .ficha-op-saida-tabela {
   font-variant-numeric: tabular-nums;
 }
 
-.ficha-sheet-op .ficha-op-materiais th:nth-child(1),
-.ficha-sheet-op .ficha-op-materiais td:nth-child(1) {
-  width: 7mm;
-  text-align: right;
+.ficha-sheet-op .ficha-op-c--volume { width: 22mm; }
+.ficha-sheet-op .ficha-op-c--local { width: 16mm; }
+.ficha-sheet-op .ficha-op-c--polegada { width: 14mm; }
+.ficha-sheet-op .ficha-op-c--medida { width: 26mm; }
+.ficha-sheet-op .ficha-op-c--m2 { width: 18mm; }
+.ficha-sheet-op .ficha-op-c--m { width: 16mm; }
+.ficha-sheet-op .ficha-op-c--qtde { width: 18mm; }
+.ficha-sheet-op .ficha-op-c--situacao { width: 22mm; }
+
+.ficha-sheet-op .ficha-op-saida-tabela td.ficha-td-num {
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
-.ficha-sheet-op .ficha-op-materiais th:nth-child(3),
-.ficha-sheet-op .ficha-op-materiais td:nth-child(3) {
-  width: 38%;
+.ficha-sheet-op .ficha-op-saida-tabela tbody tr.ficha-op-saida-chamada td {
+  background: #f4f7fb;
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 7pt;
 }
 
-.ficha-sheet-op .ficha-op-materiais th:nth-child(5),
-.ficha-sheet-op .ficha-op-materiais td:nth-child(5) {
-  width: 24mm;
-}
-
-.ficha-sheet-op .ficha-op-mat--falta_pegar td {
+.ficha-sheet-op .ficha-op-saida-tabela tbody tr.ficha-op-mat--falta_pegar td {
   background: rgba(37, 99, 235, 0.1);
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
 
-.ficha-sheet-op .ficha-op-mat--falta_pegar td:first-child {
+.ficha-sheet-op .ficha-op-saida-tabela tbody tr.ficha-op-mat--falta_pegar td:first-child {
   box-shadow: inset 2.4pt 0 0 #1d4ed8;
 }
 
-.ficha-sheet-op .ficha-op-mat--falta_pegar td:last-child {
+.ficha-sheet-op .ficha-op-saida-tabela tbody tr.ficha-op-mat--falta_pegar td:last-child {
   font-weight: 700;
   color: #1e3a8a;
 }
 
-.ficha-sheet-op .ficha-op-mat--sem_estoque td {
+.ficha-sheet-op .ficha-op-saida-tabela tbody tr.ficha-op-mat--sem_estoque td {
   background: rgba(180, 35, 24, 0.07);
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
 
-.ficha-sheet-op .ficha-op-mat--sem_estoque td:last-child {
+.ficha-sheet-op .ficha-op-saida-tabela tbody tr.ficha-op-mat--sem_estoque td:last-child {
   font-weight: 700;
   color: #b42318;
 }
@@ -10640,11 +10675,6 @@ tr.row-inactive td {
 .ficha-op-pedido-form.ficha-sheet-ped .ped-ficha-etq-c-ml { width: 12%; }
 .ficha-op-pedido-form.ficha-sheet-ped .ped-ficha-etq-c-rolos { width: 10%; }
 .ficha-op-pedido-form.ficha-sheet-ped .ped-ficha-etq-c-etiq { width: 12%; }
-
-.ficha-sheet-op .ficha-op-volumes {
-  margin-top: 0.3mm;
-  font-weight: 700;
-}
 
 .ficha-sheet-oc .ficha-oc-banner,
 .ficha-sheet-op .ficha-op-banner {

@@ -415,25 +415,6 @@ export function formatQtdeMaterial(
   return juntarLeitura(leituraQtdeMaterial(m, op, qtde));
 }
 
-/**
- * Necessidade na ficha impressa. Bobina: metro da pista e m², sem o texto de tela.
- * A linha de volumes (bobinas × metros do rolo) continua separada.
- */
-function necessidadeFicha(m: OrdemProducaoMaterial, op?: OrdemProducao | null): string {
-  const n = qtdeLinhaPick(m);
-  if (!(n > 0)) return '—';
-  if (modoRetirada(m) !== 'volume') {
-    return formatQtdePick(n, unidadeExibicao(m.unidade));
-  }
-  if (bobinaEmMetroLinear(m)) {
-    return formatMetrosDeRolo(n);
-  }
-  const metros = m2ParaMetros(n, larguraMmNecessidadeOp(m, op));
-  const area = formatQtdePick(n, 'm²');
-  if (metros == null) return area;
-  return `${formatQtdePick(metros, 'm')} · ${area}`;
-}
-
 /** Comprimento do volume quando o lote ainda não tem metro conferido. */
 const METROS_BOBINA_PADRAO = 1000;
 
@@ -526,39 +507,6 @@ export function formatNecessidadeOp(
   op?: OrdemProducao | null,
 ): string {
   return juntarLeitura(leituraNecessidadeOp(m, op));
-}
-
-/** Bobinas que esta linha vai levar: as já baixadas, senão as sugeridas. */
-function volumesQuantoFicha(m: OrdemProducaoMaterial): OpRetiradaVolume[] {
-  const baixados = m.retirada?.volumes_baixados ?? [];
-  if (baixados.length > 0) return baixados;
-  return (m.retirada?.volumes ?? []).filter((v) => parseQtdeDigitada(v.qtde_retirar) > 0);
-}
-
-/** Comprimento real do volume. Sem conferência, o rolo padrão de 1.000 m. */
-function metrosBobinaFicha(v: OpRetiradaVolume): number {
-  const direto = parseQtdeDigitada(v.comprimento_m);
-  return direto > 0 ? direto : METROS_BOBINA_PADRAO;
-}
-
-/**
- * Coluna Quanto da ficha. Bobina: o que a ordem pede e, na linha de baixo,
- * quantas bobinas e a soma dos metros lineares desses volumes.
- */
-export function formatQuantoFicha(
-  m: OrdemProducaoMaterial,
-  op?: OrdemProducao | null,
-): { pedido: string; volumes: string | null } {
-  const pedido = necessidadeFicha(m, op);
-  if (modoRetirada(m) !== 'volume') return { pedido, volumes: null };
-  const vols = volumesQuantoFicha(m);
-  if (vols.length === 0) return { pedido, volumes: null };
-  const metros = vols.map(metrosBobinaFicha).reduce((a, b) => a + b, 0);
-  const volumes =
-    metros > 0
-      ? `${formatVolumesPick(vols.length)} · ${formatQtdePick(metros, 'm')}`
-      : formatVolumesPick(vols.length);
-  return { pedido, volumes };
 }
 
 /** Caminhada de estoque: local primeiro (WMS). Sem local vai no fim. */
@@ -748,6 +696,46 @@ export function balancoMetragem(
     faltaM,
     passaM2,
     passaM,
+  };
+}
+
+/** Mesma frase da faixa Precisa · Escolhido/Saiu · Falta da tela de saída. */
+export function textoMetragemSaida(m2: number, metros: number | null): string {
+  const temArea = m2 > 1e-4;
+  const area = temArea ? formatQtdePick(m2, 'm²') : '';
+  const metro = metros != null ? formatQtdePick(Math.max(metros, 0), 'm') : '';
+  if (area && metro) return `${area} · ${metro}`;
+  return area || metro || formatQtdePick(0, 'm²');
+}
+
+export type TextoBalancoSaida = {
+  precisa: string;
+  marcadoRotulo: 'Saiu' | 'Escolhido';
+  marcado: string;
+  coberturaRotulo: 'Passa' | 'Falta';
+  cobertura: string;
+  tom: 'passa' | 'coberto' | 'falta';
+};
+
+export function textoBalancoSaida(saldo: BalancoMetragem, saiu: boolean): TextoBalancoSaida {
+  const coberto =
+    saldo.passaM2 <= 1e-4 &&
+    (saldo.passaM ?? 0) <= 1e-4 &&
+    saldo.faltaM2 <= 1e-4 &&
+    (saldo.faltaM == null || saldo.faltaM <= 1e-4) &&
+    (saldo.escolhidoM2 > 1e-4 || (saldo.escolhidoM ?? 0) > 1e-4);
+  const passa = saldo.passaM2 > 1e-4 || (saldo.passaM ?? 0) > 1e-4;
+  return {
+    precisa: textoMetragemSaida(saldo.precisaM2, saldo.precisaM),
+    marcadoRotulo: saiu ? 'Saiu' : 'Escolhido',
+    marcado: textoMetragemSaida(saldo.escolhidoM2, saldo.escolhidoM),
+    coberturaRotulo: passa ? 'Passa' : 'Falta',
+    cobertura: passa
+      ? textoMetragemSaida(saldo.passaM2, saldo.passaM)
+      : coberto
+        ? 'Coberto'
+        : textoMetragemSaida(saldo.faltaM2, saldo.faltaM),
+    tom: passa ? 'passa' : coberto ? 'coberto' : 'falta',
   };
 }
 

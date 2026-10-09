@@ -237,12 +237,13 @@ class OrdemProducaoService
             $mat = $op->materiais->first(
                 fn (OrdemProducaoMaterial $m) => strtoupper((string) $m->componente) === $comp
             );
+            $produtoId = (int) ($linha['produto_id'] ?? 0);
             if (! $mat) {
                 $ordem++;
                 $criada = OrdemProducaoMaterial::query()->create([
                     'empresa_id' => $empresa->id,
                     'ordem_producao_id' => $op->id,
-                    'produto_id' => null,
+                    'produto_id' => $produtoId > 0 ? $produtoId : null,
                     'grupo_id' => $grupoId > 0 ? $grupoId : null,
                     'qtde_planejada' => $linha['qtde'],
                     'qtde_requisitada' => '0',
@@ -261,7 +262,16 @@ class OrdemProducaoService
             if ($mat->saida_movimento_id) {
                 continue;
             }
-            if ($grupoId > 0 && (int) $mat->grupo_id !== $grupoId) {
+            if ($produtoId > 0 && (int) $mat->produto_id <= 0) {
+                $mat->produto_id = $produtoId;
+                $mat->grupo_id = null;
+                $mat->unidade = $linha['unidade'];
+                $mat->qtde_planejada = $linha['qtde'];
+                $mat->save();
+
+                continue;
+            }
+            if ($grupoId > 0 && (int) $mat->grupo_id !== $grupoId && (int) $mat->produto_id <= 0) {
                 $mat->grupo_id = $grupoId;
                 $mat->save();
             }

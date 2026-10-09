@@ -28,7 +28,7 @@ class OpBomFaixaDoItemTest extends TestCase
             'cnpj' => '00000000000191',
             'situacao' => 'ATIVA',
         ]);
-        Produto::query()->create([
+        $filme = Produto::query()->create([
             'empresa_id' => $empresa->id,
             'codigo' => 'MP-FLM-901',
             'familia' => 'MP',
@@ -56,8 +56,8 @@ class OpBomFaixaDoItemTest extends TestCase
         $papel = collect($diag['linhas'])->firstWhere('componente', 'PAPEL');
 
         $this->assertNotNull($papel);
-        $this->assertNull($papel['produto_id']);
-        $this->assertNull($papel['grupo_id']);
+        $this->assertSame($filme->id, $papel['produto_id']);
+        $this->assertNull($papel['grupo_id'] ?? null);
         $this->assertSame(0, bccomp((string) $papel['qtde'], '40', 4));
         $this->assertNull(collect($diag['nao_casados'])->firstWhere('componente', 'PAPEL'));
     }
@@ -70,7 +70,7 @@ class OpBomFaixaDoItemTest extends TestCase
             'cnpj' => '00000000000272',
             'situacao' => 'ATIVA',
         ]);
-        Produto::query()->create([
+        $filme = Produto::query()->create([
             'empresa_id' => $empresa->id,
             'codigo' => 'MP-FLM-902',
             'familia' => 'MP',
@@ -95,7 +95,7 @@ class OpBomFaixaDoItemTest extends TestCase
         $papel = collect($diag['linhas'])->firstWhere('componente', 'PAPEL');
 
         $this->assertNotNull($papel);
-        $this->assertNull($papel['produto_id']);
+        $this->assertSame($filme->id, $papel['produto_id']);
         $this->assertSame(0, bccomp((string) $papel['qtde'], '10', 4));
         $this->assertNull(collect($diag['nao_casados'])->firstWhere('componente', 'PAPEL'));
     }

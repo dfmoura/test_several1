@@ -14,6 +14,7 @@ import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
 import {
   balancoMetragem,
   formatLeituraBobina,
+  textoBalancoSaida,
   formatLotePick,
   formatQtdePick,
   formatVolumeDimensao,
@@ -34,6 +35,7 @@ import {
 import {
   hrefApontamentoProducao,
   hrefFichaEstoque,
+  OP_COMPONENTE_ORDEM,
   opComponenteLabel,
   opKitEstado,
   opKitEstadoLabel,
@@ -43,8 +45,6 @@ import {
 } from '../lib/producaoUi';
 
 type VolumeLinha = { lote_id: number; qtde: string };
-
-const ORDEM_GRUPO = ['PAPEL', 'TINTA', 'ACABAMENTO', 'TUBETE', 'CAIXA', 'MANUAL'];
 
 type Props = {
   op: OrdemProducao;
@@ -102,8 +102,8 @@ function agrupar(linhas: OrdemProducaoMaterial[]) {
   }
   return [...map.keys()]
     .sort((a, b) => {
-      const ia = ORDEM_GRUPO.indexOf(a);
-      const ib = ORDEM_GRUPO.indexOf(b);
+      const ia = OP_COMPONENTE_ORDEM.indexOf(a as (typeof OP_COMPONENTE_ORDEM)[number]);
+      const ib = OP_COMPONENTE_ORDEM.indexOf(b as (typeof OP_COMPONENTE_ORDEM)[number]);
       if (ia === -1 && ib === -1) return a.localeCompare(b, 'pt-BR');
       if (ia === -1) return 1;
       if (ib === -1) return -1;
@@ -158,14 +158,6 @@ function LinhaApontada({ a }: { a: ApontadoGuia }) {
   );
 }
 
-function textoMetragem(m2: number, metros: number | null): string {
-  const temArea = m2 > 1e-4;
-  const area = temArea ? formatQtdePick(m2, 'm²') : '';
-  const metro = metros != null ? formatQtdePick(Math.max(metros, 0), 'm') : '';
-  if (area && metro) return `${area} · ${metro}`;
-  return area || metro || formatQtdePick(0, 'm²');
-}
-
 function BalancoPapel({
   material,
   op,
@@ -179,13 +171,7 @@ function BalancoPapel({
 }) {
   const saldo = balancoMetragem(material, op, linhas);
   if (!saldo) return null;
-  const coberto =
-    saldo.passaM2 <= 1e-4 &&
-    (saldo.passaM ?? 0) <= 1e-4 &&
-    saldo.faltaM2 <= 1e-4 &&
-    (saldo.faltaM == null || saldo.faltaM <= 1e-4) &&
-    (saldo.escolhidoM2 > 1e-4 || (saldo.escolhidoM ?? 0) > 1e-4);
-  const passa = saldo.passaM2 > 1e-4 || (saldo.passaM ?? 0) > 1e-4;
+  const texto = textoBalancoSaida(saldo, saiu);
   return (
     <p
       className="op-insumo-balanco"
@@ -194,28 +180,16 @@ function BalancoPapel({
     >
       <span>
         <em>Precisa</em>
-        <strong>{textoMetragem(saldo.precisaM2, saldo.precisaM)}</strong>
+        <strong>{texto.precisa}</strong>
       </span>
       <span>
-        <em>{saiu ? 'Saiu' : 'Escolhido'}</em>
-        <strong>{textoMetragem(saldo.escolhidoM2, saldo.escolhidoM)}</strong>
+        <em>{texto.marcadoRotulo}</em>
+        <strong>{texto.marcado}</strong>
       </span>
-      {passa ? (
-        <span className="op-insumo-balanco__passa">
-          <em>Passa</em>
-          <strong>{textoMetragem(saldo.passaM2, saldo.passaM)}</strong>
-        </span>
-      ) : coberto ? (
-        <span className="op-insumo-balanco__coberto">
-          <em>Falta</em>
-          <strong>Coberto</strong>
-        </span>
-      ) : (
-        <span className="op-insumo-balanco__falta">
-          <em>Falta</em>
-          <strong>{textoMetragem(saldo.faltaM2, saldo.faltaM)}</strong>
-        </span>
-      )}
+      <span className={`op-insumo-balanco__${texto.tom}`}>
+        <em>{texto.coberturaRotulo}</em>
+        <strong>{texto.cobertura}</strong>
+      </span>
     </p>
   );
 }
@@ -1238,8 +1212,8 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
           return acc;
         }, [])
         .sort((a, b) => {
-          const ia = ORDEM_GRUPO.indexOf(a.key);
-          const ib = ORDEM_GRUPO.indexOf(b.key);
+          const ia = OP_COMPONENTE_ORDEM.indexOf(a.key as (typeof OP_COMPONENTE_ORDEM)[number]);
+          const ib = OP_COMPONENTE_ORDEM.indexOf(b.key as (typeof OP_COMPONENTE_ORDEM)[number]);
           if (ia === -1 && ib === -1) return a.key.localeCompare(b.key, 'pt-BR');
           if (ia === -1) return 1;
           if (ib === -1) return -1;

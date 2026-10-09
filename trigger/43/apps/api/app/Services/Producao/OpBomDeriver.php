@@ -15,11 +15,26 @@ use App\Support\PadraoDecimal;
 
 /**
  * Deriva BOM leve da OP a partir do snapshot do PED/ORC (estudo 32 PRODUCAO §2.2).
- * Papel e acabamento em bobina guardam o grupo do catálogo, sem escolher SKU.
+ * Papel com grupo no catálogo não escolhe SKU. Sem grupo, casa o filme (como as
+ * ordens já abertas na nuvem) para a saída de estoque nascer na unidade do SKU.
  * Não baixa estoque — só qtde planejada (empenho leve).
  */
 class OpBomDeriver
 {
+    /** Tokens genéricos que não ajudam no match. */
+    private const STOP = [
+        'AUTOADESIVO', 'AUTO', 'ADESIVO', 'PAPEL', 'FILME', 'DE', 'DA', 'DO', 'COM',
+        'PARA', 'THE', 'AND', 'COLACRIL', 'FASSON', 'VERTEX', 'RITRAMA', 'G',
+    ];
+
+    /** Sinônimos comerciais → tokens de cadastro. */
+    private const SYNONYMS = [
+        'PRATA' => ['METALIZADO', 'PRATA'],
+        'METALIZADO' => ['METALIZADO', 'PRATA'],
+        'TRANSP' => ['TRANSPARENTE'],
+        'TRANSPARENTE' => ['TRANSPARENTE'],
+    ];
+
     /**
      * @return list<array{
      *   produto_id: int,
@@ -69,15 +84,40 @@ class OpBomDeriver
         $usedProdutoIds = [];
 
         if ($ctx['papel'] !== '' && $ctx['papel_m2'] > 0) {
-            $out[] = [
-                'produto_id' => null,
-                'grupo_id' => $this->grupoDoCatalogo($empresa, 'papel', $ctx['papel']),
-                'qtde' => $this->qtdeSnapshot($ctx['papel_m2']),
-                'unidade' => 'M2',
-                'componente' => 'PAPEL',
-                'origem_texto' => $ctx['papel'],
-                'match_score' => 0,
-            ];
+            $grupoId = $this->grupoDoCatalogo($empresa, 'papel', $ctx['papel']);
+            if ($grupoId) {
+                $out[] = [
+                    'produto_id' => null,
+                    'grupo_id' => $grupoId,
+                    'qtde' => $this->qtdeSnapshot($ctx['papel_m2']),
+                    'unidade' => 'M2',
+                    'componente' => 'PAPEL',
+                    'origem_texto' => $ctx['papel'],
+                    'match_score' => 0,
+                ];
+            } else {
+                $match = $this->matchProduto($empresa, $ctx['papel'], ['MP'], $usedProdutoIds);
+                if ($match) {
+                    $out[] = [
+                        'produto_id' => (int) $match->id,
+                        'qtde' => $this->qtdeParaUnidade($match, $ctx['papel_m2'], $ctx['metragem']),
+                        'unidade' => (string) ($match->unidade_interna ?: 'M2'),
+                        'componente' => 'PAPEL',
+                        'origem_texto' => $ctx['papel'],
+                        'match_score' => (int) ($match->getAttribute('_score') ?? 0),
+                    ];
+                    $usedProdutoIds[] = (int) $match->id;
+                } else {
+                    $naoCasados[] = [
+                        'componente' => 'PAPEL',
+                        'origem_texto' => $ctx['papel'],
+                        'qtde' => $this->qtdeSnapshot($ctx['papel_m2']),
+                        'unidade' => 'M2',
+                        'metragem' => $ctx['metragem'] > 0 ? $this->qtdeSnapshot($ctx['metragem']) : null,
+                        'motivo' => 'Nenhum SKU MP casado ao texto do orçamento nesta empresa.',
+                    ];
+                }
+            }
         }
 
         if ($ctx['tubete'] !== '' && $ctx['rolos'] > 0) {
@@ -265,6 +305,114 @@ class OpBomDeriver
             ->value('grupo_id');
 
         return $grupoId ? (int) $grupoId : null;
+    }
+
+    /**
+     * @param  list<string>  $familias
+     * @param  list<int>  $excludeIds
+     */
+    private function matchProduto(Empresa $empresa, string $needle, array $familias, array $excludeIds): ?Produto
+    {
+        $tokens = $this->tokens($needle);
+        if ($tokens === []) {
+            return null;
+        }
+
+        $expanded = $this->expandTokens($tokens);
+
+        $candidatos = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('situacao', 'ATIVO')
+            ->whereIn('familia', $familias)
+            ->when($excludeIds !== [], fn ($q) => $q->whereNotIn('id', $excludeIds))
+            ->orderBy('id')
+            ->get(['id', 'codigo', 'descricao_fiscal', 'descricao_comercial', 'unidade_interna', 'familia', 'atributos', 'fator_conversao']);
+
+        $best = null;
+        $bestScore = 0;
+
+        foreach ($candidatos as $p) {
+            $hay = $this->normalize(
+                ($p->codigo ?? '').' '.($p->descricao_fiscal ?? '').' '.($p->descricao_comercial ?? '')
+            );
+            $score = 0;
+            foreach ($expanded as $tok) {
+                if ($tok !== '' && str_contains($hay, $tok)) {
+                    $score += strlen($tok) >= 4 ? 3 : 2;
+                }
+            }
+            $frase = $this->normalize($needle);
+            if ($frase !== '' && str_contains($hay, $frase)) {
+                $score += 10;
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $p->setAttribute('_score', $score);
+                $best = $p;
+            }
+        }
+
+        return $bestScore >= 2 ? $best : null;
+    }
+
+    private function qtdeParaUnidade(Produto $produto, float $papelM2, float $metragem): string
+    {
+        $u = strtoupper(trim((string) ($produto->unidade_interna ?: 'M2')));
+
+        if (in_array($u, ['M2', 'M²'], true)) {
+            return PadraoDecimal::roundHalfUp((string) $papelM2, PadraoDecimal::SCALE_QTY);
+        }
+        if (in_array($u, ['M', 'MT', 'ML'], true) && $metragem > 0) {
+            return PadraoDecimal::roundHalfUp((string) $metragem, PadraoDecimal::SCALE_QTY);
+        }
+
+        $attrs = is_array($produto->atributos) ? $produto->atributos : [];
+        $gramatura = isset($attrs['gramatura_g_m2']) ? (float) $attrs['gramatura_g_m2'] : 0.0;
+        if ($u === 'KG' && $gramatura > 0 && $papelM2 > 0) {
+            $kg = ($papelM2 * $gramatura) / 1000.0;
+
+            return PadraoDecimal::roundHalfUp((string) $kg, PadraoDecimal::SCALE_QTY);
+        }
+
+        return PadraoDecimal::roundHalfUp((string) $papelM2, PadraoDecimal::SCALE_QTY);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tokens(string $text): array
+    {
+        $norm = $this->normalize($text);
+        $parts = preg_split('/[^A-Z0-9]+/', $norm) ?: [];
+        $out = [];
+        foreach ($parts as $p) {
+            if ($p === '' || strlen($p) < 2) {
+                continue;
+            }
+            if (in_array($p, self::STOP, true)) {
+                continue;
+            }
+            $out[] = $p;
+        }
+
+        return array_values(array_unique($out));
+    }
+
+    /**
+     * @param  list<string>  $tokens
+     * @return list<string>
+     */
+    private function expandTokens(array $tokens): array
+    {
+        $out = $tokens;
+        foreach ($tokens as $t) {
+            foreach (self::SYNONYMS[$t] ?? [] as $syn) {
+                $out[] = $syn;
+            }
+        }
+
+        return array_values(array_unique($out));
     }
 
     private function acabamentoConsomeBobina(string $nome): bool

@@ -60,6 +60,9 @@ const COMPONENTE_LABELS: Record<string, string> = {
   MANUAL: 'Extra',
 };
 
+/** Ordem dos grupos em «O que sai do estoque» e na ficha impressa. */
+export const OP_COMPONENTE_ORDEM = ['PAPEL', 'TINTA', 'ACABAMENTO', 'TUBETE', 'CAIXA', 'MANUAL'] as const;
+
 /** Jornada humana da OP (kit → máquina → sobra → fechar). */
 export type OpJornadaPasso = 'pegar' | 'entregar' | 'produzir' | 'devolver' | 'fechar';
 
