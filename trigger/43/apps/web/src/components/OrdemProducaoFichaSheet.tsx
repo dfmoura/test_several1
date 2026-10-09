@@ -6,7 +6,6 @@ import {
   metaLinhasParteComercial,
 } from './OrcPubParteComercial';
 import { FichaKv, FichaSection } from './ProducaoFichaBlocks';
-import { RastreioFichaSection } from './RastreioInsumosFichaSheet';
 import { PedidoItemFichaProducao } from './PedidoFichaSheet';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { ModeloTintasPorModelo } from './ModeloTintasTags';
@@ -338,19 +337,6 @@ export function OrdemProducaoFichaSheet({
           </div>
         )}
       </FichaSection>
-
-      <FichaSection title="Conferência">
-        <div className="ficha-kv-grid cols-3">
-          <FichaKv
-            label="Entregue para"
-            value={o.handoff?.recebidos_nome?.trim() || '________________'}
-          />
-          <FichaKv label="Sobra devolvida" value="________________" />
-          <FichaKv label="Perda / falta" value="________________" />
-        </div>
-      </FichaSection>
-
-      {o.rastreio ? <RastreioFichaSection rastreio={o.rastreio} /> : null}
 
       {o.status === 'CONCLUIDA' ? (
         <FichaSection title="Resultado">
