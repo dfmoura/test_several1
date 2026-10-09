@@ -13037,6 +13037,40 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   margin-bottom: 1rem;
 }
 
+/* Linha do kit na ficha da ordem. Só “falta pegar” pede ação; o resto fica quieto. */
+.op-insumos .op-insumo-bloco {
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.75rem 0.7rem;
+  border: 1px solid var(--border, #d5dde8);
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.op-insumos .op-insumo-bloco--falta_pegar {
+  border-color: rgba(37, 99, 235, 0.28);
+  border-left-color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.op-insumos .op-insumo-bloco--ja_saiu {
+  border-color: #e4e9f0;
+  border-left-color: #e4e9f0;
+  background: #f8fafc;
+}
+
+.op-insumos .op-insumo-bloco--sem_estoque {
+  border-color: rgba(180, 35, 24, 0.28);
+  border-left-color: #b42318;
+  background: rgba(180, 35, 24, 0.04);
+}
+
+.op-insumos .op-insumo-estado {
+  margin-left: 0.5rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+}
+
 .op-insumos .form-group input,
 .op-insumos .form-group select {
   width: 100%;

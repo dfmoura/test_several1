@@ -757,10 +757,10 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
             : null;
 
   return (
-    <section className="op-insumos" aria-label="Insumos reservados">
+    <section className="op-insumos" aria-label="O que sai do estoque">
       <div className="orc-section-head">
         <h3 className="orc-subsection-title" style={{ fontSize: '1.05rem' }}>
-          Insumos reservados
+          O que sai do estoque
         </h3>
       </div>
 
@@ -867,17 +867,21 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                 const mostrarMedidaBaixados =
                   metragem || baixados.some((vol) => Boolean(formatVolumeDimensao(vol)));
 
+                const rotuloEstado =
+                  m.escolher_produto && estado !== 'ja_saiu'
+                    ? !volumeDireto && produtoId <= 0
+                      ? 'Escolher'
+                      : 'Falta pegar'
+                    : opKitEstadoLabel(estado);
+                const estadoVisual = rotuloEstado === 'Falta pegar' ? 'falta_pegar' : estado;
+
                 return (
-                  <div key={m.id} className="orc-faixas-bloco">
+                  <div key={m.id} className={`orc-faixas-bloco op-insumo-bloco op-insumo-bloco--${estadoVisual}`}>
                     <div className="orc-section-head">
                       <h4 className="orc-subsection-title">
                         {opKitNome(m)}
-                        <span className="muted" style={{ fontWeight: 500, marginLeft: 8 }}>
-                          {m.escolher_produto && estado !== 'ja_saiu'
-                            ? !volumeDireto && produtoId <= 0
-                              ? 'Escolher'
-                              : 'Falta pegar'
-                            : opKitEstadoLabel(estado)}
+                        <span className={`op-insumo-estado op-kit-lista__st--${estadoVisual}`}>
+                          {rotuloEstado}
                         </span>
                       </h4>
                       {podeEditar && porVolume ? (
