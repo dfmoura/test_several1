@@ -24,14 +24,17 @@ type Props = {
 };
 
 /**
- * Embalagem física do PA (bobina → caixa) — ADR_PA_EMBALAGEM_BOBINA_CAIXA.
- * Só na OP concluída; não altera estoque.
+ * Embalagem física do PA (rolo → caixa) — ADR_PA_EMBALAGEM_BOBINA_CAIXA.
+ * Só na OP concluída; não altera estoque. A sugestão do orçamento vem preenchida.
  */
 export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [plano, setPlano] = useState<Plano | null>(null);
+  const [rolos, setRolos] = useState('');
+  const [caixas, setCaixas] = useState('');
+  const [tocado, setTocado] = useState(false);
 
   const emb = op.embalagem as PaEmbalagemResumo | null | undefined;
 
@@ -57,6 +60,25 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
     };
   }, [op.id, op.status, emb?.id]);
 
+  useEffect(() => {
+    setTocado(false);
+    setRolos('');
+    setCaixas('');
+  }, [op.id]);
+
+  useEffect(() => {
+    if (tocado) return;
+    if (plano) {
+      setRolos(String(plano.qtde_bobinas));
+      setCaixas(String(plano.qtde_caixas));
+      return;
+    }
+    if (emb) {
+      setRolos(String(emb.qtde_bobinas));
+      setCaixas(String(emb.qtde_caixas));
+    }
+  }, [plano, emb, tocado]);
+
   if (op.status !== 'CONCLUIDA') {
     return null;
   }
@@ -77,13 +99,37 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
     }
   };
 
+  const nRolos = Number.parseInt(rolos, 10);
+  const nCaixas = Number.parseInt(caixas, 10);
+  const contagemValida =
+    Number.isInteger(nRolos) &&
+    nRolos >= 1 &&
+    Number.isInteger(nCaixas) &&
+    nCaixas >= 1 &&
+    nCaixas <= nRolos;
+
+  const usarSugestao = () => {
+    if (!plano) return;
+    setTocado(false);
+    setRolos(String(plano.qtde_bobinas));
+    setCaixas(String(plano.qtde_caixas));
+  };
+
   const confirmar = async () => {
+    if (!contagemValida) {
+      setErr('Informe os rolos reais e as caixas. Cada caixa leva ao menos um rolo.');
+      return;
+    }
     setBusy(true);
     setErr(null);
     setMsg(null);
     try {
-      await api.post(`/ordens-producao/${op.id}/embalar`, {});
+      await api.post(`/ordens-producao/${op.id}/embalar`, {
+        qtde_bobinas: nRolos,
+        qtde_caixas: nCaixas,
+      });
       setPlano(null);
+      setTocado(false);
       setMsg('Embalagem confirmada.');
       onChanged();
     } catch (e) {
@@ -99,8 +145,8 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
         <div className="form-section">
           <h3>Embalagem PA</h3>
           <p className="muted" style={{ marginTop: 0 }}>
-            Etiquetas → bobinas (tubete) → caixas. Quantidade comercial permanece em etiquetas;
-            faturamento e NF usam as caixas como volumes de transporte.
+            Rolos reais depois da rebobinação e caixas em que eles foram alocados. A soma dos rolos
+            fica igual às etiquetas boas. A nota usa as caixas como volumes.
           </p>
         </div>
 
@@ -123,7 +169,7 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
                 <strong>{formatDecimalBr(Number(emb.qtde_etiquetas), 0)}</strong>
               </div>
               <div>
-                <span>Bobinas</span>
+                <span>Rolos</span>
                 <strong>{emb.qtde_bobinas}</strong>
               </div>
               <div>
@@ -143,20 +189,10 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
             <div className="btn-row">
               <Link
                 to={`/ordens-producao/${op.id}/embalagem/etiquetas`}
-                className="btn btn-primary"
+                className="btn btn-secondary"
               >
                 Imprimir etiquetas BOB/CX
               </Link>
-              {canWrite ? (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  disabled={busy}
-                  onClick={() => void carregarSugestao()}
-                >
-                  Ver nova sugestão
-                </button>
-              ) : null}
             </div>
           </>
         ) : (
@@ -189,33 +225,72 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
           </>
         )}
 
-        {plano && emb ? (
-          <p className="muted" style={{ marginTop: '1rem' }}>
-            Nova sugestão: <strong>{plano.resumo}</strong> — confirmar substitui a embalagem
-            atual (somente se a NF ainda não estiver autorizada).
-          </p>
-        ) : null}
-
         {canWrite ? (
-          <div className="btn-row" style={{ marginTop: '1rem' }}>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={busy || (!emb && !plano)}
-              onClick={() => void confirmar()}
-            >
-              {emb ? 'Substituir pela sugestão' : 'Confirmar embalagem'}
-            </button>
-            {!plano ? (
+          <div style={{ marginTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div className="form-group">
+                <label htmlFor="emb-rolos">Rolos reais</label>
+                <input
+                  id="emb-rolos"
+                  inputMode="numeric"
+                  value={rolos}
+                  disabled={busy}
+                  onChange={(e) => {
+                    setTocado(true);
+                    setRolos(e.target.value.replace(/[^\d]/g, ''));
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="emb-caixas">Caixas</label>
+                <input
+                  id="emb-caixas"
+                  inputMode="numeric"
+                  value={caixas}
+                  disabled={busy}
+                  onChange={(e) => {
+                    setTocado(true);
+                    setCaixas(e.target.value.replace(/[^\d]/g, ''));
+                  }}
+                />
+              </div>
+            </div>
+            {plano ? (
+              <p className="muted" style={{ marginTop: 0 }}>
+                Sugestão do orçamento: {plano.qtde_bobinas}{' '}
+                {plano.qtde_bobinas === 1 ? 'rolo' : 'rolos'} · {plano.qtde_caixas}{' '}
+                {plano.qtde_caixas === 1 ? 'caixa' : 'caixas'}.
+              </p>
+            ) : null}
+            {plano && emb ? (
+              <p className="muted" style={{ marginTop: 0 }}>
+                Confirmar substitui a embalagem atual, enquanto a NF não estiver autorizada.
+              </p>
+            ) : null}
+            <div className="btn-row">
               <button
                 type="button"
-                className="btn btn-secondary"
-                disabled={busy}
-                onClick={() => void carregarSugestao()}
+                className="btn btn-primary"
+                disabled={busy || !contagemValida}
+                onClick={() => void confirmar()}
               >
-                Atualizar sugestão
+                {emb ? 'Substituir embalagem' : 'Confirmar embalagem'}
               </button>
-            ) : null}
+              {plano ? (
+                <button type="button" className="btn btn-secondary" disabled={busy} onClick={usarSugestao}>
+                  Usar sugestão
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={busy}
+                  onClick={() => void carregarSugestao()}
+                >
+                  Atualizar sugestão
+                </button>
+              )}
+            </div>
           </div>
         ) : null}
       </div>

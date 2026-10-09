@@ -124,17 +124,7 @@ const NAV_GROUPS: NavGroup[] = [
         icon: IconAsset,
         permission: 'producao.ler',
         isActivePath: (pathname) =>
-          pathname === '/ordens-producao' ||
-          (pathname.startsWith('/ordens-producao/') &&
-            !pathname.startsWith('/ordens-producao/apontamentos')),
-      },
-      {
-        to: '/ordens-producao/apontamentos',
-        label: 'Na máquina',
-        icon: IconAsset,
-        permission: 'producao.ler',
-        title: 'Receber o que o estoque separou, produzir e devolver sobra',
-        isActivePath: (pathname) => pathname.startsWith('/ordens-producao/apontamentos'),
+          pathname === '/ordens-producao' || pathname.startsWith('/ordens-producao/'),
       },
     ],
   },

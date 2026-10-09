@@ -78,11 +78,11 @@ export function OpAndamentoPassos({ op, podeEstoque, podeProducao }: Props) {
             </Link>
           ) : atual === 'entregar' && podeProducao ? (
             <Link to={hrefApontamentoProducao(op.id)} className="btn btn-primary">
-              Entregar na máquina
+              Abrir a ordem
             </Link>
           ) : (atual === 'produzir' || atual === 'devolver') && podeProducao ? (
             <Link to={hrefApontamentoProducao(op.id)} className="btn btn-primary">
-              Abrir produção
+              Abrir a ordem
             </Link>
           ) : null}
         </div>

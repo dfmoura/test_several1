@@ -33,14 +33,12 @@ import {
   type VolumePickMarca,
 } from '../lib/producaoPick';
 import {
-  hrefApontamentoProducao,
   hrefFichaEstoque,
   OP_COMPONENTE_ORDEM,
   opComponenteLabel,
   opKitEstado,
   opKitEstadoLabel,
   opKitNome,
-  opPassoAtual,
   parseQtdeDigitada,
 } from '../lib/producaoUi';
 
@@ -49,7 +47,6 @@ type VolumeLinha = { lote_id: number; qtde: string };
 type Props = {
   op: OrdemProducao;
   podeEstoque: boolean;
-  podeProducao: boolean;
   canWrite: boolean;
   onOp: (data: OrdemProducao) => void;
 };
@@ -329,7 +326,7 @@ function colunasVolume(args: {
  * Bobina: o que a ordem precisa em m² e metro linear, abatido pela escolha.
  * Tubete e caixa sem lote: escolha entre os SKUs da polegada ou da medida aprovada.
  */
-export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, onOp }: Props) {
+export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) {
   const materiais = op.materiais;
   const grupos = useMemo(() => agrupar(materiais ?? []), [materiais]);
   const apontados = useMemo(() => {
@@ -372,7 +369,6 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
   }
 
   const aberta = ['ABERTA', 'EM_ANDAMENTO'].includes(op.status);
-  const atual = opPassoAtual(op);
   const pendentes = (materiais ?? []).filter((m) => {
     const estado = opKitEstado(m);
     if (estado === 'falta_pegar') return true;
@@ -761,15 +757,9 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
   const cta =
     op.status === 'CANCELADA' && op.pedido
       ? { to: `/pedidos/${op.pedido.id}`, label: `Voltar ao pedido ${op.pedido.codigo}` }
-      : op.status === 'CONCLUIDA' && op.pedido
-        ? { to: `/pedidos/${op.pedido.id}`, label: `Continuar no pedido ${op.pedido.codigo}` }
-        : atual === 'entregar' && podeProducao
-          ? { to: hrefApontamentoProducao(op.id), label: 'Receber na máquina' }
-          : atual === 'produzir' || atual === 'devolver'
-            ? podeProducao
-              ? { to: hrefApontamentoProducao(op.id), label: 'Abrir a máquina' }
-              : null
-            : null;
+        : op.status === 'CONCLUIDA' && op.pedido
+          ? { to: `/pedidos/${op.pedido.id}`, label: `Continuar no pedido ${op.pedido.codigo}` }
+          : null;
 
   return (
     <section className="op-insumos" aria-label="O que sai do estoque">

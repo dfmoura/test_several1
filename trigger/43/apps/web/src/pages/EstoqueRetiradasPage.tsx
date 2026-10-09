@@ -79,7 +79,7 @@ export function EstoqueRetiradasPage() {
               vazio=""
               cards={fila.a_entregar}
               acao={null}
-              nota="Confirmado no estoque. O funcionário da máquina confirma o recebimento em Produção → Na máquina."
+              nota="Confirmado no estoque. A produção fecha a ordem em Ordens de produção."
             />
           ) : null}
         </>

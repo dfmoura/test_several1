@@ -217,7 +217,7 @@ class ProducaoApontamentoChaoTest extends TestCase
         $painel->assertOk();
         $curso = collect($painel->json('data.filas'))->firstWhere('id', 'op_curso');
         $this->assertNotNull($curso);
-        $this->assertSame('/ordens-producao/apontamentos', $curso['to']);
+        $this->assertSame('/ordens-producao', $curso['to']);
         $this->assertSame(1, (int) $curso['count']);
 
         $ent = $this->withHeaders($this->h())->postJson(

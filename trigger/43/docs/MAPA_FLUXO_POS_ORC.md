@@ -28,7 +28,8 @@ ORC (enviado → APROVADO)
   └─ crédito/política OK → LIBERADO
        → PED- (1:1 ORC; snapshot travado; 1 item fase 1 · N itens quando `ADR_ORC_ITENS` fase 3)
             ├─ PRODUCAO → OP- (kit → Estoque · A buscar → SAIDA_PRODUCAO
-            │                 → Na máquina → concluir: ENTRADA_SOBRA / perda / ENTRADA_PA ±tol)
+            │                 → fechar na OP: etiquetas boas / refugo / ENTRADA_PA ±tol
+            │                 → rolos reais e caixas alocadas)
             ├─ SERVICO  → OS- (concluir sem ENTRADA_PA)
             └─ REVENDA  → Estoque · A separar (volumes + local + QR; sem OP; sem MOV)
                           · `ADR_ORC_ITEM_REVENDA.md` · item PRODUZIDO; baixa só na NF-e

@@ -101,8 +101,12 @@ class PaEmbalagemService
         }
 
         $bobinasIn = isset($data['bobinas']) && is_array($data['bobinas']) ? $data['bobinas'] : null;
-        $plano = $this->montarPlano($op, $qtdeBoa, $bobinasIn);
-        $origem = $bobinasIn !== null ? PaEmbalagem::ORIGEM_MANUAL : PaEmbalagem::ORIGEM_SUGERIDA;
+        $nRolos = isset($data['qtde_bobinas']) ? (int) $data['qtde_bobinas'] : null;
+        $nCaixas = isset($data['qtde_caixas']) ? (int) $data['qtde_caixas'] : null;
+        $plano = $this->montarPlano($op, $qtdeBoa, $bobinasIn, $nRolos, $nCaixas);
+        $origem = ($bobinasIn !== null || $nRolos !== null || $nCaixas !== null)
+            ? PaEmbalagem::ORIGEM_MANUAL
+            : PaEmbalagem::ORIGEM_SUGERIDA;
         $obs = isset($data['observacao']) ? trim((string) $data['observacao']) : null;
 
         $emb = DB::transaction(function () use ($empresa, $op, $plano, $origem, $obs, $existente) {
@@ -467,7 +471,13 @@ class PaEmbalagemService
      * @param  list<array{qtde_etiquetas?: mixed}>|null  $bobinasIn
      * @return array<string, mixed>
      */
-    private function montarPlano(OrdemProducao $op, string $qtdeBoa, ?array $bobinasIn): array
+    private function montarPlano(
+        OrdemProducao $op,
+        string $qtdeBoa,
+        ?array $bobinasIn,
+        ?int $nRolos = null,
+        ?int $nCaixasPedidas = null,
+    ): array
     {
         $pedido = $op->pedido;
         $snap = is_array($pedido?->snapshot) ? $pedido->snapshot : [];
@@ -493,6 +503,7 @@ class PaEmbalagemService
             $saida = null;
         }
 
+        $qtysSugeridas = $this->distribuirEtiquetas($qtdeBoa, $etiqPorRolo);
         if ($bobinasIn !== null) {
             $qtys = [];
             foreach ($bobinasIn as $i => $row) {
@@ -512,8 +523,15 @@ class PaEmbalagemService
                     'bobinas' => ['Informe ao menos uma bobina.'],
                 ]);
             }
+        } elseif ($nRolos !== null && $nRolos !== count($qtysSugeridas)) {
+            if ($nRolos < 1 || $nRolos > 500) {
+                throw ValidationException::withMessages([
+                    'qtde_bobinas' => ['Informe entre 1 e 500 rolos.'],
+                ]);
+            }
+            $qtys = $this->distribuirEmN($qtdeBoa, $nRolos);
         } else {
-            $qtys = $this->distribuirEtiquetas($qtdeBoa, $etiqPorRolo);
+            $qtys = $qtysSugeridas;
         }
 
         $soma = '0';
@@ -527,7 +545,16 @@ class PaEmbalagemService
         }
 
         $nBobinas = count($qtys);
-        $nCaixas = (int) ceil($nBobinas / $rolosPorCaixa);
+        $caixasNaturais = (int) ceil($nBobinas / max(1, $rolosPorCaixa));
+        $nCaixas = $nCaixasPedidas ?? $caixasNaturais;
+        if ($nCaixas < 1 || $nCaixas > $nBobinas) {
+            throw ValidationException::withMessages([
+                'qtde_caixas' => ['As caixas ficam entre 1 e a quantidade de rolos.'],
+            ]);
+        }
+        $mapaCaixas = ($nCaixasPedidas !== null && $nCaixasPedidas !== $caixasNaturais)
+            ? $this->indiceCaixaEquilibrada($nBobinas, $nCaixas)
+            : null;
 
         $bobinas = [];
         $caixasAcc = [];
@@ -540,7 +567,7 @@ class PaEmbalagemService
         }
 
         foreach ($qtys as $i => $q) {
-            $caixaIdx = (int) floor($i / $rolosPorCaixa);
+            $caixaIdx = $mapaCaixas[$i] ?? (int) floor($i / $rolosPorCaixa);
             $bobinas[] = [
                 'sequencia' => $i + 1,
                 'qtde_etiquetas' => $q,
@@ -618,6 +645,68 @@ class PaEmbalagemService
         }
 
         return $vazio;
+    }
+
+    /**
+     * @return list<string>
+     */
+    /**
+     * Reparte a quantidade boa em N rolos. Os primeiros levam a parte inteira; o último absorve o resto.
+     *
+     * @return list<string>
+     */
+    private function distribuirEmN(string $qtdeBoa, int $n): array
+    {
+        if ($n === 1) {
+            return [$qtdeBoa];
+        }
+
+        $cada = bcdiv($qtdeBoa, (string) $n, PadraoDecimal::SCALE_QTY);
+        if (bccomp($cada, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            throw ValidationException::withMessages([
+                'qtde_bobinas' => ['A quantidade boa não cobre essa quantidade de rolos.'],
+            ]);
+        }
+
+        $out = [];
+        $soma = '0';
+        for ($i = 0; $i < $n - 1; $i++) {
+            $out[] = $cada;
+            $soma = bcadd($soma, $cada, PadraoDecimal::SCALE_QTY);
+        }
+        $ultima = bcsub($qtdeBoa, $soma, PadraoDecimal::SCALE_QTY);
+        if (bccomp($ultima, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            throw ValidationException::withMessages([
+                'qtde_bobinas' => ['A quantidade boa não cobre essa quantidade de rolos.'],
+            ]);
+        }
+        $out[] = $ultima;
+
+        return $out;
+    }
+
+    /**
+     * @return list<int> índice da caixa de cada rolo
+     */
+    private function indiceCaixaEquilibrada(int $nBobinas, int $nCaixas): array
+    {
+        $base = intdiv($nBobinas, $nCaixas);
+        $extra = $nBobinas % $nCaixas;
+        $map = [];
+        $caixa = 0;
+        $naCaixa = 0;
+        $capacidade = $base + ($extra > 0 ? 1 : 0);
+        for ($i = 0; $i < $nBobinas; $i++) {
+            if ($naCaixa >= $capacidade) {
+                $caixa++;
+                $naCaixa = 0;
+                $capacidade = $base + ($caixa < $extra ? 1 : 0);
+            }
+            $map[$i] = $caixa;
+            $naCaixa++;
+        }
+
+        return $map;
     }
 
     /**

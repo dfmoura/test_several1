@@ -116,7 +116,20 @@ tubete / caixa_medida / saida_etiqueta ← snapshot
 
 ## Consequências
 
-**Agora:** chão confirma bobinas/caixas; NF e expedição falam a língua física sem mentir a quantidade comercial.
+**Agora:** na ordem concluída a pessoa informa rolos reais e caixas; a sugestão do orçamento vem preenchida. NF e expedição leem o confirmado. A soma dos rolos continua igual a `qtde_boa`.
+
+## Emenda 2026-10-09 — contagem real
+
+`POST …/embalar` aceita `qtde_bobinas` e `qtde_caixas`.
+
+| Entrada | Efeito |
+|---------|--------|
+| Corpo vazio | Sugestão do snapshot (etiquetas por rolo; caixas por `rolos_por_caixa`) |
+| Contagem igual à sugestão | Mesma distribuição |
+| Outra quantidade de rolos | Reparte `qtde_boa`; o último rolo leva o resto |
+| Outra quantidade de caixas | Distribui os rolos entre as caixas, no máximo um rolo a mais nas primeiras. Caixas não passam da quantidade de rolos |
+
+Não entra no `concluir`. Não move saldo.
 
 **Depois (outro ADR):** gate de implantação se virar hub; peso/CUB; quarentena de PA por caixa.
 

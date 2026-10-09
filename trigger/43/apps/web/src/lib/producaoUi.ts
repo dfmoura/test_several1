@@ -285,7 +285,7 @@ export function hrefFichaEstoque(
   return `/estoque/retiradas/${opId}${qs ? `?${qs}` : ''}`;
 }
 
-/** Porta do chão — apontar retorno/perda e concluir (ADR apontamento). */
+/** Fecho da ordem — etiquetas boas, refugo e, depois, rolos e caixas. */
 export function hrefApontamentoProducao(opId: number): string {
-  return `/ordens-producao/apontamentos/${opId}`;
+  return `/ordens-producao/${opId}`;
 }

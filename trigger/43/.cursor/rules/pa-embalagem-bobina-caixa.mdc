@@ -18,7 +18,7 @@ Norma: `docs/ADR_PA_EMBALAGEM_BOBINA_CAIXA.md`.
 
 ```
 OP CONCLUIDA (ENTRADA_PA flat em etiquetas)
-  → embalar (sugerir do ORC → humano confirma)
+  → embalar (sugestão do ORC preenchida; humano informa rolos reais e caixas)
   → bobinas (BOB:) + caixas (CX:)
   → FAT/NF: qCom = RL (default c/ embalagem) ou UN (casos pequenos);
              volumes = Σ caixas;

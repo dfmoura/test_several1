@@ -73,10 +73,10 @@ export function OpPickTicket({
       return { to: hrefFichaEstoque(op.id), label: 'Pegar agora no estoque' };
     }
     if (atual === 'entregar' && podeProducao) {
-      return { to: hrefApontamentoProducao(op.id), label: 'Levar para a máquina' };
+      return { to: hrefApontamentoProducao(op.id), label: 'Abrir a ordem' };
     }
     if ((atual === 'produzir' || atual === 'devolver') && podeProducao) {
-      return { to: hrefApontamentoProducao(op.id), label: 'Abrir produção' };
+      return { to: hrefApontamentoProducao(op.id), label: 'Abrir a ordem' };
     }
     return null;
   })();

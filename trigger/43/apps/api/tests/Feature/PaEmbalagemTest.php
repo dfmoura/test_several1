@@ -330,4 +330,43 @@ class PaEmbalagemTest extends TestCase
         $this->assertStringContainsString('4 BOB', $texto);
         $this->assertStringContainsString('comp: 3x1000UN+1x200UN', $texto);
     }
+
+    public function test_rolos_e_caixas_reais_repartem_a_quantidade_boa(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $igual = $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$this->op->id}/embalar", [
+                'qtde_bobinas' => 5,
+                'qtde_caixas' => 1,
+            ]);
+        $igual->assertOk();
+        $this->assertSame(5, $igual->json('data.qtde_bobinas'));
+        $this->assertSame(1, $igual->json('data.qtde_caixas'));
+        $this->assertSame('1000.0000', $igual->json('data.bobinas.0.qtde_etiquetas'));
+        $this->assertSame(PaEmbalagem::ORIGEM_MANUAL, $igual->json('data.origem'));
+
+        $real = $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$this->op->id}/embalar", [
+                'qtde_bobinas' => 3,
+                'qtde_caixas' => 2,
+            ]);
+        $real->assertOk();
+        $this->assertSame(3, $real->json('data.qtde_bobinas'));
+        $this->assertSame(2, $real->json('data.qtde_caixas'));
+        $soma = '0';
+        foreach ($real->json('data.bobinas') as $bobina) {
+            $soma = bcadd($soma, (string) $bobina['qtde_etiquetas'], 4);
+        }
+        $this->assertSame('5000.0000', $soma);
+        $this->assertSame(2, (int) $real->json('data.caixas.0.qtde_bobinas'));
+        $this->assertSame(1, (int) $real->json('data.caixas.1.qtde_bobinas'));
+
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$this->op->id}/embalar", [
+                'qtde_bobinas' => 2,
+                'qtde_caixas' => 3,
+            ])
+            ->assertStatus(422);
+    }
 }

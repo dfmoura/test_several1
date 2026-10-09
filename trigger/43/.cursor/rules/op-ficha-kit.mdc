@@ -5,16 +5,16 @@ Norma: `docs/ADR_OP_FICHA_KIT.md`. Motor intacto: `ADR_PRODUCAO_PED_OP_ESTOQUE.m
 ## Espinha
 
 ```
-OP = o que produzir + kit + um CTA
+OP = o que produzir + kit + fechar
   kit = materiais[] (sem CART- / REQ-)
-    Estoque · A buscar = o que sai da prateleira (SAIDA_PRODUCAO)
-    Produção · Na máquina = o que chegou (handoff) / produzir / devolver
+    Estoque · A buscar = o que sai da prateleira (SAIDA_PRODUCAO) e a sobra que volta
+    OP = etiquetas boas, refugo, fechar; depois rolos reais e caixas
 ```
 
 ## Faça
 
-- Vocabulário humano: falta pegar · já saiu · sem estoque · devolver sobra · etiquetas boas.
-- Kit = **azulejos**. Cada um mostra **quanto a OP precisa**. Bobina: **metro linear da pista + m²**. Overlay na OP só mostra. **Confirmar saída só com `estoque.escrever`**, em Estoque · A buscar. **Receber na máquina só com `producao.escrever`**. Bobina na prateleira = **volumes** (baixa em m²); o resto = unidades. Filtro = lote do volume.
+- Vocabulário humano: falta pegar · já saiu · sem estoque · devolver sobra · etiquetas boas · rolos reais · caixas.
+- Kit = **azulejos**. Cada um mostra **quanto a OP precisa**. Bobina: **metro linear da pista + m²**. Overlay na OP só mostra. **Confirmar saída só com `estoque.escrever`**, em Estoque · A buscar. **Fechar a ordem só com `producao.escrever`**, na própria OP. Bobina na prateleira = **volumes** (baixa em m²); o resto = unidades. Filtro = lote do volume.
 - Avaria só na lista de retirada.
 - Extra = acrescentar no kit (mesma confirmação no estoque).
 - 1 kit por OP.
@@ -25,6 +25,7 @@ OP = o que produzir + kit + um CTA
 - Recolocar tabela de 9 colunas, QR ou avaria na ficha da OP.
 - Criar documento carrinho / requisição ou segundo writer.
 - Reservar saldo sem ADR.
-- Juntar as três portas numa mega-tela.
+- Juntar a baixa de prateleira com o fecho da ordem.
+- Recolocar o menu **Na máquina** ou a grade de consumo (saiu, rasgou, sobra, perda, usou) no fecho.
 
 Se a tarefa exigir violar isto → parar e citar `docs/ADR_OP_FICHA_KIT.md`.

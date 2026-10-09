@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { OpFecharOrdem } from '../components/OpFecharOrdem';
 import { OpInsumosReservados } from '../components/OpInsumosReservados';
 import { PaEmbalagemPanel } from '../components/PaEmbalagemPanel';
 import { PedidoItemFichaCabecalho } from '../components/PedidoFichaSheet';
@@ -9,21 +10,7 @@ import { api, type OrdemProducao, type Pedido } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
-import {
-  leituraNecessidadeOp,
-  leituraQtdeMaterial,
-  type LeituraQtdeMaterial,
-} from '../lib/producaoPick';
-import { opStatusLabel, parseQtdeDigitada } from '../lib/producaoUi';
-
-function QtdeMaterialLeitura({ leitura }: { leitura: LeituraQtdeMaterial }) {
-  return (
-    <>
-      {leitura.principal}
-      {leitura.complemento ? <span className="op-qtde-extra">{leitura.complemento}</span> : null}
-    </>
-  );
-}
+import { opStatusLabel } from '../lib/producaoUi';
 
 export function OrdemProducaoDetailPage() {
   const { id } = useParams();
@@ -94,7 +81,6 @@ export function OrdemProducaoDetailPage() {
     }
   };
 
-  const podeProducao = Boolean(aberta && hasPermission('producao.ler'));
   const itemPedido =
     pedido?.itens.find((i) => i.id === op?.pedido_item?.id) ?? null;
 
@@ -159,8 +145,13 @@ export function OrdemProducaoDetailPage() {
           <OpInsumosReservados
             op={op}
             podeEstoque={hasPermission('estoque.ler')}
-            podeProducao={podeProducao}
             canWrite={hasPermission('estoque.escrever')}
+            onOp={setOp}
+          />
+
+          <OpFecharOrdem
+            op={op}
+            canWrite={hasPermission('producao.escrever')}
             onOp={setOp}
           />
 
@@ -170,7 +161,7 @@ export function OrdemProducaoDetailPage() {
                 <div className="form-section">
                   <h3>Resultado</h3>
                   <p className="muted" style={{ marginTop: 0 }}>
-                    Etiquetas boas no pedido. Embalagem é o passo seguinte.
+                    Etiquetas boas no pedido. Rolos e caixas são o passo seguinte.
                   </p>
                 </div>
                 <div className="detail-meta" style={{ marginBottom: '1rem' }}>
@@ -185,55 +176,6 @@ export function OrdemProducaoDetailPage() {
                     <strong>{formatDecimalBr(Number(op.qtde_refugo || 0), 0)}</strong>
                   </div>
                 </div>
-                {(op.materiais ?? []).filter((m) => !m.pendente).length > 0 ? (
-                  <div className="table-wrap" style={{ marginBottom: '1rem' }}>
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Material</th>
-                          <th>A ordem pede</th>
-                          <th>Saiu da prateleira</th>
-                          <th>Sobra</th>
-                          <th>Perda</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(op.materiais ?? [])
-                          .filter((m) => !m.pendente)
-                          .map((m) => (
-                            <tr key={m.id}>
-                              <td>
-                                {m.produto?.descricao_fiscal ?? m.componente}
-                                {m.produto?.codigo ? (
-                                  <div className="muted" style={{ fontSize: '0.85em' }}>
-                                    {m.produto.codigo}
-                                  </div>
-                                ) : null}
-                              </td>
-                              <td>
-                                <QtdeMaterialLeitura leitura={leituraNecessidadeOp(m, op)} />
-                              </td>
-                              <td>
-                                <QtdeMaterialLeitura
-                                  leitura={leituraQtdeMaterial(m, op, parseQtdeDigitada(m.qtde_requisitada))}
-                                />
-                              </td>
-                              <td>
-                                <QtdeMaterialLeitura
-                                  leitura={leituraQtdeMaterial(m, op, parseQtdeDigitada(m.qtde_retorno))}
-                                />
-                              </td>
-                              <td>
-                                <QtdeMaterialLeitura
-                                  leitura={leituraQtdeMaterial(m, op, parseQtdeDigitada(m.qtde_perda))}
-                                />
-                              </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : null}
               </div>
             </div>
           ) : null}

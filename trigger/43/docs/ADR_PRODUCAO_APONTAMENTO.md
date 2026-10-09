@@ -51,3 +51,15 @@ A OP já conclui com `POST /ordens-producao/{id}/concluir` (retorno → `ENTRADA
 4. Handoff não bloqueia concluir (aviso, não trava).
 
 Alterar esta ADR exige decisão explícita (produção). Sem MES e sem segundo writer.
+
+## Emenda 2026-10-09 — fecho na ordem
+
+O menu **Na máquina** sai. A API `/ordens-producao/apontamentos` permanece.
+
+| Porta | Quem | Ação |
+|-------|------|------|
+| OP | Produção (`producao.escrever`) | Etiquetas boas, refugo, tolerância, **Fechar a ordem**. Sem grade de material. Retorno e perda vão zerados: o que ainda está fora entra como usado. |
+| Estoque · **A buscar** | Almoxarifado | Saída e devolução de sobra, antes do fecho. |
+| Painel `op_curso` | Ação de hoje | Mesma fila (OP com saída) → `/ordens-producao`. |
+
+Handoff (`entregar-insumos`) não bloqueia o fecho e não tem cartão próprio.

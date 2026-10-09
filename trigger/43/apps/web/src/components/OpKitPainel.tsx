@@ -139,10 +139,10 @@ export function OpKitPainel({
       return { to: hrefFichaEstoque(op.id), label: 'Confirmar saída no estoque' };
     }
     if (atual === 'entregar' && podeProducao) {
-      return { to: hrefApontamentoProducao(op.id), label: 'Receber na máquina' };
+      return { to: hrefApontamentoProducao(op.id), label: 'Abrir a ordem' };
     }
     if ((atual === 'produzir' || atual === 'devolver') && podeProducao) {
-      return { to: hrefApontamentoProducao(op.id), label: 'Abrir a máquina' };
+      return { to: hrefApontamentoProducao(op.id), label: 'Abrir a ordem' };
     }
     return null;
   })();

@@ -40,11 +40,11 @@ Duas pessoas, duas telas — o motor é o mesmo.
 
 | Porta | Quem (RBAC) | Mostra | Não mostra |
 |-------|-------------|--------|------------|
-| OP | PCP (`producao.ler`); confirmar exige `estoque.escrever` | Cabeçalho da ficha do item + insumos do kit no formulário de faixa. | Busca no estoque, montar kit do catálogo, receber na máquina |
-| Estoque · **A buscar** | Almoxarifado (`estoque.ler`) | O que **sai da prateleira**. Marca volume e **Confirmar = saiu**. Em **Já saiu**: **Devolver à prateleira** (mesmo MOV de sobra). | Receber na máquina, etiquetas boas |
-| Produção · **Na máquina** | Chão (`producao.ler`) | O que **já saiu**: conferir, **Confirmar: recebi**, produzir, devolver sobra na conclusão | Marcar prateleira, baixa de estoque |
+| OP | PCP (`producao.ler`); confirmar saída exige `estoque.escrever`; fechar exige `producao.escrever` | Cabeçalho da ficha, insumos do kit e, com material já saído, o fecho (etiquetas boas, refugo, tolerância). Depois de concluída: rolos reais e caixas. | Busca na prateleira, grade de consumo no fecho |
+| Estoque · **A buscar** | Almoxarifado (`estoque.ler`) | O que **sai da prateleira**. Marca volume e **Confirmar = saiu**. Em **Já saiu**: **Devolver à prateleira** (mesmo MOV de sobra). | Etiquetas boas, rolos e caixas do PA |
+| Produção | — | Sem item de menu próprio. Atalho antigo `/ordens-producao/apontamentos` abre a ordem. | — |
 
-Menu: **A buscar** vive em Estoque (`estoque.ler`). **Na máquina** vive em Produção (`producao.ler`). Confirmar saída exige `estoque.escrever`; receber na máquina exige `producao.escrever`. O papel PRODUCAO não busca na prateleira.
+Menu: **A buscar** vive em Estoque (`estoque.ler`). O fecho vive em **Ordens de produção** (`producao.escrever`). O papel PRODUCAO não busca na prateleira.
 
 **Kit (lista):** cada material mostra **quanto a OP precisa** (`qtde_planejada`) e a sugestão FEFO. Bobina: **metro linear da pista do PED** **e** m². Writer e concluir ficam em m². Sem segundo saldo.
 
@@ -79,7 +79,11 @@ Não exigir que a soma case o m²/UN planejado. Motivo só se o volume for outro
 1. Documento `CART-` / `REQ-` ou segundo writer.  
 2. Reservar saldo (empenho pesado) sem ADR novo.  
 3. Abrir o estoque geral para montar o kit do zero.  
-4. Juntar as três portas de novo na OP.  
+4. Trazer a baixa de prateleira para o fecho da ordem.  
 5. Explodir SKU por arte/cliente.
+
+## Emenda 2026-10-09 — fechar na ordem
+
+A porta **Na máquina** sai do menu. O fecho (etiquetas boas, refugo, tolerância) fica na OP. A grade Material / Saiu / Rasgou / Sobra / Perda / Usou não volta para esse cartão. Sobra e rasgo continuam em Estoque · **A buscar**. Rolos reais e caixas alocadas são o passo seguinte, na mesma ordem, depois de `CONCLUIDA`.
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX).

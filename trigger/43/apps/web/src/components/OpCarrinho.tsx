@@ -64,10 +64,10 @@ export function OpCarrinho({ op, pedido, podeEstoque, podeProducao }: Props) {
       return { to: hrefFichaEstoque(op.id), label: 'Confirmar saída no estoque' };
     }
     if (atual === 'entregar' && podeProducao) {
-      return { to: hrefApontamentoProducao(op.id), label: 'Entregar na máquina' };
+      return { to: hrefApontamentoProducao(op.id), label: 'Abrir a ordem' };
     }
     if ((atual === 'produzir' || atual === 'devolver') && podeProducao) {
-      return { to: hrefApontamentoProducao(op.id), label: 'Abrir produção' };
+      return { to: hrefApontamentoProducao(op.id), label: 'Abrir a ordem' };
     }
     return null;
   })();

@@ -134,7 +134,7 @@ class PainelService
                 $opCurso > 0,
             );
             $apontar = $this->apontamento->contarFila($empresa);
-            $this->fila($filas, 'op_curso', 'Na máquina', 'Receber o material, produzir ou fechar a ordem', $apontar, '/ordens-producao/apontamentos');
+            $this->fila($filas, 'op_curso', 'Fechar a ordem', 'Informar as etiquetas boas', $apontar, '/ordens-producao');
         }
 
         if ($faturamento) {
