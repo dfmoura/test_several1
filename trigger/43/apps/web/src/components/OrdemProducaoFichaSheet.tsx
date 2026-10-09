@@ -6,6 +6,7 @@ import {
 } from './OrcPubParteComercial';
 import { FichaKv, FichaSection } from './ProducaoFichaBlocks';
 import { RastreioFichaSection } from './RastreioInsumosFichaSheet';
+import { PedidoItemFichaProducao } from './PedidoFichaSheet';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { ModeloTintasPorModelo } from './ModeloTintasTags';
 import type { OrdemProducao, Pedido } from '../lib/api';
@@ -35,7 +36,7 @@ import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
 
 /**
  * Ficha impressa da OP — ordem de flexo.
- * Impressão, quanto rodar, kit. Sem preço. Sem guia do orçamento.
+ * Formulário do item do pedido, sem preço. Quanto rodar e material em seguida.
  */
 export type OrdemProducaoFichaSheetProps = {
   ordem: OrdemProducao;
@@ -180,6 +181,17 @@ export function OrdemProducaoFichaSheet({
         ) : null}
       </div>
 
+      {pedido && item && item.necessidade === 'PRODUCAO' ? (
+        <FichaSection title="Etiqueta">
+          <PedidoItemFichaProducao pedido={pedido} item={item} />
+          {colunaReb ? (
+            <p className="ficha-inline-list">
+              <strong>Rebobinação</strong>
+              {colunaReb}
+            </p>
+          ) : null}
+        </FichaSection>
+      ) : (
       <FichaSection title="Impressão">
         {!temImpressao ? (
           <p className="ficha-empty">
@@ -232,6 +244,7 @@ export function OrdemProducaoFichaSheet({
           </>
         )}
       </FichaSection>
+      )}
 
       {corrida ? (
         <FichaSection title="Quanto rodar">
@@ -276,7 +289,7 @@ export function OrdemProducaoFichaSheet({
                 const nome = opKitNome(m);
                 const quanto = formatQuantoFicha(m, o);
                 return (
-                  <tr key={m.id}>
+                  <tr key={m.id} className={`ficha-op-mat ficha-op-mat--${estado}`}>
                     <td>{i + 1}</td>
                     <td>
                       {nome}

@@ -83,7 +83,7 @@ export function OrdemProducaoFichaPage() {
             Voltar à ordem
           </button>
           <span className="ficha-toolbar-hint">
-            Ordem de flexografia · impressão, quanto rodar e kit · retrato A4 · sem preço
+            Formulário do item · quanto rodar · material · retrato A4 · sem preço
           </span>
         </div>
         <button

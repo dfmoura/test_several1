@@ -122,14 +122,30 @@ function EtqDetalheCols() {
   );
 }
 
+function EtqDetalheColsProducao() {
+  return (
+    <colgroup>
+      <col className="ped-ficha-etq-c-modelo" />
+      <col className="ped-ficha-etq-c-tintas" />
+      <col className="ped-ficha-etq-c-er" />
+      <col className="ped-ficha-etq-c-ml" />
+      <col className="ped-ficha-etq-c-rolos" />
+      <col className="ped-ficha-etq-c-etiq" />
+    </colgroup>
+  );
+}
+
 function PedidoTabelaEtiquetas({
   pedido,
   itens,
   rodape,
+  producao = false,
 }: {
   pedido: Pedido;
   itens: PedidoItem[];
   rodape: string;
+  /** Lista da ordem: o mesmo formulário, sem preço, total ou desconto. */
+  producao?: boolean;
 }) {
   const grupos = itens.map((item) => {
     const matriz = valorMatrizCobradoDoItem(pedido, item);
@@ -177,26 +193,38 @@ function PedidoTabelaEtiquetas({
                 <FichaKv label="Cores" value={dashCell(spec.cores)} />
                 <FichaKv
                   label="Matriz"
-                  value={matriz > 0 ? <span className="ped-ficha-etq-num">{formatCurrency(matriz)}</span> : 'Não'}
+                  value={
+                    producao
+                      ? matriz > 0
+                        ? 'Sim'
+                        : 'Não'
+                      : matriz > 0
+                        ? <span className="ped-ficha-etq-num">{formatCurrency(matriz)}</span>
+                        : 'Não'
+                  }
                 />
                 <FichaKv label="Saída" value={dashCell(spec.saida)} />
                 <FichaKv label="Máq." value={dashCell(spec.maquina)} />
               </div>
             </div>
             <table className="ficha-table ped-ficha-contrato-table ped-ficha-etq-detalhe">
-              <EtqDetalheCols />
+              {producao ? <EtqDetalheColsProducao /> : <EtqDetalheCols />}
               <thead>
                 <tr>
                   <th>Modelo</th>
                   <th>Cores arte</th>
-                  <th className="ficha-td-num ped-ficha-th-val">Vlr. arte</th>
-                  <th className="ficha-td-num ped-ficha-th-val">Unitário</th>
-                  <th className="ficha-td-num ped-ficha-th-val">Valor rolo</th>
+                  {producao ? null : (
+                    <>
+                      <th className="ficha-td-num ped-ficha-th-val">Vlr. arte</th>
+                      <th className="ficha-td-num ped-ficha-th-val">Unitário</th>
+                      <th className="ficha-td-num ped-ficha-th-val">Valor rolo</th>
+                    </>
+                  )}
                   <th className="ficha-td-num ped-ficha-th-val">Etiq. por rolo</th>
                   <th className="ficha-td-num ped-ficha-th-val">m/rolo</th>
                   <th className="ficha-td-num ped-ficha-th-val">Rolos</th>
                   <th className="ficha-td-num ped-ficha-th-val">Etiquetas</th>
-                  <th className="ficha-td-num ped-ficha-th-val">Subtotal</th>
+                  {producao ? null : <th className="ficha-td-num ped-ficha-th-val">Subtotal</th>}
                 </tr>
               </thead>
               <tbody>
@@ -206,20 +234,26 @@ function PedidoTabelaEtiquetas({
                     <td className="ped-ficha-col-tintas">
                       <ModeloTintasTags tintas={ln.tintas} empty="—" />
                     </td>
-                    <td className="ficha-td-num">
-                      {ln.valorArte > 0 ? formatCurrency(ln.valorArte) : '—'}
-                    </td>
-                    <td className="ficha-td-num">
-                      {ln.unitario != null ? formatUnitPrice(ln.unitario) : '—'}
-                    </td>
-                    <td className="ficha-td-num">
-                      {ln.valorRolo != null ? formatCurrency(ln.valorRolo) : '—'}
-                    </td>
+                    {producao ? null : (
+                      <>
+                        <td className="ficha-td-num">
+                          {ln.valorArte > 0 ? formatCurrency(ln.valorArte) : '—'}
+                        </td>
+                        <td className="ficha-td-num">
+                          {ln.unitario != null ? formatUnitPrice(ln.unitario) : '—'}
+                        </td>
+                        <td className="ficha-td-num">
+                          {ln.valorRolo != null ? formatCurrency(ln.valorRolo) : '—'}
+                        </td>
+                      </>
+                    )}
                     <td className="ficha-td-num">{fmtQtdInt(ln.etiqPorRolo)}</td>
                     <td className="ficha-td-num">{fmtMetros(ln.metrosPorRolo)}</td>
                     <td className="ficha-td-num">{fmtRolos(ln.rolos)}</td>
                     <td className="ficha-td-num">{fmtQtdInt(ln.etiquetas)}</td>
-                    <td className="ficha-td-num">{formatCurrency(ln.subtotal)}</td>
+                    {producao ? null : (
+                      <td className="ficha-td-num">{formatCurrency(ln.subtotal)}</td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -227,6 +261,7 @@ function PedidoTabelaEtiquetas({
           </div>
         );
       })}
+      {producao ? null : (
       <table className="ficha-table ped-ficha-contrato-table ped-ficha-etq-detalhe ped-ficha-etq-totais">
         <EtqDetalheCols />
         <tbody>
@@ -266,6 +301,7 @@ function PedidoTabelaEtiquetas({
           </tr>
         </tbody>
       </table>
+      )}
     </div>
   );
 }
@@ -474,6 +510,23 @@ export function PedidoItemFichaCabecalho({
   return (
     <div className="op-pedido-cabecalho ficha-sheet-ped">
       <PedidoTabelaEtiquetas pedido={pedido} itens={[item]} rodape="Total" />
+    </div>
+  );
+}
+
+/**
+ * Lista impressa da ordem: o formulário do item do pedido, sem preço.
+ */
+export function PedidoItemFichaProducao({
+  pedido,
+  item,
+}: {
+  pedido: Pedido;
+  item: PedidoItem;
+}) {
+  return (
+    <div className="ficha-sheet-ped ficha-op-pedido-form">
+      <PedidoTabelaEtiquetas pedido={pedido} itens={[item]} rodape="" producao />
     </div>
   );
 }

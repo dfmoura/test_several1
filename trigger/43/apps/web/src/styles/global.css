@@ -10604,6 +10604,43 @@ tr.row-inactive td {
   width: 24mm;
 }
 
+.ficha-sheet-op .ficha-op-mat--falta_pegar td {
+  background: rgba(37, 99, 235, 0.1);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.ficha-sheet-op .ficha-op-mat--falta_pegar td:first-child {
+  box-shadow: inset 2.4pt 0 0 #1d4ed8;
+}
+
+.ficha-sheet-op .ficha-op-mat--falta_pegar td:last-child {
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.ficha-sheet-op .ficha-op-mat--sem_estoque td {
+  background: rgba(180, 35, 24, 0.07);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.ficha-sheet-op .ficha-op-mat--sem_estoque td:last-child {
+  font-weight: 700;
+  color: #b42318;
+}
+
+.ficha-op-pedido-form.ficha-sheet-ped .ped-ficha-etq-item {
+  border-top: 0.35pt solid var(--border);
+}
+
+.ficha-op-pedido-form.ficha-sheet-ped .ped-ficha-etq-c-modelo { width: 24%; }
+.ficha-op-pedido-form.ficha-sheet-ped .ped-ficha-etq-c-tintas { width: 28%; }
+.ficha-op-pedido-form.ficha-sheet-ped .ped-ficha-etq-c-er { width: 14%; }
+.ficha-op-pedido-form.ficha-sheet-ped .ped-ficha-etq-c-ml { width: 12%; }
+.ficha-op-pedido-form.ficha-sheet-ped .ped-ficha-etq-c-rolos { width: 10%; }
+.ficha-op-pedido-form.ficha-sheet-ped .ped-ficha-etq-c-etiq { width: 12%; }
+
 .ficha-sheet-op .ficha-op-volumes {
   margin-top: 0.3mm;
   font-weight: 700;
