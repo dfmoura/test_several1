@@ -60,6 +60,28 @@ class OrdemProducaoController extends Controller
         ]);
     }
 
+    public function escolher(Request $request, OrdemProducao $ordemProducao): JsonResponse
+    {
+        if (! $request->user()->can('estoque.escrever')) {
+            abort(403);
+        }
+        $this->assertEmpresa($ordemProducao);
+
+        $data = $request->validate([
+            'material_id' => ['required', 'integer'],
+            'produto_id' => ['nullable', 'integer'],
+        ]);
+
+        return response()->json([
+            'data' => $this->service->escolherProduto(
+                $this->empresa(),
+                $ordemProducao,
+                (int) $data['material_id'],
+                isset($data['produto_id']) ? (int) $data['produto_id'] : null,
+            ),
+        ]);
+    }
+
     public function requisitar(Request $request, OrdemProducao $ordemProducao): JsonResponse
     {
         $this->authorizeWrite($request);

@@ -279,6 +279,72 @@ class OrdemProducaoService
     }
 
     /**
+     * Grava o SKU escolhido no material. Sem movimento e sem baixa.
+     *
+     * @return array<string, mixed>
+     */
+    public function escolherProduto(Empresa $empresa, OrdemProducao $op, int $materialId, ?int $produtoId): array
+    {
+        if ($op->empresa_id !== $empresa->id) {
+            abort(404);
+        }
+        if (! in_array($op->status, OrdemProducao::STATUSES_ABERTOS, true)) {
+            throw ValidationException::withMessages([
+                'status' => ['OP deve estar ABERTA ou EM_ANDAMENTO.'],
+            ]);
+        }
+
+        $mat = OrdemProducaoMaterial::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('ordem_producao_id', $op->id)
+            ->where('id', $materialId)
+            ->first();
+        if (! $mat) {
+            throw ValidationException::withMessages([
+                'material_id' => ['Material não pertence a esta ordem.'],
+            ]);
+        }
+        if ($mat->saida_movimento_id) {
+            throw ValidationException::withMessages([
+                'material_id' => ['Este item já saiu do estoque.'],
+            ]);
+        }
+        $comp = strtoupper((string) $mat->componente);
+        if (! in_array($comp, ['PAPEL', 'ACABAMENTO'], true)) {
+            throw ValidationException::withMessages([
+                'material_id' => ['Só papel e acabamento escolhem o item antes da saída.'],
+            ]);
+        }
+
+        $id = (int) ($produtoId ?? 0);
+        if ($id <= 0) {
+            $mat->produto_id = null;
+            $mat->save();
+
+            return $this->show($op->fresh() ?? $op);
+        }
+        if (! $this->coleta->produtoEscolhaPermitido($empresa, $mat, $id)) {
+            throw ValidationException::withMessages([
+                'produto_id' => ['Item não permitido nesta linha.'],
+            ]);
+        }
+        $jaNaOp = OrdemProducaoMaterial::query()
+            ->where('ordem_producao_id', $op->id)
+            ->where('produto_id', $id)
+            ->where('id', '!=', $mat->id)
+            ->exists();
+        if ($jaNaOp) {
+            throw ValidationException::withMessages([
+                'produto_id' => ['Este item já está em outra linha desta ordem.'],
+            ]);
+        }
+        $mat->produto_id = $id;
+        $mat->save();
+
+        return $this->show($op->fresh() ?? $op);
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     public function volumesParaEscolha(Empresa $empresa, OrdemProducao $op, int $materialId, ?int $produtoId = null): array

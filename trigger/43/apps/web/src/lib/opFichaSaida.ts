@@ -41,7 +41,8 @@ export type FichaSaidaColunaId =
   | 'medida'
   | 'm2'
   | 'm'
-  | 'qtde';
+  | 'qtde'
+  | 'situacao';
 
 export type FichaSaidaColuna = {
   id: FichaSaidaColunaId;
@@ -52,6 +53,7 @@ export type FichaSaidaColuna = {
 
 export type FichaSaidaLinha = {
   id: string;
+  estado: FichaSaidaEstado;
   valores: Partial<Record<FichaSaidaColunaId, string>>;
 };
 
@@ -74,6 +76,7 @@ export type FichaSaidaItem = {
 export type FichaSaidaGrupo = {
   key: string;
   label: string;
+  colunas: FichaSaidaColuna[];
   itens: FichaSaidaItem[];
 };
 
@@ -86,6 +89,7 @@ const COLUNAS: FichaSaidaColuna[] = [
   { id: 'm2', label: 'm²', title: 'Metro quadrado', num: true },
   { id: 'm', label: 'm', title: 'Metro linear', num: true },
   { id: 'qtde', label: 'Qtde', num: true },
+  { id: 'situacao', label: 'Situação' },
 ];
 
 type ApontadoGuia = {
@@ -193,6 +197,7 @@ function itemDeMaterial(m: OrdemProducaoMaterial, op: OrdemProducao): FichaSaida
       usadas.add('m2');
       usadas.add('m');
     }
+    usadas.add('situacao');
     vols.forEach((vol, i) => {
       const qtde = jaSaiu
         ? parseQtdeDigitada(vol.qtde_retirar || vol.qtde_volume)
@@ -201,6 +206,7 @@ function itemDeMaterial(m: OrdemProducaoMaterial, op: OrdemProducao): FichaSaida
       const medidaVol = formatVolumeDimensao(vol);
       linhas.push({
         id: `${m.id}-${vol.lote_id ?? vol.codigo ?? i}`,
+        estado: estadoVisual,
         valores: {
           produto: rotuloProdutoVolume(vol, m.produto),
           volume: vol.lote_id || vol.codigo ? formatLotePick(vol) : '—',
@@ -209,12 +215,14 @@ function itemDeMaterial(m: OrdemProducaoMaterial, op: OrdemProducao): FichaSaida
           ...(mostrarMedida ? { medida: ehCaixa ? medidaCaixa || '—' : medidaVol || '—' } : {}),
           ...(metragem ? { m2: leitura?.m2 ?? '—', m: leitura?.metros ?? '—' } : {}),
           qtde: qtdeTexto(qtde, un, jaSaiu),
+          situacao,
         },
       });
     });
-  } else if (!porVolume && !(estado === 'sem_estoque' && produtoId <= 0)) {
+  } else if (m.produto?.id || (!porVolume && !(estado === 'sem_estoque' && produtoId <= 0))) {
     usadas.add('produto');
     usadas.add('qtde');
+    usadas.add('situacao');
     const localSomenteLeitura = ehTubete || ehCaixa;
     const local =
       opcao?.local ?? (produtoId > 0 && produtoId === m.produto?.id ? m.local : null);
@@ -230,16 +238,31 @@ function itemDeMaterial(m: OrdemProducaoMaterial, op: OrdemProducao): FichaSaida
     const n = jaSaiu ? parseQtdeDigitada(m.qtde_requisitada) : qtdeLinhaPick(m);
     linhas.push({
       id: String(m.id),
+      estado: estadoVisual,
       valores: {
-        produto: nomeProdutoLinha(m.produto),
+        produto: m.produto?.id ? nomeProdutoLinha(m.produto) : titulo,
         ...(mostraLocal ? { local: rotuloLocal || 'Sem local' } : {}),
         ...(detalhe && ehTubete ? { polegada: detalhe } : {}),
         ...(detalhe && ehCaixa ? { medida: detalhe } : {}),
         qtde: qtdeTexto(n, un, jaSaiu),
+        situacao,
       },
     });
   } else {
     aviso = avisoSemLinha(m, { porVolume, volumeDireto, jaSaiu, produtoId, estado });
+    usadas.add('produto');
+    usadas.add('qtde');
+    usadas.add('situacao');
+    linhas.push({
+      id: String(m.id),
+      estado: estadoVisual,
+      valores: {
+        produto: aviso ? `${titulo} · ${aviso}` : titulo,
+        qtde: qtdeTexto(qtdeLinhaPick(m), un, jaSaiu),
+        situacao,
+      },
+    });
+    aviso = null;
   }
 
   return {
@@ -276,18 +299,34 @@ function avisoSemLinha(
 }
 
 function itemDeApontado(a: ApontadoGuia, key: string): FichaSaidaItem {
+  const titulo = opKitNome({ componente: a.componente, origem_texto: a.origem_texto });
+  const situacao = a.motivo ? 'Sem cadastro' : 'Apontado no orçamento';
   return {
     id: `apontado-${key}-${a.origem_texto}`,
-    titulo: opKitNome({ componente: a.componente, origem_texto: a.origem_texto }),
-    situacao: a.motivo ? 'Sem cadastro' : 'Apontado no orçamento',
+    titulo,
+    situacao,
     estado: 'apontado',
     balanco: null,
-    precisa: textoApontado(a),
+    precisa: null,
     motivo: a.motivo?.trim() || null,
     aviso: null,
-    colunas: [],
-    linhas: [],
+    colunas: colunasDe(new Set(['produto', 'qtde', 'situacao'])),
+    linhas: [
+      {
+        id: `apontado-${key}-${a.origem_texto}`,
+        estado: 'apontado',
+        valores: { produto: titulo, qtde: textoApontado(a), situacao },
+      },
+    ],
   };
+}
+
+function grupoDe(key: string, itens: FichaSaidaItem[]): FichaSaidaGrupo {
+  const usadas = new Set<FichaSaidaColunaId>();
+  for (const item of itens) {
+    for (const coluna of item.colunas) usadas.add(coluna.id);
+  }
+  return { key, label: opComponenteLabel(key), colunas: colunasDe(usadas), itens };
 }
 
 function ordemDaChave(key: string): number {
@@ -314,11 +353,7 @@ export function fichaSaidaEstoque(op: OrdemProducao): FichaSaidaGrupo[] {
 
   const grupos: FichaSaidaGrupo[] = [...map.keys()]
     .sort((a, b) => ordemDaChave(a) - ordemDaChave(b) || a.localeCompare(b, 'pt-BR'))
-    .map((key) => ({
-      key,
-      label: opComponenteLabel(key),
-      itens: (map.get(key) ?? []).map((m) => itemDeMaterial(m, op)),
-    }));
+    .map((key) => grupoDe(key, (map.get(key) ?? []).map((m) => itemDeMaterial(m, op))));
 
   const orfaos = new Map<string, FichaSaidaItem[]>();
   for (const a of apontadosDaTela(op, new Set(map.keys()))) {
@@ -330,11 +365,7 @@ export function fichaSaidaEstoque(op: OrdemProducao): FichaSaidaGrupo[] {
   for (const key of [...orfaos.keys()].sort(
     (a, b) => ordemDaChave(a) - ordemDaChave(b) || a.localeCompare(b, 'pt-BR'),
   )) {
-    grupos.push({
-      key,
-      label: opComponenteLabel(key),
-      itens: orfaos.get(key) ?? [],
-    });
+    grupos.push(grupoDe(key, orfaos.get(key) ?? []));
   }
   return grupos;
 }

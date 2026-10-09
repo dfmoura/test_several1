@@ -443,13 +443,43 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
       });
   };
 
+  const gravarEscolha = (materialId: number, produtoId: number | null) => {
+    void api
+      .post<{ data: OrdemProducao }>(`/ordens-producao/${op.id}/escolha`, {
+        material_id: materialId,
+        produto_id: produtoId,
+      })
+      .then((res) => {
+        onOp(res.data);
+        const next = picksDe(res.data.materiais);
+        setVolumes((prev) => {
+          if ((prev[materialId] ?? []).length > 0 || !next.vols[materialId]) return prev;
+          return { ...prev, [materialId]: next.vols[materialId] };
+        });
+      })
+      .catch((e: unknown) => {
+        setErr(e instanceof Error ? e.message : 'Não foi possível gravar o item.');
+      });
+  };
+
   const aplicarMarcas = (materialId: number, marcas: VolumePickMarca[]) => {
-    setVolumes((prev) => ({
-      ...prev,
-      [materialId]: marcas
-        .filter((marca) => marca.marcado && parseQtdeDigitada(marca.qtde) > 0)
-        .map((marca) => ({ lote_id: marca.lote_id, qtde: marca.qtde })),
-    }));
+    const linhas = marcas
+      .filter((marca) => marca.marcado && parseQtdeDigitada(marca.qtde) > 0)
+      .map((marca) => ({ lote_id: marca.lote_id, qtde: marca.qtde }));
+    setVolumes((prev) => ({ ...prev, [materialId]: linhas }));
+    const material = (materiais ?? []).find((item) => item.id === materialId);
+    if (!material || material.saida_movimento_id) return;
+    const volumeDireto =
+      (material.componente ?? '').toUpperCase() === 'ACABAMENTO' && Boolean(material.escolher_produto);
+    if (!volumeDireto) return;
+    const ids = new Set<number>();
+    for (const linha of linhas) {
+      const id = volDo(material, linha.lote_id)?.produto_id ?? 0;
+      if (id > 0) ids.add(id);
+    }
+    const atual = material.produto?.id ?? 0;
+    if (ids.size === 1 && [...ids][0] !== atual) gravarEscolha(materialId, [...ids][0]);
+    else if (ids.size === 0 && linhas.length === 0 && atual > 0) gravarEscolha(materialId, null);
   };
 
   const marcasDoOverlay = (materialId: number): VolumePickMarca[] => {
@@ -505,6 +535,17 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
       }
       lembrar([linha]);
       setCatalogoOverlay((prev) => juntarCatalogo(prev, [linha]));
+      const volumeDireto =
+        (material.componente ?? '').toUpperCase() === 'ACABAMENTO' &&
+        Boolean(material.escolher_produto) &&
+        !material.saida_movimento_id;
+      const produtoDoVolume = vol.produto?.id ?? 0;
+      if (volumeDireto && produtoDoVolume > 0 && produtoDoVolume !== (material.produto?.id ?? 0)) {
+        const outros = (volumes[material.id] ?? [])
+          .map((item) => volDo(material, item.lote_id)?.produto_id ?? 0)
+          .filter((id) => id > 0 && id !== produtoDoVolume);
+        if (outros.length === 0) gravarEscolha(material.id, produtoDoVolume);
+      }
       setVolumes((prev) => {
         const atuais = prev[material.id] ?? [];
         if (atuais.some((v) => v.lote_id === vol.lote_id)) return prev;
@@ -786,6 +827,7 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                 );
                 const escolherProduto = (raw: string) => {
                   const id = Number(raw);
+                  const atual = m.produto?.id ?? 0;
                   if (!id) {
                     setVolumes((prev) => ({ ...prev, [m.id]: [] }));
                     setProdutos((prev) => {
@@ -793,12 +835,14 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                       delete next[m.id];
                       return next;
                     });
+                    if (atual > 0 && !m.saida_movimento_id) gravarEscolha(m.id, null);
                     return;
                   }
                   const prox = opcoes.find((o) => o.produto_id === id);
                   const teto = parseQtdeDigitada(prox?.qtde_disponivel);
                   setVolumes((prev) => ({ ...prev, [m.id]: [] }));
                   setProdutos((prev) => ({ ...prev, [m.id]: id }));
+                  if (id !== atual && !m.saida_movimento_id) gravarEscolha(m.id, id);
                   setUnidades((prev) => {
                     const planejada = qtdeLinhaPick(m);
                     const atual = parseQtdeDigitada(prev[m.id] ?? '');

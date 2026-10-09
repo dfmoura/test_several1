@@ -817,4 +817,64 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->assertContains($this->loteVigente->id, $ids);
         $this->assertNotContains($this->emb->id, array_column($volumes, 'produto_id'));
     }
+
+    public function test_escolha_grava_produto_sem_movimento_de_estoque(): void
+    {
+        Sanctum::actingAs($this->user);
+        $mat = OrdemProducaoMaterial::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'ordem_producao_id' => $this->op->id,
+            'produto_id' => null,
+            'qtde_planejada' => '12.0000',
+            'qtde_requisitada' => '0',
+            'qtde_consumida' => '0',
+            'qtde_retorno' => '0',
+            'qtde_perda' => '0',
+            'unidade' => 'M2',
+            'componente' => 'ACABAMENTO',
+            'origem_texto' => 'LAMINAÇÃO',
+            'ordem' => 4,
+        ]);
+        $filme = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MP-FLM-ESC',
+            'familia' => 'MP',
+            'descricao_fiscal' => 'BOPP ESCOLHA',
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'controla_lote' => true,
+        ]);
+        $antes = EstoqueMovimento::query()->count();
+        $saldo = (string) EstoqueSaldo::query()->where('produto_id', $this->mp->id)->value('qtde');
+
+        $res = $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/escolha",
+            ['material_id' => $mat->id, 'produto_id' => $filme->id],
+        );
+        $res->assertOk();
+        $this->assertSame($filme->id, (int) $mat->fresh()->produto_id);
+        $this->assertSame('0.0000', (string) $mat->fresh()->qtde_requisitada);
+        $this->assertSame($antes, EstoqueMovimento::query()->count());
+        $this->assertSame($saldo, (string) EstoqueSaldo::query()->where('produto_id', $this->mp->id)->value('qtde'));
+
+        $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/escolha",
+            ['material_id' => $mat->id, 'produto_id' => $this->mp->id],
+        )->assertStatus(422);
+        $this->assertSame($filme->id, (int) $mat->fresh()->produto_id);
+
+        $limpo = $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/escolha",
+            ['material_id' => $mat->id, 'produto_id' => null],
+        );
+        $limpo->assertOk();
+        $this->assertNull($mat->fresh()->produto_id);
+
+        $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/escolha",
+            ['material_id' => $this->matTubete->id, 'produto_id' => $this->mp->id],
+        )->assertStatus(422);
+    }
 }
