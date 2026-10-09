@@ -1,4 +1,4 @@
-import type { OpRetiradaVolume, OrdemProducao, OrdemProducaoMaterial } from './api';
+import type { OrdemProducao, OrdemProducaoMaterial, OpRetiradaVolume } from './api';
 import {
   balancoMetragem,
   formatLeituraBobina,
@@ -14,6 +14,7 @@ import {
   rotuloProdutoVolume,
   textoBalancoSaida,
   unidadeExibicao,
+  type TextoBalancoSaida,
 } from './producaoPick';
 import {
   OP_COMPONENTE_ORDEM,
@@ -27,8 +28,9 @@ import {
 
 /**
  * Leitura impressa de «O que sai do estoque».
- * Mesmos grupos, os mesmos volumes gravados e a mesma conta de metragem.
- * Sem rascunho da tela, sem saldo vivo e sem a guia do orçamento.
+ * Um bloco por item, com as colunas que a tela mostra para aquele item.
+ * Quantidade na unidade do material. Apontado no orçamento entra no mesmo grupo.
+ * Sem rascunho da tela e sem saldo vivo.
  */
 
 export type FichaSaidaColunaId =
@@ -39,8 +41,7 @@ export type FichaSaidaColunaId =
   | 'medida'
   | 'm2'
   | 'm'
-  | 'qtde'
-  | 'situacao';
+  | 'qtde';
 
 export type FichaSaidaColuna = {
   id: FichaSaidaColunaId;
@@ -51,21 +52,29 @@ export type FichaSaidaColuna = {
 
 export type FichaSaidaLinha = {
   id: string;
-  estado: OpKitEstado;
   valores: Partial<Record<FichaSaidaColunaId, string>>;
 };
 
-export type FichaSaidaMaterial = {
-  id: number;
-  chamada: string | null;
+export type FichaSaidaEstado = OpKitEstado | 'apontado';
+
+export type FichaSaidaItem = {
+  id: string;
+  titulo: string;
+  situacao: string;
+  estado: FichaSaidaEstado;
+  balanco: TextoBalancoSaida | null;
+  /** Linha sem lote: o que o orçamento apontou. */
+  precisa: string | null;
+  motivo: string | null;
+  aviso: string | null;
+  colunas: FichaSaidaColuna[];
   linhas: FichaSaidaLinha[];
 };
 
 export type FichaSaidaGrupo = {
   key: string;
   label: string;
-  colunas: FichaSaidaColuna[];
-  materiais: FichaSaidaMaterial[];
+  itens: FichaSaidaItem[];
 };
 
 const COLUNAS: FichaSaidaColuna[] = [
@@ -77,8 +86,16 @@ const COLUNAS: FichaSaidaColuna[] = [
   { id: 'm2', label: 'm²', title: 'Metro quadrado', num: true },
   { id: 'm', label: 'm', title: 'Metro linear', num: true },
   { id: 'qtde', label: 'Qtde', num: true },
-  { id: 'situacao', label: 'Situação' },
 ];
+
+type ApontadoGuia = {
+  componente: string;
+  origem_texto: string;
+  qtde?: string;
+  unidade?: string;
+  metragem?: string | null;
+  motivo?: string;
+};
 
 function rotuloMedidaLinha(origem: string | null | undefined): string | null {
   const nums = (origem ?? '').match(/\d+/g) ?? [];
@@ -103,13 +120,23 @@ function qtdeTexto(n: number, unidade: string, jaSaiu: boolean): string {
   return formatQtdePick(Math.max(n, 0), unidade);
 }
 
-type MaterialFicha = {
-  chamada: string | null;
-  linhas: FichaSaidaLinha[];
-  colunas: Set<FichaSaidaColunaId>;
-};
+/** Mesma frase de «Apontado no orçamento» na tela. */
+function textoApontado(a: ApontadoGuia): string {
+  const n = parseQtdeDigitada(a.qtde);
+  const metros = parseQtdeDigitada(a.metragem);
+  const un = (a.unidade ?? '').toUpperCase();
+  const area = un === 'M2' || un === 'M²';
+  if (!(n > 0) && !(metros > 0)) return '—';
+  if (area && metros > 0) return `${formatQtdePick(n, 'm²')} · ${formatQtdePick(metros, 'm')}`;
+  if (area) return formatQtdePick(n, 'm²');
+  return formatQtdePick(n, unidadeExibicao(a.unidade));
+}
 
-function materialFicha(m: OrdemProducaoMaterial, op: OrdemProducao): MaterialFicha {
+function colunasDe(usadas: Set<FichaSaidaColunaId>): FichaSaidaColuna[] {
+  return COLUNAS.filter((c) => usadas.has(c.id));
+}
+
+function itemDeMaterial(m: OrdemProducaoMaterial, op: OrdemProducao): FichaSaidaItem {
   const estado = opKitEstado(m);
   const jaSaiu = estado === 'ja_saiu';
   const comp = (m.componente ?? '').toUpperCase();
@@ -130,8 +157,7 @@ function materialFicha(m: OrdemProducaoMaterial, op: OrdemProducao): MaterialFic
   const un = unidadeExibicao(m.unidade || m.retirada?.unidade);
   const metragem = insumoComMetragem(m);
   const titulo = opKitNome(m);
-  const colunas = new Set<FichaSaidaColunaId>(['produto', 'qtde', 'situacao']);
-
+  const usadas = new Set<FichaSaidaColunaId>();
   const vols = jaSaiu ? volumesQueSairam(m) : porVolume ? volumesMarcados(m) : [];
   const saldo = metragem
     ? balancoMetragem(
@@ -145,16 +171,15 @@ function materialFicha(m: OrdemProducaoMaterial, op: OrdemProducao): MaterialFic
         })),
       )
     : null;
-  const balanco = saldo ? textoBalancoSaida(saldo, jaSaiu) : null;
-  const faixa = balanco
-    ? `Precisa ${balanco.precisa} · ${balanco.marcadoRotulo} ${balanco.marcado} · ${balanco.coberturaRotulo} ${balanco.cobertura}`
-    : null;
 
   const linhas: FichaSaidaLinha[] = [];
+  let aviso: string | null = null;
 
   if (porVolume && vols.length > 0) {
-    colunas.add('volume');
-    colunas.add('local');
+    usadas.add('produto');
+    usadas.add('volume');
+    usadas.add('local');
+    usadas.add('qtde');
     const polegada = ehTubete
       ? rotuloPolegada(m.origem_texto ?? m.produto?.descricao_comercial ?? m.produto?.descricao_fiscal)
       : null;
@@ -162,11 +187,11 @@ function materialFicha(m: OrdemProducaoMaterial, op: OrdemProducao): MaterialFic
     const mostrarMedida = ehCaixa
       ? Boolean(medidaCaixa)
       : metragem || vols.some((vol) => Boolean(formatVolumeDimensao(vol)));
-    if (polegada) colunas.add('polegada');
-    if (mostrarMedida) colunas.add('medida');
+    if (polegada) usadas.add('polegada');
+    if (mostrarMedida) usadas.add('medida');
     if (metragem) {
-      colunas.add('m2');
-      colunas.add('m');
+      usadas.add('m2');
+      usadas.add('m');
     }
     vols.forEach((vol, i) => {
       const qtde = jaSaiu
@@ -176,7 +201,6 @@ function materialFicha(m: OrdemProducaoMaterial, op: OrdemProducao): MaterialFic
       const medidaVol = formatVolumeDimensao(vol);
       linhas.push({
         id: `${m.id}-${vol.lote_id ?? vol.codigo ?? i}`,
-        estado: estadoVisual,
         valores: {
           produto: rotuloProdutoVolume(vol, m.produto),
           volume: vol.lote_id || vol.codigo ? formatLotePick(vol) : '—',
@@ -184,12 +208,13 @@ function materialFicha(m: OrdemProducaoMaterial, op: OrdemProducao): MaterialFic
           ...(polegada ? { polegada } : {}),
           ...(mostrarMedida ? { medida: ehCaixa ? medidaCaixa || '—' : medidaVol || '—' } : {}),
           ...(metragem ? { m2: leitura?.m2 ?? '—', m: leitura?.metros ?? '—' } : {}),
-          qtde: qtdeTexto(qtde, unidadeExibicao(vol.unidade || un), jaSaiu),
-          situacao,
+          qtde: qtdeTexto(qtde, un, jaSaiu),
         },
       });
     });
   } else if (!porVolume && !(estado === 'sem_estoque' && produtoId <= 0)) {
+    usadas.add('produto');
+    usadas.add('qtde');
     const localSomenteLeitura = ehTubete || ehCaixa;
     const local =
       opcao?.local ?? (produtoId > 0 && produtoId === m.produto?.id ? m.local : null);
@@ -198,51 +223,37 @@ function materialFicha(m: OrdemProducaoMaterial, op: OrdemProducao): MaterialFic
       !m.produto?.controla_lote &&
       Boolean(opcao || m.produto?.id) &&
       (!localSomenteLeitura || rotuloLocal !== '');
-    if (mostraLocal) colunas.add('local');
+    if (mostraLocal) usadas.add('local');
     const detalhe = opcao?.detalhe?.trim() || '';
-    if (detalhe && ehTubete) colunas.add('polegada');
-    if (detalhe && ehCaixa) colunas.add('medida');
+    if (detalhe && ehTubete) usadas.add('polegada');
+    if (detalhe && ehCaixa) usadas.add('medida');
     const n = jaSaiu ? parseQtdeDigitada(m.qtde_requisitada) : qtdeLinhaPick(m);
     linhas.push({
       id: String(m.id),
-      estado: estadoVisual,
       valores: {
         produto: nomeProdutoLinha(m.produto),
         ...(mostraLocal ? { local: rotuloLocal || 'Sem local' } : {}),
         ...(detalhe && ehTubete ? { polegada: detalhe } : {}),
         ...(detalhe && ehCaixa ? { medida: detalhe } : {}),
         qtde: qtdeTexto(n, un, jaSaiu),
-        situacao,
       },
     });
   } else {
-    const aviso = avisoSemLinha(m, {
-      porVolume,
-      volumeDireto,
-      jaSaiu,
-      produtoId,
-      estado,
-    });
-    if (porVolume) colunas.add('volume');
-    colunas.add('local');
-    linhas.push({
-      id: String(m.id),
-      estado: estadoVisual,
-      valores: {
-        produto: aviso ? `${titulo} · ${aviso}` : titulo,
-        ...(porVolume ? { volume: '—' } : {}),
-        local: '—',
-        qtde: '—',
-        situacao,
-      },
-    });
+    aviso = avisoSemLinha(m, { porVolume, volumeDireto, jaSaiu, produtoId, estado });
   }
 
-  const produtos = linhas.map((l) => l.valores.produto ?? '');
-  const repeteTitulo = produtos.some((p) => p !== titulo && !p.startsWith(`${titulo} ·`));
-  const chamada = faixa || repeteTitulo ? [titulo, faixa].filter(Boolean).join(' · ') : null;
-
-  return { chamada, linhas, colunas };
+  return {
+    id: String(m.id),
+    titulo,
+    situacao,
+    estado: estadoVisual,
+    balanco: saldo ? textoBalancoSaida(saldo, jaSaiu) : null,
+    precisa: null,
+    motivo: null,
+    aviso,
+    colunas: colunasDe(usadas),
+    linhas,
+  };
 }
 
 function avisoSemLinha(
@@ -264,6 +275,34 @@ function avisoSemLinha(
   return 'Sem saldo neste item.';
 }
 
+function itemDeApontado(a: ApontadoGuia, key: string): FichaSaidaItem {
+  return {
+    id: `apontado-${key}-${a.origem_texto}`,
+    titulo: opKitNome({ componente: a.componente, origem_texto: a.origem_texto }),
+    situacao: a.motivo ? 'Sem cadastro' : 'Apontado no orçamento',
+    estado: 'apontado',
+    balanco: null,
+    precisa: textoApontado(a),
+    motivo: a.motivo?.trim() || null,
+    aviso: null,
+    colunas: [],
+    linhas: [],
+  };
+}
+
+function ordemDaChave(key: string): number {
+  const i = OP_COMPONENTE_ORDEM.indexOf(key as (typeof OP_COMPONENTE_ORDEM)[number]);
+  return i === -1 ? OP_COMPONENTE_ORDEM.length : i;
+}
+
+function apontadosDaTela(op: OrdemProducao, presentes: Set<string>): ApontadoGuia[] {
+  const lista: ApontadoGuia[] = [
+    ...(op.disponibilidade?.componentes_nao_casados ?? []),
+    ...(op.disponibilidade?.guia_apontada ?? []),
+  ];
+  return lista.filter((a) => !presentes.has((a.componente ?? '').trim().toUpperCase()));
+}
+
 export function fichaSaidaEstoque(op: OrdemProducao): FichaSaidaGrupo[] {
   const map = new Map<string, OrdemProducaoMaterial[]>();
   for (const m of op.materiais ?? []) {
@@ -272,30 +311,30 @@ export function fichaSaidaEstoque(op: OrdemProducao): FichaSaidaGrupo[] {
     arr.push(m);
     map.set(key, arr);
   }
-  return [...map.keys()]
-    .sort((a, b) => {
-      const ia = OP_COMPONENTE_ORDEM.indexOf(a as (typeof OP_COMPONENTE_ORDEM)[number]);
-      const ib = OP_COMPONENTE_ORDEM.indexOf(b as (typeof OP_COMPONENTE_ORDEM)[number]);
-      if (ia === -1 && ib === -1) return a.localeCompare(b, 'pt-BR');
-      if (ia === -1) return 1;
-      if (ib === -1) return -1;
-      return ia - ib;
-    })
-    .map((key) => {
-      const materiais = (map.get(key) ?? []).map((m) => ({ m, ficha: materialFicha(m, op) }));
-      const usadas = new Set<FichaSaidaColunaId>();
-      for (const item of materiais) {
-        for (const id of item.ficha.colunas) usadas.add(id);
-      }
-      return {
-        key,
-        label: opComponenteLabel(key),
-        colunas: COLUNAS.filter((c) => usadas.has(c.id)),
-        materiais: materiais.map(({ m, ficha }) => ({
-          id: m.id,
-          chamada: ficha.chamada,
-          linhas: ficha.linhas,
-        })),
-      };
+
+  const grupos: FichaSaidaGrupo[] = [...map.keys()]
+    .sort((a, b) => ordemDaChave(a) - ordemDaChave(b) || a.localeCompare(b, 'pt-BR'))
+    .map((key) => ({
+      key,
+      label: opComponenteLabel(key),
+      itens: (map.get(key) ?? []).map((m) => itemDeMaterial(m, op)),
+    }));
+
+  const orfaos = new Map<string, FichaSaidaItem[]>();
+  for (const a of apontadosDaTela(op, new Set(map.keys()))) {
+    const key = (a.componente ?? 'OUTRO').trim().toUpperCase() || 'OUTRO';
+    const arr = orfaos.get(key) ?? [];
+    arr.push(itemDeApontado(a, key));
+    orfaos.set(key, arr);
+  }
+  for (const key of [...orfaos.keys()].sort(
+    (a, b) => ordemDaChave(a) - ordemDaChave(b) || a.localeCompare(b, 'pt-BR'),
+  )) {
+    grupos.push({
+      key,
+      label: opComponenteLabel(key),
+      itens: orfaos.get(key) ?? [],
     });
+  }
+  return grupos;
 }

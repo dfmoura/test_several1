@@ -1,4 +1,3 @@
-import { Fragment } from 'react';
 import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
 import {
@@ -272,49 +271,79 @@ export function OrdemProducaoFichaSheet({
             {saidaEstoque.map((grupo) => (
               <div key={grupo.key} className="ficha-op-saida-grupo">
                 <h4 className="ficha-op-saida-rotulo">{grupo.label}</h4>
-                <table className="ficha-table ficha-table-num ficha-op-saida-tabela">
-                  <colgroup>
-                    {grupo.colunas.map((coluna) => (
-                      <col key={coluna.id} className={`ficha-op-c ficha-op-c--${coluna.id}`} />
-                    ))}
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      {grupo.colunas.map((coluna) => (
-                        <th
-                          key={coluna.id}
-                          className={coluna.num ? 'ficha-th-num' : undefined}
-                          title={coluna.title}
-                        >
-                          {coluna.label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {grupo.materiais.map((material) => (
-                      <Fragment key={material.id}>
-                        {material.chamada ? (
-                          <tr className="ficha-op-saida-chamada">
-                            <td colSpan={grupo.colunas.length}>{material.chamada}</td>
-                          </tr>
-                        ) : null}
-                        {material.linhas.map((linha) => (
-                          <tr key={linha.id} className={`ficha-op-mat ficha-op-mat--${linha.estado}`}>
-                            {grupo.colunas.map((coluna) => (
-                              <td
+                {grupo.itens.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`ficha-op-saida-item ficha-op-saida-item--${item.estado}`}
+                  >
+                    <div className="ficha-op-saida-head">
+                      <strong>{item.titulo}</strong>
+                      <span className="ficha-op-saida-sit">{item.situacao}</span>
+                    </div>
+                    {item.balanco ? (
+                      <div className="ficha-op-saida-balanco">
+                        <span>
+                          <em>Precisa</em>
+                          <strong>{item.balanco.precisa}</strong>
+                        </span>
+                        <span>
+                          <em>{item.balanco.marcadoRotulo}</em>
+                          <strong>{item.balanco.marcado}</strong>
+                        </span>
+                        <span className={`ficha-op-saida-balanco--${item.balanco.tom}`}>
+                          <em>{item.balanco.coberturaRotulo}</em>
+                          <strong>{item.balanco.cobertura}</strong>
+                        </span>
+                      </div>
+                    ) : null}
+                    {item.precisa ? (
+                      <div className="ficha-op-saida-balanco">
+                        <span>
+                          <em>Precisa</em>
+                          <strong>{item.precisa}</strong>
+                        </span>
+                      </div>
+                    ) : null}
+                    {item.motivo ? <p className="ficha-op-saida-aviso">{item.motivo}</p> : null}
+                    {item.aviso ? <p className="ficha-op-saida-aviso">{item.aviso}</p> : null}
+                    {item.linhas.length > 0 ? (
+                      <table className="ficha-table ficha-table-num ficha-op-saida-tabela">
+                        <colgroup>
+                          {item.colunas.map((coluna) => (
+                            <col key={coluna.id} className={`ficha-op-c ficha-op-c--${coluna.id}`} />
+                          ))}
+                        </colgroup>
+                        <thead>
+                          <tr>
+                            {item.colunas.map((coluna) => (
+                              <th
                                 key={coluna.id}
-                                className={coluna.num ? 'ficha-td-num' : undefined}
+                                className={coluna.num ? 'ficha-th-num' : undefined}
+                                title={coluna.title}
                               >
-                                {linha.valores[coluna.id] ?? '—'}
-                              </td>
+                                {coluna.label}
+                              </th>
                             ))}
                           </tr>
-                        ))}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                          {item.linhas.map((linha) => (
+                            <tr key={linha.id}>
+                              {item.colunas.map((coluna) => (
+                                <td
+                                  key={coluna.id}
+                                  className={coluna.num ? 'ficha-td-num' : undefined}
+                                >
+                                  {linha.valores[coluna.id] ?? '—'}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : null}
+                  </div>
+                ))}
               </div>
             ))}
           </div>

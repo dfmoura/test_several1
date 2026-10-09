@@ -10588,12 +10588,12 @@ tr.row-inactive td {
   break-inside: auto;
 }
 
-.ficha-sheet-op .ficha-op-saida-grupo {
-  break-inside: avoid;
+.ficha-sheet-op .ficha-op-saida-grupo + .ficha-op-saida-grupo {
+  margin-top: 1.6mm;
 }
 
-.ficha-sheet-op .ficha-op-saida-grupo + .ficha-op-saida-grupo {
-  margin-top: 1.4mm;
+.ficha-sheet-op .ficha-op-saida-item {
+  break-inside: avoid;
 }
 
 .ficha-sheet-op .ficha-op-saida-rotulo {
@@ -10618,51 +10618,115 @@ tr.row-inactive td {
   font-variant-numeric: tabular-nums;
 }
 
-.ficha-sheet-op .ficha-op-c--volume { width: 22mm; }
+.ficha-sheet-op .ficha-op-saida-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 2mm;
+  padding: 0.8mm 1.4mm 0.8mm 1.8mm;
+  border: 0.35pt solid var(--border);
+  border-top: 0;
+  border-left: 2.4pt solid var(--border-strong);
+  background: #fff;
+}
+
+.ficha-sheet-op .ficha-op-saida-head strong {
+  font-size: 8pt;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ficha-sheet-op .ficha-op-saida-sit {
+  flex: 0 0 auto;
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+.ficha-sheet-op .ficha-op-saida-item--falta_pegar .ficha-op-saida-head {
+  border-left-color: #1d4ed8;
+}
+
+.ficha-sheet-op .ficha-op-saida-item--falta_pegar .ficha-op-saida-sit {
+  color: #1e3a8a;
+}
+
+.ficha-sheet-op .ficha-op-saida-item--sem_estoque .ficha-op-saida-head {
+  border-left-color: #b42318;
+}
+
+.ficha-sheet-op .ficha-op-saida-item--sem_estoque .ficha-op-saida-sit {
+  color: #b42318;
+}
+
+.ficha-sheet-op .ficha-op-saida-balanco {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(36mm, 1fr));
+  border: 0.35pt solid var(--border);
+  border-top: 0;
+  background: #fff;
+}
+
+.ficha-sheet-op .ficha-op-saida-balanco > span {
+  padding: 0.7mm 1.4mm;
+  border-right: 0.35pt solid var(--border);
+}
+
+.ficha-sheet-op .ficha-op-saida-balanco > span:last-child {
+  border-right: 0;
+}
+
+.ficha-sheet-op .ficha-op-saida-balanco em {
+  display: block;
+  font-style: normal;
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+
+.ficha-sheet-op .ficha-op-saida-balanco strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 8pt;
+}
+
+.ficha-sheet-op .ficha-op-saida-balanco--passa strong {
+  color: #9a6700;
+}
+
+.ficha-sheet-op .ficha-op-saida-balanco--coberto strong {
+  color: #2f6b4f;
+}
+
+.ficha-sheet-op .ficha-op-saida-aviso {
+  margin: 0;
+  padding: 0.7mm 1.4mm;
+  border: 0.35pt solid var(--border);
+  border-top: 0;
+  font-size: 7.5pt;
+  color: var(--text-muted);
+  background: #fff;
+}
+
+.ficha-sheet-op .ficha-op-c--volume { width: 24mm; }
 .ficha-sheet-op .ficha-op-c--local { width: 16mm; }
 .ficha-sheet-op .ficha-op-c--polegada { width: 14mm; }
-.ficha-sheet-op .ficha-op-c--medida { width: 26mm; }
+.ficha-sheet-op .ficha-op-c--medida { width: 28mm; }
 .ficha-sheet-op .ficha-op-c--m2 { width: 18mm; }
 .ficha-sheet-op .ficha-op-c--m { width: 16mm; }
 .ficha-sheet-op .ficha-op-c--qtde { width: 18mm; }
-.ficha-sheet-op .ficha-op-c--situacao { width: 22mm; }
+
+.ficha-sheet-op .ficha-op-saida-tabela tbody tr td {
+  word-break: normal;
+  overflow-wrap: break-word;
+  background: #fff;
+}
 
 .ficha-sheet-op .ficha-op-saida-tabela td.ficha-td-num {
   word-break: normal;
   overflow-wrap: normal;
-}
-
-.ficha-sheet-op .ficha-op-saida-tabela tbody tr.ficha-op-saida-chamada td {
-  background: #f4f7fb;
-  color: var(--navy);
-  font-weight: 700;
-  font-size: 7pt;
-}
-
-.ficha-sheet-op .ficha-op-saida-tabela tbody tr.ficha-op-mat--falta_pegar td {
-  background: rgba(37, 99, 235, 0.1);
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
-
-.ficha-sheet-op .ficha-op-saida-tabela tbody tr.ficha-op-mat--falta_pegar td:first-child {
-  box-shadow: inset 2.4pt 0 0 #1d4ed8;
-}
-
-.ficha-sheet-op .ficha-op-saida-tabela tbody tr.ficha-op-mat--falta_pegar td:last-child {
-  font-weight: 700;
-  color: #1e3a8a;
-}
-
-.ficha-sheet-op .ficha-op-saida-tabela tbody tr.ficha-op-mat--sem_estoque td {
-  background: rgba(180, 35, 24, 0.07);
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
-
-.ficha-sheet-op .ficha-op-saida-tabela tbody tr.ficha-op-mat--sem_estoque td:last-child {
-  font-weight: 700;
-  color: #b42318;
 }
 
 .ficha-op-pedido-form.ficha-sheet-ped .ped-ficha-etq-item {
