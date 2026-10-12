@@ -90,6 +90,19 @@ final class CaixaMedida
     }
 
     /**
+     * Medida com três lados (500x300x300). Qualquer outra forma volta null.
+     */
+    public static function rotuloCanonico(string $medida): ?string
+    {
+        $lados = self::ladosDaMedida($medida);
+        if (count($lados) !== 3) {
+            return null;
+        }
+
+        return self::lado($lados[0]).'x'.self::lado($lados[1]).'x'.self::lado($lados[2]);
+    }
+
+    /**
      * Casa a tripla do SKU com a medida aprovada (ex.: 500x300x300).
      *
      * null = SKU sem as três medidas, ou a aprovação não tem três lados:

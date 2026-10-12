@@ -838,6 +838,25 @@ export function OrcamentoFormPage() {
     }
   };
 
+  const handleEscolherCaixa = async (medida: string) => {
+    const nextForm: OrcForm = { ...form, caixa_medida: medida };
+    const nextItens = itens.map((item, i) => (i === ativo ? nextForm : item));
+    setItens(nextItens);
+    setPending(true);
+    setErro(null);
+    try {
+      const res = await api.post<{ data: OrcamentoResult }>(
+        '/orcamentos/calcular',
+        payloadFromFormDocumento(nextItens, rotulos),
+      );
+      setCalculo(res.data);
+    } catch (e) {
+      setErro(e instanceof ApiError ? e.message : 'Falha ao recalcular a caixa');
+    } finally {
+      setPending(false);
+    }
+  };
+
   const handleAplicarParametros = async (a: {
     overrides: OrcForm['overrides'];
     imposto_pct: number;
@@ -2124,6 +2143,10 @@ export function OrcamentoFormPage() {
               modoPrecoComercial || !canWrite
                 ? undefined
                 : handleAplicarParametros
+            }
+            caixaMedidaEscolhida={modoPrecoComercial ? '' : form.caixa_medida}
+            onEscolherCaixa={
+              modoPrecoComercial || !canWrite ? undefined : handleEscolherCaixa
             }
             aplicandoParametros={pending}
             guiaEspec={

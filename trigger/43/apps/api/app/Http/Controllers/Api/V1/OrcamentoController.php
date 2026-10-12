@@ -37,6 +37,22 @@ class OrcamentoController extends Controller
         ]);
     }
 
+    public function caixasRolo(Request $request): JsonResponse
+    {
+        $this->authorizeRead($request);
+        $empresa = app('empresa');
+        if (! $empresa instanceof \App\Models\Empresa) {
+            abort(400, 'Empresa não selecionada.');
+        }
+        $largura = $request->validate([
+            'largura_cm' => ['required', 'numeric', 'gt:0'],
+        ])['largura_cm'];
+
+        return response()->json([
+            'data' => $this->orcamentoService->caixasParaRolo($empresa, (string) $largura),
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $this->authorizeRead($request);

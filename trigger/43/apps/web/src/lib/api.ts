@@ -2480,6 +2480,13 @@ export type FiscalCatalogItem = {
   uso?: string;
 };
 
+export type CaixaRoloOpcao = {
+  codigo: string;
+  descricao: string;
+  medida: string;
+  cabe: boolean;
+};
+
 export type OrcamentoFaixaResult = {
   quantidade: number;
   metragem: number;

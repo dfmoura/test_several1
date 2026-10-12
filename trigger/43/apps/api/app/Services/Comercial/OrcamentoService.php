@@ -17,6 +17,8 @@ use App\Services\Comercial\Orcamento\OrcamentoMotor;
 use App\Services\Comercial\Orcamento\OrcamentoRevendaPrecificador;
 use App\Services\Comercial\Orcamento\OrcamentoServicoPrecificador;
 use App\Services\Financeiro\AdiantamentoService;
+use App\Support\CaixaMedida;
+use App\Support\CaixaRoloLeitura;
 use App\Support\CatalogoServicoSaida;
 use App\Support\ContornoSvgSanitizer;
 use App\Support\FacaPosicao;
@@ -591,6 +593,45 @@ class OrcamentoService
     }
 
     /**
+     * Caixas EMB da empresa e se a face do rolo cabe no maior lado.
+     * Leitura. Não grava faixa nem preço.
+     *
+     * @return array{largura_mm: ?string, caixas: list<array{codigo: string, descricao: string, medida: string, cabe: bool}>}
+     */
+    public function caixasParaRolo(Empresa $empresa, string $larguraCm): array
+    {
+        $produtos = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('situacao', 'ATIVO')
+            ->where('familia', 'EMB')
+            ->where(function ($q) {
+                $q->where('codigo', 'like', 'EMB-CX%')
+                    ->orWhere('descricao_fiscal', 'like', '%CAIXA%');
+            })
+            ->orderBy('codigo')
+            ->get(['codigo', 'descricao_fiscal', 'descricao_comercial', 'atributos']);
+
+        $caixas = [];
+        foreach ($produtos as $produto) {
+            $attrs = is_array($produto->atributos) ? $produto->atributos : null;
+            $medida = CaixaMedida::rotulo($attrs);
+            $lados = CaixaMedida::fromAtributos($attrs);
+            if ($medida === null || $lados === null) {
+                continue;
+            }
+            $comercial = trim((string) ($produto->descricao_comercial ?? ''));
+            $caixas[] = [
+                'codigo' => (string) $produto->codigo,
+                'descricao' => $comercial !== '' ? $comercial : trim((string) $produto->descricao_fiscal),
+                'medida' => $medida,
+                'lados' => [$lados[CaixaMedida::COMP], $lados[CaixaMedida::LARG], $lados[CaixaMedida::ALT]],
+            ];
+        }
+
+        return CaixaRoloLeitura::avaliar($larguraCm, $caixas);
+    }
+
+    /**
      * Busca curta de SKU REV ativo da EMP. O id escolhido é validado no precificador.
      *
      * @return list<array<string, mixed>>
@@ -671,6 +712,11 @@ class OrcamentoService
             ], $data['faixas']),
             'overrides' => $data['overrides'] ?? null,
         ];
+
+        $caixaMedida = CaixaMedida::rotuloCanonico(trim((string) ($data['caixa_medida'] ?? '')));
+        if ($caixaMedida !== null) {
+            $input['caixa_medida'] = $caixaMedida;
+        }
 
         $ck = $this->motor->chaveMatriz(
             $input['cliente'],

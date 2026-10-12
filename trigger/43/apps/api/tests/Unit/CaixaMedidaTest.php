@@ -35,4 +35,12 @@ class CaixaMedidaTest extends TestCase
         );
         $this->assertNull(CaixaMedida::atributosDoCodigo('EMB-CX-099'));
     }
+
+    public function test_rotulo_canonico_exige_tres_lados(): void
+    {
+        $this->assertSame('500x300x300', CaixaMedida::rotuloCanonico('500x300x300'));
+        $this->assertSame('250x200x200', CaixaMedida::rotuloCanonico('250 x 200 x 200'));
+        $this->assertNull(CaixaMedida::rotuloCanonico('500x300'));
+        $this->assertNull(CaixaMedida::rotuloCanonico('caixa'));
+    }
 }

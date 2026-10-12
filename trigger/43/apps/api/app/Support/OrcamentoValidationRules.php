@@ -140,6 +140,8 @@ final class OrcamentoValidationRules
             'colunas' => ['required', 'integer', 'min:1'],
             'etiq_por_rolo' => ['required', 'integer', 'min:1'],
             'tubete' => ['required', 'string', 'max:32'],
+            // Medida nomeada no pedido. Vazio = padrão do tubete. Não entra em R1–R20.
+            'caixa_medida' => ['nullable', 'string', 'max:40'],
             'z' => ['nullable', 'numeric', 'min:0'],
             'maquina' => ['required', 'string', 'max:64'],
             'maquina_roda_servico' => ['nullable', 'string', 'max:64'],
@@ -297,6 +299,25 @@ final class OrcamentoValidationRules
                 'tipo_operacao',
                 'Cessão de equipamento (comodato) não é orçamento. Cadastre no patrimônio do bem — não gera NFS-e nem NF-e.'
             );
+        }
+
+        $data = $validator->getData();
+        self::validarCaixaMedida($validator, 'caixa_medida', $data['caixa_medida'] ?? null);
+        foreach ($data['itens'] ?? [] as $i => $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            self::validarCaixaMedida($validator, 'itens.'.$i.'.caixa_medida', $item['caixa_medida'] ?? null);
+        }
+    }
+
+    private static function validarCaixaMedida(Validator $validator, string $campo, mixed $valor): void
+    {
+        if ($valor === null || $valor === '') {
+            return;
+        }
+        if (CaixaMedida::rotuloCanonico(trim((string) $valor)) === null) {
+            $validator->errors()->add($campo, 'Informe a medida da caixa com três lados, como 250x200x200.');
         }
     }
 

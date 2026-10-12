@@ -35,6 +35,7 @@ import {
   type OrcResultadoItemUi,
 } from '../lib/orcamentoResultadoItens';
 import { SortableTh } from './SortableTh';
+import { CaixaRoloLeitura } from './CaixaRoloLeitura';
 
 type AbaResultado = 'comercial' | 'interno' | 'producao';
 
@@ -94,6 +95,9 @@ type Props = {
    */
   parametrosAjuste?: ParametrosAjusteCtx | null;
   onAplicarParametros?: (a: ParametrosAjusteApply) => void | Promise<void>;
+  /** Medida nomeada no item em edição. Vazio = padrão do tubete. */
+  caixaMedidaEscolhida?: string;
+  onEscolherCaixa?: (medida: string) => void;
   aplicandoParametros?: boolean;
   /**
    * Contextos por item (form/show). Quando omitido e calculo.itens existe, monta só com result.
@@ -165,6 +169,8 @@ function ParametrosCalculoPanel({
   aplicandoParametros,
   guiaEspec,
   modelosComposicao,
+  caixaMedidaEscolhida,
+  onEscolherCaixa,
 }: {
   faixas: OrcamentoFaixaResult[];
   snapshot?: Record<string, unknown>;
@@ -175,6 +181,8 @@ function ParametrosCalculoPanel({
   aplicandoParametros?: boolean;
   guiaEspec?: OrcGuiaProducaoEspec | null;
   modelosComposicao?: ModeloComposicaoForm[] | null;
+  caixaMedidaEscolhida?: string;
+  onEscolherCaixa?: (medida: string) => void;
 }) {
   const [globalDraft, setGlobalDraft] = useState<Partial<Record<ParametroAjusteId, string>>>({});
   const [comissaoDraftByFaixa, setComissaoDraftByFaixa] = useState<Record<number, string>>({});
@@ -718,6 +726,14 @@ function ParametrosCalculoPanel({
         </p>
       ) : null}
 
+      <CaixaRoloLeitura
+        larguraCm={guiaEspec?.largura_cm}
+        medidaEmUso={String(faixas[0]?.caixa_medida ?? '')}
+        medidaEscolhida={caixaMedidaEscolhida}
+        onEscolher={editavel ? onEscolherCaixa : undefined}
+        disabled={aplicandoParametros}
+      />
+
       {editavel ? (
         <div className="btn-row" style={{ marginTop: '0.85rem' }}>
           <button
@@ -1220,6 +1236,8 @@ export function OrcamentoResultado({
   modoServico = false,
   parametrosAjuste = null,
   onAplicarParametros,
+  caixaMedidaEscolhida = '',
+  onEscolherCaixa,
   aplicandoParametros = false,
   itensUi: itensUiProp = null,
   itemEdicaoOrdem,
@@ -1585,6 +1603,8 @@ export function OrcamentoResultado({
               snapshot={resultAtivo.catalog_snapshot}
               parametrosAjuste={podeAjustarItem ? parametrosAjuste : null}
               onAplicarParametros={podeAjustarItem ? onAplicarParametros : undefined}
+              caixaMedidaEscolhida={podeAjustarItem ? caixaMedidaEscolhida : ''}
+              onEscolherCaixa={podeAjustarItem ? onEscolherCaixa : undefined}
               aplicandoParametros={aplicandoParametros}
               motorVersion={
                 typeof resultAtivo.motor_version === 'number'

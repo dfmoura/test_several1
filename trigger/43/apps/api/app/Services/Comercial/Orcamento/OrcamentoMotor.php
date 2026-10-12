@@ -2,6 +2,8 @@
 
 namespace App\Services\Comercial\Orcamento;
 
+use App\Support\CaixaMedida;
+
 /**
  * Motor R1–R20 — port fiel de trigger/36 calculator.py + matrix_key.py.
  * Intermediários espelham o Excel (float); teto comercial (ceiling) no fechamento.
@@ -236,10 +238,11 @@ final class OrcamentoMotor
         } else {
             $perdaBobinaM2 = (5 * ($largura - 0.75) * $colunas / 100.0) * ($metragem / 1000.0);
         }
-        // R9
+        // R9 — quantidade e preço seguem o tubete. A medida só troca se o pedido nomeou outra caixa.
         $rolos = $q / $etiq;
         $rolosPorCaixa = $cat->rolosPorCaixa((string) $inp['tubete']);
-        $caixaMedida = $cat->medidaCaixaPreferida((string) $inp['tubete']);
+        $escolhida = CaixaMedida::rotuloCanonico(trim((string) ($inp['caixa_medida'] ?? '')));
+        $caixaMedida = $escolhida ?? $cat->medidaCaixaPreferida((string) $inp['tubete']);
         $qtdeCaixas = $cat->qtdeCaixas((string) $inp['tubete'], $rolos);
 
         $taxa = $cat->taxaHoraMaquina((string) $inp['maquina'], $inp['cores']);

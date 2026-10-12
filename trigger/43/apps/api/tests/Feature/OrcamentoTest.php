@@ -6,6 +6,7 @@ use App\Models\Empresa;
 use App\Models\Orcamento;
 use App\Models\OrcamentoItem;
 use App\Models\Parceiro;
+use App\Models\Produto;
 use App\Support\OrcamentoItens;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -559,6 +560,74 @@ class OrcamentoTest extends TestCase
             (float) $calc->json('data.totais.soma_primeira_faixa_proposta'),
             0.02,
         );
+    }
+
+    public function test_caixa_escolhida_troca_a_medida_e_preserva_preco_e_quantidade(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $base = $this->withHeaders($h)->postJson('/api/v1/orcamentos/calcular', $this->payload());
+        $base->assertOk();
+        $preco = $base->json('data.faixas.0.valor_etiqueta');
+        $qtde = $base->json('data.faixas.0.qtde_caixas');
+        $cap = $base->json('data.faixas.0.rolos_por_caixa');
+        $this->assertNotSame('250x200x200', $base->json('data.faixas.0.caixa_medida'));
+
+        $escolhida = $this->payload();
+        $escolhida['caixa_medida'] = '250x200x200';
+        $res = $this->withHeaders($h)->postJson('/api/v1/orcamentos/calcular', $escolhida);
+        $res->assertOk();
+        $this->assertSame('250x200x200', $res->json('data.faixas.0.caixa_medida'));
+        $this->assertEquals($preco, $res->json('data.faixas.0.valor_etiqueta'));
+        $this->assertEquals($qtde, $res->json('data.faixas.0.qtde_caixas'));
+        $this->assertEquals($cap, $res->json('data.faixas.0.rolos_por_caixa'));
+
+        $ruim = $this->payload();
+        $ruim['caixa_medida'] = 'caixa';
+        $this->withHeaders($h)->postJson('/api/v1/orcamentos/calcular', $ruim)->assertStatus(422);
+    }
+
+    public function test_caixas_rolo_lista_as_que_acomodam_a_face(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        $this->caixa('EMB-CX-002', '250', '200', '200');
+        $this->caixa('EMB-CX-007', '500', '300', '300');
+        Produto::query()->create([
+            'empresa_id' => $this->outraEmpresa->id,
+            'codigo' => 'EMB-CX-009',
+            'familia' => 'EMB',
+            'descricao_fiscal' => 'CAIXA DE OUTRA EMPRESA',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'atributos' => ['comp_mm' => '540', 'larg_mm' => '405', 'alt_mm' => '335'],
+        ]);
+
+        $res = $this->withHeaders($h)->getJson('/api/v1/orcamentos/caixas-rolo?largura_cm=30');
+        $res->assertOk();
+        $this->assertSame('300', $res->json('data.largura_mm'));
+        $linhas = collect($res->json('data.caixas'));
+        $this->assertCount(2, $linhas);
+        $this->assertFalse($linhas->firstWhere('codigo', 'EMB-CX-002')['cabe']);
+        $this->assertTrue($linhas->firstWhere('codigo', 'EMB-CX-007')['cabe']);
+    }
+
+    private function caixa(string $codigo, string $comp, string $larg, string $alt): void
+    {
+        Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => $codigo,
+            'familia' => 'EMB',
+            'descricao_fiscal' => 'CAIXA '.$codigo,
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'atributos' => ['comp_mm' => $comp, 'larg_mm' => $larg, 'alt_mm' => $alt],
+        ]);
     }
 
     /** @return array<string, mixed> */

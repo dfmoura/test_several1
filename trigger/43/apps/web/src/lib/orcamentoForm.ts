@@ -163,6 +163,8 @@ export type OrcForm = {
   colunas: number;
   etiq_por_rolo: number;
   tubete: string;
+  /** Medida nomeada no pedido. Vazio = padrão do tubete. Não muda preço nem quantidade. */
+  caixa_medida: string;
   z: number | '';
   maquina: string;
   imposto_pct: number;
@@ -846,6 +848,7 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     colunas: 1,
     etiq_por_rolo: 1000,
     tubete: '1"',
+    caixa_medida: '',
     z: '',
     maquina: maquinas[0] ?? 'BETA',
     imposto_pct: catalog?.imposto_pct_default ?? 16,
@@ -956,6 +959,7 @@ export function formFromSnapshot(
     colunas: Number(snap.colunas) || 1,
     etiq_por_rolo: Number(snap.etiq_por_rolo) || 1000,
     tubete: String(snap.tubete ?? base.tubete),
+    caixa_medida: String(snap.caixa_medida ?? ''),
     z: snap.z == null || snap.z === '' ? '' : Number(snap.z),
     maquina: String(snap.maquina ?? base.maquina),
     imposto_pct: Number(snap.imposto_pct) || base.imposto_pct,
@@ -1301,6 +1305,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
     colunas: form.colunas,
     etiq_por_rolo: form.etiq_por_rolo,
     tubete: form.tubete,
+    ...(form.caixa_medida.trim() ? { caixa_medida: form.caixa_medida.trim() } : {}),
     z: form.z === '' ? null : form.z,
     maquina: form.maquina,
     imposto_pct: form.imposto_pct,
