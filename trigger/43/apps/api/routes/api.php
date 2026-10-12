@@ -386,6 +386,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/naturezas-gerenciais/{naturezaGerencial}', [NaturezaGerencialController::class, 'update']);
 
         Route::get('/orcamentos/catalogo', [OrcamentoController::class, 'catalog']);
+        Route::get('/orcamentos/revenda-skus', [OrcamentoController::class, 'revendaSkus']);
         Route::post('/orcamentos/calcular', [OrcamentoController::class, 'calcular']);
         Route::post('/orc-arte-modelos', [OrcArteModeloController::class, 'store'])
             ->middleware('throttle:40,1');

@@ -266,14 +266,6 @@ export type OrcCatalogo = {
     material_cliente_padrao: boolean;
     descricao_padrao: string;
   }>;
-  produtos_revenda?: Array<{
-    id: number;
-    codigo: string;
-    descricao: string;
-    unidade: string;
-    preco_tabela: string | null;
-    grupo?: string | null;
-  }>;
 };
 
 /** Soma comercial das facas cotadas (add-on do ORC). */

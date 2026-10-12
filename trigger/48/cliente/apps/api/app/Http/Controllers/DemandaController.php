@@ -13,10 +13,9 @@ use App\Models\Demanda;
 use App\Models\Marco;
 use App\Models\Mensagem;
 use App\Models\Proposta;
+use App\Models\Usuario;
 use App\Suporte\Dinheiro;
-use App\Suporte\Rotulos;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class DemandaController extends Controller
 {
@@ -80,6 +79,7 @@ class DemandaController extends Controller
             'reserva' => $reserva,
             'disponivel' => $disponivel,
             'falta' => $vigente ? max(0, $vigente->valor_centavos - $reserva - $disponivel) : 0,
+            'faltaValidacao' => $aceite ? max(0, $aceite['valor_centavos'] - $reserva - $disponivel) : 0,
             'pix' => $pix,
             'eventos' => $demanda->eventos()->orderBy('em')->get(),
             'marcos' => Marco::query()->where('demanda_id', $demanda->id)->where('visivel_ao_cliente', true)->orderBy('criado_em')->get(),
@@ -154,7 +154,34 @@ class DemandaController extends Controller
         }
         $demandas->aprovar($demanda, $request->user('web'), (string) $request->ip());
 
-        return back()->with('ok', 'Proposta aprovada. A execução pode começar. O valor será liquidado na entrega.');
+        return back()->with('ok', 'Proposta aprovada. A execução pode começar. O saldo é abatido quando você validar a entrega.');
+    }
+
+    public function validarEntrega(Request $request, Demanda $demanda, DemandaService $demandas, EmpresaAtual $atual)
+    {
+        $atual->exigir('demanda.aprovar');
+        $request->validate(['confirmar_valor' => ['required', 'string', 'max:30']]);
+        $proposta = Proposta::query()->where('demanda_id', $demanda->id)->where('status', 'APROVADA')->firstOrFail();
+        $registro = Aprovacao::query()->where('proposta_id', $proposta->id)->first();
+        $valor = (int) ($registro?->valor_centavos ?? $proposta->valor_centavos);
+        if (Dinheiro::centavosDeTexto($request->string('confirmar_valor')->toString()) !== $valor) {
+            return back()->with('erro', 'Digite o valor aprovado para confirmar a validação.');
+        }
+        $fatura = $demandas->validarEntrega($demanda, $request->user('web'));
+        $mensagem = $fatura->status === 'LIQUIDADA'
+            ? 'Entrega validada. O saldo foi abatido e a demanda está concluída.'
+            : 'Entrega validada. Falta '.Dinheiro::reais((int) $fatura->complemento_centavos).' por PIX para concluir.';
+
+        return back()->with('ok', $mensagem);
+    }
+
+    public function pedirAjuste(Request $request, Demanda $demanda, DemandaService $demandas, EmpresaAtual $atual)
+    {
+        $atual->exigir('demanda.aprovar');
+        $dados = $request->validate(['motivo' => ['required', 'string', 'min:10', 'max:1000']]);
+        $demandas->pedirAjuste($demanda, $request->user('web'), $dados['motivo']);
+
+        return back()->with('ok', 'Ajuste pedido. A demanda voltou para execução e o saldo não foi abatido.');
     }
 
     public function recusar(Request $request, Demanda $demanda, DemandaService $demandas, EmpresaAtual $atual)
@@ -169,15 +196,7 @@ class DemandaController extends Controller
     private function validar(Request $request): array
     {
         $dados = $request->validate([
-            'titulo' => ['required', 'string', 'max:160'],
             'descricao' => ['required', 'string', 'max:5000'],
-            'objetivo' => ['required', 'string', 'max:2000'],
-            'sistema_atual' => ['required', 'string', 'max:200'],
-            'tipo' => ['required', Rule::in(array_keys(Rotulos::TIPOS_DEMANDA))],
-            'prioridade' => ['required', Rule::in(array_keys(Rotulos::PRIORIDADES))],
-            'prazo_desejado' => ['nullable', 'date'],
-            'contato_tecnico' => ['required', 'string', 'max:160'],
-            'observacoes' => ['nullable', 'string', 'max:2000'],
             'acessos' => ['nullable', 'string', 'max:4000'],
             'anexos' => ['nullable', 'array', 'max:5'],
             'anexos.*' => ['file', 'mimes:pdf,png,jpg,jpeg,webp,txt,zip', 'max:10240'],
@@ -187,23 +206,45 @@ class DemandaController extends Controller
             'max.array' => 'Envie no máximo 5 arquivos.',
             'max.file' => 'Cada arquivo pode ter no máximo 10 MB.',
             'mimes' => 'Use PDF, PNG, JPG, WEBP, TXT ou ZIP.',
-            'date' => 'Informe uma data válida em :attribute.',
         ], [
-            'titulo' => 'o título',
             'descricao' => 'a descrição da demanda',
-            'objetivo' => 'o que precisa ficar pronto',
-            'sistema_atual' => 'o sistema ou processo atual',
-            'tipo' => 'o tipo',
-            'prioridade' => 'a prioridade',
-            'prazo_desejado' => 'o prazo desejado',
-            'contato_tecnico' => 'o contato técnico',
             'acessos' => 'os acessos',
             'anexos' => 'os arquivos',
         ]);
-        unset($dados['anexos']);
-        $dados['acessos'] = blank($dados['acessos'] ?? null) ? null : trim((string) $dados['acessos']);
+        $descricao = trim($dados['descricao']);
 
-        return $dados;
+        return [
+            'titulo' => $this->titulo($descricao),
+            'descricao' => $descricao,
+            'objetivo' => $descricao,
+            'sistema_atual' => '',
+            'tipo' => 'outro',
+            'prioridade' => 'normal',
+            'prazo_desejado' => null,
+            'contato_tecnico' => $this->contato($request->user('web')),
+            'observacoes' => null,
+            'acessos' => blank($dados['acessos'] ?? null) ? null : trim((string) $dados['acessos']),
+        ];
+    }
+
+    private function titulo(string $descricao): string
+    {
+        $linha = trim((string) (preg_split("/\R/u", $descricao, 2)[0] ?? $descricao));
+        if (mb_strlen($linha) <= 160) {
+            return $linha;
+        }
+
+        return rtrim(mb_substr($linha, 0, 160));
+    }
+
+    private function contato(Usuario $usuario): string
+    {
+        $contato = trim($usuario->nome.', '.$usuario->email, " \t\n\r\0\x0B,");
+        if (mb_strlen($contato) <= 160) {
+            return $contato;
+        }
+
+        return rtrim(mb_substr($contato, 0, 160));
     }
 
     private function anexar(Request $request, Demanda $demanda, AnexosService $anexos): void

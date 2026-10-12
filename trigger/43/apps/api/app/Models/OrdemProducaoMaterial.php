@@ -27,6 +27,7 @@ class OrdemProducaoMaterial extends Model
         'componente',
         'origem_texto',
         'grupo_id',
+        'motivo_grupo',
         'saida_movimento_id',
         'retorno_movimento_id',
         'ordem',

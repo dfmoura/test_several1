@@ -31,6 +31,7 @@ class RotinaDiaria
     {
         $this->expirarPix();
         $this->expirarPropostas();
+        $this->aceitarValidacoesVencidas();
         $this->expirarContas();
         $this->bloquearAtraso();
         $this->conciliarPix();
@@ -55,6 +56,15 @@ class RotinaDiaria
             ->where('valida_ate', '<', now())
             ->pluck('demanda_id');
         Demanda::query()->whereIn('id', $ids)->each(fn (Demanda $demanda) => $this->demandas->expirar($demanda));
+    }
+
+    private function aceitarValidacoesVencidas(): void
+    {
+        Demanda::query()
+            ->where('status', 'AGUARDANDO_VALIDACAO')
+            ->whereNotNull('validacao_ate')
+            ->where('validacao_ate', '<=', now())
+            ->each(fn (Demanda $demanda) => $this->demandas->validarPorPrazo($demanda));
     }
 
     private function expirarContas(): void

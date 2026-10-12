@@ -19,11 +19,20 @@ class NovaDemandaTest extends AreaTestCase
         $this->entrarComo($usuario, $empresa)
             ->get(route('demandas.criar'))
             ->assertOk()
-            ->assertSee('O que precisa')
-            ->assertSee('Acessos e senhas')
+            ->assertSee('Descrição da demanda')
+            ->assertSee('Como entrar')
+            ->assertSee('Arquivos')
             ->assertSee('Arraste os arquivos aqui')
+            ->assertSee('name="descricao"', false)
             ->assertSee('name="acessos"', false)
-            ->assertSee('name="anexos[]"', false);
+            ->assertSee('name="anexos[]"', false)
+            ->assertDontSee('name="titulo"', false)
+            ->assertDontSee('name="objetivo"', false)
+            ->assertDontSee('name="sistema_atual"', false)
+            ->assertDontSee('name="tipo"', false)
+            ->assertDontSee('name="prioridade"', false)
+            ->assertDontSee('name="prazo_desejado"', false)
+            ->assertDontSee('name="contato_tecnico"', false);
     }
 
     public function test_acessos_ficam_cifrados_e_anexo_e_gravado(): void
@@ -34,20 +43,29 @@ class NovaDemandaTest extends AreaTestCase
 
         $this->entrarComo($usuario, $empresa)->get(route('demandas.criar'))->assertOk();
 
+        $descricao = "Fechamento do mês\nO fechamento ainda sai em planilha.";
         $this->post(route('demandas.salvar'), [
             '_token' => session()->token(),
-            'titulo' => 'Fechamento do mês',
-            'descricao' => 'O fechamento ainda sai em planilha.',
+            'titulo' => 'Título enviado pelo cliente',
+            'descricao' => $descricao,
             'objetivo' => 'O mês fecha no ERP, sem planilha.',
             'sistema_atual' => 'ERP atual',
             'tipo' => 'relatorio',
-            'prioridade' => 'normal',
+            'prioridade' => 'urgente',
             'contato_tecnico' => 'Ana, ana@example.test',
             'acessos' => $segredo,
             'anexos' => [UploadedFile::fake()->image('tela.png')],
         ])->assertRedirect();
 
         $demanda = Demanda::query()->firstOrFail();
+        $this->assertSame('Fechamento do mês', $demanda->titulo);
+        $this->assertSame($descricao, $demanda->descricao);
+        $this->assertSame($descricao, $demanda->objetivo);
+        $this->assertSame('', $demanda->sistema_atual);
+        $this->assertSame('outro', $demanda->tipo);
+        $this->assertSame('normal', $demanda->prioridade);
+        $this->assertNull($demanda->prazo_desejado);
+        $this->assertSame($usuario->nome.', '.$usuario->email, $demanda->contato_tecnico);
         $this->assertSame($segredo, $demanda->acessos);
         $this->assertStringNotContainsString('segredo-123', (string) DB::table('demandas')->value('acessos'));
         $this->assertSame(1, $demanda->anexos()->count());
@@ -62,16 +80,23 @@ class NovaDemandaTest extends AreaTestCase
 
         $this->post(route('demandas.salvar'), [
             '_token' => session()->token(),
-            'titulo' => 'Ajuste de tela',
             'descricao' => 'O filtro de período não permanece.',
-            'objetivo' => 'O filtro fica salvo.',
-            'sistema_atual' => 'Painel',
-            'tipo' => 'melhoria',
-            'prioridade' => 'normal',
-            'contato_tecnico' => 'Ana',
             'acessos' => '   ',
         ])->assertRedirect();
 
         $this->assertNull(Demanda::query()->firstOrFail()->acessos);
+    }
+
+    public function test_titulo_usa_a_primeira_linha_ate_160(): void
+    {
+        [$empresa, $usuario] = $this->empresaComSaldo();
+        $linha = str_repeat('ã', 180);
+
+        $this->entrarComo($usuario, $empresa)->post(route('demandas.salvar'), [
+            '_token' => session()->token(),
+            'descricao' => $linha."\nresto da demanda",
+        ])->assertRedirect();
+
+        $this->assertSame(str_repeat('ã', 160), Demanda::query()->firstOrFail()->titulo);
     }
 }

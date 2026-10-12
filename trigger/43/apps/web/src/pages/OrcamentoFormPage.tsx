@@ -10,6 +10,7 @@ import { OrcamentoResultado } from '../components/OrcamentoResultado';
 import { buildItensResultadoUi } from '../lib/orcamentoResultadoItens';
 import { PageHeader } from '../components/PageHeader';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
+import { RevendaSkuCombobox, type RevendaSkuOpcao } from '../components/RevendaSkuCombobox';
 import { FORMATOS_CANONICOS, mergeVocabulario } from '../lib/facasMapa';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { ProspectRapidoPanel } from '../components/ProspectRapidoPanel';
@@ -1403,45 +1404,35 @@ export function OrcamentoFormPage() {
                 SKU já cadastrado (família REV). Preço comercial — sem motor de etiqueta, sem
                 ordem de produção.
               </p>
-              {(catalog?.produtos_revenda ?? []).length === 0 ? (
-                <p className="form-hint">
-                  Nenhum SKU de revenda ativo.{' '}
-                  <Link to="/produtos/novo">Cadastre um produto família REV</Link> e recarregue
-                  o formulário.
-                </p>
-              ) : (
                 <div className="form-grid">
-                  <div className="form-group span-full">
-                    <label>Produto *</label>
-                    <select
-                      value={form.produto_revenda_id === '' ? '' : String(form.produto_revenda_id)}
-                      disabled={!canWrite}
-                      onChange={(e) => {
-                        const id = e.target.value === '' ? '' : Number(e.target.value);
-                        const sku = (catalog?.produtos_revenda ?? []).find((p) => p.id === id);
-                        setForm((prev) => ({
-                          ...prev,
-                          produto_revenda_id: id,
-                          produto_revenda_codigo: sku?.codigo ?? '',
-                          produto_revenda_descricao: sku?.descricao ?? '',
-                          unidade_revenda: sku?.unidade ?? 'UN',
-                          faixas: prev.faixas.map((f, i) =>
-                            i === 0 && sku?.preco_tabela
-                              ? { ...f, valor_unitario: Number(sku.preco_tabela) || f.valor_unitario }
-                              : f,
-                          ),
-                        }));
-                      }}
-                    >
-                      <option value="">Selecione o SKU</option>
-                      {(catalog?.produtos_revenda ?? []).map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.codigo} — {p.descricao}
-                          {p.unidade ? ` · ${p.unidade}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <RevendaSkuCombobox
+                    disabled={!canWrite}
+                    value={
+                      form.produto_revenda_id === ''
+                        ? null
+                        : {
+                            id: form.produto_revenda_id,
+                            codigo: form.produto_revenda_codigo,
+                            descricao: form.produto_revenda_descricao,
+                            unidade: form.unidade_revenda,
+                            preco_tabela: null,
+                          }
+                    }
+                    onChange={(sku: RevendaSkuOpcao | null) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        produto_revenda_id: sku?.id ?? '',
+                        produto_revenda_codigo: sku?.codigo ?? '',
+                        produto_revenda_descricao: sku?.descricao ?? '',
+                        unidade_revenda: sku?.unidade ?? 'UN',
+                        faixas: prev.faixas.map((f, i) =>
+                          i === 0 && sku?.preco_tabela
+                            ? { ...f, valor_unitario: Number(sku.preco_tabela) || f.valor_unitario }
+                            : f,
+                        ),
+                      }));
+                    }}
+                  />
                   <div className="form-group">
                     <label>Unidade</label>
                     <input
@@ -1476,7 +1467,6 @@ export function OrcamentoFormPage() {
                     />
                   </div>
                 </div>
-              )}
             </section>
           ) : (
             <>

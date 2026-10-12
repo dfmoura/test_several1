@@ -1142,6 +1142,28 @@ class ProducaoPedOpEstoqueTest extends TestCase
         $this->assertArrayHasKey('valor_total', $showPed->json('data.itens.0'));
     }
 
+    public function test_conclusao_sem_saida_de_papel_nao_gera_pa(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [$pedido, , $opId] = $this->abrirOpAprovada($h);
+        $qtde = (string) $pedido->itens()->first()->qtde_pedida;
+
+        Sanctum::actingAs($this->producao);
+        $fail = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/concluir", [
+            'qtde_boa' => $qtde,
+            'qtde_refugo' => '0',
+        ]);
+        $fail->assertStatus(422);
+        $this->assertStringContainsString('saída do papel', (string) $fail->json('message').json_encode($fail->json('errors')));
+        $this->assertFalse(
+            EstoqueMovimento::query()
+                ->where('empresa_id', $this->empresa->id)
+                ->where('tipo', EstoqueMovimento::TIPO_ENTRADA_PA)
+                ->exists()
+        );
+    }
+
     public function test_conclusao_fora_tolerancia_exige_override(): void
     {
         Sanctum::actingAs($this->comercial);
@@ -1169,6 +1191,14 @@ class ProducaoPedOpEstoqueTest extends TestCase
         $opId = (int) $this->withHeaders($h)->postJson("/api/v1/pedidos/{$pedido->id}/abrir-op", [
             'pedido_item_id' => $itemId,
         ])->json('data.id');
+        $papel = collect(
+            $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}")->json('data.materiais')
+        )->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+            'produto_id' => $this->mp->id,
+        ])->assertOk();
 
         // 50% da pedida — fora de ±20%
         $fora = bcmul($pedida, '0.50', 4);

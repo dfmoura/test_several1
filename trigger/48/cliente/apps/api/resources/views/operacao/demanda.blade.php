@@ -5,9 +5,13 @@
   <h1>{{ $demanda->codigo }} · {{ $demanda->titulo }}</h1>
   <p><span class="badge">{{ \App\Suporte\Rotulos::statusDemanda($demanda->status) }}</span></p>
   <section class="card">
-    <p><strong>Sistema.</strong> {{ $demanda->sistema_atual }}</p>
-    <p><strong>O que precisa ficar pronto.</strong></p>
-    <p class="prose">{{ $demanda->objetivo }}</p>
+    @if(filled($demanda->sistema_atual))
+      <p><strong>Sistema.</strong> {{ $demanda->sistema_atual }}</p>
+    @endif
+    @if($demanda->objetivoAparte())
+      <p><strong>O que precisa ficar pronto.</strong></p>
+      <p class="prose">{{ $demanda->objetivo }}</p>
+    @endif
     <p class="prose">{{ $demanda->descricao }}</p>
     <h2>Acessos</h2>
     @if(filled($demanda->acessos))
@@ -15,7 +19,7 @@
     @else
       <p class="muted">Nenhum acesso informado.</p>
     @endif
-    <p class="muted">{{ $demanda->contato_tecnico }} · prazo desejado {{ $demanda->prazo_desejado?->format('d/m/Y') ?: 'não informado' }}</p>
+    <p class="muted">{{ $demanda->contato_tecnico }}@if($demanda->prazo_desejado) · prazo desejado {{ $demanda->prazo_desejado->format('d/m/Y') }}@endif</p>
   </section>
   <div class="grid grid-2" style="margin-top:1rem">
     <section class="card">
@@ -73,6 +77,8 @@
           <label><input type="checkbox" name="visivel" value="1" checked> Visível ao cliente</label>
           <p><button class="btn-ghost" type="submit">Registrar marco</button></p>
         </form>
+      @endif
+      @if(in_array($demanda->status, ['APROVADA','EM_EXECUCAO','AGUARDANDO_VALIDACAO'], true))
         <form method="post" action="{{ route('operacao.cancelar', $demanda->codigo) }}">
           @csrf
           <label for="motivo_cancel">Cancelar depois da aprovação</label>
@@ -89,8 +95,16 @@
           <textarea id="resumo" name="resumo" required></textarea>
           <label for="pacote">Pacote (libera após a liquidação)</label>
           <input id="pacote" name="pacote[]" type="file" multiple>
-          <p><button type="submit">Apresentar e faturar</button></p>
+          <p><button type="submit">Apresentar para validação</button></p>
         </form>
+      @endif
+      @if($demanda->status === 'AGUARDANDO_VALIDACAO')
+        <h2>Aguardando validação</h2>
+        <p>{{ $demanda->apresentacao?->resumo }}</p>
+        <p>O cliente valida até {{ $demanda->validacao_ate?->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}. O saldo ainda não foi abatido.</p>
+        @if((int) $demanda->ajustes_usados >= 1)
+          <p class="muted">O ajuste deste escopo já foi usado.</p>
+        @endif
       @endif
       @foreach($demanda->propostas as $proposta)
         <p>Proposta v{{ $proposta->versao }} · @reais($proposta->valor_centavos) · {{ $proposta->status }}</p>

@@ -139,7 +139,7 @@ class DemandaController extends Controller
             $anexos->guardar($demanda, $arquivo, true);
         }
 
-        return back()->with('ok', 'Entrega apresentada e fatura gerada.');
+        return back()->with('ok', 'Entrega apresentada para validação. O saldo só é abatido depois que o cliente validar.');
     }
 
     public function cancelar(Request $request, Demanda $demanda, DemandaService $demandas)

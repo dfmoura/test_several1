@@ -337,4 +337,39 @@ class RevendaOrcAteFaturamentoTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors(['produto_id']);
     }
+
+    public function test_busca_revenda_so_traz_sku_rev_ativo_da_empresa(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MP-PAP-009',
+            'familia' => 'MP',
+            'descricao_fiscal' => 'PAPEL FORA',
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+        ]);
+        Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'REV-OFF-001',
+            'familia' => 'REV',
+            'descricao_fiscal' => 'RIBBON INATIVO',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'INATIVO',
+        ]);
+
+        $res = $this->withHeaders($this->h())->getJson('/api/v1/orcamentos/revenda-skus?q=RIB');
+        $res->assertOk();
+        $codigos = collect($res->json('data'))->pluck('codigo')->all();
+        $this->assertSame(['REV-RIB-001'], $codigos);
+        $this->assertSame('37.500000', $res->json('data.0.preco_tabela'));
+
+        $catalogo = $this->withHeaders($this->h())->getJson('/api/v1/orcamentos/catalogo');
+        $catalogo->assertOk();
+        $this->assertArrayNotHasKey('produtos_revenda', $catalogo->json('data'));
+    }
 }

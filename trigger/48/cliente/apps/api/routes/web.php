@@ -69,6 +69,8 @@ Route::middleware(['cliente', 'sessao.absoluta:web'])->group(function () {
     Route::post('/demandas/{demanda}/mensagens', [DemandaController::class, 'mensagem'])->name('demandas.mensagem');
     Route::post('/demandas/{demanda}/aprovar', [DemandaController::class, 'aprovar'])->name('demandas.aprovar');
     Route::post('/demandas/{demanda}/recusar', [DemandaController::class, 'recusar'])->name('demandas.recusar');
+    Route::post('/demandas/{demanda}/validar', [DemandaController::class, 'validarEntrega'])->name('demandas.validar');
+    Route::post('/demandas/{demanda}/ajuste', [DemandaController::class, 'pedirAjuste'])->name('demandas.ajuste');
     Route::get('/demandas/{demanda}/anexos/{anexo}', [AnexoController::class, 'baixar'])->name('anexos.baixar');
     Route::get('/faturas/{fatura}/pdf', [FaturaController::class, 'pdf'])->name('faturas.pdf');
     Route::get('/extrato', ExtratoController::class)->name('extrato');

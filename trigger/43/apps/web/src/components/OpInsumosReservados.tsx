@@ -206,6 +206,69 @@ function rotuloOpcao(o: OpInsumoOpcao, unidade?: string): string {
   return qtde > 0 ? `${nome} · ${formatQtdePick(qtde, unidade)}` : nome;
 }
 
+function OutroGrupoEscolha({
+  opcoes,
+  unidade,
+  disabled,
+  onConfirm,
+}: {
+  opcoes: OpInsumoOpcao[];
+  unidade?: string;
+  disabled?: boolean;
+  onConfirm: (produtoId: number, motivo: string) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [produtoId, setProdutoId] = useState('');
+  const [motivo, setMotivo] = useState('');
+  if (!aberto) {
+    return (
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm"
+        disabled={disabled}
+        onClick={() => setAberto(true)}
+      >
+        Outro grupo
+      </button>
+    );
+  }
+  const motivoOk = motivo.trim().length >= 3 && produtoId !== '';
+  return (
+    <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+      <label>Bobina de outro grupo</label>
+      <select
+        value={produtoId}
+        disabled={disabled}
+        aria-label="Bobina de outro grupo"
+        onChange={(e) => setProdutoId(e.target.value)}
+      >
+        <option value="">Escolher</option>
+        {opcoes.map((o) => (
+          <option key={o.produto_id} value={o.produto_id}>
+            {rotuloOpcao(o, unidade)}
+          </option>
+        ))}
+      </select>
+      <label style={{ marginTop: '0.5rem' }}>Motivo</label>
+      <input
+        value={motivo}
+        disabled={disabled}
+        placeholder="Por que esta bobina, e não a do grupo"
+        onChange={(e) => setMotivo(e.target.value)}
+      />
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm"
+        style={{ marginTop: '0.5rem' }}
+        disabled={disabled || !motivoOk}
+        onClick={() => onConfirm(Number(produtoId), motivo.trim())}
+      >
+        Usar este item
+      </button>
+    </div>
+  );
+}
+
 function OpcoesBobina({
   opcoes,
   grupo,
@@ -439,11 +502,12 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
       });
   };
 
-  const gravarEscolha = (materialId: number, produtoId: number | null) => {
+  const gravarEscolha = (materialId: number, produtoId: number | null, grupoMotivo?: string) => {
     void api
       .post<{ data: OrdemProducao }>(`/ordens-producao/${op.id}/escolha`, {
         material_id: materialId,
         produto_id: produtoId,
+        ...(grupoMotivo ? { grupo_motivo: grupoMotivo } : {}),
       })
       .then((res) => {
         onOp(res.data);
@@ -921,9 +985,22 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                           <OpcoesBobina opcoes={opcoes} grupo={m.grupo} unidade={un} />
                         </select>
                         {opcoes.length === 0 ? (
-                          <p className="form-hint">Nenhum item com saldo.</p>
+                          <p className="form-hint">
+                            {m.grupo
+                              ? 'Nenhum item com saldo neste grupo.'
+                              : 'Sem grupo de matéria-prima no catálogo.'}
+                          </p>
                         ) : null}
                       </div>
+                    ) : null}
+
+                    {m.escolher_produto && !volumeDireto && estado !== 'ja_saiu' && (m.opcoes_fora ?? []).length > 0 ? (
+                      <OutroGrupoEscolha
+                        opcoes={m.opcoes_fora ?? []}
+                        unidade={un}
+                        disabled={busy || !canWrite}
+                        onConfirm={(produtoId, motivo) => gravarEscolha(m.id, produtoId, motivo)}
+                      />
                     ) : null}
 
                     {metragem ? (

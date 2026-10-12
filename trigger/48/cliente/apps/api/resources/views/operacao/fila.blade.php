@@ -5,7 +5,7 @@
   <p class="muted">{{ $ativas }} empresas ativas · {{ $abertas }} faturas em aberto</p>
   <p class="row">
     <a href="{{ route('operacao.fila') }}">Todas</a>
-    @foreach(['EM_ANALISE','PROPOSTA_ENVIADA','APROVADA','EM_EXECUCAO','APRESENTADA','CONCLUIDA'] as $item)
+    @foreach(['EM_ANALISE','PROPOSTA_ENVIADA','APROVADA','EM_EXECUCAO','AGUARDANDO_VALIDACAO','APRESENTADA','CONCLUIDA'] as $item)
       <a href="{{ route('operacao.fila', ['status' => $item]) }}">{{ \App\Suporte\Rotulos::statusDemanda($item) }}</a>
     @endforeach
   </p>

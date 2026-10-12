@@ -16,11 +16,13 @@ use App\Models\DemandaEvento;
 use App\Models\Empresa;
 use App\Models\Fatura;
 use App\Models\Marco;
+use App\Models\Mensagem;
 use App\Models\NfseDocumento;
 use App\Models\Parametro;
 use App\Models\Proposta;
 use App\Models\Usuario;
 use App\Suporte\CpfProtegido;
+use App\Suporte\DiasUteis;
 use App\Suporte\Dinheiro;
 use Illuminate\Support\Facades\DB;
 
@@ -271,12 +273,122 @@ class DemandaService
         });
     }
 
-    public function apresentar(Demanda $demanda, int $operadorId, string $resumo): Fatura
+    public function apresentar(Demanda $demanda, int $operadorId, string $resumo): Apresentacao
     {
         return DB::transaction(function () use ($demanda, $operadorId, $resumo) {
             $demanda = Demanda::query()->lockForUpdate()->findOrFail($demanda->id);
             if ($demanda->status !== 'EM_EXECUCAO') {
                 throw new RegraNegocio('A apresentação acontece durante a execução.');
+            }
+            if (! Proposta::query()->where('demanda_id', $demanda->id)->where('status', 'APROVADA')->exists()) {
+                throw new RegraNegocio('Não há proposta aprovada para apresentar.');
+            }
+            $apresentacao = Apresentacao::query()->updateOrCreate(
+                ['demanda_id' => $demanda->id],
+                ['resumo' => $resumo, 'criada_em' => now()],
+            );
+            $demanda->validacao_ate = DiasUteis::somar(now(), Parametro::inteiro('DIAS_VALIDACAO_UTEIS'));
+            $demanda->aguardando_cliente = true;
+            $demanda->save();
+            $this->transicao->ir($demanda, 'AGUARDANDO_VALIDACAO', 'TRIGGER', $operadorId, 'Entrega apresentada para validação');
+            $this->auditoria->registrar('demanda_apresentada', 'apresentacoes', $apresentacao->id, $demanda->empresa_id, null, [
+                'validacao_ate' => $demanda->validacao_ate->toIso8601String(),
+            ], 'TRIGGER', $operadorId);
+            $prazo = $demanda->validacao_ate->timezone('America/Sao_Paulo')->format('d/m/Y H:i');
+            $this->avisarCliente(
+                $demanda,
+                'apresentacao_pronta',
+                'Entrega para validar',
+                'A entrega de '.$demanda->codigo.' está pronta. O saldo só é abatido depois da sua validação, até '.$prazo.'.',
+            );
+
+            return $apresentacao;
+        });
+    }
+
+    public function validarEntrega(Demanda $demanda, Usuario $usuario): Fatura
+    {
+        $fatura = $this->faturarValidacao($demanda, 'CLIENTE', $usuario->id, 'Entrega validada pelo cliente', false);
+        if (! $fatura) {
+            throw new RegraNegocio('Esta entrega não está aguardando validação.');
+        }
+
+        return $fatura;
+    }
+
+    public function validarPorPrazo(Demanda $demanda): void
+    {
+        $this->faturarValidacao($demanda, 'SISTEMA', null, 'Prazo de validação encerrado. Aceite registrado.', true);
+    }
+
+    public function pedirAjuste(Demanda $demanda, Usuario $usuario, string $motivo): void
+    {
+        DB::transaction(function () use ($demanda, $usuario, $motivo) {
+            $demanda = Demanda::query()->lockForUpdate()->findOrFail($demanda->id);
+            if ($demanda->status !== 'AGUARDANDO_VALIDACAO') {
+                throw new RegraNegocio('O ajuste só cabe enquanto a entrega aguarda validação.');
+            }
+            if ((int) $demanda->ajustes_usados >= 1) {
+                throw new RegraNegocio('O ajuste deste escopo já foi usado. Valide a entrega ou aguarde o prazo.');
+            }
+            if (Fatura::query()->where('demanda_id', $demanda->id)->exists()) {
+                throw new RegraNegocio('Esta entrega já foi validada.');
+            }
+            $demanda->ajustes_usados = 1;
+            $demanda->validacao_ate = null;
+            $demanda->aguardando_cliente = false;
+            $demanda->save();
+            Mensagem::query()->create([
+                'demanda_id' => $demanda->id,
+                'autor_tipo' => 'CLIENTE',
+                'autor_id' => $usuario->id,
+                'visibilidade' => 'CLIENTE',
+                'corpo' => 'Ajuste pedido: '.$motivo,
+                'criada_em' => now(),
+            ]);
+            $this->transicao->ir($demanda, 'EM_EXECUCAO', 'CLIENTE', $usuario->id, $motivo);
+            $this->auditoria->registrar('ajuste_pedido', 'demandas', $demanda->id, $demanda->empresa_id, null, [
+                'motivo' => $motivo,
+            ]);
+            $this->notificacoes->operadores(
+                $demanda->empresa_id,
+                'ajuste_pedido',
+                $demanda->codigo.' voltou para execução',
+                'O cliente pediu um ajuste dentro do escopo aprovado. O saldo não foi abatido. Motivo: '.$motivo,
+            );
+        });
+    }
+
+    public function cancelarDepoisDaAprovacao(Demanda $demanda, int $operadorId, string $motivo, bool $consumirTicket): void
+    {
+        DB::transaction(function () use ($demanda, $operadorId, $motivo, $consumirTicket) {
+            $demanda = Demanda::query()->lockForUpdate()->findOrFail($demanda->id);
+            if (! in_array($demanda->status, ['APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_VALIDACAO'], true)) {
+                throw new RegraNegocio('Depois da validação o cancelamento segue a fatura, não este caminho.');
+            }
+            if (Fatura::query()->where('demanda_id', $demanda->id)->exists()) {
+                throw new RegraNegocio('Esta demanda já tem fatura.');
+            }
+            $this->encerrarReserva($demanda, $operadorId, 'TRIGGER', $consumirTicket);
+            $this->transicao->ir($demanda, 'CANCELADA', 'TRIGGER', $operadorId, $motivo);
+            $this->auditoria->registrar('demanda_cancelada', 'demandas', $demanda->id, $demanda->empresa_id, null, [
+                'consumiu_ticket' => $consumirTicket,
+            ], 'TRIGGER', $operadorId);
+        });
+    }
+
+    private function faturarValidacao(Demanda $demanda, string $atorTipo, ?int $atorId, string $motivo, bool $silencioso): ?Fatura
+    {
+        return DB::transaction(function () use ($demanda, $atorTipo, $atorId, $motivo, $silencioso) {
+            $demanda = Demanda::query()->lockForUpdate()->findOrFail($demanda->id);
+            if ($demanda->status !== 'AGUARDANDO_VALIDACAO') {
+                if ($silencioso) {
+                    return null;
+                }
+                throw new RegraNegocio('Esta entrega não está aguardando validação.');
+            }
+            if ($silencioso && ($demanda->validacao_ate === null || $demanda->validacao_ate->isFuture())) {
+                return null;
             }
             $proposta = Proposta::query()->where('demanda_id', $demanda->id)->where('status', 'APROVADA')->first();
             if (! $proposta) {
@@ -285,11 +397,6 @@ class DemandaService
             $aprovacao = Aprovacao::query()->where('proposta_id', $proposta->id)->first();
             $valor = (int) ($aprovacao?->valor_centavos ?? $proposta->valor_centavos);
             $this->carteira->travar($demanda->empresa_id);
-            Apresentacao::query()->create([
-                'demanda_id' => $demanda->id,
-                'resumo' => $resumo,
-                'criada_em' => now(),
-            ]);
             $cobertura = $this->faturas->cobertura($demanda);
             $complemento = max(0, $valor - $cobertura);
             $fatura = Fatura::query()->create([
@@ -307,42 +414,26 @@ class DemandaService
                 'status' => 'PLANEJADA',
                 'atualizado_em' => now(),
             ]);
-            $this->transicao->ir($demanda, 'APRESENTADA', 'TRIGGER', $operadorId, 'Trabalho apresentado');
+            $demanda->aguardando_cliente = false;
+            $demanda->save();
+            $this->transicao->ir($demanda, 'APRESENTADA', $atorTipo, $atorId, $motivo);
             if ($complemento === 0) {
                 $this->faturas->liquidar($fatura);
             } else {
                 $this->faturas->complementarSePrecisar($fatura->refresh());
-                $this->avisarCliente(
-                    $demanda,
-                    'apresentacao_pronta',
-                    'Entrega apresentada',
-                    'A entrega de '.$demanda->codigo.' está pronta. Falta '.Dinheiro::reais($complemento).' por PIX para liberar o pacote e concluir a fatura.',
-                );
+                $falta = Dinheiro::reais($complemento);
+                $texto = $atorTipo === 'SISTEMA'
+                    ? 'O prazo de validação de '.$demanda->codigo.' encerrou. A entrega foi aceita. Falta '.$falta.' por PIX para concluir.'
+                    : 'A entrega de '.$demanda->codigo.' foi validada. Falta '.$falta.' por PIX para concluir.';
+                $this->avisarCliente($demanda, 'entrega_validada', 'Entrega validada', $texto);
             }
-            $this->auditoria->registrar('demanda_apresentada', 'faturas', $fatura->id, $demanda->empresa_id, null, [
+            $this->auditoria->registrar('entrega_validada', 'faturas', $fatura->id, $demanda->empresa_id, null, [
                 'valor_centavos' => $fatura->valor_centavos,
                 'complemento_centavos' => $complemento,
-            ], 'TRIGGER', $operadorId);
+                'aceite' => $atorTipo === 'SISTEMA' ? 'tacito' : 'cliente',
+            ], $atorTipo, $atorId);
 
             return $fatura->refresh();
-        });
-    }
-
-    public function cancelarDepoisDaAprovacao(Demanda $demanda, int $operadorId, string $motivo, bool $consumirTicket): void
-    {
-        DB::transaction(function () use ($demanda, $operadorId, $motivo, $consumirTicket) {
-            $demanda = Demanda::query()->lockForUpdate()->findOrFail($demanda->id);
-            if (! in_array($demanda->status, ['APROVADA', 'EM_EXECUCAO'], true)) {
-                throw new RegraNegocio('Depois da apresentação o cancelamento segue a fatura, não este caminho.');
-            }
-            if (Fatura::query()->where('demanda_id', $demanda->id)->exists()) {
-                throw new RegraNegocio('Esta demanda já tem fatura.');
-            }
-            $this->encerrarReserva($demanda, $operadorId, 'TRIGGER', $consumirTicket);
-            $this->transicao->ir($demanda, 'CANCELADA', 'TRIGGER', $operadorId, $motivo);
-            $this->auditoria->registrar('demanda_cancelada', 'demandas', $demanda->id, $demanda->empresa_id, null, [
-                'consumiu_ticket' => $consumirTicket,
-            ], 'TRIGGER', $operadorId);
         });
     }
 

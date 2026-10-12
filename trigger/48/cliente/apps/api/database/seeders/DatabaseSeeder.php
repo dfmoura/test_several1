@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             'RECUSAS_SEM_CUSTO' => '2',
             'JANELA_RECUSA_DIAS' => '90',
             'DIAS_PARA_BLOQUEIO' => '5',
+            'DIAS_VALIDACAO_UTEIS' => '5',
             'RASCUNHO_CONTA_DIAS' => '7',
             'SALDO_MINIMO_CENTAVOS' => '100000',
             'SESSAO_ABSOLUTA_MINUTOS' => '480',

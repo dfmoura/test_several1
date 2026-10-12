@@ -26,3 +26,8 @@ make test
 ## Produção
 
 Uma VM Lightsail de 2 GB. `make aws` usa o overlay que publica só 80 e 443, com `PIX_DRIVER=inter` e `APP_DEBUG=false`. Certificado e segredo do Inter ficam na VM, fora do git.
+
+
+Para a empresa, entre em http://127.0.0.1:8048/entrar com diogo.moura@triggerti.com e senha-local-123.
+
+Para a operação, entre em http://127.0.0.1:8048/operacao/entrar com operacao@triggerti.com e troque-esta-senha-local.

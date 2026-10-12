@@ -6,7 +6,7 @@
   <title>@yield('titulo', 'Área do cliente') · Trigger</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=20261009">
 </head>
 <body>
   <a class="skip" href="#conteudo">Ir para o conteúdo</a>
@@ -23,7 +23,7 @@
       @include('partials.flash')
       @yield('conteudo')
     </main>
-    <footer class="site wrap">TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA · CNPJ 53.369.941/0001-63</footer>
+    <footer class="site">TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA · CNPJ 53.369.941/0001-63</footer>
   </div>
 </body>
 </html>

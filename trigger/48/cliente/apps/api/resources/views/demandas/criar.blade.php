@@ -7,58 +7,16 @@
     <h1>Nova demanda</h1>
     <p class="lede">Descreva o que precisa ficar pronto. Ao enviar, reservamos o ticket de abertura. O valor do projeto só existe depois da proposta.</p>
 
-    <fieldset>
-      <legend>Pedido</legend>
-      <div class="pedido-meta">
-        <div class="span-2">
-          <label for="titulo">Título</label>
-          <input id="titulo" name="titulo" required maxlength="160" value="{{ old('titulo') }}" placeholder="Ex.: Fechamento mensal no ERP">
-        </div>
-        <div class="span-2">
-          <label for="sistema_atual">Sistema ou processo atual</label>
-          <input id="sistema_atual" name="sistema_atual" required maxlength="200" value="{{ old('sistema_atual') }}" placeholder="Ex.: ERP da contabilidade, planilha, painel interno">
-        </div>
-        <div>
-          <label for="tipo">Tipo</label>
-          <select id="tipo" name="tipo" required>
-            @foreach(\App\Suporte\Rotulos::TIPOS_DEMANDA as $valor => $rotulo)
-              <option value="{{ $valor }}" @selected(old('tipo') === $valor)>{{ $rotulo }}</option>
-            @endforeach
-          </select>
-        </div>
-        <div>
-          <label for="prioridade">Prioridade</label>
-          <select id="prioridade" name="prioridade" required>
-            @foreach(\App\Suporte\Rotulos::PRIORIDADES as $valor => $rotulo)
-              <option value="{{ $valor }}" @selected(old('prioridade', 'normal') === $valor)>{{ $rotulo }}</option>
-            @endforeach
-          </select>
-        </div>
-        <div>
-          <label for="prazo_desejado">Prazo desejado</label>
-          <input id="prazo_desejado" name="prazo_desejado" type="date" value="{{ old('prazo_desejado') }}">
-        </div>
-        <div>
-          <label for="contato_tecnico">Contato técnico</label>
-          <input id="contato_tecnico" name="contato_tecnico" required maxlength="160" value="{{ old('contato_tecnico') }}" placeholder="Nome e e-mail ou telefone">
-        </div>
-      </div>
-    </fieldset>
-
     <fieldset class="brief">
-      <legend>O que precisa</legend>
-      <p class="hint" id="dica-demanda">Descreva a demanda e o que de fato precisa ficar pronto: o que acontece hoje, onde trava e como a entrega será reconhecida.</p>
-      <label for="descricao">Descrição da demanda</label>
-      <textarea id="descricao" name="descricao" required maxlength="5000" rows="12" aria-describedby="dica-demanda" placeholder="O que acontece hoje, o que está faltando e o que a Trigger deve entregar.">{{ old('descricao') }}</textarea>
-      <label for="objetivo">O que de fato precisa ficar pronto</label>
-      <textarea id="objetivo" name="objetivo" class="curto" required maxlength="2000" rows="3" placeholder="O resultado concreto. Ex.: o fechamento do mês sai do ERP, sem planilha.">{{ old('objetivo') }}</textarea>
+      <legend id="rotulo-descricao">Descrição da demanda</legend>
+      <p class="hint" id="dica-demanda">O que acontece hoje, onde trava e o que a Trigger deve entregar.</p>
+      <textarea id="descricao" name="descricao" required maxlength="5000" rows="12" aria-labelledby="rotulo-descricao" aria-describedby="dica-demanda" placeholder="Ex.: o fechamento do mês ainda sai em planilha. Precisa sair do ERP, sem retrabalho.">{{ old('descricao') }}</textarea>
     </fieldset>
 
     <fieldset>
-      <legend>Acessos e senhas</legend>
+      <legend id="rotulo-acessos">Como entrar</legend>
       <p class="hint" id="dica-acessos">Opcional. Informe endereço, usuário e senha só se a execução depender de entrar em um sistema. O texto fica cifrado. Quem executa a demanda é quem vê.</p>
-      <label for="acessos">Como entrar</label>
-      <textarea id="acessos" name="acessos" class="segredo-campo" maxlength="4000" rows="6" autocomplete="off" spellcheck="false" aria-describedby="dica-acessos" placeholder="Endereço&#10;Usuário&#10;Senha&#10;VPN ou observação, se precisar">{{ old('acessos') }}</textarea>
+      <textarea id="acessos" name="acessos" class="segredo-campo" maxlength="4000" rows="6" autocomplete="off" spellcheck="false" aria-labelledby="rotulo-acessos" aria-describedby="dica-acessos" placeholder="Endereço&#10;Usuário&#10;Senha&#10;VPN ou observação, se precisar">{{ old('acessos') }}</textarea>
     </fieldset>
 
     <fieldset>

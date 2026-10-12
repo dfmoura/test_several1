@@ -10,6 +10,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -49,5 +50,20 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return back()->withInput()->with('erro', $e->getMessage());
+        });
+        $exceptions->render(function (HttpException $e, Request $request) {
+            if ($e->getStatusCode() !== 419) {
+                return null;
+            }
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'A página expirou. Atualize e tente novamente.'], 419);
+            }
+            $origem = $request->headers->get('referer');
+            $base = $request->getSchemeAndHttpHost();
+            $destino = is_string($origem) && str_starts_with($origem, $base.'/')
+                ? $origem
+                : ($request->is('operacao', 'operacao/*') ? route('operacao.entrar') : route('entrar'));
+
+            return redirect()->to($destino)->with('erro', 'A página expirou. Tente novamente.');
         });
     })->create();

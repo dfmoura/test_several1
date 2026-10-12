@@ -1322,19 +1322,26 @@ function GrupoMpSelect({
   onChange: (grupoId: number | null) => void;
 }) {
   return (
-    <select
-      value={value ?? ''}
-      disabled={disabled}
-      aria-label="Grupo de matéria-prima"
-      onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
-    >
-      <option value="">Sem grupo</option>
-      {grupos.map((g) => (
-        <option key={g.id} value={g.id}>
-          {rotuloGrupoMp(g)}
-        </option>
-      ))}
-    </select>
+    <>
+      <select
+        value={value ?? ''}
+        disabled={disabled}
+        aria-label="Grupo de matéria-prima"
+        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+      >
+        <option value="">Sem grupo</option>
+        {grupos.map((g) => (
+          <option key={g.id} value={g.id}>
+            {rotuloGrupoMp(g)}
+          </option>
+        ))}
+      </select>
+      {value == null ? (
+        <span className="field-note" style={{ display: 'block' }}>
+          Sem grupo, a ordem não escolhe bobina.
+        </span>
+      ) : null}
+    </>
   );
 }
 

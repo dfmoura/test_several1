@@ -12,6 +12,7 @@ use App\Models\Empresa;
 use App\Models\Fatura;
 use App\Models\MovimentoSaldo;
 use App\Models\Proposta;
+use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 use Tests\Concerns\CriaEmpresa;
@@ -30,7 +31,7 @@ class FluxoFinanceiroTest extends AreaTestCase
         app(DemandaService::class)->abrir($empresa, $usuario, $this->pedido());
     }
 
-    public function test_aprovar_nao_liquida_e_a_apresentacao_cobra_a_diferenca(): void
+    public function test_aprovar_nao_liquida_e_a_validacao_cobra_a_diferenca(): void
     {
         [$empresa, $usuario] = $this->empresaComSaldo(50000);
         $demanda = $this->ateAprovada($empresa, $usuario, 150000);
@@ -43,7 +44,13 @@ class FluxoFinanceiroTest extends AreaTestCase
 
         $operador = $this->operador();
         app(DemandaService::class)->iniciarExecucao($demanda, $operador->id);
-        $fatura = app(DemandaService::class)->apresentar($demanda, $operador->id, 'Entrega pronta para validar.');
+        app(DemandaService::class)->apresentar($demanda, $operador->id, 'Entrega pronta para validar.');
+
+        $this->assertSame('AGUARDANDO_VALIDACAO', $demanda->fresh()->status);
+        $this->assertSame(0, Fatura::query()->count());
+        $this->assertSame(50000, $empresa->carteira->fresh()->reservado_centavos);
+
+        $fatura = app(DemandaService::class)->validarEntrega($demanda->fresh(), $usuario);
 
         $this->assertSame('ABERTA', $fatura->status);
         $this->assertSame('APRESENTADA', $demanda->fresh()->status);
@@ -82,7 +89,9 @@ class FluxoFinanceiroTest extends AreaTestCase
 
         $operador = $this->operador();
         app(DemandaService::class)->iniciarExecucao($demanda, $operador->id);
-        $fatura = app(DemandaService::class)->apresentar($demanda, $operador->id, 'Entrega pronta.');
+        app(DemandaService::class)->apresentar($demanda, $operador->id, 'Entrega pronta.');
+        $this->assertSame(0, Fatura::query()->count());
+        $fatura = app(DemandaService::class)->validarEntrega($demanda->fresh(), $usuario);
 
         $this->assertSame(150000, $fatura->valor_centavos);
         $this->assertSame(100000, $fatura->complemento_centavos);
@@ -112,6 +121,71 @@ class FluxoFinanceiroTest extends AreaTestCase
         $this->assertTrue(
             MovimentoSaldo::query()->where('observacao', 'ANALISE_NAO_CONTRATADA')->exists()
         );
+    }
+
+    public function test_ajuste_unico_nao_abate_e_a_nova_apresentacao_volta_a_aguardar(): void
+    {
+        [$empresa, $usuario] = $this->empresaComSaldo(50000);
+        $demanda = $this->ateAprovada($empresa, $usuario, 150000);
+        $operador = $this->operador();
+        app(DemandaService::class)->iniciarExecucao($demanda, $operador->id);
+        app(DemandaService::class)->apresentar($demanda, $operador->id, 'Primeira entrega.');
+
+        app(DemandaService::class)->pedirAjuste($demanda->fresh(), $usuario, 'O filtro ainda não cobre o mês fechado.');
+
+        $demanda->refresh();
+        $this->assertSame('EM_EXECUCAO', $demanda->status);
+        $this->assertNull($demanda->validacao_ate);
+        $this->assertSame(1, $demanda->ajustes_usados);
+        $this->assertSame(0, Fatura::query()->count());
+        $this->assertSame(50000, $empresa->carteira->fresh()->reservado_centavos);
+
+        app(DemandaService::class)->apresentar($demanda, $operador->id, 'Entrega com o mês fechado.');
+        $demanda->refresh();
+        $this->assertSame('AGUARDANDO_VALIDACAO', $demanda->status);
+        $this->assertSame(1, $demanda->ajustes_usados);
+
+        $this->entrarComo($usuario, $empresa)
+            ->get(route('demandas.mostrar', $demanda->codigo))
+            ->assertOk()
+            ->assertSee('Validar entrega')
+            ->assertSee('O ajuste deste escopo já foi usado')
+            ->assertDontSee('Pedir um ajuste');
+
+        $this->expectException(RegraNegocio::class);
+        app(DemandaService::class)->pedirAjuste($demanda, $usuario, 'Quero outra rodada fora da combinada.');
+    }
+
+    public function test_silencio_no_prazo_de_validacao_abate_o_saldo(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-09 12:00:00', 'America/Sao_Paulo'));
+        try {
+            [$empresa, $usuario] = $this->empresaComSaldo(50000);
+            $demanda = $this->ateAprovada($empresa, $usuario, 50000);
+            $operador = $this->operador();
+            app(DemandaService::class)->iniciarExecucao($demanda, $operador->id);
+            app(DemandaService::class)->apresentar($demanda, $operador->id, 'Entrega no prazo.');
+            $demanda->refresh();
+
+            $this->assertSame(
+                '2026-10-16 12:00',
+                $demanda->validacao_ate->timezone('America/Sao_Paulo')->format('Y-m-d H:i'),
+            );
+
+            app(RotinaDiaria::class)->executar();
+            $this->assertSame('AGUARDANDO_VALIDACAO', $demanda->fresh()->status);
+            $this->assertSame(0, Fatura::query()->count());
+
+            Carbon::setTestNow($demanda->validacao_ate->copy()->addMinute());
+            app(RotinaDiaria::class)->executar();
+
+            $this->assertSame('CONCLUIDA', $demanda->fresh()->status);
+            $this->assertSame('LIQUIDADA', Fatura::query()->first()->status);
+            $this->assertSame(0, $empresa->carteira->fresh()->reservado_centavos);
+            $this->assertSame(50000, $empresa->carteira->fresh()->consumido_centavos);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_proposta_vencida_devolve_a_reserva(): void

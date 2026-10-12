@@ -70,6 +70,7 @@ class OrdemProducaoController extends Controller
         $data = $request->validate([
             'material_id' => ['required', 'integer'],
             'produto_id' => ['nullable', 'integer'],
+            'grupo_motivo' => ['nullable', 'string', 'max:255'],
         ]);
 
         return response()->json([
@@ -78,6 +79,7 @@ class OrdemProducaoController extends Controller
                 $ordemProducao,
                 (int) $data['material_id'],
                 isset($data['produto_id']) ? (int) $data['produto_id'] : null,
+                isset($data['grupo_motivo']) ? (string) $data['grupo_motivo'] : null,
             ),
         ]);
     }
@@ -96,6 +98,7 @@ class OrdemProducaoController extends Controller
             'volumes.*.lote_id' => ['required_with:volumes', 'integer'],
             'volumes.*.qtde' => array_merge(['required_with:volumes'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
             'volumes_motivo' => ['nullable', 'string', 'max:255'],
+            'grupo_motivo' => ['nullable', 'string', 'max:255'],
         ]);
 
         if (empty($data['material_id']) && empty($data['produto_id'])) {

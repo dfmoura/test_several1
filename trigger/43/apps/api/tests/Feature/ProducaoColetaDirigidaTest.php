@@ -725,8 +725,16 @@ class ProducaoColetaDirigidaTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_acabamento_lista_qualquer_bobina_e_poe_o_grupo_na_frente(): void
+    public function test_acabamento_lista_so_o_grupo_e_exige_motivo_fora_dele(): void
     {
+        $papelGrupo = ProdutoGrupo::query()->create([
+            'codigo' => 'MP-PAP',
+            'nome' => 'Papel',
+            'familia' => 'MP',
+            'natureza' => 'COMPRA',
+            'tipo_item_sped' => '01',
+            'situacao' => 'ATIVO',
+        ]);
         $filmeGrupo = ProdutoGrupo::query()->create([
             'codigo' => 'MP-FLM',
             'nome' => 'Filmes',
@@ -735,6 +743,8 @@ class ProducaoColetaDirigidaTest extends TestCase
             'tipo_item_sped' => '01',
             'situacao' => 'ATIVO',
         ]);
+        $this->mp->grupo_id = $papelGrupo->id;
+        $this->mp->save();
         $filme = Produto::query()->create([
             'empresa_id' => $this->empresa->id,
             'codigo' => 'MP-FLM-COL',
@@ -778,29 +788,41 @@ class ProducaoColetaDirigidaTest extends TestCase
             'componente' => 'ACABAMENTO',
             'grupo_id' => null,
         ]);
-        $ids = array_column($coleta->opcoesBobina($this->empresa, $semGrupo), 'produto_id');
-        $this->assertContains($this->mp->id, $ids);
-        $this->assertContains($filme->id, $ids);
-        $this->assertNotContains($this->emb->id, $ids);
-        $this->assertNotContains($tinta->id, $ids);
+        $this->assertSame([], $coleta->opcoesBobina($this->empresa, $semGrupo));
 
         $comGrupo = new OrdemProducaoMaterial([
             'componente' => 'ACABAMENTO',
             'grupo_id' => $filmeGrupo->id,
         ]);
         $ordenados = array_column($coleta->opcoesBobina($this->empresa, $comGrupo), 'produto_id');
-        $this->assertSame($filme->id, $ordenados[0]);
-        $this->assertContains($this->mp->id, $ordenados);
-        $this->assertTrue($coleta->produtoEscolhaPermitido($this->empresa, $comGrupo, $this->mp->id));
-        $this->assertFalse($coleta->produtoEscolhaPermitido($this->empresa, $comGrupo, $tinta->id));
+        $this->assertSame([$filme->id], $ordenados);
+        $fora = array_column($coleta->opcoesForaDoGrupo($this->empresa, $comGrupo), 'produto_id');
+        $this->assertContains($this->mp->id, $fora);
+        $this->assertNotContains($filme->id, $fora);
+        $this->assertNotContains($tinta->id, $fora);
+        $this->assertTrue($coleta->produtoEscolhaPermitido($this->empresa, $comGrupo, $filme->id));
+        $this->assertFalse($coleta->produtoEscolhaPermitido($this->empresa, $comGrupo, $this->mp->id));
+        $this->assertFalse($coleta->excecaoDeGrupoPermitida($this->empresa, $comGrupo, $this->mp->id, 'ok'));
+        $this->assertTrue($coleta->excecaoDeGrupoPermitida($this->empresa, $comGrupo, $this->mp->id, 'Faltou o filme'));
     }
 
     public function test_acabamento_lista_volumes_sem_escolher_item(): void
     {
+        $grupo = ProdutoGrupo::query()->create([
+            'codigo' => 'MP-PAP',
+            'nome' => 'Papel',
+            'familia' => 'MP',
+            'natureza' => 'COMPRA',
+            'tipo_item_sped' => '01',
+            'situacao' => 'ATIVO',
+        ]);
+        $this->mp->grupo_id = $grupo->id;
+        $this->mp->save();
         $mat = OrdemProducaoMaterial::query()->create([
             'empresa_id' => $this->empresa->id,
             'ordem_producao_id' => $this->op->id,
             'produto_id' => null,
+            'grupo_id' => $grupo->id,
             'qtde_planejada' => '12.0000',
             'qtde_requisitada' => '0',
             'qtde_consumida' => '0',
@@ -821,10 +843,21 @@ class ProducaoColetaDirigidaTest extends TestCase
     public function test_escolha_grava_produto_sem_movimento_de_estoque(): void
     {
         Sanctum::actingAs($this->user);
+        $grupo = ProdutoGrupo::query()->create([
+            'codigo' => 'MP-FLM',
+            'nome' => 'Filmes',
+            'familia' => 'MP',
+            'natureza' => 'COMPRA',
+            'tipo_item_sped' => '01',
+            'situacao' => 'ATIVO',
+        ]);
+        $this->mp->grupo_id = $grupo->id;
+        $this->mp->save();
         $mat = OrdemProducaoMaterial::query()->create([
             'empresa_id' => $this->empresa->id,
             'ordem_producao_id' => $this->op->id,
             'produto_id' => null,
+            'grupo_id' => $grupo->id,
             'qtde_planejada' => '12.0000',
             'qtde_requisitada' => '0',
             'qtde_consumida' => '0',
@@ -839,6 +872,7 @@ class ProducaoColetaDirigidaTest extends TestCase
             'empresa_id' => $this->empresa->id,
             'codigo' => 'MP-FLM-ESC',
             'familia' => 'MP',
+            'grupo_id' => $grupo->id,
             'descricao_fiscal' => 'BOPP ESCOLHA',
             'unidade_comercial' => 'M2',
             'unidade_interna' => 'M2',

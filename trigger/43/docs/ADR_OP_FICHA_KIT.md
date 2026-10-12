@@ -82,6 +82,14 @@ Não exigir que a soma case o m²/UN planejado. Motivo só se o volume for outro
 4. Trazer a baixa de prateleira para o fecho da ordem.  
 5. Explodir SKU por arte/cliente.
 
+## Emenda 2026-10-12 — grupo da bobina e fecho com papel
+
+Papel e acabamento com grupo de matéria-prima no catálogo nascem na OP sem SKU. A lista oferece só bobinas desse grupo, com saldo, da empresa. Bobina de outro grupo entra com motivo (mínimo 3 caracteres), gravado em `motivo_grupo` e na observação da saída. Sem grupo, o papel fica em item sem cadastro; o texto do orçamento não escolhe SKU. Acabamento sem grupo fica na guia, sem lista de bobina.
+
+Etiqueta cujo snapshot pede papel (m² maior que zero) só conclui com linha PAPEL já saída. Sem essa saída não há entrada de produto acabado. Tinta, tubete e caixa não entram nesse fecho. Snapshot sem papel continua podendo concluir.
+
+Ordem concluída não é recalculada. SKU já gravado e linha já saída não são reescritos.
+
 ## Emenda 2026-10-09 — fechar na ordem
 
 A porta **Na máquina** sai do menu. O fecho (etiquetas boas, refugo, tolerância) fica na OP. A grade Material / Saiu / Rasgou / Sobra / Perda / Usou não volta para esse cartão. Sobra e rasgo continuam em Estoque · **A buscar**. Rolos reais e caixas alocadas são o passo seguinte, na mesma ordem, depois de `CONCLUIDA`.

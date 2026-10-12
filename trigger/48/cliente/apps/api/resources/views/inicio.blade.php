@@ -1,8 +1,9 @@
 @extends('layouts.cliente')
 @section('titulo', 'Início')
 @section('conteudo')
-  <h1>Olá</h1>
-  <p class="muted">{{ $empresa->razao_social }} · {{ \App\Suporte\Rotulos::statusEmpresa($empresa->status) }}</p>
+  <p class="kicker">Área do cliente</p>
+  <h1>{{ $empresa->nome_fantasia ?: $empresa->razao_social }}</h1>
+  <p class="muted">{{ $empresa->nome_fantasia ? $empresa->razao_social.' · ' : '' }}{{ \App\Suporte\Rotulos::statusEmpresa($empresa->status) }}</p>
   @if($empresa->status === 'ATIVA' && $carteira->disponivel_centavos < $saldoMinimo)
     <div class="flash flash-aviso" role="status">Seu saldo está abaixo do limite recomendado (@reais($saldoMinimo)).</div>
   @endif

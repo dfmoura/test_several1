@@ -3347,8 +3347,10 @@ export type OrdemProducaoMaterial = {
     controla_lote?: boolean;
     largura_mm?: string | null;
   } | null;
-  /** Tubete da polegada aprovada, caixa da medida, ou bobina do grupo de matéria-prima, com saldo. */
+  /** Bobinas do grupo do catálogo, com saldo. */
   opcoes?: OpInsumoOpcao[];
+  /** Bobinas de outro grupo. Só entram com motivo. */
+  opcoes_fora?: OpInsumoOpcao[];
   retirada?: OpRetiradaPreview;
   componente?: string | null;
   origem_texto?: string | null;

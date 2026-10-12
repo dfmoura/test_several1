@@ -57,7 +57,8 @@ QR = leitura (scan marca; humano confirma) — mesmo contrato de `ADR_PRODUCAO_C
 
 ### UX
 
-- No item: **Etiqueta sob medida** | **Produto de revenda**.  
+- No item: **Etiqueta sob medida** | **Produto de revenda**.
+- Revenda: busca por código ou descrição (`GET /orcamentos/revenda-skus`, permissão do orçamento). Só REV ativo da empresa. O preço de tabela só sugere o unitário. Sem saldo, lote ou lista de 200 no catálogo.  
 - N=1 só-REV: zero chrome de fábrica (sem faca/escada de artes).  
 - PED: CTA **Separar no estoque** / **Ficha de separação** → `/estoque/separacoes/:pedidoItem`; sem OP/OS.  
 - Chão: Estoque · **A separar** — cabeçalho da ficha do item (valores) e formulário de faixa do orçamento para acrescentar ou remover volumes já conhecidos (e ler QR). Sem busca no estoque. Sem debitar.
@@ -76,7 +77,7 @@ QR = leitura (scan marca; humano confirma) — mesmo contrato de `ADR_PRODUCAO_C
 
 ## Rastreio
 
-- `OrcamentoRevendaPrecificador` · `PedidoService::separarRevenda`  
+- `OrcamentoService::buscarRevenda` · `GET /orcamentos/revenda-skus` · `OrcamentoRevendaPrecificador` · `PedidoService::separarRevenda`  
 - `EstoqueSeparacaoRevendaService` · `GET/POST /estoque/separacoes…` · `GET …/volume` (QR)  
 - `POST /pedidos/{pedido}/separar-revenda` (legado / atalho sem volumes na UI)  
 - Testes: `OrcamentoRevendaPrecificadorTest` · `RevendaOrcAteFaturamentoTest` · `EstoqueSeparacaoRevendaTest`

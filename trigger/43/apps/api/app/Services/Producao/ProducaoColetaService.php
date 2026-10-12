@@ -609,32 +609,61 @@ class ProducaoColetaService
     }
 
     /**
-     * Bobinas de matéria-prima com saldo. Papel e acabamento escolhem qualquer uma.
-     * Se o catálogo aponta um grupo, as bobinas desse grupo ficam no topo.
+     * Bobinas com saldo do grupo marcado no catálogo. Sem grupo, a lista fica vazia.
      *
      * @return list<array<string, mixed>>
      */
     public function opcoesBobina(Empresa $empresa, OrdemProducaoMaterial $mat): array
     {
-        $linhas = array_map(fn (array $linha): array => $linha, $this->bobinasDaEmpresa($empresa));
         $preferido = (int) $mat->grupo_id;
-        usort($linhas, function (array $a, array $b) use ($preferido): int {
-            if ($preferido > 0) {
-                $pa = ((int) $a['grupo_id']) === $preferido ? 0 : 1;
-                $pb = ((int) $b['grupo_id']) === $preferido ? 0 : 1;
-                if ($pa !== $pb) {
-                    return $pa <=> $pb;
-                }
-            }
-
-            return strcmp((string) $a['codigo'], (string) $b['codigo']);
-        });
-        foreach ($linhas as &$linha) {
-            unset($linha['grupo_id']);
+        if ($preferido <= 0) {
+            return [];
         }
-        unset($linha);
 
-        return $linhas;
+        $linhas = array_values(array_filter(
+            $this->bobinasDaEmpresa($empresa),
+            fn (array $linha): bool => (int) ($linha['grupo_id'] ?? 0) === $preferido
+        ));
+        usort($linhas, fn (array $a, array $b): int => strcmp((string) $a['codigo'], (string) $b['codigo']));
+
+        return $this->semGrupoInterno($linhas);
+    }
+
+    /**
+     * Bobinas de outro grupo, para a exceção com motivo. Não entra no select do caminho feliz.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function opcoesForaDoGrupo(Empresa $empresa, OrdemProducaoMaterial $mat): array
+    {
+        $preferido = (int) $mat->grupo_id;
+        if ($preferido <= 0) {
+            return [];
+        }
+
+        $linhas = array_values(array_filter(
+            $this->bobinasDaEmpresa($empresa),
+            fn (array $linha): bool => (int) ($linha['grupo_id'] ?? 0) > 0
+                && (int) $linha['grupo_id'] !== $preferido
+        ));
+        usort($linhas, fn (array $a, array $b): int => strcmp((string) $a['codigo'], (string) $b['codigo']));
+
+        return $this->semGrupoInterno($linhas);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $linhas
+     * @return list<array<string, mixed>>
+     */
+    private function semGrupoInterno(array $linhas): array
+    {
+        $out = [];
+        foreach ($linhas as $linha) {
+            unset($linha['grupo_id']);
+            $out[] = $linha;
+        }
+
+        return $out;
     }
 
     /**
@@ -722,10 +751,34 @@ class ProducaoColetaService
     {
         $comp = strtoupper((string) $mat->componente);
         if (in_array($comp, ['PAPEL', 'ACABAMENTO'], true)) {
-            return $this->ehBobinaMp($empresa, $produtoId);
+            if ((int) $mat->grupo_id <= 0 || ! $this->ehBobinaMp($empresa, $produtoId)) {
+                return false;
+            }
+
+            return Produto::query()
+                ->where('empresa_id', $empresa->id)
+                ->whereKey($produtoId)
+                ->where('grupo_id', $mat->grupo_id)
+                ->exists();
         }
 
         return $this->produtoNoGrupo($empresa, $mat, $produtoId);
+    }
+
+    public function excecaoDeGrupoPermitida(Empresa $empresa, OrdemProducaoMaterial $mat, int $produtoId, string $motivo): bool
+    {
+        if (mb_strlen(trim($motivo)) < 3 || (int) $mat->grupo_id <= 0 || $produtoId <= 0) {
+            return false;
+        }
+        if (! $this->ehBobinaMp($empresa, $produtoId)) {
+            return false;
+        }
+        $grupoSku = (int) Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereKey($produtoId)
+            ->value('grupo_id');
+
+        return $grupoSku > 0 && $grupoSku !== (int) $mat->grupo_id;
     }
 
     private function ehBobinaMp(Empresa $empresa, int $produtoId): bool
@@ -1076,6 +1129,9 @@ class ProducaoColetaService
 
         $produtoLinha = $mat->produto;
         $comp = strtoupper((string) $mat->componente);
+        if (in_array($comp, ['PAPEL', 'ACABAMENTO'], true) && (int) $mat->produto_id > 0) {
+            return $this->volumesDoProduto($empresa, (int) $mat->produto_id);
+        }
         if ((int) $mat->produto_id <= 0 && $comp === 'ACABAMENTO' && (int) $produtoEscolhido <= 0) {
             return $this->volumesDasBobinas($empresa, $mat);
         }

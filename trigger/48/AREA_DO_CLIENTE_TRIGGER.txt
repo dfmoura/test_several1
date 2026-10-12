@@ -38,9 +38,9 @@ Decisão de produto, em uma frase:
   A empresa (CNPJ) entra com um responsável (CPF). Um PIX de ativação
   vira saldo na carteira e libera o cadastro. Com saldo, o cliente abre
   uma demanda de desenvolvimento. A Trigger analisa e devolve escopo,
-  prazo e valor. O cliente aprova aquele valor. A Trigger executa,
-  apresenta e, no mesmo ato, liquida a fatura no saldo e no PIX da
-  diferença, se houver.
+  prazo e valor. O cliente aprova aquele valor. A Trigger executa
+  e apresenta. O cliente valida a entrega. Na validação, o sistema
+  liquida a fatura no saldo e no PIX da diferença, se houver.
 
 O prompt longo colado na conversa é matéria-prima, não planta baixa.
 A planta baixa é este documento. Onde os dois divergem, vale este.
@@ -213,7 +213,10 @@ Conflito resolvido: quando reservar e quando consumir
   depois da aprovação a Trigger executa, apresenta e aí liquida.
   Decisão: na abertura reserva-se um ticket fixo. Na aprovação
   fixa-se o contrato (escopo, valor, prazo). Na apresentação
-  liquida-se a fatura. O livro aceita, no futuro, uma reserva
+  a entrega fica aguardando validação, sem fatura. Na validação
+  do cliente, ou no silêncio de cinco dias úteis, liquida-se a
+  fatura. Uma rodada de ajuste devolve a demanda à execução e
+  não abate. O livro aceita, no futuro, uma reserva
   maior na aprovação sem trocar de tabela — seria só outra
   política em cima do mesmo movimento RESERVA. Não é a política
   do primeiro release, porque travaria a execução até o cliente
@@ -274,10 +277,16 @@ A equipe não entra "como se fosse" o cliente.
      Aprovar é aceite comercial. A execução pode começar.
      Aprovar não marca a fatura como paga.
  13. A Trigger executa e registra marcos visíveis ao cliente.
- 14. Na apresentação, o sistema gera a fatura pelo valor aprovado,
+ 14. A Trigger apresenta a entrega. A demanda fica
+     AGUARDANDO_VALIDACAO. Ainda não há fatura e o saldo não sai.
+ 15. O cliente valida contra os critérios da proposta aprovada,
+     ou pede um único ajuste dentro do escopo. O ajuste volta
+     para EM_EXECUCAO e não abate. Sem resposta em cinco dias
+     úteis, o sistema registra o aceite.
+ 16. Na validação, o sistema gera a fatura pelo valor aprovado,
      abate o reservado e o disponível, e emite o PIX da diferença
      se o valor for maior que o saldo aplicado.
- 15. Com a fatura liquidada, a demanda fica CONCLUIDA. Saldo que
+ 17. Com a fatura liquidada, a demanda fica CONCLUIDA. Saldo que
      sobrar continua na carteira e serve para a próxima demanda.
 
 6.2 O que cada lado vê
@@ -388,13 +397,15 @@ Aprovação
 
 Saldo insuficiente na liquidação, não na aprovação
   Aprovar não exige cobrir 100% do valor. A tela deixa isso claro:
-  "Na entrega, abatemos o saldo e cobramos a diferença por PIX."
-  Se no dia da apresentação o disponível + reservado não cobrir,
+  "Na validação da entrega, abatemos o saldo e cobramos a diferença por PIX."
+  Se no dia da validação o disponível + reservado não cobrir,
   emite-se o PIX da diferença. O botão de completar saldo também
   existe antes, por vontade do cliente (recarga), como CREDITO_PIX
   de finalidade RECARGA, mesma máquina da ativação.
 
-Liquidação, no ato da apresentação
+Liquidação, no ato da validação
+  A apresentação não gera fatura. A fatura nasce quando o cliente
+  valida, ou quando o prazo de cinco dias úteis se esgota.
   Fatura = valor da versão aprovada. Uma fatura por demanda.
   Abate primeiro o reservado daquela demanda, depois o disponível.
   Se fatura > saldo aplicado: demanda fica APRESENTADA, fatura
@@ -446,7 +457,9 @@ Demanda
          → EXPIRADA         estorno
     → RECUSADA_TRIGGER      estorno
     → EM_EXECUCAO
-    → APRESENTADA           fatura aberta ou já liquidada neste passo
+    → AGUARDANDO_VALIDACAO  entrega apresentada; sem fatura
+         → EM_EXECUCAO      um ajuste no escopo; não abate
+    → APRESENTADA           cliente validou e a fatura ficou aberta
     → CONCLUIDA             fatura liquidada
   Cancelamento livre pelo cliente só até a aprovação.
   Depois da aprovação, cancelar é ato da Trigger, com motivo e com
@@ -454,8 +467,9 @@ Demanda
   Status terminal guarda motivo e data. Nada é apagado.
 
   Estados do prompt que viram marco, não status
-    pediu informação, agendada, em desenvolvimento, em testes,
-    em validação. O cliente vê a linha do tempo. A fila interna
+    pediu informação, agendada, em desenvolvimento, em testes.
+    A validação da entrega é status, porque é ela que autoriza
+    o abatimento. O cliente vê a linha do tempo. A fila interna
     filtra pelos status de cima, que são poucos e verdadeiros.
     Pedir informação não troca o status: é mensagem, e a demanda
     continua EM_ANALISE ou PROPOSTA_ENVIADA. Um selo
@@ -1134,7 +1148,7 @@ Fase 3 — quando houver uso
   Laravel 12, PHP 8.4-FPM, Caddy, Blade, Alpine, PostgreSQL 16,
   Compose, sessão de servidor, PIX Inter, livro de saldo em
   centavos, ticket na abertura, aceite sem cobrar o valor cheio,
-  fatura liquidada na apresentação, uma demanda por vez.
+  fatura liquidada na validação da entrega, uma demanda por vez.
 
   Não construir em cima do HTML do site.
   Não clonar o ERP das pastas 39 e 43.

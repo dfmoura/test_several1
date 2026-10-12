@@ -50,7 +50,6 @@ class OrcamentoService
         $meta = OrcamentoCatalogo::load()->metaForUi();
         $meta['tipos_operacao'] = TipoOperacaoSaida::metaForUi();
         $meta['tipos_servico'] = CatalogoServicoSaida::metaForUi();
-        $meta['produtos_revenda'] = $this->produtosRevendaMeta();
 
         return $meta;
     }
@@ -592,29 +591,35 @@ class OrcamentoService
     }
 
     /**
+     * Busca curta de SKU REV ativo da EMP. O id escolhido é validado no precificador.
+     *
      * @return list<array<string, mixed>>
      */
-    private function produtosRevendaMeta(): array
+    public function buscarRevenda(Empresa $empresa, ?string $q): array
     {
-        $empresa = app('empresa');
-        if (! $empresa instanceof Empresa) {
-            return [];
-        }
-
-        return Produto::query()
+        $termo = trim((string) $q);
+        $query = Produto::query()
             ->where('empresa_id', $empresa->id)
             ->where('familia', 'REV')
             ->where('situacao', 'ATIVO')
-            ->orderBy('codigo')
-            ->limit(200)
-            ->get(['id', 'codigo', 'descricao_fiscal', 'descricao_comercial', 'unidade_comercial', 'preco_tabela', 'grupo'])
+            ->orderBy('codigo');
+        if ($termo !== '') {
+            $query->where(function ($builder) use ($termo) {
+                $builder->where('codigo', 'like', '%'.$termo.'%')
+                    ->orWhere('descricao_fiscal', 'like', '%'.$termo.'%')
+                    ->orWhere('descricao_comercial', 'like', '%'.$termo.'%');
+            });
+        }
+
+        return $query
+            ->limit(20)
+            ->get(['id', 'codigo', 'descricao_fiscal', 'descricao_comercial', 'unidade_comercial', 'preco_tabela'])
             ->map(static fn (Produto $p) => [
                 'id' => $p->id,
                 'codigo' => $p->codigo,
                 'descricao' => trim((string) ($p->descricao_comercial ?: $p->descricao_fiscal)),
                 'unidade' => strtoupper((string) ($p->unidade_comercial ?: 'UN')) ?: 'UN',
                 'preco_tabela' => $p->preco_tabela !== null ? (string) $p->preco_tabela : null,
-                'grupo' => $p->grupo,
             ])
             ->all();
     }

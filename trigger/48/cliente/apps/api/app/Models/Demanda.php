@@ -32,6 +32,7 @@ class Demanda extends Model
             'aguardando_cliente' => 'boolean',
             'encerrada_em' => 'datetime',
             'criada_em' => 'datetime',
+            'validacao_ate' => 'datetime',
             'acessos' => 'encrypted',
         ];
     }
@@ -89,5 +90,15 @@ class Demanda extends Model
     public function terminal(): bool
     {
         return in_array($this->status, self::TERMINAIS, true);
+    }
+
+    public function objetivoAparte(): bool
+    {
+        return trim((string) $this->objetivo) !== trim((string) $this->descricao);
+    }
+
+    public function classificacaoInformada(): bool
+    {
+        return $this->tipo !== 'outro' || $this->prioridade !== 'normal';
     }
 }

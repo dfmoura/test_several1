@@ -21,6 +21,22 @@ class OrcamentoController extends Controller
         return response()->json(['data' => $this->orcamentoService->catalogMeta()]);
     }
 
+    public function revendaSkus(Request $request): JsonResponse
+    {
+        $this->authorizeRead($request);
+        $empresa = app('empresa');
+        if (! $empresa instanceof \App\Models\Empresa) {
+            abort(400, 'Empresa não selecionada.');
+        }
+        $q = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+        ])['q'] ?? null;
+
+        return response()->json([
+            'data' => $this->orcamentoService->buscarRevenda($empresa, $q),
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $this->authorizeRead($request);

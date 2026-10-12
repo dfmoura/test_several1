@@ -262,16 +262,10 @@ class OrdemProducaoService
             if ($mat->saida_movimento_id) {
                 continue;
             }
-            if ($produtoId > 0 && (int) $mat->produto_id <= 0) {
-                $mat->produto_id = $produtoId;
-                $mat->grupo_id = null;
-                $mat->unidade = $linha['unidade'];
-                $mat->qtde_planejada = $linha['qtde'];
-                $mat->save();
-
+            if ((int) $mat->produto_id > 0) {
                 continue;
             }
-            if ($grupoId > 0 && (int) $mat->grupo_id !== $grupoId && (int) $mat->produto_id <= 0) {
+            if ($grupoId > 0 && (int) $mat->grupo_id !== $grupoId) {
                 $mat->grupo_id = $grupoId;
                 $mat->save();
             }
@@ -283,7 +277,7 @@ class OrdemProducaoService
      *
      * @return array<string, mixed>
      */
-    public function escolherProduto(Empresa $empresa, OrdemProducao $op, int $materialId, ?int $produtoId): array
+    public function escolherProduto(Empresa $empresa, OrdemProducao $op, int $materialId, ?int $produtoId, ?string $grupoMotivo = null): array
     {
         if ($op->empresa_id !== $empresa->id) {
             abort(404);
@@ -319,13 +313,19 @@ class OrdemProducaoService
         $id = (int) ($produtoId ?? 0);
         if ($id <= 0) {
             $mat->produto_id = null;
+            $mat->motivo_grupo = null;
             $mat->save();
 
             return $this->show($op->fresh() ?? $op);
         }
-        if (! $this->coleta->produtoEscolhaPermitido($empresa, $mat, $id)) {
+        $noGrupo = $this->coleta->produtoEscolhaPermitido($empresa, $mat, $id);
+        $motivo = trim((string) $grupoMotivo);
+        $excecao = ! $noGrupo && $this->coleta->excecaoDeGrupoPermitida($empresa, $mat, $id, $motivo);
+        if (! $noGrupo && ! $excecao) {
             throw ValidationException::withMessages([
-                'produto_id' => ['Item não permitido nesta linha.'],
+                'produto_id' => [(int) $mat->grupo_id > 0
+                    ? 'Escolha uma bobina do grupo do orçamento, ou informe o motivo para usar outro grupo.'
+                    : 'Item não permitido nesta linha.'],
             ]);
         }
         $jaNaOp = OrdemProducaoMaterial::query()
@@ -339,6 +339,7 @@ class OrdemProducaoService
             ]);
         }
         $mat->produto_id = $id;
+        $mat->motivo_grupo = $excecao ? $motivo : null;
         $mat->save();
 
         return $this->show($op->fresh() ?? $op);
@@ -355,7 +356,7 @@ class OrdemProducaoService
     /**
      * Requisição de MP/EMB → SAIDA_PRODUCAO.
      *
-     * @param  array{produto_id?: int, material_id?: int, qtde?: string|number, complementar?: bool, volumes?: list<array{lote_id?: int, qtde?: string}>, volumes_motivo?: string}  $data
+     * @param  array{produto_id?: int, material_id?: int, qtde?: string|number, complementar?: bool, volumes?: list<array{lote_id?: int, qtde?: string}>, volumes_motivo?: string, grupo_motivo?: string}  $data
      * @return array<string, mixed>
      */
     public function requisitarMaterial(Empresa $empresa, OrdemProducao $op, array $data): array
@@ -422,9 +423,12 @@ class OrdemProducaoService
                         $alvo = $gravado;
                     }
                 }
-                if ($alvo <= 0 || ! $this->coleta->produtoEscolhaPermitido($empresa, $matPendente, $alvo)) {
+                $motivoTentativa = trim((string) ($data['grupo_motivo'] ?? ''));
+                $noGrupo = $alvo > 0 && $this->coleta->produtoEscolhaPermitido($empresa, $matPendente, $alvo);
+                $excecao = ! $noGrupo && $alvo > 0 && $this->coleta->excecaoDeGrupoPermitida($empresa, $matPendente, $alvo, $motivoTentativa);
+                if (! $noGrupo && ! $excecao) {
                     throw ValidationException::withMessages([
-                        'produto_id' => ['Escolha uma bobina de matéria-prima com saldo.'],
+                        'produto_id' => ['Escolha uma bobina do grupo do orçamento, ou informe o motivo para usar outro grupo.'],
                     ]);
                 }
                 $produtoId = $alvo;
@@ -467,6 +471,18 @@ class OrdemProducaoService
 
         $this->congelamento->assertProdutoLivre($empresa, $produto->id, 'saída para produção');
 
+        $motivoGrupo = trim((string) ($data['grupo_motivo'] ?? ''));
+        if ($motivoGrupo === '' && $matPendente) {
+            $motivoGrupo = trim((string) ($matPendente->motivo_grupo ?? ''));
+        }
+        $grupoLinha = $matPendente ? (int) $matPendente->grupo_id : 0;
+        $foraDoGrupo = $grupoLinha > 0 && (int) ($produto->grupo_id ?? 0) !== $grupoLinha;
+        if ($foraDoGrupo && mb_strlen($motivoGrupo) < 3) {
+            throw ValidationException::withMessages([
+                'grupo_motivo' => ['Informe o motivo para usar bobina de outro grupo (mínimo 3 caracteres).'],
+            ]);
+        }
+
         $volumes = $volumesIn;
         $volumesMotivo = isset($data['volumes_motivo']) ? trim((string) $data['volumes_motivo']) : '';
         $produtoLinhaId = $matPendente ? (int) $matPendente->produto_id : $produtoId;
@@ -481,7 +497,7 @@ class OrdemProducaoService
             );
 
         $op = DB::transaction(function () use (
-            $empresa, $op, $produto, $qtde, $matPendente, $complementar, $volumes, $volumesMotivo, $override
+            $empresa, $op, $produto, $qtde, $matPendente, $complementar, $volumes, $volumesMotivo, $override, $foraDoGrupo, $motivoGrupo
         ) {
             $op = OrdemProducao::query()->lockForUpdate()->findOrFail($op->id);
 
@@ -514,6 +530,9 @@ class OrdemProducaoService
             $obs = ($fazerComplementar ? 'Complemento para ' : 'Saída para ').$op->codigo;
             if ($override && $volumesMotivo !== '') {
                 $obs .= ' · Volume fora da sugestão FEFO: '.$volumesMotivo;
+            }
+            if ($foraDoGrupo && $motivoGrupo !== '') {
+                $obs .= ' · Bobina de outro grupo: '.$motivoGrupo;
             }
 
             $mov = EstoqueMovimento::query()->create([
@@ -578,6 +597,7 @@ class OrdemProducaoService
                     $mat->qtde_planejada = $qtde;
                 }
                 $mat->produto_id = $produto->id;
+                $mat->motivo_grupo = $foraDoGrupo ? $motivoGrupo : null;
                 $mat->qtde_requisitada = $qtde;
                 $mat->saida_movimento_id = $mov->id;
                 $mat->unidade = $produto->unidade_interna ?? 'UN';
@@ -1182,6 +1202,18 @@ class OrdemProducaoService
                 $min = '0';
             }
 
+            if ($pedido && $item && $this->bom->exigeSaidaDePapel($pedido, $item)) {
+                $papelSaiu = $op->materiais->contains(
+                    fn (OrdemProducaoMaterial $m) => strtoupper((string) $m->componente) === 'PAPEL'
+                        && $m->saida_movimento_id !== null
+                );
+                if (! $papelSaiu) {
+                    throw ValidationException::withMessages([
+                        'materiais' => ['Confirme a saída do papel antes de fechar a ordem.'],
+                    ]);
+                }
+            }
+
             $fora = bccomp($qtdeBoa, $min, PadraoDecimal::SCALE_QTY) < 0
                 || bccomp($qtdeBoa, $max, PadraoDecimal::SCALE_QTY) > 0;
 
@@ -1364,7 +1396,7 @@ class OrdemProducaoService
                 $mat->save();
             }
 
-            // Sem material requisitado: ainda permite concluir (serviço industrial leve / só PA)
+            // Snapshot sem papel (m²): ainda permite concluir. Etiqueta com papel já foi barrada acima.
             $paProduto = $item->produtoPa;
             if (! $paProduto) {
                 $paProduto = Produto::query()
@@ -1725,6 +1757,7 @@ class OrdemProducaoService
                     : ($pendente && $m->produto && ! $m->produto->controla_lote
                         ? $this->coleta->opcoesUnidade($empresa, $m)
                         : []),
+                'opcoes_fora' => $escolher ? $this->coleta->opcoesForaDoGrupo($empresa, $m) : [],
                 'qtde_planejada' => (string) $m->qtde_planejada,
                 'qtde_requisitada' => (string) $m->qtde_requisitada,
                 'qtde_avaria' => (string) ($m->qtde_avaria ?? '0'),

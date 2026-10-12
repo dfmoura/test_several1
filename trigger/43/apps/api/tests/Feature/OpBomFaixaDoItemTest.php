@@ -28,15 +28,21 @@ class OpBomFaixaDoItemTest extends TestCase
             'cnpj' => '00000000000191',
             'situacao' => 'ATIVA',
         ]);
-        $filme = Produto::query()->create([
-            'empresa_id' => $empresa->id,
-            'codigo' => 'MP-FLM-901',
+        $filme = ProdutoGrupo::query()->create([
+            'codigo' => 'MP-FLM',
+            'nome' => 'Filmes',
             'familia' => 'MP',
-            'descricao_fiscal' => 'BOPP PRATA AUTOADESIVO',
-            'unidade_comercial' => 'M2',
-            'unidade_interna' => 'M2',
-            'fator_conversao' => '1',
+            'natureza' => 'COMPRA',
+            'tipo_item_sped' => '01',
             'situacao' => 'ATIVO',
+        ]);
+        OrcCatalogoPapel::query()->create([
+            'empresa_id' => $empresa->id,
+            'nome' => 'BOPP PRATA',
+            'grupo_id' => $filme->id,
+            'preco_m2' => 1,
+            'ativo' => true,
+            'ordem' => 1,
         ]);
 
         $pedido = new Pedido([
@@ -56,8 +62,8 @@ class OpBomFaixaDoItemTest extends TestCase
         $papel = collect($diag['linhas'])->firstWhere('componente', 'PAPEL');
 
         $this->assertNotNull($papel);
-        $this->assertSame($filme->id, $papel['produto_id']);
-        $this->assertNull($papel['grupo_id'] ?? null);
+        $this->assertNull($papel['produto_id']);
+        $this->assertSame($filme->id, $papel['grupo_id']);
         $this->assertSame(0, bccomp((string) $papel['qtde'], '40', 4));
         $this->assertNull(collect($diag['nao_casados'])->firstWhere('componente', 'PAPEL'));
     }
@@ -70,15 +76,21 @@ class OpBomFaixaDoItemTest extends TestCase
             'cnpj' => '00000000000272',
             'situacao' => 'ATIVA',
         ]);
-        $filme = Produto::query()->create([
-            'empresa_id' => $empresa->id,
-            'codigo' => 'MP-FLM-902',
+        $filme = ProdutoGrupo::query()->create([
+            'codigo' => 'MP-FLM',
+            'nome' => 'Filmes',
             'familia' => 'MP',
-            'descricao_fiscal' => 'BOPP PRATA AUTOADESIVO',
-            'unidade_comercial' => 'M2',
-            'unidade_interna' => 'M2',
-            'fator_conversao' => '1',
+            'natureza' => 'COMPRA',
+            'tipo_item_sped' => '01',
             'situacao' => 'ATIVO',
+        ]);
+        OrcCatalogoPapel::query()->create([
+            'empresa_id' => $empresa->id,
+            'nome' => 'BOPP PRATA',
+            'grupo_id' => $filme->id,
+            'preco_m2' => 1,
+            'ativo' => true,
+            'ordem' => 1,
         ]);
 
         $pedido = new Pedido([
@@ -95,7 +107,8 @@ class OpBomFaixaDoItemTest extends TestCase
         $papel = collect($diag['linhas'])->firstWhere('componente', 'PAPEL');
 
         $this->assertNotNull($papel);
-        $this->assertSame($filme->id, $papel['produto_id']);
+        $this->assertNull($papel['produto_id']);
+        $this->assertSame($filme->id, $papel['grupo_id']);
         $this->assertSame(0, bccomp((string) $papel['qtde'], '10', 4));
         $this->assertNull(collect($diag['nao_casados'])->firstWhere('componente', 'PAPEL'));
     }
@@ -142,10 +155,7 @@ class OpBomFaixaDoItemTest extends TestCase
         $this->assertNull(collect($sem)->firstWhere('componente', 'ACABAMENTO'));
 
         $linhas = app(OpBomDeriver::class)->derivar($empresa, $pedido, $item);
-        $linha = collect($linhas)->firstWhere('componente', 'ACABAMENTO');
-        $this->assertNotNull($linha);
-        $this->assertNull($linha['produto_id']);
-        $this->assertNull($linha['grupo_id']);
+        $this->assertNull(collect($linhas)->firstWhere('componente', 'ACABAMENTO'));
         $this->assertNull(collect(app(OpBomDeriver::class)->derivar($empresa, $pedido, $itemSem))->firstWhere('componente', 'ACABAMENTO'));
     }
 
@@ -223,6 +233,42 @@ class OpBomFaixaDoItemTest extends TestCase
         $this->assertNull($acab['produto_id']);
         $this->assertSame($lam->id, $acab['grupo_id']);
         $this->assertSame(0, bccomp((string) $acab['qtde'], '43', 4));
+    }
+
+    public function test_papel_sem_grupo_nao_escolhe_sku_pelo_texto(): void
+    {
+        $empresa = Empresa::query()->create([
+            'codigo' => 'EMP-BOM5',
+            'razao_social' => 'Grafica BOM 5',
+            'cnpj' => '00000000000515',
+            'situacao' => 'ATIVA',
+        ]);
+        Produto::query()->create([
+            'empresa_id' => $empresa->id,
+            'codigo' => 'MP-FLM-905',
+            'familia' => 'MP',
+            'descricao_fiscal' => 'BOPP PRATA AUTOADESIVO',
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+        ]);
+
+        $pedido = new Pedido(['snapshot' => ['input' => []]]);
+        $item = new PedidoItem([
+            'especificacao' => [
+                'papel' => 'BOPP PRATA',
+                'faixa' => ['m2' => 40],
+            ],
+        ]);
+
+        $diag = app(OpBomDeriver::class)->diagnostico($empresa, $pedido, $item);
+        $this->assertNull(collect($diag['linhas'])->firstWhere('componente', 'PAPEL'));
+        $solto = collect($diag['nao_casados'])->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($solto);
+        $this->assertSame('BOPP PRATA', $solto['origem_texto']);
+        $this->assertSame(0, bccomp((string) $solto['qtde'], '40', 4));
+        $this->assertStringContainsString('sem grupo', $solto['motivo']);
     }
 
     public function test_caixa_casa_pela_medida_nominal_e_nao_pelo_nome(): void
