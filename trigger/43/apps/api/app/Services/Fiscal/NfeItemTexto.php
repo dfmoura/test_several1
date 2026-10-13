@@ -2,6 +2,8 @@
 
 namespace App\Services\Fiscal;
 
+use App\Models\FaturamentoItem;
+
 /**
  * xProd e texto de tributos da NF-e.
  * A descrição identifica o item do pedido; embalagem e tributos ficam fora dela.
@@ -23,6 +25,38 @@ final class NfeItemTexto
         }
 
         return mb_substr($fiscal.' · '.$linha, 0, 120);
+    }
+
+    /**
+     * InfCpl nomeia cada mercadoria quando a nota tem mais de um item.
+     *
+     * @param  iterable<int, FaturamentoItem|mixed>  $itens
+     */
+    public static function complementoItens(iterable $itens): ?string
+    {
+        $nomes = [];
+        foreach ($itens as $item) {
+            if (! $item instanceof FaturamentoItem) {
+                continue;
+            }
+            $desc = trim((string) $item->descricao);
+            if ($desc === '' || FaturamentoItem::eLinhaDeSetup($desc)) {
+                continue;
+            }
+            if (! FaturamentoItem::eLinhaDeEstoque($desc, $item->familia_fiscal)) {
+                continue;
+            }
+            $nomes[] = mb_substr($desc, 0, 120);
+        }
+        if (count($nomes) < 2) {
+            return null;
+        }
+        $partes = [];
+        foreach ($nomes as $i => $nome) {
+            $partes[] = ($i + 1).') '.$nome;
+        }
+
+        return implode(' | ', $partes);
     }
 
     public static function complementoTributos(int $crt): string

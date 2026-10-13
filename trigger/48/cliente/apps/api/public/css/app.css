@@ -290,6 +290,17 @@ footer.site {
 .fold[open] > summary::before { transform: rotate(45deg); vertical-align: .18rem; }
 .fold-body { padding: .7rem .8rem .8rem; }
 .fold.inset { background: var(--soft); }
+dialog.confirma {
+  width: min(26rem, calc(100vw - 2rem));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem 1.05rem .95rem;
+  color: var(--ink);
+  background: #fff;
+}
+dialog.confirma::backdrop { background: rgba(12, 26, 51, .48); }
+dialog.confirma h2 { margin-top: .15rem; }
+dialog.confirma .row { margin-top: .85rem; justify-content: flex-end; }
 .fold.inset .fold-body { padding-top: .35rem; }
 body.guest { background: var(--canvas); }
 body.guest main { width: min(100% - 2rem, 40rem); margin: 6vh auto 2rem; }

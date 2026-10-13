@@ -378,7 +378,7 @@ final class NfeXmlBuilder
     }
 
     /**
-     * @param  array{quantidade: int|string, especie: string}|null  $vol
+     * @param  array<string, mixed>|null  $vol
      */
     private function transpXml(Faturamento $fat, int $modFrete, ?array $vol): string
     {
@@ -409,9 +409,29 @@ final class NfeXmlBuilder
             }
             $xml .= '</transporta>';
         }
-        if ($vol) {
-            $xml .= '<vol><qVol>'.(int) $vol['quantidade'].'</qVol>'
-                .'<esp>'.$this->esc((string) $vol['especie']).'</esp></vol>';
+        if (is_array($vol) && $vol !== []) {
+            $miolo = '';
+            if (($vol['quantidade'] ?? null) !== null && (int) $vol['quantidade'] >= 1) {
+                $miolo .= '<qVol>'.(int) $vol['quantidade'].'</qVol>';
+            }
+            if (! empty($vol['especie'])) {
+                $miolo .= '<esp>'.$this->esc((string) $vol['especie']).'</esp>';
+            }
+            if (! empty($vol['marca'])) {
+                $miolo .= '<marca>'.$this->esc((string) $vol['marca']).'</marca>';
+            }
+            if (! empty($vol['numeracao'])) {
+                $miolo .= '<nVol>'.$this->esc((string) $vol['numeracao']).'</nVol>';
+            }
+            if (! empty($vol['peso_liquido'])) {
+                $miolo .= '<pesoL>'.$vol['peso_liquido'].'</pesoL>';
+            }
+            if (! empty($vol['peso_bruto'])) {
+                $miolo .= '<pesoB>'.$vol['peso_bruto'].'</pesoB>';
+            }
+            if ($miolo !== '') {
+                $xml .= '<vol>'.$miolo.'</vol>';
+            }
         }
         $xml .= '</transp>';
 
@@ -459,6 +479,7 @@ final class NfeXmlBuilder
         $crt = (int) ($fat->empresa?->crt ?? 1);
         $parts = array_filter([
             'FAT '.$fat->codigo,
+            NfeItemTexto::complementoItens($fat->itens ?? []),
             $embTexto,
             $temSetup ? 'Valor inclui matriz/clichê e ferramental do job' : null,
             NfeItemTexto::complementoTributos($crt),

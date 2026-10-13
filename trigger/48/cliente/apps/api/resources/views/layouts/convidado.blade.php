@@ -6,7 +6,7 @@
   <title>@yield('titulo', 'Área do cliente') · Trigger</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=20261013b">
+  <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=20261013c">
 </head>
 <body class="guest">
   <a class="skip" href="#conteudo">Ir para o conteúdo</a>

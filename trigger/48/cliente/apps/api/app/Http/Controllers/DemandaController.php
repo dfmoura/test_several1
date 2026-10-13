@@ -147,11 +147,6 @@ class DemandaController extends Controller
     public function aprovar(Request $request, Demanda $demanda, DemandaService $demandas, EmpresaAtual $atual)
     {
         $atual->exigir('demanda.aprovar');
-        $request->validate(['confirmar_valor' => ['required', 'string', 'max:30']]);
-        $proposta = Proposta::query()->where('demanda_id', $demanda->id)->where('status', 'VIGENTE')->firstOrFail();
-        if (Dinheiro::centavosDeTexto($request->string('confirmar_valor')->toString()) !== $proposta->valor_centavos) {
-            return back()->with('erro', 'Digite o valor da proposta para confirmar a aprovação.');
-        }
         $demandas->aprovar($demanda, $request->user('web'), (string) $request->ip());
 
         return back()->with('ok', 'Proposta aprovada. A execução pode começar. O saldo é abatido quando você validar a entrega.');
@@ -160,13 +155,6 @@ class DemandaController extends Controller
     public function validarEntrega(Request $request, Demanda $demanda, DemandaService $demandas, EmpresaAtual $atual)
     {
         $atual->exigir('demanda.aprovar');
-        $request->validate(['confirmar_valor' => ['required', 'string', 'max:30']]);
-        $proposta = Proposta::query()->where('demanda_id', $demanda->id)->where('status', 'APROVADA')->firstOrFail();
-        $registro = Aprovacao::query()->where('proposta_id', $proposta->id)->first();
-        $valor = (int) ($registro?->valor_centavos ?? $proposta->valor_centavos);
-        if (Dinheiro::centavosDeTexto($request->string('confirmar_valor')->toString()) !== $valor) {
-            return back()->with('erro', 'Digite o valor aprovado para confirmar a validação.');
-        }
         $fatura = $demandas->validarEntrega($demanda, $request->user('web'));
         $mensagem = $fatura->status === 'LIQUIDADA'
             ? 'Entrega validada. O saldo foi abatido e a demanda está concluída.'

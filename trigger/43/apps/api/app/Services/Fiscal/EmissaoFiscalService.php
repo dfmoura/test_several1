@@ -403,7 +403,12 @@ class EmissaoFiscalService
         if ($fat === null) {
             return [];
         }
-        $fat->loadMissing(['documentosFiscais.saidaEstoque.itens.produto', 'empresa', 'parceiro', 'pedido.parceiro', 'itens.pedidoItem.produtoPa', 'titulos']);
+        $fat->loadMissing(['documentosFiscais.saidaEstoque.itens.produto', 'empresa', 'parceiro', 'itens.pedidoItem.produtoPa', 'titulos']);
+        // show() projeta pedido:id,codigo,status. A prévia precisa do snapshot inteiro (m², frete).
+        if ($fat->pedido_id) {
+            $fat->unsetRelation('pedido');
+            $fat->load('pedido.parceiro');
+        }
         $empresa = $fat->empresa;
         if ($empresa instanceof Empresa) {
             foreach ($fat->documentosFiscais as $d) {
@@ -1095,7 +1100,7 @@ class EmissaoFiscalService
 
     /**
      * @param  array<string, mixed>  $payload
-     * @return list<array{quantidade: string, especie: string}>
+     * @return list<array<string, string>>
      */
     private function previaVolumes(array $payload): array
     {
@@ -1106,13 +1111,21 @@ class EmissaoFiscalService
             }
             $q = trim((string) ($vol['quantidade'] ?? ''));
             $esp = trim((string) ($vol['especie'] ?? ''));
-            if ($q === '' && $esp === '') {
+            $marca = trim((string) ($vol['marca'] ?? ''));
+            $numeracao = trim((string) ($vol['numeracao'] ?? ''));
+            $pesoL = trim((string) ($vol['peso_liquido'] ?? ''));
+            $pesoB = trim((string) ($vol['peso_bruto'] ?? ''));
+            if ($q === '' && $esp === '' && $marca === '' && $numeracao === '' && $pesoL === '' && $pesoB === '') {
                 continue;
             }
-            $out[] = [
-                'quantidade' => $q !== '' ? $q : '0',
-                'especie' => $esp !== '' ? $esp : 'CAIXA',
-            ];
+            $out[] = array_filter([
+                'quantidade' => $q !== '' ? $q : null,
+                'especie' => $esp !== '' ? $esp : null,
+                'marca' => $marca !== '' ? $marca : null,
+                'numeracao' => $numeracao !== '' ? $numeracao : null,
+                'peso_liquido' => $pesoL !== '' ? $pesoL : null,
+                'peso_bruto' => $pesoB !== '' ? $pesoB : null,
+            ], fn ($v) => $v !== null);
         }
 
         return $out;

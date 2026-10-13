@@ -157,11 +157,20 @@ class FocusPayloadBuilder
             ],
         ], $transpFocus));
 
-        if ($volTransp) {
-            $payload['volumes'] = [[
-                'quantidade' => (string) $volTransp['quantidade'],
-                'especie' => $volTransp['especie'],
-            ]];
+        if (is_array($volTransp)) {
+            $vol = array_filter([
+                'quantidade' => ($volTransp['quantidade'] ?? null) !== null
+                    ? (string) $volTransp['quantidade']
+                    : null,
+                'especie' => $volTransp['especie'] ?? null,
+                'marca' => $volTransp['marca'] ?? null,
+                'numeracao' => $volTransp['numeracao'] ?? null,
+                'peso_liquido' => $volTransp['peso_liquido'] ?? null,
+                'peso_bruto' => $volTransp['peso_bruto'] ?? null,
+            ], fn ($v) => $v !== null && $v !== '');
+            if ($vol !== []) {
+                $payload['volumes'] = [$vol];
+            }
         }
 
         $duplicatas = $this->duplicatas($fat);
@@ -333,6 +342,7 @@ class FocusPayloadBuilder
         $parts = array_filter([
             $ped !== '' ? 'Pedido '.$ped : null,
             'Fatura '.$fat->codigo,
+            NfeItemTexto::complementoItens($fat->itens ?? []),
             $embTexto ?: null,
             $this->temSetup($fat) ? 'Valor inclui matriz/clichê e ferramental do job' : null,
             NfeItemTexto::complementoTributos($crt),

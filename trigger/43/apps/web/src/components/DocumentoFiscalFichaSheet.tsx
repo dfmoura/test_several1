@@ -85,6 +85,27 @@ function fretePorConta(
   return '9 — Sem frete';
 }
 
+function volJunto(
+  vols: Array<Record<string, string | null | undefined>> | undefined,
+  key: string,
+): string {
+  const vals = (vols ?? [])
+    .map((v) => String(v[key] ?? '').trim())
+    .filter((v) => v !== '');
+  return vals.length > 0 ? vals.join(' / ') : ' ';
+}
+
+function volPeso(
+  vols: Array<Record<string, string | null | undefined>> | undefined,
+  key: string,
+): string {
+  const vals = (vols ?? [])
+    .map((v) => String(v[key] ?? '').trim())
+    .filter((v) => v !== '')
+    .map((v) => formatDecimalBr(v, 3));
+  return vals.length > 0 ? vals.join(' / ') : ' ';
+}
+
 function nfeNumero(n: number | null | undefined): string {
   if (n == null) return '—';
   const digits = String(n).replace(/\D/g, '').padStart(9, '0').slice(-9);
@@ -422,28 +443,12 @@ function DanfeLayout({
         <Cell label="Inscrição estadual" value={p?.transporte?.ie} className="w-20" />
       </div>
       <div className="danfe-row">
-        <Cell
-          label="Quantidade"
-          value={
-            (p?.volumes?.length ?? 0) > 0
-              ? (p?.volumes ?? []).map((v) => v.quantidade).join(' / ')
-              : ' '
-          }
-          className="w-16"
-        />
-        <Cell
-          label="Espécie"
-          value={
-            (p?.volumes?.length ?? 0) > 0
-              ? (p?.volumes ?? []).map((v) => v.especie).join(' / ')
-              : ' '
-          }
-          className="w-20"
-        />
-        <Cell label="Marca" value=" " className="w-16" />
-        <Cell label="Numeração" value=" " className="w-16" />
-        <Cell label="Peso bruto" value=" " className="w-16" />
-        <Cell label="Peso líquido" value=" " className="w-16" />
+        <Cell label="Quantidade" value={volJunto(p?.volumes, 'quantidade')} className="w-16" />
+        <Cell label="Espécie" value={volJunto(p?.volumes, 'especie')} className="w-20" />
+        <Cell label="Marca" value={volJunto(p?.volumes, 'marca')} className="w-16" />
+        <Cell label="Numeração" value={volJunto(p?.volumes, 'numeracao')} className="w-16" />
+        <Cell label="Peso bruto" value={volPeso(p?.volumes, 'peso_bruto')} className="w-16" />
+        <Cell label="Peso líquido" value={volPeso(p?.volumes, 'peso_liquido')} className="w-16" />
       </div>
 
       <h3 className="danfe-sec">Dados dos produtos / serviços</h3>

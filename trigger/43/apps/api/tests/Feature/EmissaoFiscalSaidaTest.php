@@ -13,6 +13,7 @@ use App\Models\Orcamento;
 use App\Models\Parceiro;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
+use App\Models\Produto;
 use App\Models\User;
 use App\Services\Cadastros\NaturezaGerencialService;
 use App\Services\Financeiro\AdiantamentoService;
@@ -756,7 +757,12 @@ class EmissaoFiscalSaidaTest extends TestCase
 
         $payload = DocumentoFiscalSaida::query()->first()?->payload_json ?? [];
         $this->assertSame([
-            ['quantidade' => '3', 'especie' => 'CAIXA'],
+            [
+                'quantidade' => '3',
+                'especie' => 'CAIXA',
+                'marca' => 'RLP',
+                'numeracao' => '1-3',
+            ],
         ], $payload['volumes'] ?? null);
 
         $this->assertSame('ROLO', Faturamento::query()->first()?->nfe_qtde_modo);
@@ -783,8 +789,52 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertStringContainsString('UN', $previaInf);
         $this->assertSame('RL', $ok->json('data.documentos_fiscais.0.previa.itens.0.unidade'));
         $this->assertSame(
-            [['quantidade' => '3', 'especie' => 'CAIXA']],
+            [[
+                'quantidade' => '3',
+                'especie' => 'CAIXA',
+                'marca' => 'RLP',
+                'numeracao' => '1-3',
+            ]],
             $ok->json('data.documentos_fiscais.0.previa.volumes')
         );
+    }
+
+    public function test_peso_da_nota_usa_m2_travado_e_gramatura_do_papel(): void
+    {
+        $ped = $this->criarPedidoProduzido([
+            'especificacao' => [
+                'medida' => '100X50',
+                'papel' => 'PAPEL COUCHE TESTE 80G',
+                'cores' => 4,
+                'acabamento' => 'Verniz',
+            ],
+        ]);
+        $snap = $ped->snapshot;
+        $snap['faixa']['m2'] = '50';
+        $ped->snapshot = $snap;
+        $ped->save();
+
+        Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MP-PAP-NFE',
+            'familia' => 'MP',
+            'grupo' => 'MP-PAP',
+            'descricao_fiscal' => 'PAPEL COUCHE TESTE 80G',
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'fator_conversao' => '1',
+            'ncm' => '48114190',
+            'situacao' => 'ATIVO',
+            'atributos' => ['gramatura_g_m2' => '80'],
+        ]);
+
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $ok->assertCreated();
+
+        $vol = $ok->json('data.documentos_fiscais.0.previa.volumes.0');
+        $this->assertSame('4.000', $vol['peso_liquido'] ?? null);
+        $this->assertSame('4.000', $vol['peso_bruto'] ?? null);
+        $this->assertSame('RLP', $vol['marca'] ?? null);
+        $this->assertArrayNotHasKey('codigo_antt', $vol);
     }
 }
