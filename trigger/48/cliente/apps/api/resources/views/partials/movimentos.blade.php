@@ -1,13 +1,13 @@
 <div class="table-wrap">
   <table>
-    <thead><tr><th>Quando</th><th>Movimento</th><th>Valor</th><th>Disponível depois</th></tr></thead>
+    <thead><tr><th>Quando</th><th>Movimento</th><th class="num">Valor</th><th class="num">Disponível depois</th></tr></thead>
     <tbody>
       @forelse($movimentos as $movimento)
         <tr>
           <td>{{ $movimento->criado_em?->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</td>
           <td>{{ \App\Suporte\Rotulos::movimento($movimento->tipo, $movimento->observacao) }}</td>
-          <td>@reais($movimento->valor_centavos)</td>
-          <td>@reais($movimento->saldo_disponivel_depois)</td>
+          <td class="num">@reais($movimento->valor_centavos)</td>
+          <td class="num">@reais($movimento->saldo_disponivel_depois)</td>
         </tr>
       @empty
         <tr><td colspan="4">Ainda não há movimentos.</td></tr>

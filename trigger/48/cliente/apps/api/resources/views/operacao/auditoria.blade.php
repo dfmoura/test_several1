@@ -1,7 +1,7 @@
 @extends('layouts.operacao')
 @section('titulo', 'Auditoria')
 @section('conteudo')
-  <h1>Auditoria</h1>
+  <header class="pagehead"><h1>Auditoria</h1></header>
   <div class="card table-wrap">
     <table>
       <thead><tr><th>Quando</th><th>Ação</th><th>Entidade</th><th>Ator</th></tr></thead>

@@ -17,6 +17,8 @@ use App\Models\User;
 use App\Services\Cadastros\NaturezaGerencialService;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Services\Fiscal\FiscalHubCrypto;
+use App\Services\Fiscal\FocusPayloadBuilder;
+use App\Services\Fiscal\Sefaz\NfeXmlBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
@@ -591,6 +593,9 @@ class EmissaoFiscalSaidaTest extends TestCase
         $payload = DocumentoFiscalSaida::query()->first()?->payload_json ?? [];
         $this->assertSame(9, $payload['modalidade_frete'] ?? null);
         $this->assertArrayNotHasKey('nome_transportador', $payload);
+        $ok->assertJsonPath('data.documentos_fiscais.0.previa.transporte.mod_frete', '9')
+            ->assertJsonPath('data.documentos_fiscais.0.previa.transporte.mod_frete_label', 'Sem frete')
+            ->assertJsonPath('data.documentos_fiscais.0.previa.transporte.nome', null);
     }
 
     public function test_entrega_propria_mod_frete_0_sem_transportador(): void
@@ -650,7 +655,33 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertSame(0, $payload['modalidade_frete'] ?? null);
         $this->assertSame('TRANSPORTADORA SUL LTDA', $payload['nome_transportador'] ?? null);
         $this->assertSame('11222333000181', $payload['cnpj_transportador'] ?? null);
+        $this->assertSame('Rua Frete, 100, Centro', $payload['endereco_transportador'] ?? null);
         $this->assertSame('MG', $payload['uf_transportador'] ?? null);
+
+        $ok->assertJsonPath('data.documentos_fiscais.0.previa.transporte.mod_frete', '0')
+            ->assertJsonPath('data.documentos_fiscais.0.previa.transporte.mod_frete_label', 'CIF (emitente)')
+            ->assertJsonPath('data.documentos_fiscais.0.previa.transporte.nome', 'TRANSPORTADORA SUL LTDA')
+            ->assertJsonPath('data.documentos_fiscais.0.previa.transporte.documento', '11222333000181')
+            ->assertJsonPath('data.documentos_fiscais.0.previa.transporte.endereco', 'Rua Frete, 100, Centro')
+            ->assertJsonPath('data.documentos_fiscais.0.previa.transporte.municipio', 'Uberlandia')
+            ->assertJsonPath('data.documentos_fiscais.0.previa.transporte.uf', 'MG')
+            ->assertJsonPath('data.documentos_fiscais.0.previa.transporte.ie', '123456789');
+
+        $fat = Faturamento::query()->firstOrFail();
+        $fat->load(['transportador', 'itens', 'pedido', 'titulos']);
+        $itens = app(FocusPayloadBuilder::class)->itensFiscaisParaPayload($fat->itens);
+        $xml = app(NfeXmlBuilder::class)->montar(
+            $this->empresa,
+            $this->parceiro,
+            $fat,
+            $itens,
+            ['serie' => 1, 'numero' => 1],
+            2,
+        )['xml'];
+        $this->assertStringContainsString(
+            '<transporta><CNPJ>11222333000181</CNPJ><xNome>TRANSPORTADORA SUL LTDA</xNome><IE>123456789</IE><xEnder>Rua Frete, 100, Centro</xEnder><xMun>Uberlandia</xMun><UF>MG</UF></transporta>',
+            $xml,
+        );
     }
 
     public function test_terceiros_herda_transportador_e_fob_do_snapshot_orc(): void

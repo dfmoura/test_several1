@@ -8552,6 +8552,7 @@ tr.row-inactive td {
 
 .danfe-row > * {
   flex: 1;
+  min-width: 0;
 }
 
 .danfe-row .w-58 { flex: 0 0 58%; }

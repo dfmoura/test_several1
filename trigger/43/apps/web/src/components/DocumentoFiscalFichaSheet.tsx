@@ -72,6 +72,19 @@ function tributosDoItem(it: DocumentoFiscalPreviaItem): string {
   return partes.filter(Boolean).join(' · ');
 }
 
+/** Caixa “Frete por conta”: código SEFAZ + rótulo já gravado no faturamento. */
+function fretePorConta(
+  transporte: { mod_frete?: string | null; mod_frete_label?: string | null } | null | undefined,
+): string {
+  const raw = String(transporte?.mod_frete ?? '9');
+  const code = raw === '0' || raw === '1' || raw === '9' ? raw : '9';
+  const label = (transporte?.mod_frete_label ?? '').trim();
+  if (label !== '') return `${code} — ${label}`;
+  if (code === '0') return '0 — CIF (emitente)';
+  if (code === '1') return '1 — FOB (destinatário)';
+  return '9 — Sem frete';
+}
+
 function nfeNumero(n: number | null | undefined): string {
   if (n == null) return '—';
   const digits = String(n).replace(/\D/g, '').padStart(9, '0').slice(-9);
@@ -391,12 +404,22 @@ function DanfeLayout({
 
       <h3 className="danfe-sec">Transportador / volumes</h3>
       <div className="danfe-row">
-        <Cell label="Nome / razão social" value=" " className="w-40" />
-        <Cell label="Frete" value="9 — Sem transporte" className="w-16" />
+        <Cell label="Nome / razão social" value={p?.transporte?.nome} className="w-40" />
+        <Cell label="Frete por conta" value={fretePorConta(p?.transporte)} className="w-20" />
         <Cell label="Código ANTT" value=" " className="w-12" />
-        <Cell label="Placa" value=" " className="w-12" />
+        <Cell label="Placa" value=" " className="w-08" />
         <Cell label="UF" value=" " className="w-06" />
-        <Cell label="CNPJ / CPF" value=" " className="w-14" />
+        <Cell
+          label="CNPJ / CPF"
+          value={p?.transporte?.documento ? formatCnpjCpf(p.transporte.documento) : ' '}
+          className="w-14"
+        />
+      </div>
+      <div className="danfe-row">
+        <Cell label="Endereço" value={p?.transporte?.endereco} className="w-48" />
+        <Cell label="Município" value={p?.transporte?.municipio} className="w-24" />
+        <Cell label="UF" value={p?.transporte?.uf} className="w-08" />
+        <Cell label="Inscrição estadual" value={p?.transporte?.ie} className="w-20" />
       </div>
       <div className="danfe-row">
         <Cell

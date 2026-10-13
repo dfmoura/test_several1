@@ -1,18 +1,22 @@
 @extends('layouts.cliente')
 @section('titulo', 'Início')
 @section('conteudo')
-  <p class="kicker">Área do cliente</p>
-  <h1>{{ $empresa->nome_fantasia ?: $empresa->razao_social }}</h1>
-  <p class="muted">{{ $empresa->nome_fantasia ? $empresa->razao_social.' · ' : '' }}{{ \App\Suporte\Rotulos::statusEmpresa($empresa->status) }}</p>
+  <header class="pagehead">
+    <div>
+      <p class="kicker">Área do cliente</p>
+      <h1>{{ $empresa->nome_fantasia ?: $empresa->razao_social }}</h1>
+      <p class="meta">{{ $empresa->nome_fantasia ? $empresa->razao_social.' · ' : '' }}{{ \App\Suporte\Rotulos::statusEmpresa($empresa->status) }}</p>
+    </div>
+  </header>
   @if($empresa->status === 'ATIVA' && $carteira->disponivel_centavos < $saldoMinimo)
     <div class="flash flash-aviso" role="status">Seu saldo está abaixo do limite recomendado (@reais($saldoMinimo)).</div>
   @endif
-  <div class="grid grid-3">
-    <section class="card"><p class="kicker">Disponível</p><p class="money">@reais($carteira->disponivel_centavos)</p></section>
-    <section class="card"><p class="kicker">Reservado</p><p class="money">@reais($carteira->reservado_centavos)</p></section>
-    <section class="card"><p class="kicker">Consumido</p><p class="money">@reais($carteira->consumido_centavos)</p></section>
+  <div class="metrics">
+    <section><p class="kicker">Disponível</p><p class="money">@reais($carteira->disponivel_centavos)</p></section>
+    <section><p class="kicker">Reservado</p><p class="money">@reais($carteira->reservado_centavos)</p></section>
+    <section><p class="kicker">Consumido</p><p class="money">@reais($carteira->consumido_centavos)</p></section>
   </div>
-  <div class="grid grid-2" style="margin-top:1rem">
+  <div class="grid grid-2">
     <section class="card">
       <h2>Demanda</h2>
       @if($demanda)
@@ -45,7 +49,7 @@
       @endif
     </section>
   </div>
-  <section class="card" style="margin-top:1rem">
+  <section class="card depois">
     <h2>Últimos movimentos</h2>
     @include('partials.movimentos', ['movimentos' => $movimentos])
   </section>

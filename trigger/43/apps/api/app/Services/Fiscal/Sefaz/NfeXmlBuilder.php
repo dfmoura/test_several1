@@ -383,25 +383,29 @@ final class NfeXmlBuilder
     private function transpXml(Faturamento $fat, int $modFrete, ?array $vol): string
     {
         $xml = '<transp><modFrete>'.$modFrete.'</modFrete>';
-        $par = $fat->transportador;
-        if ($par !== null) {
-            $doc = preg_replace('/\D/', '', (string) $par->cnpj_cpf) ?: '';
-            $ie = preg_replace('/\D/', '', (string) ($par->ie ?? '')) ?: '';
+        $campos = $this->transporte->focusTransportador($fat->transportador);
+        if ($campos !== []) {
+            // Ordem do grupo transporta (MOC 4.00): CNPJ|CPF, xNome, IE, xEnder, xMun, UF.
             $xml .= '<transporta>';
-            if (strlen($doc) === 14) {
-                $xml .= '<CNPJ>'.$doc.'</CNPJ>';
-            } elseif (strlen($doc) === 11) {
-                $xml .= '<CPF>'.$doc.'</CPF>';
+            if (! empty($campos['cnpj_transportador'])) {
+                $xml .= '<CNPJ>'.$campos['cnpj_transportador'].'</CNPJ>';
+            } elseif (! empty($campos['cpf_transportador'])) {
+                $xml .= '<CPF>'.$campos['cpf_transportador'].'</CPF>';
             }
-            $xml .= '<xNome>'.$this->esc(mb_substr((string) $par->razao_social, 0, 60)).'</xNome>';
-            if ($ie !== '') {
-                $xml .= '<IE>'.$ie.'</IE>';
+            if (! empty($campos['nome_transportador'])) {
+                $xml .= '<xNome>'.$this->esc((string) $campos['nome_transportador']).'</xNome>';
             }
-            if ($par->municipio) {
-                $xml .= '<xMun>'.$this->esc(mb_substr((string) $par->municipio, 0, 60)).'</xMun>';
+            if (! empty($campos['inscricao_estadual_transportador'])) {
+                $xml .= '<IE>'.$campos['inscricao_estadual_transportador'].'</IE>';
             }
-            if ($par->uf) {
-                $xml .= '<UF>'.strtoupper(trim((string) $par->uf)).'</UF>';
+            if (! empty($campos['endereco_transportador'])) {
+                $xml .= '<xEnder>'.$this->esc((string) $campos['endereco_transportador']).'</xEnder>';
+            }
+            if (! empty($campos['municipio_transportador'])) {
+                $xml .= '<xMun>'.$this->esc((string) $campos['municipio_transportador']).'</xMun>';
+            }
+            if (! empty($campos['uf_transportador'])) {
+                $xml .= '<UF>'.$this->esc((string) $campos['uf_transportador']).'</UF>';
             }
             $xml .= '</transporta>';
         }

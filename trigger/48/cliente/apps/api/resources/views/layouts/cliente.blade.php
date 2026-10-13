@@ -6,9 +6,9 @@
   <title>@yield('titulo', 'Início') · Área do cliente</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=20261009">
+  <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=20261013b">
 </head>
-<body>
+<body class="app">
   <a class="skip" href="#conteudo">Ir para o conteúdo</a>
   <div class="shell">
     <header class="top">

@@ -6,9 +6,9 @@
   <title>@yield('titulo', 'Operação') · Trigger</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=20261009">
+  <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=20261013b">
 </head>
-<body>
+<body class="app">
   <a class="skip" href="#conteudo">Ir para o conteúdo</a>
   <div class="shell">
     <header class="top">
@@ -18,9 +18,9 @@
           <span>Operação<small>equipe Trigger</small></span>
         </a>
         <nav class="nav" aria-label="Operação">
-          <a href="{{ route('operacao.fila') }}">Fila</a>
-          <a href="{{ route('operacao.empresas') }}">Empresas</a>
-          <a href="{{ route('operacao.auditoria') }}">Auditoria</a>
+          <a href="{{ route('operacao.fila') }}" @if(request()->routeIs('operacao.fila', 'operacao.demanda')) aria-current="page" @endif>Fila</a>
+          <a href="{{ route('operacao.empresas') }}" @if(request()->routeIs('operacao.empresas', 'operacao.empresa')) aria-current="page" @endif>Empresas</a>
+          <a href="{{ route('operacao.auditoria') }}" @if(request()->routeIs('operacao.auditoria')) aria-current="page" @endif>Auditoria</a>
           @if(($avisosOperacao ?? 0) > 0)<span class="badge">{{ $avisosOperacao }} novo(s)</span>@endif
           <form method="post" action="{{ route('operacao.sair') }}">@csrf<button class="linkish" type="submit">Sair</button></form>
         </nav>

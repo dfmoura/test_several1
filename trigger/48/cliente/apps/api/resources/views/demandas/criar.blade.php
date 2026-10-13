@@ -3,16 +3,22 @@
 @section('conteudo')
   <form class="card pedido" method="post" action="{{ route('demandas.salvar') }}" enctype="multipart/form-data">
     @csrf
-    <p class="kicker">Abertura</p>
-    <h1>Nova demanda</h1>
-    <p class="lede">Descreva o que precisa ficar pronto. Ao enviar, reservamos o ticket de abertura. O valor do projeto só existe depois da proposta.</p>
+    <header class="pagehead">
+      <div>
+        <p class="kicker">Abertura</p>
+        <h1>Nova demanda</h1>
+        <p class="lede">Descreva o que precisa ficar pronto. Ao enviar, reservamos o ticket de abertura. O valor do projeto só existe depois da proposta.</p>
+      </div>
+    </header>
 
+    <div class="pedido-layout">
     <fieldset class="brief">
       <legend id="rotulo-descricao">Descrição da demanda</legend>
       <p class="hint" id="dica-demanda">O que acontece hoje, onde trava e o que a Trigger deve entregar.</p>
       <textarea id="descricao" name="descricao" required maxlength="5000" rows="12" aria-labelledby="rotulo-descricao" aria-describedby="dica-demanda" placeholder="Ex.: o fechamento do mês ainda sai em planilha. Precisa sair do ERP, sem retrabalho.">{{ old('descricao') }}</textarea>
     </fieldset>
 
+    <div class="pedido-lado">
     <fieldset>
       <legend id="rotulo-acessos">Como entrar</legend>
       <p class="hint" id="dica-acessos">Opcional. Informe endereço, usuário e senha só se a execução depender de entrar em um sistema. O texto fica cifrado. Quem executa a demanda é quem vê.</p>
@@ -35,6 +41,8 @@
         <p class="hint">Escolha os arquivos de novo.</p>
       @endif
     </fieldset>
+    </div>
+    </div>
 
     <p class="row pedido-acoes">
       <button type="submit">Enviar demanda</button>

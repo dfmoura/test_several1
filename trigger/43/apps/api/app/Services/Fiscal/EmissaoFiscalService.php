@@ -861,6 +861,7 @@ class EmissaoFiscalService
             'itens' => $itens,
             'duplicatas' => $duplicatas,
             'volumes' => $this->previaVolumes($payload),
+            'transporte' => $nfse ? null : $this->previaTransporte($payload),
             'valor_total' => (string) ($payload['valor_total'] ?? $payload['valor_servico'] ?? $d->valor),
             'impostos' => $this->previaImpostos($itens, (string) ($payload['valor_total'] ?? $payload['valor_servico'] ?? $d->valor)),
             'pedido' => $fat->pedido?->codigo,
@@ -1043,6 +1044,52 @@ class EmissaoFiscalService
             'v_ibs_mun' => $mun,
             'v_cbs' => $cbs,
             'v_nf_tot' => PadraoDecimal::roundHalfUp(bcadd($base, $porFora, 8), PadraoDecimal::SCALE_MONEY),
+        ];
+    }
+
+    /**
+     * Grupo transporta da prévia DANFE — mesmos campos do payload Focus/SEFAZ.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{
+     *     mod_frete: string,
+     *     mod_frete_label: ?string,
+     *     nome: ?string,
+     *     documento: ?string,
+     *     ie: ?string,
+     *     endereco: ?string,
+     *     municipio: ?string,
+     *     uf: ?string
+     * }
+     */
+    private function previaTransporte(array $payload): array
+    {
+        $modRaw = $payload['modalidade_frete'] ?? null;
+        $mod = $modRaw === null || $modRaw === '' ? Faturamento::MOD_FRETE_SEM : (string) $modRaw;
+        if (! in_array($mod, Faturamento::MOD_FRETES, true)) {
+            $mod = Faturamento::MOD_FRETE_SEM;
+        }
+
+        $doc = preg_replace('/\D/', '', (string) ($payload['cnpj_transportador'] ?? '')) ?: '';
+        if ($doc === '') {
+            $doc = preg_replace('/\D/', '', (string) ($payload['cpf_transportador'] ?? '')) ?: '';
+        }
+
+        $texto = static function (mixed $value): ?string {
+            $t = trim((string) ($value ?? ''));
+
+            return $t !== '' ? $t : null;
+        };
+
+        return [
+            'mod_frete' => $mod,
+            'mod_frete_label' => Faturamento::modFreteLabel($mod),
+            'nome' => $texto($payload['nome_transportador'] ?? null),
+            'documento' => $doc !== '' ? $doc : null,
+            'ie' => $texto($payload['inscricao_estadual_transportador'] ?? null),
+            'endereco' => $texto($payload['endereco_transportador'] ?? null),
+            'municipio' => $texto($payload['municipio_transportador'] ?? null),
+            'uf' => $texto($payload['uf_transportador'] ?? null),
         ];
     }
 

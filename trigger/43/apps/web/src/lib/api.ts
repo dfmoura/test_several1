@@ -2907,6 +2907,17 @@ export type DocumentoFiscalPrevia = {
   duplicatas?: Array<{ numero: string; vencimento: string; valor: string }>;
   /** Volumes de transporte (caixas PA) ecoados do payload. */
   volumes?: Array<{ quantidade: string; especie: string }>;
+  /** Grupo transporta da NF-e — caixas do DANFE. Null na NFS-e. */
+  transporte?: {
+    mod_frete: string;
+    mod_frete_label?: string | null;
+    nome?: string | null;
+    documento?: string | null;
+    ie?: string | null;
+    endereco?: string | null;
+    municipio?: string | null;
+    uf?: string | null;
+  } | null;
   valor_total?: string;
   pedido?: string | null;
   faturamento?: string | null;
