@@ -185,4 +185,41 @@ class ParceiroEnderecosEntregaTest extends TestCase
 
         $this->assertSame(0, Parceiro::query()->count());
     }
+
+    public function test_grava_logradouro_numero_e_complemento_digitados_no_fornecedor(): void
+    {
+        $empresa = $this->empresa();
+        $this->actingAdmin($empresa);
+
+        $id = $this->withHeader('X-Empresa-Id', (string) $empresa->id)
+            ->postJson('/api/v1/parceiros', [
+                'razao_social' => 'Fornecedor Sem Rua',
+                'tipo_pessoa' => 'PJ',
+                'papel_fornecedor' => true,
+                'cep' => '38400000',
+                'municipio' => 'Uberlândia',
+                'uf' => 'MG',
+                'bairro' => 'Centro',
+            ])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->withHeader('X-Empresa-Id', (string) $empresa->id)
+            ->putJson("/api/v1/parceiros/{$id}", [
+                'logradouro' => 'Rua do Operador',
+                'numero' => '42',
+                'complemento' => 'Sala 3',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.logradouro', 'Rua do Operador')
+            ->assertJsonPath('data.numero', '42')
+            ->assertJsonPath('data.complemento', 'Sala 3');
+
+        $this->assertDatabaseHas('parceiros', [
+            'id' => $id,
+            'logradouro' => 'Rua do Operador',
+            'numero' => '42',
+            'complemento' => 'Sala 3',
+        ]);
+    }
 }

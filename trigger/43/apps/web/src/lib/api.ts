@@ -2424,7 +2424,10 @@ export type CepConsulta = {
   origem_longitude?: string | null;
 };
 
-/** Preenche endereço sem apagar o que o operador já digitou quando a API omite o campo. */
+/**
+ * Preenche endereço sem apagar o que o operador já digitou quando a API omite o campo.
+ * O complemento do CEP é anotação da rua (lado, faixa), não sala/conjunto do parceiro.
+ */
 export function patchEnderecoFromCep(
   d: CepConsulta,
   current: {
@@ -2445,7 +2448,7 @@ export function patchEnderecoFromCep(
 } {
   return {
     logradouro: d.logradouro?.trim() || current.logradouro || '',
-    complemento: d.complemento?.trim() || current.complemento || '',
+    complemento: current.complemento?.trim() || '',
     bairro: d.bairro?.trim() || current.bairro || '',
     municipio: d.localidade?.trim() || current.municipio || '',
     uf: (d.uf?.trim() || current.uf || '').toUpperCase(),
@@ -2456,7 +2459,7 @@ export function patchEnderecoFromCep(
 export function mensagemCepImportado(d: CepConsulta, entrega = false): string {
   const prefix = entrega ? 'Endereço de entrega importado via CEP' : 'Endereço importado via CEP';
   if (!d.logradouro?.trim() || !d.bairro?.trim()) {
-    return `${prefix} — complete logradouro e bairro se estiverem vazios.`;
+    return `${prefix} — complete logradouro e bairro se estiverem vazios. Informe o número. Complemento, se houver, é opcional.`;
   }
   if (!d.ibge?.trim()) {
     return `${prefix} — confira o código IBGE.`;

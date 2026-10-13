@@ -33,6 +33,7 @@ import {
   isFormaPagamentoCanonica,
   type PoliticaComercialParceiro,
 } from '../lib/condicoesComerciais';
+import { aplicarCnpjNoParceiro } from '../lib/parceiroCnpj';
 import {
   deriveIndIeDest,
   indIeDestLabel,
@@ -202,39 +203,9 @@ type ParceiroFormData = {
   codigo?: string;
 };
 
-function applyCnpjToParceiroForm(
-  form: ParceiroFormData,
-  d: CnpjConsulta,
-): Partial<ParceiroFormData> {
-  const cnae =
-    d.cnae ??
-    (d.cnae_fiscal != null ? String(d.cnae_fiscal).padStart(7, '0') : form.cnae);
-
-  return {
-    razao_social: d.razao_social ?? form.razao_social,
-    nome_fantasia: d.nome_fantasia ?? form.nome_fantasia,
-    logradouro: d.logradouro ?? form.logradouro,
-    numero: d.numero ?? form.numero,
-    complemento: d.complemento ?? form.complemento,
-    bairro: d.bairro ?? form.bairro,
-    municipio: d.municipio ?? form.municipio,
-    uf: d.uf ?? form.uf,
-    cep: d.cep ? onlyDigits(d.cep) : form.cep,
-    ibge: d.ibge ?? (d.codigo_municipio_ibge != null ? String(d.codigo_municipio_ibge) : form.ibge),
-    telefone: d.telefone ?? d.ddd_telefone_1 ?? form.telefone,
-    email: d.email ?? form.email,
-    regime: d.regime_sugerido ?? form.regime,
-    regime_desde:
-      d.regime_sugerido && !form.regime_desde
-        ? new Date().toISOString().slice(0, 10)
-        : form.regime_desde,
-    area_incentivada:
-      suggestAreaIncentivada(d.uf ?? form.uf, form.suframa) || form.area_incentivada,
-    cnae: onlyDigits(cnae).slice(0, 7),
-    cnaes_secundarios: d.cnaes_secundarios
-      ? normalizeCnaesSecundarios(d.cnaes_secundarios)
-      : form.cnaes_secundarios,
-  };
+function textoOuNull(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed;
 }
 
 let uid = 0;
@@ -582,9 +553,9 @@ function toPayload(form: ParceiroFormData): Record<string, unknown> {
         )
         .map((e, index) => ({
           apelido: e.apelido || null,
-          logradouro: e.logradouro || null,
-          numero: e.numero || null,
-          complemento: e.complemento || null,
+          logradouro: textoOuNull(e.logradouro),
+          numero: textoOuNull(e.numero),
+          complemento: textoOuNull(e.complemento),
           bairro: e.bairro || null,
           municipio: e.municipio || null,
           uf: e.uf || null,
@@ -642,9 +613,9 @@ function toPayload(form: ParceiroFormData): Record<string, unknown> {
     papel_entidade: form.papel_entidade,
     papel_vendedor: form.papel_vendedor,
     papel_contador: form.papel_contador,
-    logradouro: form.logradouro || null,
-    numero: form.numero || null,
-    complemento: form.complemento || null,
+    logradouro: textoOuNull(form.logradouro),
+    numero: textoOuNull(form.numero),
+    complemento: textoOuNull(form.complemento),
     bairro: form.bairro || null,
     municipio: form.municipio || null,
     uf: form.uf || null,
@@ -862,7 +833,7 @@ export function ParceiroFormPage() {
 
         const digits = onlyDigits(mapped.cnpj_cpf);
         if (mapped.tipo_pessoa === 'PJ' && digits.length === 14) {
-          void applyCnpjConsulta(digits, mapped, token, true);
+          void applyCnpjConsulta(digits, token, true);
         }
       } catch {
         if (token !== loadTokenRef.current) return;
@@ -962,12 +933,7 @@ export function ParceiroFormPage() {
     });
   };
 
-  const applyCnpjConsulta = async (
-    digits: string,
-    base: ParceiroFormData,
-    token: number,
-    silent = false,
-  ) => {
+  const applyCnpjConsulta = async (digits: string, token: number, silent = false) => {
     setConsulting('cnpj');
     if (!silent) {
       setError('');
@@ -978,10 +944,16 @@ export function ParceiroFormPage() {
       if (token !== loadTokenRef.current) return;
       const d = res.data;
       setConsulta(d);
-      update(applyCnpjToParceiroForm(base, d));
+      let mensagem = '';
+      setForm((prev) => {
+        const aplicado = aplicarCnpjNoParceiro(prev, d, silent ? 'silent' : 'explicit');
+        mensagem = aplicado.mensagem;
+        return aplicado.ficha;
+      });
       if (!silent) {
         setMessage(
-          'Dados do CNPJ importados (identidade, endereço, CNAE e regime). Confira as abas Atividades, Fiscal e Sócios.',
+          mensagem ||
+            'Dados do CNPJ importados (identidade, CNAE e regime). Confira as abas Atividades, Fiscal e Sócios.',
         );
       }
     } catch (err) {
@@ -1090,7 +1062,12 @@ export function ParceiroFormPage() {
     try {
       const res = await api.get<{ data: CepConsulta }>(`/consulta/cep/${digits}`);
       const d = res.data;
-      updateEnderecoEntrega(key, patchEnderecoFromCep(d, row ?? {}));
+      setForm((prev) => ({
+        ...prev,
+        enderecos_entrega: prev.enderecos_entrega.map((e) =>
+          e.key === key ? { ...e, ...patchEnderecoFromCep(d, e) } : e,
+        ),
+      }));
       setMessage(mensagemCepImportado(d, true));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro na consulta CEP.');
@@ -1146,7 +1123,7 @@ export function ParceiroFormPage() {
       return;
     }
     const token = ++loadTokenRef.current;
-    await applyCnpjConsulta(digits, form, token, false);
+    await applyCnpjConsulta(digits, token, false);
   };
 
   const consultarCep = async () => {
@@ -1160,9 +1137,14 @@ export function ParceiroFormPage() {
     try {
       const res = await api.get<{ data: CepConsulta }>(`/consulta/cep/${digits}`);
       const d = res.data;
-      update({
-        ...patchEnderecoFromCep(d, form),
-        area_incentivada: suggestAreaIncentivada(d.uf ?? form.uf, form.suframa) || form.area_incentivada,
+      setForm((prev) => {
+        const endereco = patchEnderecoFromCep(d, prev);
+        return {
+          ...prev,
+          ...endereco,
+          area_incentivada:
+            suggestAreaIncentivada(endereco.uf || prev.uf, prev.suframa) || prev.area_incentivada,
+        };
       });
       setMessage(mensagemCepImportado(d));
     } catch (err) {
@@ -1412,6 +1394,8 @@ export function ParceiroFormPage() {
 
   const handleSave = async () => {
     if (!canWrite && !canCredito && !canBancario) return;
+    loadTokenRef.current += 1;
+    setConsulting(null);
     setSaving(true);
     setError('');
     setMessage('');
