@@ -11,6 +11,7 @@ use App\Models\Produto;
 use App\Services\Cadastros\ParceiroFiscalRules;
 use App\Services\Fiscal\FiscalSaidaDefaults;
 use App\Services\Fiscal\NfeEnderecoSchema;
+use App\Services\Fiscal\NfeTextoSchema;
 use App\Services\Fiscal\NfeVolumeNumeracao;
 use App\Services\Fiscal\NfeIbsCbs;
 use App\Services\Fiscal\NfeItemTexto;
@@ -550,6 +551,6 @@ final class NfeXmlBuilder
 
     private function esc(string $s): string
     {
-        return htmlspecialchars($s, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars(NfeTextoSchema::texto($s), ENT_XML1 | ENT_QUOTES, 'UTF-8');
     }
 }

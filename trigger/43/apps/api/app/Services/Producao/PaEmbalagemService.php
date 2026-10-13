@@ -355,7 +355,7 @@ class PaEmbalagemService
             $e->loadMissing('pedidoItem');
             $nome = trim((string) ($e->pedidoItem?->descricao ?? ''));
             $fisico = (int) $e->qtde_bobinas.' BOB · '.(int) $e->qtde_caixas.' CX';
-            $partes[] = $nome !== '' ? $nome.' — '.$fisico : $fisico;
+            $partes[] = $nome !== '' ? $nome.' - '.$fisico : $fisico;
         }
         if ($partes === []) {
             return null;
