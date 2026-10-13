@@ -57,6 +57,7 @@ class FocusPayloadBuilder
         $fat->loadMissing('transportador');
         $modFrete = $this->modalidadeFreteDoFat($fat);
         $transpFocus = $this->transporte->focusTransportador($fat->transportador);
+        $enderecoDest = $this->enderecoDestinatario($dest, $ufDest);
 
         $mapped = [];
         $n = 0;
@@ -129,14 +130,14 @@ class FocusPayloadBuilder
                 : null,
             'indicador_inscricao_estadual_destinatario' => $ind,
             'email_destinatario' => $dest->email_xml ?: $dest->email,
-            'logradouro_destinatario' => $dest->logradouro,
-            'numero_destinatario' => $dest->numero ?: 'S/N',
-            'complemento_destinatario' => $dest->complemento,
-            'bairro_destinatario' => $dest->bairro,
-            'municipio_destinatario' => $dest->municipio,
-            'uf_destinatario' => $ufDest,
-            'cep_destinatario' => preg_replace('/\D/', '', (string) $dest->cep),
-            'codigo_municipio_destinatario' => preg_replace('/\D/', '', (string) $dest->ibge),
+            'logradouro_destinatario' => $enderecoDest['logradouro'],
+            'numero_destinatario' => $enderecoDest['numero'],
+            'complemento_destinatario' => $enderecoDest['complemento'],
+            'bairro_destinatario' => $enderecoDest['bairro'],
+            'municipio_destinatario' => $enderecoDest['municipio'],
+            'uf_destinatario' => $enderecoDest['uf'],
+            'cep_destinatario' => $enderecoDest['cep'],
+            'codigo_municipio_destinatario' => $enderecoDest['ibge'],
             'pais_destinatario' => FiscalSaidaDefaults::PAIS,
             'serie' => FiscalSaidaDefaults::SERIE_NFE,
             'items' => $mapped,
@@ -179,6 +180,42 @@ class FocusPayloadBuilder
         }
 
         return ['payload' => $payload, 'http' => $this->paraEnvio($payload)];
+    }
+
+    /**
+     * S/N só quando o restante do endereço já fecha o schema. Campo vazio não vira "S/N" na prévia.
+     *
+     * @return array{
+     *     logradouro: ?string,
+     *     numero: ?string,
+     *     complemento: ?string,
+     *     bairro: ?string,
+     *     municipio: ?string,
+     *     uf: ?string,
+     *     cep: ?string,
+     *     ibge: ?string
+     * }
+     */
+    private function enderecoDestinatario(Parceiro $dest, string $ufDest): array
+    {
+        $normal = NfeEnderecoSchema::paraXml(NfeEnderecoSchema::ler($dest));
+        if ($normal !== null) {
+            return $normal;
+        }
+
+        $texto = static fn (mixed $valor): ?string => ($t = trim((string) ($valor ?? ''))) !== '' ? $t : null;
+        $digitos = static fn (mixed $valor): ?string => ($d = preg_replace('/\D/', '', (string) ($valor ?? '')) ?: '') !== '' ? $d : null;
+
+        return [
+            'logradouro' => $texto($dest->logradouro),
+            'numero' => $texto($dest->numero),
+            'complemento' => $texto($dest->complemento),
+            'bairro' => $texto($dest->bairro),
+            'municipio' => $texto($dest->municipio),
+            'uf' => $ufDest !== '' ? $ufDest : null,
+            'cep' => $digitos($dest->cep),
+            'ibge' => $digitos($dest->ibge),
+        ];
     }
 
     private function modalidadeFreteDoFat(Faturamento $fat): int

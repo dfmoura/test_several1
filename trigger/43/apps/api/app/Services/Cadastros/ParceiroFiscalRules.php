@@ -2,6 +2,8 @@
 
 namespace App\Services\Cadastros;
 
+use App\Services\Fiscal\NfeEnderecoSchema;
+
 /**
  * Regras fiscais do cadastro de parceiro (NF-e dest / preparação Lucro Real).
  *
@@ -208,30 +210,7 @@ class ParceiroFiscalRules
             $pendencias[] = 'Identificação do estrangeiro (documento ou nome)';
         }
 
-        foreach ([
-            'logradouro' => 'Logradouro',
-            'numero' => 'Número',
-            'bairro' => 'Bairro',
-            'municipio' => 'Município',
-        ] as $field => $label) {
-            if (trim((string) ($attrs[$field] ?? '')) === '') {
-                $pendencias[] = $label;
-            }
-        }
-
-        $uf = trim((string) ($attrs['uf'] ?? ''));
-        $cep = preg_replace('/\D/', '', (string) ($attrs['cep'] ?? '')) ?: '';
-        $ibge = preg_replace('/\D/', '', (string) ($attrs['ibge'] ?? '')) ?: '';
-
-        if (strlen($uf) !== 2) {
-            $pendencias[] = 'UF';
-        }
-        if (strlen($cep) !== 8) {
-            $pendencias[] = 'CEP (8 dígitos)';
-        }
-        if (strlen($ibge) !== 7) {
-            $pendencias[] = 'Código IBGE do município (7 dígitos)';
-        }
+        $pendencias = array_merge($pendencias, NfeEnderecoSchema::pendencias($attrs));
 
         $ie = self::normalizeIe($attrs['ie'] ?? null);
         $ind = (int) ($attrs['ind_ie_dest'] ?? self::deriveIndIeDest($ie));

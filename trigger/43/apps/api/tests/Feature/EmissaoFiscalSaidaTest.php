@@ -329,6 +329,62 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertSame(1, DocumentoFiscalSaida::query()->count());
     }
 
+    public function test_endereco_incompleto_nao_envia_nfe_nem_consome_numero(): void
+    {
+        $this->habilitarSefazFake();
+        $this->parceiro->forceFill([
+            'logradouro' => null,
+            'numero' => null,
+            'bairro' => null,
+        ])->save();
+
+        $ped = $this->criarPedidoProduzido();
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $ok->assertCreated();
+        $this->assertSame('PENDENTE', $ok->json('data.nf_status'));
+        $this->assertSame('PLANEJADO', $ok->json('data.documentos_fiscais.0.status'));
+        $this->assertNull($ok->json('data.documentos_fiscais.0.numero'));
+        $mensagem = (string) $ok->json('data.documentos_fiscais.0.mensagem');
+        $this->assertStringContainsString('Logradouro', $mensagem);
+        $this->assertStringContainsString('Número', $mensagem);
+        $this->assertStringContainsString('Bairro', $mensagem);
+
+        $payload = DocumentoFiscalSaida::query()->firstOrFail()->payload_json;
+        $this->assertIsArray($payload);
+        $this->assertArrayNotHasKey('numero_destinatario', $payload);
+    }
+
+    public function test_numero_ausente_com_endereco_completo_emite_sn(): void
+    {
+        $this->habilitarSefazFake();
+        $this->parceiro->numero = null;
+        $this->parceiro->save();
+
+        $ped = $this->criarPedidoProduzido();
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $ok->assertCreated();
+        $this->assertSame('AUTORIZADO', $ok->json('data.documentos_fiscais.0.status'));
+
+        $payload = DocumentoFiscalSaida::query()->firstOrFail()->payload_json;
+        $this->assertIsArray($payload);
+        $this->assertSame('S/N', $payload['numero_destinatario'] ?? null);
+        $this->assertSame('Rua Cliente', $payload['logradouro_destinatario'] ?? null);
+
+        $fat = Faturamento::query()->firstOrFail();
+        $fat->load(['transportador', 'itens', 'pedido', 'titulos']);
+        $itens = app(FocusPayloadBuilder::class)->itensFiscaisParaPayload($fat->itens);
+        $xml = app(NfeXmlBuilder::class)->montar(
+            $this->empresa,
+            $this->parceiro->fresh(),
+            $fat,
+            $itens,
+            ['serie' => 1, 'numero' => 1],
+            2,
+        )['xml'];
+        $this->assertStringContainsString('<nro>S/N</nro>', $xml);
+        $this->assertStringContainsString('<xLgr>Rua Cliente</xLgr>', $xml);
+    }
+
     public function test_stub_local_autoriza_nfse_sem_valor_fiscal(): void
     {
         config([

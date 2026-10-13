@@ -70,6 +70,38 @@ class ParceiroFiscalRulesTest extends TestCase
         $this->assertNotEmpty($result['pendencias_emissao']);
     }
 
+    public function test_numero_vazio_com_endereco_completo_nao_bloqueia(): void
+    {
+        $base = [
+            'papel_cliente' => true,
+            'tipo_pessoa' => 'PJ',
+            'cnpj_cpf' => '01423183000110',
+            'razao_social' => 'Cliente Teste',
+            'ie' => '123456789',
+            'ind_ie_dest' => 1,
+            'finalidade' => 'REVENDA',
+            'email_xml' => 'xml@cliente.com',
+            'logradouro' => 'Rua A',
+            'numero' => '',
+            'bairro' => 'Centro',
+            'municipio' => 'Uberlândia',
+            'uf' => 'MG',
+            'cep' => '38400000',
+            'ibge' => '3170206',
+            'emite_documento_fiscal' => true,
+            'situacao' => 'ATIVO',
+            'ie_status' => 'OK',
+        ];
+
+        $semNumero = ParceiroFiscalRules::evaluate($base);
+        $this->assertTrue($semNumero['completo']);
+        $this->assertNotContains('Número', $semNumero['pendencias']);
+
+        $semRua = ParceiroFiscalRules::evaluate(array_merge($base, ['logradouro' => 'R']));
+        $this->assertContains('Logradouro', $semRua['pendencias']);
+        $this->assertContains('Número', $semRua['pendencias']);
+    }
+
     public function test_suggest_area_incentivada_for_am(): void
     {
         $this->assertTrue(ParceiroFiscalRules::suggestAreaIncentivada('AM'));

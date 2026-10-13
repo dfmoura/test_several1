@@ -10,6 +10,7 @@ use App\Models\Pedido;
 use App\Models\Produto;
 use App\Services\Cadastros\ParceiroFiscalRules;
 use App\Services\Fiscal\FiscalSaidaDefaults;
+use App\Services\Fiscal\NfeEnderecoSchema;
 use App\Services\Fiscal\NfeIbsCbs;
 use App\Services\Fiscal\NfeItemTexto;
 use App\Services\Fiscal\FiscalSaidaTransporte;
@@ -161,8 +162,8 @@ final class NfeXmlBuilder
                 .'</det>';
         }
 
-        $destXml = $this->destXml($dest, $docDest, $ieDest, $indIe, $ufDest, $tpAmb);
-        $emitXml = $this->emitXml($empresa, $cnpjEmp, $ufEmp);
+        $destXml = $this->destXml($dest, $docDest, $ieDest, $indIe, $tpAmb);
+        $emitXml = $this->emitXml($empresa, $cnpjEmp);
         $transpXml = $this->transpXml($fat, $modFrete, $volTransp);
         $pagXml = $this->pagXml($fat, $valor);
         $infCpl = $this->infAdicionais($fat, $ecoCpl);
@@ -320,7 +321,7 @@ final class NfeXmlBuilder
         return '0';
     }
 
-    private function emitXml(Empresa $empresa, string $cnpj, string $uf): string
+    private function emitXml(Empresa $empresa, string $cnpj): string
     {
         $ie = preg_replace('/\D/', '', (string) $empresa->ie) ?: '';
         $crt = (int) ($empresa->crt ?? 1);
@@ -329,23 +330,13 @@ final class NfeXmlBuilder
             .'<CNPJ>'.$cnpj.'</CNPJ>'
             .'<xNome>'.$this->esc(mb_substr((string) $empresa->razao_social, 0, 60)).'</xNome>'
             .($empresa->nome_fantasia ? '<xFant>'.$this->esc(mb_substr((string) $empresa->nome_fantasia, 0, 60)).'</xFant>' : '')
-            .'<enderEmit>'
-            .'<xLgr>'.$this->esc((string) $empresa->logradouro).'</xLgr>'
-            .'<nro>'.$this->esc((string) ($empresa->numero ?: 'S/N')).'</nro>'
-            .($empresa->complemento ? '<xCpl>'.$this->esc((string) $empresa->complemento).'</xCpl>' : '')
-            .'<xBairro>'.$this->esc((string) $empresa->bairro).'</xBairro>'
-            .'<cMun>'.(preg_replace('/\D/', '', (string) $empresa->ibge) ?: '0000000').'</cMun>'
-            .'<xMun>'.$this->esc((string) $empresa->municipio).'</xMun>'
-            .'<UF>'.$uf.'</UF>'
-            .'<CEP>'.str_pad(preg_replace('/\D/', '', (string) $empresa->cep) ?: '0', 8, '0', STR_PAD_LEFT).'</CEP>'
-            .'<cPais>1058</cPais><xPais>Brasil</xPais>'
-            .'</enderEmit>'
+            .'<enderEmit>'.$this->enderecoTags($empresa, 'emitente').'</enderEmit>'
             .($ie !== '' ? '<IE>'.$ie.'</IE>' : '')
             .'<CRT>'.$crt.'</CRT>'
             .'</emit>';
     }
 
-    private function destXml(Parceiro $dest, string $doc, string $ie, int $indIe, string $uf, int $tpAmb = 1): string
+    private function destXml(Parceiro $dest, string $doc, string $ie, int $indIe, int $tpAmb = 1): string
     {
         $docTag = strlen($doc) === 11 ? '<CPF>'.$doc.'</CPF>' : '<CNPJ>'.str_pad($doc, 14, '0', STR_PAD_LEFT).'</CNPJ>';
         $ieXml = '';
@@ -360,21 +351,29 @@ final class NfeXmlBuilder
         return '<dest>'
             .$docTag
             .'<xNome>'.$xNome.'</xNome>'
-            .'<enderDest>'
-            .'<xLgr>'.$this->esc((string) $dest->logradouro).'</xLgr>'
-            .'<nro>'.$this->esc((string) ($dest->numero ?: 'S/N')).'</nro>'
-            .($dest->complemento ? '<xCpl>'.$this->esc((string) $dest->complemento).'</xCpl>' : '')
-            .'<xBairro>'.$this->esc((string) $dest->bairro).'</xBairro>'
-            .'<cMun>'.(preg_replace('/\D/', '', (string) $dest->ibge) ?: '0000000').'</cMun>'
-            .'<xMun>'.$this->esc((string) $dest->municipio).'</xMun>'
-            .'<UF>'.$uf.'</UF>'
-            .'<CEP>'.str_pad(preg_replace('/\D/', '', (string) $dest->cep) ?: '0', 8, '0', STR_PAD_LEFT).'</CEP>'
-            .'<cPais>1058</cPais><xPais>Brasil</xPais>'
-            .'</enderDest>'
+            .'<enderDest>'.$this->enderecoTags($dest, 'destinatário').'</enderDest>'
             .'<indIEDest>'.$indIe.'</indIEDest>'
             .$ieXml
             .(($dest->email_xml ?: $dest->email) ? '<email>'.$this->esc((string) ($dest->email_xml ?: $dest->email)).'</email>' : '')
             .'</dest>';
+    }
+
+    private function enderecoTags(object $fonte, string $quem): string
+    {
+        $end = NfeEnderecoSchema::paraXml(NfeEnderecoSchema::ler($fonte));
+        if ($end === null) {
+            throw new \InvalidArgumentException(NfeEnderecoSchema::mensagemBloqueio($fonte, $quem));
+        }
+
+        return '<xLgr>'.$this->esc($end['logradouro']).'</xLgr>'
+            .'<nro>'.$this->esc($end['numero']).'</nro>'
+            .($end['complemento'] !== null ? '<xCpl>'.$this->esc($end['complemento']).'</xCpl>' : '')
+            .'<xBairro>'.$this->esc($end['bairro']).'</xBairro>'
+            .'<cMun>'.$end['ibge'].'</cMun>'
+            .'<xMun>'.$this->esc($end['municipio']).'</xMun>'
+            .'<UF>'.$end['uf'].'</UF>'
+            .'<CEP>'.$end['cep'].'</CEP>'
+            .'<cPais>1058</cPais><xPais>Brasil</xPais>';
     }
 
     /**

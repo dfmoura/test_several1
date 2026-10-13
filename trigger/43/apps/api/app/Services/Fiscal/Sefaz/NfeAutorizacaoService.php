@@ -11,6 +11,7 @@ use App\Services\Cadastros\EmpresaCertificadoA1Materializer;
 use App\Services\Cadastros\EmpresaCertificadoA1Service;
 use App\Services\Fiscal\FiscalSaidaDefaults;
 use App\Services\Fiscal\FocusPayloadBuilder;
+use App\Services\Fiscal\NfeEnderecoSchema;
 use RuntimeException;
 
 /**
@@ -71,6 +72,8 @@ final class NfeAutorizacaoService
         if ($itens === []) {
             throw new RuntimeException('Sem itens de mercadoria para NF-e.');
         }
+        $this->exigirEnderecoSchema($empresa, 'emitente');
+        $this->exigirEnderecoSchema($dest, 'destinatário');
         $num = $this->numeracao->reservar($empresa);
         $built = $this->builder->montar($empresa, $dest, $fat, $itens, $num, $this->tpAmb());
 
@@ -180,5 +183,14 @@ final class NfeAutorizacaoService
         } finally {
             $this->materializer->liberar($material);
         }
+    }
+
+    private function exigirEnderecoSchema(object $fonte, string $quem): void
+    {
+        if (NfeEnderecoSchema::paraXml(NfeEnderecoSchema::ler($fonte)) !== null) {
+            return;
+        }
+
+        throw new RuntimeException(NfeEnderecoSchema::mensagemBloqueio($fonte, $quem));
     }
 }
