@@ -165,7 +165,9 @@ class FocusPayloadBuilder
                     : null,
                 'especie' => $volTransp['especie'] ?? null,
                 'marca' => $volTransp['marca'] ?? null,
-                'numeracao' => $volTransp['numeracao'] ?? null,
+                'numeracao' => NfeVolumeNumeracao::paraXml(
+                    isset($volTransp['numeracao']) ? (string) $volTransp['numeracao'] : null
+                ),
                 'peso_liquido' => $volTransp['peso_liquido'] ?? null,
                 'peso_bruto' => $volTransp['peso_bruto'] ?? null,
             ], fn ($v) => $v !== null && $v !== '');

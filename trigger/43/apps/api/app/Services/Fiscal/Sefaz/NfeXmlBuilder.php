@@ -11,6 +11,7 @@ use App\Models\Produto;
 use App\Services\Cadastros\ParceiroFiscalRules;
 use App\Services\Fiscal\FiscalSaidaDefaults;
 use App\Services\Fiscal\NfeEnderecoSchema;
+use App\Services\Fiscal\NfeVolumeNumeracao;
 use App\Services\Fiscal\NfeIbsCbs;
 use App\Services\Fiscal\NfeItemTexto;
 use App\Services\Fiscal\FiscalSaidaTransporte;
@@ -419,8 +420,9 @@ final class NfeXmlBuilder
             if (! empty($vol['marca'])) {
                 $miolo .= '<marca>'.$this->esc((string) $vol['marca']).'</marca>';
             }
-            if (! empty($vol['numeracao'])) {
-                $miolo .= '<nVol>'.$this->esc((string) $vol['numeracao']).'</nVol>';
+            $nVol = NfeVolumeNumeracao::paraXml(isset($vol['numeracao']) ? (string) $vol['numeracao'] : null);
+            if ($nVol !== null) {
+                $miolo .= '<nVol>'.$this->esc($nVol).'</nVol>';
             }
             if (! empty($vol['peso_liquido'])) {
                 $miolo .= '<pesoL>'.$vol['peso_liquido'].'</pesoL>';

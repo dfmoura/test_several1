@@ -12,6 +12,7 @@ use App\Models\PaEmbalagemCaixa;
 use App\Models\Pedido;
 use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
+use App\Services\Fiscal\NfeVolumeNumeracao;
 use App\Support\CaixaMedida;
 use App\Support\PadraoDecimal;
 use App\Support\RoloCaixaEncaixe;
@@ -405,7 +406,7 @@ class PaEmbalagemService
 
     /**
      * Volume da NF-e. Quantidade/espécie só com caixa confirmada.
-     * Marca = nome do emitente. Numeração = códigos CX ou faixa 1–N.
+     * Marca = nome do emitente. Numeração = faixa CX (nVol, até 60).
      * Peso (kg, 3 casas) só com dado real: KG na OP, ou m²/m × gramatura_g_m2 do SKU.
      * Sem a gramatura no cadastro do papel, o peso fica vazio — não se inventa kg, placa, ANTT nem tara.
      *
@@ -449,24 +450,15 @@ class PaEmbalagemService
      */
     private function numeracaoVolumes($confirmadas, int $caixas): string
     {
-        $codigos = [];
+        $sequencias = [];
         foreach ($confirmadas as $e) {
             $e->loadMissing('caixas');
             foreach ($e->caixas as $c) {
-                $cod = trim((string) $c->codigo);
-                if ($cod !== '') {
-                    $codigos[] = $cod;
-                }
+                $sequencias[] = (int) $c->sequencia;
             }
         }
-        if ($codigos !== []) {
-            return mb_substr(implode(',', $codigos), 0, 60);
-        }
-        if ($caixas > 1) {
-            return '1-'.$caixas;
-        }
 
-        return '1';
+        return NfeVolumeNumeracao::nVol($sequencias, $caixas);
     }
 
     /**
