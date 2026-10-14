@@ -36,7 +36,6 @@ const SORT = {
   codigo: (o: Orcamento) => o.codigo,
   parceiro: (o: Orcamento) => o.cliente_nome,
   status: (o: Orcamento) => o.status,
-  versao: (o: Orcamento) => o.versao,
   matriz: (o: Orcamento) =>
     o.cobra_matriz && o.valor_matriz != null ? Number(o.valor_matriz) : null,
   faixa: (o: Orcamento) => totalPrimeiraFaixa(o),
@@ -218,16 +217,6 @@ export function OrcamentosPage() {
                     </SortableTh>
                     <th title="Decisão do cliente sobre os modelos">Modelos</th>
                     <SortableTh
-                      column="versao"
-                      sorts={sorts} sortKey={sortKey}
-                      sortDir={sortDir}
-                      onSort={requestSort}
-                      label="Versão"
-                      className="num"
-                    >
-                      Ver.
-                    </SortableTh>
-                    <SortableTh
                       column="matriz"
                       sorts={sorts} sortKey={sortKey}
                       sortDir={sortDir}
@@ -300,7 +289,6 @@ export function OrcamentosPage() {
                             <span className="muted">—</span>
                           )}
                         </td>
-                        <td className="num">v{o.versao}</td>
                         <td className="num">
                           {o.cobra_matriz ? formatCurrency(o.valor_matriz) : '—'}
                         </td>
