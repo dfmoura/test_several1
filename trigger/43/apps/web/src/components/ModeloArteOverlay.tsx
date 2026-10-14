@@ -355,6 +355,7 @@ export function ModeloArteOverlay({
   const zoomReset = () => setZoom(1);
 
   const hasPreview = Boolean(svgMarkup || rasterSrc);
+  const mostrarDecisao = Boolean(onDecidir || decisao);
 
   if (!open || typeof document === 'undefined') return null;
 
@@ -416,6 +417,39 @@ export function ModeloArteOverlay({
         </div>
 
         <div className="modelo-arte-preview__body">
+          {mostrarDecisao ? (
+            <div className="modelo-arte-preview__decisao">
+              <ModeloDecisaoSelo decisao={decisao} pendente={Boolean(onDecidir)} />
+              {onDecidir ? (
+                <>
+                  <div className="btn-row">
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      aria-pressed={decisao === 'APROVADO'}
+                      disabled={decidindo}
+                      onClick={() => onDecidir('APROVAR')}
+                    >
+                      Aprovar modelo
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      aria-pressed={decisao === 'REPROVADO'}
+                      disabled={decidindo}
+                      onClick={() => onDecidir('REPROVAR')}
+                    >
+                      Reprovar modelo
+                    </button>
+                  </div>
+                  <p className="form-hint modelo-arte-preview__hint">
+                    Pode trocar esta decisão até aprovar ou recusar a proposta.
+                  </p>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+
           {hasPreview ? (
             <div className="modelo-arte-preview__frame">
               <div
@@ -492,39 +526,6 @@ export function ModeloArteOverlay({
           ) : null}
 
           {erro ? <p className="form-error">{erro}</p> : null}
-
-          {onDecidir || decisao ? (
-            <div className="modelo-arte-preview__decisao">
-              <ModeloDecisaoSelo decisao={decisao} pendente={Boolean(onDecidir)} />
-              {onDecidir ? (
-                <>
-                  <div className="btn-row">
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      aria-pressed={decisao === 'APROVADO'}
-                      disabled={decidindo}
-                      onClick={() => onDecidir('APROVAR')}
-                    >
-                      Aprovar modelo
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      aria-pressed={decisao === 'REPROVADO'}
-                      disabled={decidindo}
-                      onClick={() => onDecidir('REPROVAR')}
-                    >
-                      Reprovar modelo
-                    </button>
-                  </div>
-                  <p className="form-hint modelo-arte-preview__hint">
-                    Pode trocar esta decisão até aprovar ou recusar a proposta.
-                  </p>
-                </>
-              ) : null}
-            </div>
-          ) : null}
         </div>
       </div>
     </div>,

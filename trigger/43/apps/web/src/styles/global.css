@@ -4792,9 +4792,8 @@ table.data-table td.acoes {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem 1rem;
-  margin-top: 0.85rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .modelo-arte-preview__decisao .btn-row {
