@@ -45,7 +45,8 @@ motor (R1–R20 ou serviço)
 ### UX (interno)
 
 - Formulário ORC: campo **Gordura** (R$), nota “interno — cliente não vê”.
-- Resultado / composição / ficha operacional A4: mostram a linha quando > 0.
+- Edição, aba **Composição comercial → Totais**: o mesmo `valor_gordura` do item. Um campo na linha, igual em todas as faixas. Ao sair, recalcula pelo enrich já existente. Serviço, matriz, faca, arte, frete e total da proposta permanecem leitura.
+- Resultado / composição / ficha operacional A4: mostram a linha quando > 0. Detalhe e proposta não editam.
 - Proposta pública, prévia comercial e ficha do cliente: **omitidos**.
 
 ---

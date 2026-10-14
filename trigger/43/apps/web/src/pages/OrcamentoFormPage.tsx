@@ -892,6 +892,41 @@ export function OrcamentoFormPage() {
     }
   };
 
+  const handleCommitGordura = async (valor: number) => {
+    const nextValor = Math.max(0, Math.round((valor + Number.EPSILON) * 100) / 100);
+    const atual = Math.max(0, Math.round(((Number(form.valor_gordura) || 0) + Number.EPSILON) * 100) / 100);
+    const resultItem =
+      calculo && Array.isArray(calculo.itens) && calculo.itens.length > 1
+        ? (calculo.itens[ativo]?.result ?? calculo)
+        : calculo;
+    const aplicada = Math.max(
+      0,
+      Math.round(((Number(resultItem?.valor_gordura) || 0) + Number.EPSILON) * 100) / 100,
+    );
+    if (nextValor === atual && nextValor === aplicada) return;
+    const nextForm: OrcForm = { ...form, valor_gordura: nextValor };
+    const nextItens = itens.map((item, i) => (i === ativo ? nextForm : item));
+    setItens(nextItens);
+    const v = validateClient();
+    if (v) {
+      setErro(v);
+      return;
+    }
+    setPending(true);
+    setErro(null);
+    try {
+      const res = await api.post<{ data: OrcamentoResult }>(
+        '/orcamentos/calcular',
+        payloadFromFormDocumento(nextItens, rotulos),
+      );
+      setCalculo(res.data);
+    } catch (e) {
+      setErro(e instanceof ApiError ? e.message : 'Falha ao recalcular a gordura');
+    } finally {
+      setPending(false);
+    }
+  };
+
   const handleSalvar = async () => {
     if (!canWrite) return;
     const v = validateClient();
@@ -2147,6 +2182,10 @@ export function OrcamentoFormPage() {
             caixaMedidaEscolhida={modoPrecoComercial ? '' : form.caixa_medida}
             onEscolherCaixa={
               modoPrecoComercial || !canWrite ? undefined : handleEscolherCaixa
+            }
+            valorGordura={form.valor_gordura}
+            onCommitGordura={
+              modoPrecoComercial || !canWrite ? undefined : handleCommitGordura
             }
             aplicandoParametros={pending}
             guiaEspec={

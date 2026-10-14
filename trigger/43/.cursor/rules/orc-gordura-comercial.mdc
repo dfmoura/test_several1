@@ -20,6 +20,7 @@ Norma: `docs/ADR_ORC_GORDURA_COMERCIAL.md`.
 - Tratar gordura como pad comercial interno em R$ (proposta/ficha do cliente sem a linha).
 - Manter PED/FAT/comissão no `valor_etiqueta` já com pad.
 - Mostrar no formulário, resultado/composição e ficha operacional A4.
+- Na edição, Totais da composição gravam o mesmo `valor_gordura` e recalculam pelo enrich.
 
 ## Não faça
 

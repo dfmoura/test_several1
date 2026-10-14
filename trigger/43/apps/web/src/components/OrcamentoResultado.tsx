@@ -36,6 +36,7 @@ import {
 } from '../lib/orcamentoResultadoItens';
 import { SortableTh } from './SortableTh';
 import { CaixaRoloLeitura } from './CaixaRoloLeitura';
+import { NumericInput } from './NumericInput';
 
 type AbaResultado = 'comercial' | 'interno' | 'producao';
 
@@ -98,6 +99,12 @@ type Props = {
   /** Medida nomeada no item em edição. Vazio = padrão do tubete. */
   caixaMedidaEscolhida?: string;
   onEscolherCaixa?: (medida: string) => void;
+  /**
+   * Pad interno do item (`valor_gordura`). Na edição dos Totais é o mesmo campo
+   * da especificação: um valor, todas as faixas, enrich pós-motor.
+   */
+  valorGordura?: number;
+  onCommitGordura?: (valor: number) => void | Promise<void>;
   aplicandoParametros?: boolean;
   /**
    * Contextos por item (form/show). Quando omitido e calculo.itens existe, monta só com result.
@@ -124,6 +131,87 @@ function qtdeGuiaDoComponente(
 ): string {
   const qtde = porItem?.get(label)?.trim();
   return qtde ? qtde : '—';
+}
+
+type LinhaTotalComposicao = {
+  label: string;
+  valor: (fx: OrcamentoFaixaResult) => string;
+  destaque?: boolean;
+  nota?: string;
+  /** Único total editável: o mesmo `valor_gordura` do item. */
+  gordura?: boolean;
+};
+
+function linhasTotaisComposicao(opts: {
+  calculo: OrcamentoResult;
+  facaNova: boolean;
+  valorArtes: number;
+  mostrarFerramental: boolean;
+  labelFerramental: string;
+  mostrarFrete: boolean;
+  editarGordura: boolean;
+}): LinhaTotalComposicao[] {
+  const {
+    calculo,
+    facaNova,
+    valorArtes,
+    mostrarFerramental,
+    labelFerramental,
+    mostrarFrete,
+    editarGordura,
+  } = opts;
+  const gorduraAplicada = Number(calculo.valor_gordura) > 0;
+  const linhas: LinhaTotalComposicao[] = [
+    gorduraAplicada
+      ? {
+          label: 'Serviço (base)',
+          valor: (fx) => formatCurrency(fx.valor_etiqueta_base ?? fx.valor_etiqueta),
+        }
+      : {
+          label: 'Serviço arredondado',
+          valor: (fx) => formatCurrency(fx.valor_etiqueta),
+        },
+  ];
+  if (gorduraAplicada || editarGordura) {
+    linhas.push({
+      label: 'Gordura',
+      nota: 'interno — cliente não vê',
+      gordura: true,
+      valor: (fx) => formatCurrency(fx.valor_gordura ?? calculo.valor_gordura ?? 0),
+    });
+  }
+  linhas.push({
+    label: 'Matriz',
+    valor: (fx) => formatCurrency(fx.valor_matriz),
+  });
+  if (mostrarFerramental) {
+    linhas.push({
+      label: labelFerramental,
+      valor: (fx) => formatCurrency(fx.valor_faca_nova ?? calculo.valor_faca_nova ?? 0),
+    });
+  }
+  if (valorArtes > 0) {
+    linhas.push({
+      label: 'Vlr. Arte',
+      valor: (fx) => formatCurrency(fx.valor_artes ?? calculo.valor_artes ?? 0),
+    });
+  }
+  if (mostrarFrete) {
+    linhas.push({
+      label: 'Frete',
+      valor: (fx) =>
+        formatValorFrete(fx.valor_frete, {
+          aDefinir: modoComFrete(calculo.frete?.modo),
+        }),
+    });
+  }
+  linhas.push({
+    label: 'Total da proposta',
+    destaque: true,
+    valor: (fx) =>
+      formatCurrency(totalPropostaFaixa(fx, facaNova, calculo.valor_faca_nova, valorArtes)),
+  });
+  return linhas;
 }
 
 function leituraEmbalagemFaixa(
@@ -171,6 +259,8 @@ function ParametrosCalculoPanel({
   modelosComposicao,
   caixaMedidaEscolhida,
   onEscolherCaixa,
+  valorGordura = 0,
+  onCommitGordura,
 }: {
   faixas: OrcamentoFaixaResult[];
   snapshot?: Record<string, unknown>;
@@ -183,6 +273,8 @@ function ParametrosCalculoPanel({
   modelosComposicao?: ModeloComposicaoForm[] | null;
   caixaMedidaEscolhida?: string;
   onEscolherCaixa?: (medida: string) => void;
+  valorGordura?: number;
+  onCommitGordura?: (valor: number) => void | Promise<void>;
 }) {
   const [globalDraft, setGlobalDraft] = useState<Partial<Record<ParametroAjusteId, string>>>({});
   const [comissaoDraftByFaixa, setComissaoDraftByFaixa] = useState<Record<number, string>>({});
@@ -448,7 +540,7 @@ function ParametrosCalculoPanel({
       <h3 className="orc-fluxo-subtitulo">Parâmetros utilizados no cálculo</h3>
       <p className="orc-result-meta" style={{ margin: '0 0 0.75rem' }}>
         {editavel
-          ? 'Valor usado = default do catálogo (ou ajuste já gravado neste ORC). Em Ajustar, digite em qualquer faixa — parâmetros de custo alteram o ORC inteiro; comissão e imposto estim. alteram a faixa correspondente. Vazio volta ao default.'
+          ? 'Valor usado = default do catálogo (ou ajuste já gravado neste ORC). Em Ajustar, digite em qualquer faixa — parâmetros de custo alteram o ORC inteiro; comissão e imposto estim. alteram a faixa correspondente. Vazio volta ao default. Gordura, nos Totais, é o mesmo campo do item: interna, igual em todas as faixas, e recalcula ao sair do campo.'
           : 'Fotografia das tarifas efetivas neste orçamento (somente leitura).'}
       </p>
 
@@ -618,70 +710,18 @@ function ParametrosCalculoPanel({
             ))}
           </div>
 
-          {(
-            [
-              ...(Number(calculo.valor_gordura) > 0
-                ? [
-                    {
-                      label: 'Serviço (base)',
-                      valor: (fx: OrcamentoFaixaResult) =>
-                        formatCurrency(fx.valor_etiqueta_base ?? fx.valor_etiqueta),
-                    },
-                    {
-                      label: 'Gordura',
-                      valor: (fx: OrcamentoFaixaResult) =>
-                        formatCurrency(fx.valor_gordura ?? calculo.valor_gordura ?? 0),
-                    },
-                  ]
-                : [
-                    {
-                      label: 'Serviço arredondado',
-                      valor: (fx: OrcamentoFaixaResult) => formatCurrency(fx.valor_etiqueta),
-                    },
-                  ]),
-              { label: 'Matriz', valor: (fx: OrcamentoFaixaResult) => formatCurrency(fx.valor_matriz) },
-              ...(mostrarFerramental
-                ? [
-                    {
-                      label: labelFerramental,
-                      valor: (fx: OrcamentoFaixaResult) =>
-                        formatCurrency(fx.valor_faca_nova ?? calculo.valor_faca_nova ?? 0),
-                    },
-                  ]
-                : []),
-              ...(valorArtes > 0
-                ? [
-                    {
-                      label: 'Vlr. Arte',
-                      valor: (fx: OrcamentoFaixaResult) =>
-                        formatCurrency(fx.valor_artes ?? calculo.valor_artes ?? 0),
-                    },
-                  ]
-                : []),
-              ...(mostrarFrete
-                ? [
-                    {
-                      label: 'Frete',
-                      valor: (fx: OrcamentoFaixaResult) =>
-                        formatValorFrete(fx.valor_frete, {
-                          aDefinir: modoComFrete(calculo.frete?.modo),
-                        }),
-                    },
-                  ]
-                : []),
-              {
-                label: 'Total da proposta',
-                destaque: true,
-                valor: (fx: OrcamentoFaixaResult) =>
-                  formatCurrency(
-                    totalPropostaFaixa(fx, facaNova, calculo.valor_faca_nova, valorArtes),
-                  ),
-              },
-            ] as const
-          ).map((linha) => (
+          {linhasTotaisComposicao({
+            calculo,
+            facaNova,
+            valorArtes,
+            mostrarFerramental,
+            labelFerramental,
+            mostrarFrete,
+            editarGordura: Boolean(onCommitGordura),
+          }).map((linha) => (
             <div
               key={linha.label}
-              className={`orc-params-grid orc-params-grid--totais ${'destaque' in linha && linha.destaque ? 'orc-params-grid--totais-destaque' : ''}`}
+              className={`orc-params-grid orc-params-grid--totais ${linha.destaque ? 'orc-params-grid--totais-destaque' : ''} ${linha.gordura ? 'orc-params-grid--gordura' : ''}`}
               role="row"
             >
               <div
@@ -689,6 +729,23 @@ function ParametrosCalculoPanel({
                 role="rowheader"
               >
                 {linha.label}
+                {linha.nota ? <div className="field-note">{linha.nota}</div> : null}
+                {linha.gordura && onCommitGordura ? (
+                  <NumericInput
+                    className="orc-params-input orc-params-gordura-input"
+                    aria-label="Gordura em reais, interna, igual em todas as faixas"
+                    min={0}
+                    step="0.01"
+                    value={Math.max(0, Number(valorGordura) || 0)}
+                    emptyCommit={0}
+                    blankZero
+                    placeholder="0,00"
+                    disabled={aplicandoParametros}
+                    onCommit={(v) => {
+                      void onCommitGordura(v === '' ? 0 : Math.max(0, v));
+                    }}
+                  />
+                ) : null}
               </div>
               {faixas.map((fx, i) => (
                 <Fragment key={i}>
@@ -706,11 +763,7 @@ function ParametrosCalculoPanel({
                     }}
                     role="cell"
                   >
-                    {'destaque' in linha && linha.destaque ? (
-                      <strong>{linha.valor(fx)}</strong>
-                    ) : (
-                      linha.valor(fx)
-                    )}
+                    {linha.destaque ? <strong>{linha.valor(fx)}</strong> : linha.valor(fx)}
                   </div>
                 </Fragment>
               ))}
@@ -1238,6 +1291,8 @@ export function OrcamentoResultado({
   onAplicarParametros,
   caixaMedidaEscolhida = '',
   onEscolherCaixa,
+  valorGordura = 0,
+  onCommitGordura,
   aplicandoParametros = false,
   itensUi: itensUiProp = null,
   itemEdicaoOrdem,
@@ -1605,6 +1660,8 @@ export function OrcamentoResultado({
               onAplicarParametros={podeAjustarItem ? onAplicarParametros : undefined}
               caixaMedidaEscolhida={podeAjustarItem ? caixaMedidaEscolhida : ''}
               onEscolherCaixa={podeAjustarItem ? onEscolherCaixa : undefined}
+              valorGordura={podeAjustarItem ? valorGordura : Number(resultAtivo.valor_gordura) || 0}
+              onCommitGordura={podeAjustarItem ? onCommitGordura : undefined}
               aplicandoParametros={aplicandoParametros}
               motorVersion={
                 typeof resultAtivo.motor_version === 'number'

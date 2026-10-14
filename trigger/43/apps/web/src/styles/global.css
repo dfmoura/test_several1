@@ -5728,6 +5728,19 @@ table.data-table td.acoes {
   line-height: 1.2;
 }
 
+.orc-params-comparativo .orc-params-input.orc-params-gordura-input {
+  display: block;
+  flex: none;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 0.28rem;
+  text-align: right;
+}
+
+.orc-params-grid--gordura {
+  align-items: center;
+}
+
 .orc-params-comparativo .orc-params-unidade {
   flex: 0 0 auto;
   margin: 0;
