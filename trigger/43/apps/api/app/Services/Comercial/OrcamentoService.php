@@ -517,6 +517,7 @@ class OrcamentoService
             'codigo_nbs' => $tipo['codigo_nbs'],
             'necessidade' => 'SERVICO',
             'valor_gordura' => $this->normalizeValorGordura($data['valor_gordura'] ?? 0),
+            'valor_reducao' => $this->normalizeValorGordura($data['valor_reducao'] ?? 0),
             'faixas' => array_map(static fn (array $f) => [
                 'quantidade' => (float) $f['quantidade'],
                 'valor_unitario' => (float) $f['valor_unitario'],
@@ -550,6 +551,7 @@ class OrcamentoService
             'familia_fiscal' => $familia !== '' ? $familia : 'REV',
             'unidade' => $unidade,
             'valor_gordura' => $this->normalizeValorGordura($data['valor_gordura'] ?? 0),
+            'valor_reducao' => $this->normalizeValorGordura($data['valor_reducao'] ?? 0),
             'faixas' => array_map(static fn (array $f) => [
                 'quantidade' => (float) $f['quantidade'],
                 'valor_unitario' => (float) $f['valor_unitario'],
@@ -697,6 +699,7 @@ class OrcamentoService
             'maquina_roda_servico' => $data['maquina_roda_servico'] ?? $data['maquina'],
             'imposto_pct' => (float) ($data['imposto_pct'] ?? 16),
             'valor_gordura' => $this->normalizeValorGordura($data['valor_gordura'] ?? 0),
+            'valor_reducao' => $this->normalizeValorGordura($data['valor_reducao'] ?? 0),
             'matriz' => strtoupper((string) ($data['matriz'] ?? 'SIM')),
             'coluna_rebobinacao' => (int) ($data['coluna_rebobinacao'] ?? 1),
             'tipo_troca_produto' => $data['tipo_troca_produto'] ?? 'SEM PARADA',
@@ -797,6 +800,9 @@ class OrcamentoService
             'produto_descricao' => $input['produto_descricao'] ?? $data['descricao_comercial'] ?? $data['produto_descricao'] ?? null,
             'valor_gordura' => $this->normalizeValorGordura(
                 $data['valor_gordura'] ?? $input['valor_gordura'] ?? 0
+            ),
+            'valor_reducao' => $this->normalizeValorGordura(
+                $data['valor_reducao'] ?? $input['valor_reducao'] ?? 0
             ),
             'facas' => $this->persistableFacas(
                 is_array($data['facas'] ?? null)
@@ -908,10 +914,10 @@ class OrcamentoService
     }
 
     /**
-     * Anexa gordura comercial (pad interno), FACA NOVA, artes e frete
-     * sem alterar fórmulas R1–R20. Gordura infla valor_etiqueta antes dos
-     * add-ons; faca/artes entram em valor_total_com_faca → proposta.
-     * Frete nunca soma. Gordura nunca vai ao DTO público.
+     * Anexa gordura e redução comerciais (pad interno), FACA NOVA, artes e frete
+     * sem alterar fórmulas R1–R20. O líquido da etiqueta passa pelo ceiling
+     * antes dos add-ons; faca/artes entram em valor_total_com_faca → proposta.
+     * Frete nunca soma. Gordura e redução nunca vão ao DTO público.
      *
      * @param  array<string, mixed>  $result
      * @param  array<string, mixed>  $data
@@ -974,7 +980,8 @@ class OrcamentoService
 
     /**
      * Pad comercial sobre etiquetas (ADR_ORC_GORDURA_COMERCIAL).
-     * Com pct = 0 não altera faixas (compatível com ORCs legados / golden).
+     * Gordura soma e redução tira, as duas em R$ ≥ 0, antes do ceiling.
+     * Com as duas em zero não altera faixas (ORCs legados / golden).
      *
      * @param  array<string, mixed>  $result
      * @param  array<string, mixed>  $data
@@ -983,9 +990,11 @@ class OrcamentoService
     private function aplicarGordura(array $result, array $data): array
     {
         $pad = $this->normalizeValorGordura($data['valor_gordura'] ?? $result['valor_gordura'] ?? 0);
+        $reducao = $this->normalizeValorGordura($data['valor_reducao'] ?? $result['valor_reducao'] ?? 0);
         $result['valor_gordura'] = $pad;
+        $result['valor_reducao'] = $reducao;
 
-        if ($pad <= 0.0 || ! isset($result['faixas']) || ! is_array($result['faixas'])) {
+        if (($pad <= 0.0 && $reducao <= 0.0) || ! isset($result['faixas']) || ! is_array($result['faixas'])) {
             return $result;
         }
 
@@ -999,13 +1008,19 @@ class OrcamentoService
                 continue;
             }
             $base = (float) ($fx['valor_etiqueta'] ?? 0);
-            $comGordura = $this->motor->excelCeiling($base + $pad, $ceiling);
+            $liquido = max(0.0, $base + $pad - $reducao);
+            $ajustado = $this->motor->excelCeiling($liquido, $ceiling);
             $matriz = (float) ($fx['valor_matriz'] ?? 0);
 
             $result['faixas'][$i]['valor_etiqueta_base'] = $base;
-            $result['faixas'][$i]['valor_gordura'] = $pad;
-            $result['faixas'][$i]['valor_etiqueta'] = $comGordura;
-            $result['faixas'][$i]['valor_total'] = $comGordura + $matriz;
+            if ($pad > 0.0) {
+                $result['faixas'][$i]['valor_gordura'] = $pad;
+            }
+            if ($reducao > 0.0) {
+                $result['faixas'][$i]['valor_reducao'] = $reducao;
+            }
+            $result['faixas'][$i]['valor_etiqueta'] = $ajustado;
+            $result['faixas'][$i]['valor_total'] = $ajustado + $matriz;
         }
 
         return $result;

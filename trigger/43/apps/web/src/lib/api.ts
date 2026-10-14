@@ -2526,10 +2526,12 @@ export type OrcamentoFaixaResult = {
   imposto: number;
   base: number;
   valor_etiqueta: number;
-  /** Etiqueta antes da gordura (só quando valor_gordura > 0). */
+  /** Etiqueta antes da gordura ou da redução (só quando algum dos dois é > 0). */
   valor_etiqueta_base?: number;
   /** Pad comercial R$ aplicado na faixa (só quando > 0). */
   valor_gordura?: number;
+  /** Redução comercial R$ aplicada na faixa (só quando > 0). */
+  valor_reducao?: number;
   valor_matriz: number;
   valor_total: number;
   valor_faca_nova?: number;
@@ -2605,6 +2607,8 @@ export type OrcamentoResult = {
   formato_faca?: string | null;
   /** Pad comercial interno em R$ — ADR_ORC_GORDURA_COMERCIAL. */
   valor_gordura?: number;
+  /** Redução interna em R$ sobre o serviço. Fora do DTO do cliente. */
+  valor_reducao?: number;
   prazo_efetivo_dias?: number;
   prazo_referencia_em?: string | null;
   data_entrega_prevista?: string | null;

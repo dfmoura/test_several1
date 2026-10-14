@@ -892,19 +892,22 @@ export function OrcamentoFormPage() {
     }
   };
 
-  const handleCommitGordura = async (valor: number) => {
+  const handleCommitAjusteInterno = async (
+    campo: 'valor_gordura' | 'valor_reducao',
+    valor: number,
+  ) => {
     const nextValor = Math.max(0, Math.round((valor + Number.EPSILON) * 100) / 100);
-    const atual = Math.max(0, Math.round(((Number(form.valor_gordura) || 0) + Number.EPSILON) * 100) / 100);
+    const atual = Math.max(0, Math.round(((Number(form[campo]) || 0) + Number.EPSILON) * 100) / 100);
     const resultItem =
       calculo && Array.isArray(calculo.itens) && calculo.itens.length > 1
         ? (calculo.itens[ativo]?.result ?? calculo)
         : calculo;
     const aplicada = Math.max(
       0,
-      Math.round(((Number(resultItem?.valor_gordura) || 0) + Number.EPSILON) * 100) / 100,
+      Math.round(((Number(resultItem?.[campo]) || 0) + Number.EPSILON) * 100) / 100,
     );
     if (nextValor === atual && nextValor === aplicada) return;
-    const nextForm: OrcForm = { ...form, valor_gordura: nextValor };
+    const nextForm: OrcForm = { ...form, [campo]: nextValor };
     const nextItens = itens.map((item, i) => (i === ativo ? nextForm : item));
     setItens(nextItens);
     const v = validateClient();
@@ -921,7 +924,13 @@ export function OrcamentoFormPage() {
       );
       setCalculo(res.data);
     } catch (e) {
-      setErro(e instanceof ApiError ? e.message : 'Falha ao recalcular a gordura');
+      setErro(
+        e instanceof ApiError
+          ? e.message
+          : campo === 'valor_reducao'
+            ? 'Falha ao recalcular a redução'
+            : 'Falha ao recalcular a gordura',
+      );
     } finally {
       setPending(false);
     }
@@ -1520,6 +1529,21 @@ export function OrcamentoFormPage() {
                       placeholder="0,00"
                     />
                   </div>
+                  <div className="form-group">
+                    <label>
+                      Redução <span className="field-note">interno — cliente não vê</span>
+                    </label>
+                    <NumericInput
+                      step="0.01"
+                      min={0}
+                      value={form.valor_reducao}
+                      emptyCommit={0}
+                      blankZero
+                      onCommit={(v) => setField('valor_reducao', v === '' ? 0 : Math.max(0, v))}
+                      disabled={!canWrite}
+                      placeholder="0,00"
+                    />
+                  </div>
                 </div>
             </section>
           ) : (
@@ -1817,6 +1841,21 @@ export function OrcamentoFormPage() {
                   placeholder="0,00"
                 />
               </div>
+              <div className="form-group">
+                <label>
+                  Redução <span className="field-note">interno — cliente não vê</span>
+                </label>
+                <NumericInput
+                  step="0.01"
+                  min={0}
+                  value={form.valor_reducao}
+                  emptyCommit={0}
+                  blankZero
+                  onCommit={(v) => setField('valor_reducao', v === '' ? 0 : Math.max(0, v))}
+                  disabled={!canWrite}
+                  placeholder="0,00"
+                />
+              </div>
               <div className="form-group span-full orc-saida-etiqueta-campo" id="saida-etiqueta-bobina">
                 <label id="saida-etiqueta-label">
                   Saída na bobina{' '}
@@ -1912,6 +1951,21 @@ export function OrcamentoFormPage() {
                     emptyCommit={0}
                     blankZero
                     onCommit={(v) => setField('valor_gordura', v === '' ? 0 : Math.max(0, v))}
+                    disabled={!canWrite}
+                    placeholder="0,00"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>
+                    Redução <span className="field-note">interno — cliente não vê</span>
+                  </label>
+                  <NumericInput
+                    step="0.01"
+                    min={0}
+                    value={form.valor_reducao}
+                    emptyCommit={0}
+                    blankZero
+                    onCommit={(v) => setField('valor_reducao', v === '' ? 0 : Math.max(0, v))}
                     disabled={!canWrite}
                     placeholder="0,00"
                   />
@@ -2185,7 +2239,15 @@ export function OrcamentoFormPage() {
             }
             valorGordura={form.valor_gordura}
             onCommitGordura={
-              modoPrecoComercial || !canWrite ? undefined : handleCommitGordura
+              modoPrecoComercial || !canWrite
+                ? undefined
+                : (valor) => handleCommitAjusteInterno('valor_gordura', valor)
+            }
+            valorReducao={form.valor_reducao}
+            onCommitReducao={
+              modoPrecoComercial || !canWrite
+                ? undefined
+                : (valor) => handleCommitAjusteInterno('valor_reducao', valor)
             }
             aplicandoParametros={pending}
             guiaEspec={

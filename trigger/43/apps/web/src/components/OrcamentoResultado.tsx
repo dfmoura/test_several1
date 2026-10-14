@@ -105,6 +105,9 @@ type Props = {
    */
   valorGordura?: number;
   onCommitGordura?: (valor: number) => void | Promise<void>;
+  /** Baixa interna do item (`valor_reducao`). Mesmo enrich da gordura. */
+  valorReducao?: number;
+  onCommitReducao?: (valor: number) => void | Promise<void>;
   aplicandoParametros?: boolean;
   /**
    * Contextos por item (form/show). Quando omitido e calculo.itens existe, monta só com result.
@@ -138,8 +141,10 @@ type LinhaTotalComposicao = {
   valor: (fx: OrcamentoFaixaResult) => string;
   destaque?: boolean;
   nota?: string;
-  /** Único total editável: o mesmo `valor_gordura` do item. */
+  /** Mesmo `valor_gordura` do item. */
   gordura?: boolean;
+  /** Mesmo `valor_reducao` do item. */
+  reducao?: boolean;
 };
 
 function linhasTotaisComposicao(opts: {
@@ -150,6 +155,7 @@ function linhasTotaisComposicao(opts: {
   labelFerramental: string;
   mostrarFrete: boolean;
   editarGordura: boolean;
+  editarReducao: boolean;
 }): LinhaTotalComposicao[] {
   const {
     calculo,
@@ -159,10 +165,12 @@ function linhasTotaisComposicao(opts: {
     labelFerramental,
     mostrarFrete,
     editarGordura,
+    editarReducao,
   } = opts;
   const gorduraAplicada = Number(calculo.valor_gordura) > 0;
+  const reducaoAplicada = Number(calculo.valor_reducao) > 0;
   const linhas: LinhaTotalComposicao[] = [
-    gorduraAplicada
+    gorduraAplicada || reducaoAplicada
       ? {
           label: 'Serviço (base)',
           valor: (fx) => formatCurrency(fx.valor_etiqueta_base ?? fx.valor_etiqueta),
@@ -178,6 +186,14 @@ function linhasTotaisComposicao(opts: {
       nota: 'interno — cliente não vê',
       gordura: true,
       valor: (fx) => formatCurrency(fx.valor_gordura ?? calculo.valor_gordura ?? 0),
+    });
+  }
+  if (reducaoAplicada || editarReducao) {
+    linhas.push({
+      label: 'Redução',
+      nota: 'interno — cliente não vê',
+      reducao: true,
+      valor: (fx) => formatCurrency(fx.valor_reducao ?? calculo.valor_reducao ?? 0),
     });
   }
   linhas.push({
@@ -261,6 +277,8 @@ function ParametrosCalculoPanel({
   onEscolherCaixa,
   valorGordura = 0,
   onCommitGordura,
+  valorReducao = 0,
+  onCommitReducao,
 }: {
   faixas: OrcamentoFaixaResult[];
   snapshot?: Record<string, unknown>;
@@ -275,6 +293,8 @@ function ParametrosCalculoPanel({
   onEscolherCaixa?: (medida: string) => void;
   valorGordura?: number;
   onCommitGordura?: (valor: number) => void | Promise<void>;
+  valorReducao?: number;
+  onCommitReducao?: (valor: number) => void | Promise<void>;
 }) {
   const [globalDraft, setGlobalDraft] = useState<Partial<Record<ParametroAjusteId, string>>>({});
   const [comissaoDraftByFaixa, setComissaoDraftByFaixa] = useState<Record<number, string>>({});
@@ -540,7 +560,7 @@ function ParametrosCalculoPanel({
       <h3 className="orc-fluxo-subtitulo">Parâmetros utilizados no cálculo</h3>
       <p className="orc-result-meta" style={{ margin: '0 0 0.75rem' }}>
         {editavel
-          ? 'Valor usado = default do catálogo (ou ajuste já gravado neste ORC). Em Ajustar, digite em qualquer faixa — parâmetros de custo alteram o ORC inteiro; comissão e imposto estim. alteram a faixa correspondente. Vazio volta ao default. Gordura, nos Totais, é o mesmo campo do item: interna, igual em todas as faixas, e recalcula ao sair do campo.'
+          ? 'Valor usado = default do catálogo (ou ajuste já gravado neste ORC). Em Ajustar, digite em qualquer faixa — parâmetros de custo alteram o ORC inteiro; comissão e imposto estim. alteram a faixa correspondente. Vazio volta ao default. Gordura sobe e Redução desce o serviço: internas, iguais em todas as faixas, e recalculam ao sair do campo.'
           : 'Fotografia das tarifas efetivas neste orçamento (somente leitura).'}
       </p>
 
@@ -718,10 +738,11 @@ function ParametrosCalculoPanel({
             labelFerramental,
             mostrarFrete,
             editarGordura: Boolean(onCommitGordura),
+            editarReducao: Boolean(onCommitReducao),
           }).map((linha) => (
             <div
               key={linha.label}
-              className={`orc-params-grid orc-params-grid--totais ${linha.destaque ? 'orc-params-grid--totais-destaque' : ''} ${linha.gordura ? 'orc-params-grid--gordura' : ''}`}
+              className={`orc-params-grid orc-params-grid--totais ${linha.destaque ? 'orc-params-grid--totais-destaque' : ''} ${linha.gordura || linha.reducao ? 'orc-params-grid--gordura' : ''}`}
               role="row"
             >
               <div
@@ -743,6 +764,22 @@ function ParametrosCalculoPanel({
                     disabled={aplicandoParametros}
                     onCommit={(v) => {
                       void onCommitGordura(v === '' ? 0 : Math.max(0, v));
+                    }}
+                  />
+                ) : null}
+                {linha.reducao && onCommitReducao ? (
+                  <NumericInput
+                    className="orc-params-input orc-params-reducao-input"
+                    aria-label="Redução em reais, interna, igual em todas as faixas"
+                    min={0}
+                    step="0.01"
+                    value={Math.max(0, Number(valorReducao) || 0)}
+                    emptyCommit={0}
+                    blankZero
+                    placeholder="0,00"
+                    disabled={aplicandoParametros}
+                    onCommit={(v) => {
+                      void onCommitReducao(v === '' ? 0 : Math.max(0, v));
                     }}
                   />
                 ) : null}
@@ -1293,6 +1330,8 @@ export function OrcamentoResultado({
   onEscolherCaixa,
   valorGordura = 0,
   onCommitGordura,
+  valorReducao = 0,
+  onCommitReducao,
   aplicandoParametros = false,
   itensUi: itensUiProp = null,
   itemEdicaoOrdem,
@@ -1662,6 +1701,8 @@ export function OrcamentoResultado({
               onEscolherCaixa={podeAjustarItem ? onEscolherCaixa : undefined}
               valorGordura={podeAjustarItem ? valorGordura : Number(resultAtivo.valor_gordura) || 0}
               onCommitGordura={podeAjustarItem ? onCommitGordura : undefined}
+              valorReducao={podeAjustarItem ? valorReducao : Number(resultAtivo.valor_reducao) || 0}
+              onCommitReducao={podeAjustarItem ? onCommitReducao : undefined}
               aplicandoParametros={aplicandoParametros}
               motorVersion={
                 typeof resultAtivo.motor_version === 'number'

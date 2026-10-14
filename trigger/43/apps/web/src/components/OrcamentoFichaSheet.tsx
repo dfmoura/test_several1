@@ -203,6 +203,9 @@ function FichaItemBody({
   const valorArtes = Number(result?.valor_artes ?? 0);
   const valorGordura = Number(result?.valor_gordura ?? input.valor_gordura ?? 0);
   const temGordura = valorGordura > 0;
+  const valorReducao = Number(result?.valor_reducao ?? input.valor_reducao ?? 0);
+  const temReducao = valorReducao > 0;
+  const temAjusteInterno = temGordura || temReducao;
   const prazoFaca =
     input.prazo_faca_dias != null && input.prazo_faca_dias !== ''
       ? displaySnap(input.prazo_faca_dias)
@@ -255,6 +258,7 @@ function FichaItemBody({
     );
     pushDesc('Unidade', snap(input, 'unidade'), snap(input, 'unidade') === '—');
     if (temGordura) pushDesc('Gordura', money(valorGordura));
+    if (temReducao) pushDesc('Redução', money(valorReducao));
   } else {
     pushDesc('Medida', snap(input, 'medida'), snap(input, 'medida') === '—');
     pushDesc(
@@ -288,6 +292,7 @@ function FichaItemBody({
       pctBr(input.imposto_pct as string | number) === '—',
     );
     if (temGordura) pushDesc('Gordura', money(valorGordura));
+    if (temReducao) pushDesc('Redução', money(valorReducao));
     pushDesc('Matriz', snap(input, 'matriz'), snap(input, 'matriz') === '—');
     pushDesc(
       'Col.reb',
@@ -415,11 +420,14 @@ function FichaItemBody({
                 })}
               </tbody>
             </table>
-            {temGordura || mostrarFrete ? (
+            {temAjusteInterno || mostrarFrete ? (
               <p className="ficha-empty" style={{ borderTop: 0 }}>
                 {[
                   temGordura
                     ? `Gordura ${money(valorGordura)} — uso interno; não aparece na proposta ao cliente.`
+                    : '',
+                  temReducao
+                    ? `Redução ${money(valorReducao)} — uso interno; não aparece na proposta ao cliente.`
                     : '',
                   mostrarFrete && freteDoc
                     ? `Frete (${modoEntregaLabel(freteDoc.modo).toLowerCase()}) — informativo, fora do total e do unitário; vazio = a definir.`
@@ -536,12 +544,9 @@ function FichaItemBody({
                   <th className="ficha-th-num">% comissão</th>
                   <th className="ficha-th-num">Comissão</th>
                   <th className="ficha-th-num">Imposto</th>
-                  {temGordura ? (
-                    <>
-                      <th className="ficha-th-num">Base etiq.</th>
-                      <th className="ficha-th-num">Gordura</th>
-                    </>
-                  ) : null}
+                  {temAjusteInterno ? <th className="ficha-th-num">Base etiq.</th> : null}
+                  {temGordura ? <th className="ficha-th-num">Gordura</th> : null}
+                  {temReducao ? <th className="ficha-th-num">Redução</th> : null}
                   <th className="ficha-th-num">Etiquetas</th>
                   <th className="ficha-th-num">Unitário</th>
                   <th className="ficha-th-num">Valor rolo</th>
@@ -569,13 +574,16 @@ function FichaItemBody({
                       </td>
                       <td className="ficha-td-num">{money(fx.comissao)}</td>
                       <td className="ficha-td-num">{money(fx.imposto)}</td>
+                      {temAjusteInterno ? (
+                        <td className="ficha-td-num">
+                          {money(fx.valor_etiqueta_base ?? et)}
+                        </td>
+                      ) : null}
                       {temGordura ? (
-                        <>
-                          <td className="ficha-td-num">
-                            {money(fx.valor_etiqueta_base ?? et)}
-                          </td>
-                          <td className="ficha-td-num">{money(fx.valor_gordura ?? 0)}</td>
-                        </>
+                        <td className="ficha-td-num">{money(fx.valor_gordura ?? 0)}</td>
+                      ) : null}
+                      {temReducao ? (
+                        <td className="ficha-td-num">{money(fx.valor_reducao ?? valorReducao)}</td>
                       ) : null}
                       <td className="ficha-td-num">{money(et)}</td>
                       <td className="ficha-td-num">{money(unit)}</td>
@@ -614,6 +622,9 @@ function FichaItemBody({
               {facaNova && prazoFaca ? ` · faca nova +${prazoFaca} dias no prazo` : ''}.
               {temGordura
                 ? ` Gordura ${money(valorGordura)} — uso interno; não aparece na proposta ao cliente.`
+                : ''}
+              {temReducao
+                ? ` Redução ${money(valorReducao)} — uso interno; não aparece na proposta ao cliente.`
                 : ''}
               {!multi && freteDoc
                 ? ` Frete (${modoEntregaLabel(freteDoc.modo).toLowerCase()}) — informativo, fora do total e do unitário; vazio = a definir.`

@@ -148,6 +148,7 @@ final class OrcamentoValidationRules
             'imposto_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
             // Pad comercial R$ pós-motor — ADR_ORC_GORDURA_COMERCIAL (interno; fora do DTO público).
             'valor_gordura' => ['nullable', 'numeric', 'min:0'],
+            'valor_reducao' => ['nullable', 'numeric', 'min:0'],
             'matriz' => ['nullable', 'string', Rule::in(['SIM', 'NAO', 'S', 'N', 'YES', 'TRUE', '1', '0'])],
             'coluna_rebobinacao' => ['nullable', 'integer', 'min:1'],
             // Sentido de saída na bobina — ADR_ORC_SAIDA_ETIQUETA (fora do motor).
@@ -245,6 +246,7 @@ final class OrcamentoValidationRules
             'faixas.*.valor_unitario' => ['required', 'numeric', 'gt:0'],
             'faixas.*.comissao_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'valor_gordura' => ['nullable', 'numeric', 'min:0'],
+            'valor_reducao' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 
@@ -275,6 +277,7 @@ final class OrcamentoValidationRules
             'faixas.*.valor_unitario' => ['required', 'numeric', 'gt:0'],
             'faixas.*.comissao_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'valor_gordura' => ['nullable', 'numeric', 'min:0'],
+            'valor_reducao' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 

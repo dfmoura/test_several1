@@ -10,23 +10,25 @@ Norma: `docs/ADR_ORC_GORDURA_COMERCIAL.md`.
 
 ## Donos
 
-- **Campo:** `valor_gordura` (R$ ≥ 0) no job — `input_snapshot` + `result_snapshot`.
+- **Campos:** `valor_gordura` e `valor_reducao` (R$ ≥ 0) no job — `input_snapshot` + `result_snapshot`.
 - **Aplicação:** `OrcamentoService::aplicarGordura` dentro de `enrichResult`, **depois** do motor e **antes** de faca/artes/frete.
-- **Efeito:** soma em `valor_etiqueta` (re-ceiling); grava `valor_etiqueta_base` quando pad > 0.
-- **Label UX:** “Gordura” (sem %).
+- **Efeito:** `max(0, base + gordura − redução)` e re-ceiling em `valor_etiqueta`; grava `valor_etiqueta_base` quando algum dos dois é > 0.
+- **Labels UX:** “Gordura” sobe · “Redução” desce (sem %).
 
 ## Faça
 
 - Tratar gordura como pad comercial interno em R$ (proposta/ficha do cliente sem a linha).
 - Manter PED/FAT/comissão no `valor_etiqueta` já com pad.
 - Mostrar no formulário, resultado/composição e ficha operacional A4.
-- Na edição, Totais da composição gravam o mesmo `valor_gordura` e recalculam pelo enrich.
+- Na edição, Totais da composição gravam os mesmos `valor_gordura` e `valor_reducao` e recalculam pelo enrich.
 
 ## Não faça
 
 - Mexer em R1–R20 / diluir gordura em papel ou hora-máquina.
 - Usar percentual (`gordura_pct`) — o pad é valor.
-- Expor `valor_gordura` / `valor_etiqueta_base` no `dtoComercial` ou ficha do cliente.
+- Expor `valor_gordura` / `valor_reducao` / `valor_etiqueta_base` no `dtoComercial` ou ficha do cliente.
+- Negativar a Gordura. A baixa é `valor_reducao`.
+- Usar o desconto do documento para descer a etiqueta da faixa.
 - Aplicar sobre matriz, faca, artes ou frete.
 - Mostrar na guia de produção / OP.
 

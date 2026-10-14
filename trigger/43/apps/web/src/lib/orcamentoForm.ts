@@ -186,6 +186,8 @@ export type OrcForm = {
   imposto_pct: number;
   /** Pad comercial interno em R$ (ADR_ORC_GORDURA_COMERCIAL) — não vai à proposta do cliente. */
   valor_gordura: number;
+  /** Baixa interna em R$ sobre o serviço. Não vai à proposta do cliente. */
+  valor_reducao: number;
   matriz: 'SIM' | 'NAO';
   coluna_rebobinacao: number;
   /** Sentido de saída na bobina — ADR_ORC_SAIDA_ETIQUETA; fora do motor. */
@@ -869,6 +871,7 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     maquina: maquinas[0] ?? 'BETA',
     imposto_pct: catalog?.imposto_pct_default ?? 16,
     valor_gordura: 0,
+    valor_reducao: 0,
     matriz: 'SIM',
     coluna_rebobinacao: 1,
     saida_etiqueta: '',
@@ -980,6 +983,7 @@ export function formFromSnapshot(
     maquina: String(snap.maquina ?? base.maquina),
     imposto_pct: Number(snap.imposto_pct) || base.imposto_pct,
     valor_gordura: Math.max(0, Number(snap.valor_gordura) || 0),
+    valor_reducao: Math.max(0, Number(snap.valor_reducao) || 0),
     matriz: String(snap.matriz) === 'NAO' ? 'NAO' : 'SIM',
     coluna_rebobinacao: Number(snap.coluna_rebobinacao) || 1,
     saida_etiqueta: isSaidaEtiqueta(String(snap.saida_etiqueta ?? ''))
@@ -1238,6 +1242,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
       vendedor_parceiro_id: form.vendedor_parceiro_id === '' ? null : form.vendedor_parceiro_id,
       modo_entrega: form.modo_entrega,
       valor_gordura: Math.max(0, Number(form.valor_gordura) || 0),
+      valor_reducao: Math.max(0, Number(form.valor_reducao) || 0),
       valor_frete_manual:
         modoComFrete(form.modo_entrega) && form.valor_frete_manual !== ''
           ? form.valor_frete_manual
@@ -1277,6 +1282,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
       vendedor_parceiro_id: form.vendedor_parceiro_id === '' ? null : form.vendedor_parceiro_id,
       modo_entrega: form.modo_entrega,
       valor_gordura: Math.max(0, Number(form.valor_gordura) || 0),
+      valor_reducao: Math.max(0, Number(form.valor_reducao) || 0),
       valor_frete_manual:
         modoComFrete(form.modo_entrega) && form.valor_frete_manual !== ''
           ? form.valor_frete_manual
@@ -1326,6 +1332,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
     maquina: form.maquina,
     imposto_pct: form.imposto_pct,
     valor_gordura: Math.max(0, Number(form.valor_gordura) || 0),
+    valor_reducao: Math.max(0, Number(form.valor_reducao) || 0),
     matriz: form.matriz,
     coluna_rebobinacao: form.coluna_rebobinacao,
     saida_etiqueta: form.saida_etiqueta || null,

@@ -82,7 +82,7 @@ class OrcamentoGorduraTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function payload(float $valorGordura = 0): array
+    private function payload(float $valorGordura = 0, float $valorReducao = 0): array
     {
         $fx = json_decode(
             (string) file_get_contents(dirname(__DIR__).'/fixtures/orcamento_brahva.json'),
@@ -108,6 +108,7 @@ class OrcamentoGorduraTest extends TestCase
             'maquina_roda_servico' => $fx['maquina_roda_servico'],
             'imposto_pct' => $fx['imposto_pct'],
             'valor_gordura' => $valorGordura,
+            'valor_reducao' => $valorReducao,
             'matriz' => $fx['matriz'],
             'coluna_rebobinacao' => $fx['coluna_rebobinacao'],
             'tipo_troca_produto' => $fx['tipo_troca_produto'],
@@ -204,5 +205,51 @@ class OrcamentoGorduraTest extends TestCase
         $prev->assertOk();
         $this->assertArrayNotHasKey('valor_gordura', $prev->json('data'));
         $this->assertArrayNotHasKey('valor_gordura', $prev->json('data.faixas.0'));
+    }
+
+    public function test_reducao_desce_etiqueta_sem_vazar_na_proposta(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $sem = $this->withHeaders($h)->postJson('/api/v1/orcamentos/calcular', $this->payload(0, 0));
+        $com = $this->withHeaders($h)->postJson('/api/v1/orcamentos/calcular', $this->payload(0, 200));
+        $sem->assertOk();
+        $com->assertOk();
+
+        $base = (float) $com->json('data.faixas.0.valor_etiqueta_base');
+        $etiqueta = (float) $com->json('data.faixas.0.valor_etiqueta');
+        $this->assertEqualsWithDelta(2470.0, $base, 0.01);
+        $this->assertSame(200.0, (float) $com->json('data.valor_reducao'));
+        $this->assertSame(200.0, (float) $com->json('data.faixas.0.valor_reducao'));
+        $this->assertArrayNotHasKey('valor_gordura', $com->json('data.faixas.0'));
+        $this->assertLessThan((float) $sem->json('data.faixas.0.valor_etiqueta'), $etiqueta);
+        $this->assertLessThanOrEqual($base - 200.0 + 10.0, $etiqueta);
+
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $this->payload(0, 200));
+        $create->assertCreated();
+        $this->assertSame(200.0, (float) $create->json('data.input_snapshot.valor_reducao'));
+        $id = (int) $create->json('data.id');
+
+        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $env->assertOk();
+        $pub = $this->getJson('/api/v1/publico/orcamentos/'.$env->json('data.token'));
+        $pub->assertOk();
+        $this->assertArrayNotHasKey('valor_reducao', $pub->json('data'));
+        $this->assertArrayNotHasKey('valor_reducao', $pub->json('data.faixas.0'));
+        $this->assertArrayNotHasKey('valor_etiqueta_base', $pub->json('data.faixas.0'));
+        $this->assertEqualsWithDelta($etiqueta, (float) $pub->json('data.faixas.0.valor_etiqueta'), 0.01);
+    }
+
+    public function test_reducao_acima_da_base_nao_deixa_etiqueta_negativa(): void
+    {
+        Sanctum::actingAs($this->comercial);
+
+        $res = $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
+            ->postJson('/api/v1/orcamentos/calcular', $this->payload(0, 999999));
+
+        $res->assertOk();
+        $this->assertGreaterThanOrEqual(0.0, (float) $res->json('data.faixas.0.valor_etiqueta'));
+        $this->assertEqualsWithDelta(0.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
     }
 }

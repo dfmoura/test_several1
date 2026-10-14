@@ -28,7 +28,7 @@ O comercial precisa **readequar** o preço ao cliente sem alterar tarifas do cat
 ```
 motor (R1–R20 ou serviço)
   → valor_etiqueta_base
-  → + valor_gordura → ceiling → valor_etiqueta
+  → + valor_gordura − valor_reducao (piso 0) → ceiling → valor_etiqueta
   → + matriz → valor_total
   → + faca + artes → valor_total_proposta
   → frete informativo (nunca soma)
@@ -45,7 +45,8 @@ motor (R1–R20 ou serviço)
 ### UX (interno)
 
 - Formulário ORC: campo **Gordura** (R$), nota “interno — cliente não vê”.
-- Edição, aba **Composição comercial → Totais**: o mesmo `valor_gordura` do item. Um campo na linha, igual em todas as faixas. Ao sair, recalcula pelo enrich já existente. Serviço, matriz, faca, arte, frete e total da proposta permanecem leitura.
+- Edição, aba **Composição comercial → Totais**: os mesmos `valor_gordura` e `valor_reducao` do item. Um campo em cada linha, igual em todas as faixas. Ao sair, recalcula pelo enrich já existente. Serviço, matriz, faca, arte, frete e total da proposta permanecem leitura.
+- **Redução** (`valor_reducao`, R$ ≥ 0) desce o serviço. Cliente não vê a linha. Não entra em matriz, faca, arte nem frete. O desconto do documento continua sendo outro fechamento, visível, no cabeçalho.
 - Resultado / composição / ficha operacional A4: mostram a linha quando > 0. Detalhe e proposta não editam.
 - Proposta pública, prévia comercial e ficha do cliente: **omitidos**.
 
@@ -54,7 +55,7 @@ motor (R1–R20 ou serviço)
 ## Proibido
 
 1. Colocar gordura dentro do motor R1–R20 ou diluir em papel/hora-máquina.
-2. Expor `valor_gordura` / `valor_etiqueta_base` no DTO público ou na ficha do cliente.
+2. Expor `valor_gordura` / `valor_reducao` / `valor_etiqueta_base` no DTO público ou na ficha do cliente.
 3. Aplicar gordura sobre matriz, faca, artes ou frete.
 4. Segundo escritor de preço no PED/FAT — o pad já está no `valor_etiqueta` do snapshot.
 

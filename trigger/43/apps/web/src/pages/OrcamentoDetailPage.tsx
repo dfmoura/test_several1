@@ -78,6 +78,9 @@ function buildOrcSpecTiles(
         ...(Number(snap.valor_gordura) > 0
           ? ([['Gordura', formatCurrency(Number(snap.valor_gordura))]] as Array<[string, unknown]>)
           : []),
+        ...(Number(snap.valor_reducao) > 0
+          ? ([['Redução', formatCurrency(Number(snap.valor_reducao))]] as Array<[string, unknown]>)
+          : []),
       ] as Array<[string, unknown]>
     ).filter((row): row is [string, unknown] => row[1] != null && row[1] !== '');
   }
@@ -91,6 +94,9 @@ function buildOrcSpecTiles(
         ['NFS-e (ISS)', snap.codigo_tributacao_nacional_iss],
         ...(Number(snap.valor_gordura) > 0
           ? ([['Gordura', formatCurrency(Number(snap.valor_gordura))]] as Array<[string, unknown]>)
+          : []),
+        ...(Number(snap.valor_reducao) > 0
+          ? ([['Redução', formatCurrency(Number(snap.valor_reducao))]] as Array<[string, unknown]>)
           : []),
       ] as Array<[string, unknown]>
     ).filter((row): row is [string, unknown] => row[1] != null && row[1] !== '');
@@ -109,6 +115,9 @@ function buildOrcSpecTiles(
       ['Imposto %', snap.imposto_pct],
       ...(Number(snap.valor_gordura) > 0
         ? ([['Gordura', formatCurrency(Number(snap.valor_gordura))]] as Array<[string, unknown]>)
+        : []),
+      ...(Number(snap.valor_reducao) > 0
+        ? ([['Redução', formatCurrency(Number(snap.valor_reducao))]] as Array<[string, unknown]>)
         : []),
       ['Troca produto', snap.tipo_troca_produto],
       ['RPM', snap.rpm],

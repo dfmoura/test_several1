@@ -5728,7 +5728,8 @@ table.data-table td.acoes {
   line-height: 1.2;
 }
 
-.orc-params-comparativo .orc-params-input.orc-params-gordura-input {
+.orc-params-comparativo .orc-params-input.orc-params-gordura-input,
+.orc-params-comparativo .orc-params-input.orc-params-reducao-input {
   display: block;
   flex: none;
   width: 100%;
