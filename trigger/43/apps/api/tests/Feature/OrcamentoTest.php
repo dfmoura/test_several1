@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\Empresa;
 use App\Models\Orcamento;
 use App\Models\OrcamentoItem;
@@ -229,6 +230,162 @@ class OrcamentoTest extends TestCase
         $this->assertSame(0, Orcamento::query()->count());
         $this->assertSame(1, Orcamento::withTrashed()->count());
         $this->assertSame('CANCELADO', Orcamento::withTrashed()->first()->status);
+    }
+
+    public function test_duplicar_aprovado_cria_orcamento_novo_e_preserva_o_original(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $payload = $this->payload();
+        $payload['observacao'] = 'Repetir com o mesmo desenho';
+        $payload['modelos'] = 2;
+        $payload['modelos_composicao'] = [
+            ['ordem' => 1, 'nome' => 'Frente', 'percentual' => 60, 'valor_arte' => 10, 'tintas' => ['Ciano']],
+            ['ordem' => 2, 'nome' => 'Verso', 'percentual' => 40, 'valor_arte' => 0, 'tintas' => ['Preto']],
+        ];
+        $payload['modo_entrega'] = 'RETIRAR';
+
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload);
+        $create->assertCreated();
+        $id = (int) $create->json('data.id');
+        $codigo = (string) $create->json('data.codigo');
+
+        $orc = Orcamento::query()->findOrFail($id);
+        $snap = $orc->input_snapshot;
+        $snap['modelos_composicao'][0]['decisao'] = 'APROVADO';
+        $snap['modelos_composicao'][0]['decidido_em'] = '2026-10-01T12:00:00Z';
+        $orc->input_snapshot = $snap;
+        $orc->status = Orcamento::STATUS_APROVADO;
+        $orc->financeiro_status = 'AGUARDA_ADIANTAMENTO';
+        $orc->aceite_faixa_index = 0;
+        $orc->aceite_nome_cliente = 'Cliente Teste';
+        $orc->versao = 3;
+        $orc->save();
+
+        $item = OrcamentoItem::query()->where('orcamento_id', $id)->firstOrFail();
+        $itemSnap = $item->input_snapshot;
+        $itemSnap['modelos_composicao'][0]['decisao'] = 'APROVADO';
+        $itemSnap['modelos_composicao'][0]['decidido_em'] = '2026-10-01T12:00:00Z';
+        $item->input_snapshot = $itemSnap;
+        $item->aceite_faixa_index = 0;
+        $item->save();
+
+        $antes = Orcamento::query()->findOrFail($id)->only([
+            'codigo', 'versao', 'status', 'financeiro_status', 'aceite_faixa_index', 'aceite_nome_cliente', 'input_snapshot',
+        ]);
+
+        $dup = $this->withHeaders($h)->postJson('/api/v1/orcamentos/'.$id.'/duplicar');
+        $dup->assertCreated();
+        $novoId = (int) $dup->json('data.id');
+
+        $this->assertNotSame($id, $novoId);
+        $this->assertNotSame($codigo, $dup->json('data.codigo'));
+        $this->assertSame('CALCULADO', $dup->json('data.status'));
+        $this->assertSame(1, $dup->json('data.versao'));
+        $this->assertTrue($dup->json('data.editavel'));
+        $this->assertSame($codigo, $dup->json('data.copiado_de.codigo'));
+        $this->assertSame($id, $dup->json('data.copiado_de.id'));
+        $this->assertSame($this->parceiro->id, $dup->json('data.parceiro_id'));
+        $this->assertSame('Repetir com o mesmo desenho', $dup->json('data.observacao'));
+        $this->assertSame($payload['medida'], $dup->json('data.input_snapshot.medida'));
+        $this->assertSame('Frente', $dup->json('data.input_snapshot.modelos_composicao.0.nome'));
+        $this->assertSame('Ciano', $dup->json('data.input_snapshot.modelos_composicao.0.tintas.0'));
+        $this->assertArrayNotHasKey('decisao', $dup->json('data.input_snapshot.modelos_composicao.0'));
+        $this->assertArrayNotHasKey('decidido_em', $dup->json('data.input_snapshot.modelos_composicao.0'));
+        $this->assertNull($dup->json('data.aceite_faixa_index'));
+        $this->assertNull($dup->json('data.financeiro_status'));
+        $this->assertNull($dup->json('data.pedido'));
+        $this->assertEqualsWithDelta(
+            (float) $create->json('data.result_snapshot.faixas.0.valor_etiqueta'),
+            (float) $dup->json('data.result_snapshot.faixas.0.valor_etiqueta'),
+            0.01,
+        );
+
+        $origem = Orcamento::query()->findOrFail($id);
+        $this->assertSame($antes, $origem->only([
+            'codigo', 'versao', 'status', 'financeiro_status', 'aceite_faixa_index', 'aceite_nome_cliente', 'input_snapshot',
+        ]));
+        $this->assertSame(0, $item->fresh()->aceite_faixa_index);
+        $this->assertSame('APROVADO', $item->fresh()->input_snapshot['modelos_composicao'][0]['decisao']);
+        $this->assertSame(2, Orcamento::query()->count());
+
+        $this->assertTrue(
+            AuditLog::query()
+                ->where('acao', 'DUPLICAR')
+                ->where('entidade', 'Orcamento')
+                ->where('entidade_id', $id)
+                ->where('para->novo_id', $novoId)
+                ->exists()
+        );
+    }
+
+    public function test_duplicar_recusa_status_que_nao_e_aprovado_e_consulta(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $id = (int) $this->withHeaders($h)->postJson('/api/v1/orcamentos', $this->payload())->json('data.id');
+
+        $this->withHeaders($h)->postJson('/api/v1/orcamentos/'.$id.'/duplicar')->assertStatus(422);
+        $this->assertSame(1, Orcamento::query()->count());
+
+        Orcamento::query()->whereKey($id)->update(['status' => Orcamento::STATUS_ENVIADO]);
+        $this->withHeaders($h)->postJson('/api/v1/orcamentos/'.$id.'/duplicar')->assertStatus(422);
+
+        Orcamento::query()->whereKey($id)->update(['status' => Orcamento::STATUS_APROVADO]);
+        Sanctum::actingAs($this->consulta);
+        $this->withHeaders($h)->postJson('/api/v1/orcamentos/'.$id.'/duplicar')->assertForbidden();
+        $this->assertSame(1, Orcamento::query()->count());
+    }
+
+    public function test_duplicar_nao_cruza_empresa(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $outroParceiro = Parceiro::query()->where('empresa_id', $this->outraEmpresa->id)->firstOrFail();
+        $alheio = Orcamento::query()->create([
+            'empresa_id' => $this->outraEmpresa->id,
+            'ano' => 2026,
+            'numero' => 1,
+            'codigo' => 'ORC-2026-00001',
+            'versao' => 1,
+            'parceiro_id' => $outroParceiro->id,
+            'cliente_nome' => 'OUTRO',
+            'status' => Orcamento::STATUS_APROVADO,
+            'input_snapshot' => ['medida' => '10X10'],
+        ]);
+
+        $this->withHeaders($h)->postJson('/api/v1/orcamentos/'.$alheio->id.'/duplicar')->assertNotFound();
+        $this->assertSame(0, Orcamento::query()->where('empresa_id', $this->empresa->id)->count());
+        $this->assertSame(Orcamento::STATUS_APROVADO, $alheio->fresh()->status);
+    }
+
+    public function test_duplicar_aprovado_multi_item_copia_posicoes(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $payload = array_merge($this->headerPayload(), [
+            'itens' => [
+                array_merge($this->jobPayload(), ['rotulo' => 'Posição A']),
+                array_merge($this->jobPayload(), [
+                    'rotulo' => 'Posição B',
+                    'medida' => '60X40',
+                    'largura_cm' => 62,
+                ]),
+            ],
+        ]);
+        $id = (int) $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload)->json('data.id');
+        Orcamento::query()->whereKey($id)->update(['status' => Orcamento::STATUS_APROVADO]);
+
+        $dup = $this->withHeaders($h)->postJson('/api/v1/orcamentos/'.$id.'/duplicar');
+        $dup->assertCreated();
+        $this->assertSame('Posição A', $dup->json('data.itens.0.rotulo'));
+        $this->assertSame('60X40', $dup->json('data.itens.1.input_snapshot.medida'));
+        $this->assertSame(2, $dup->json('data.result_snapshot.totais.n_itens'));
+        $this->assertSame(Orcamento::STATUS_APROVADO, Orcamento::query()->findOrFail($id)->status);
     }
 
     public function test_bloqueia_edicao_apos_enviado(): void

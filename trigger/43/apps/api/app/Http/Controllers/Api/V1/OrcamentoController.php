@@ -112,6 +112,16 @@ class OrcamentoController extends Controller
         return response()->json(['message' => 'Orçamento cancelado.']);
     }
 
+    public function duplicar(Request $request, Orcamento $orcamento): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresa($orcamento);
+
+        $novo = $this->orcamentoService->duplicar(app('empresa'), $orcamento);
+
+        return response()->json(['data' => $novo], 201);
+    }
+
     private function authorizeRead(Request $request): void
     {
         if (! $request->user()->can('orcamento.ler')) {

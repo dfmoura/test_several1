@@ -399,6 +399,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/orcamentos/{orcamento}', [OrcamentoController::class, 'show']);
         Route::put('/orcamentos/{orcamento}', [OrcamentoController::class, 'update']);
         Route::delete('/orcamentos/{orcamento}', [OrcamentoController::class, 'destroy']);
+        Route::post('/orcamentos/{orcamento}/duplicar', [OrcamentoController::class, 'duplicar']);
         Route::post('/orcamentos/{orcamento}/enviar-aprovacao', [OrcamentoAprovacaoController::class, 'enviar']);
         Route::get('/orcamentos/{orcamento}/destinatarios-aprovacao', [OrcamentoAprovacaoController::class, 'destinatarios']);
         Route::get('/orcamentos/{orcamento}/proposta-comercial', [OrcamentoAprovacaoController::class, 'propostaComercial']);

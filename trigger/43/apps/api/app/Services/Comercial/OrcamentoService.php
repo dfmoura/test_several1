@@ -186,6 +186,52 @@ class OrcamentoService
     }
 
     /**
+     * Novo ORC em preparação com as características comerciais do aprovado.
+     * O original (aceite, link, financeiro, pedido) permanece.
+     *
+     * @return array<string, mixed>
+     */
+    public function duplicar(Empresa $empresa, Orcamento $origem): array
+    {
+        if ((int) $origem->empresa_id !== (int) $empresa->id) {
+            abort(404);
+        }
+
+        if ($origem->status !== Orcamento::STATUS_APROVADO || $origem->deleted_at !== null) {
+            throw ValidationException::withMessages([
+                'status' => [
+                    'Só orçamento aprovado pode ser duplicado. O aprovado permanece; o novo nasce em preparação.',
+                ],
+            ]);
+        }
+
+        $origem->loadMissing('itens');
+        $payload = $this->payloadComercialParaDuplicar($origem);
+        $criado = $this->create($empresa, $payload);
+
+        $this->audit->log('DUPLICAR', 'Orcamento', $origem->id, null, [
+            'origem_id' => $origem->id,
+            'origem_codigo' => $origem->codigo,
+            'novo_id' => $criado['id'],
+            'novo_codigo' => $criado['codigo'],
+        ]);
+        $this->audit->log('DUPLICAR', 'Orcamento', (int) $criado['id'], [
+            'origem_id' => $origem->id,
+            'origem_codigo' => $origem->codigo,
+        ], [
+            'codigo' => $criado['codigo'],
+            'status' => $criado['status'],
+        ]);
+
+        $criado['copiado_de'] = [
+            'id' => $origem->id,
+            'codigo' => $origem->codigo,
+        ];
+
+        return $criado;
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
@@ -1182,5 +1228,266 @@ class OrcamentoService
         $base = rtrim((string) config('erp.orcamento_public_base_url', config('app.url')), '/');
 
         return $base.'/p/'.$token;
+    }
+
+    /**
+     * Payload no mesmo formato de create(): cabeçalho + posições, sem aceite.
+     *
+     * @return array<string, mixed>
+     */
+    private function payloadComercialParaDuplicar(Orcamento $origem): array
+    {
+        $origem->loadMissing('itens');
+        $snapDoc = is_array($origem->input_snapshot) ? $origem->input_snapshot : [];
+        $header = $this->headerComercialParaDuplicar($origem, $snapDoc);
+
+        $itens = $origem->itens->sortBy('ordem')->values();
+        if ($itens->count() <= 1) {
+            $snap = is_array($itens->first()?->input_snapshot) ? $itens->first()->input_snapshot : $snapDoc;
+            if ($snap === []) {
+                throw ValidationException::withMessages([
+                    'orcamento' => ['Orçamento sem características para copiar.'],
+                ]);
+            }
+
+            return array_merge($this->jobComercialParaDuplicar($snap), $header);
+        }
+
+        $jobs = [];
+        foreach ($itens as $item) {
+            $snap = is_array($item->input_snapshot) ? $item->input_snapshot : [];
+            if ($snap === []) {
+                throw ValidationException::withMessages([
+                    'itens' => ['Posição sem características para copiar.'],
+                ]);
+            }
+            $job = $this->jobComercialParaDuplicar($snap);
+            $rotulo = trim((string) ($item->rotulo ?? ''));
+            if ($rotulo !== '') {
+                $job['rotulo'] = $rotulo;
+            }
+            $jobs[] = $job;
+        }
+
+        return array_merge($header, ['itens' => $jobs]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $snap
+     * @return array<string, mixed>
+     */
+    private function headerComercialParaDuplicar(Orcamento $origem, array $snap): array
+    {
+        $header = $this->pickSnapshot($snap, [
+            'tipo_operacao',
+            'parceiro_id',
+            'prazo_entrega_dias',
+            'validade_dias',
+            'tolerancia_qtd_pct',
+            'observacao',
+            'url_arte',
+            'condicao_pagamento',
+            'forma_pagamento',
+            'vendedor_parceiro_id',
+            'modo_entrega',
+            'valor_frete_manual',
+            'valor_desconto',
+            'mod_frete',
+            'transportador_id',
+        ]);
+
+        $header['parceiro_id'] = $header['parceiro_id'] ?? $origem->parceiro_id;
+        $header['prazo_entrega_dias'] = $header['prazo_entrega_dias'] ?? $origem->prazo_entrega_dias;
+        $header['validade_dias'] = $header['validade_dias'] ?? $origem->validade_dias;
+        $header['tolerancia_qtd_pct'] = $header['tolerancia_qtd_pct'] ?? $origem->tolerancia_qtd_pct;
+        if (! array_key_exists('observacao', $header)) {
+            $header['observacao'] = $origem->observacao;
+        }
+        if (! array_key_exists('vendedor_parceiro_id', $header) && $origem->vendedor_parceiro_id) {
+            $header['vendedor_parceiro_id'] = $origem->vendedor_parceiro_id;
+        }
+        if (! isset($header['tipo_operacao']) || $header['tipo_operacao'] === '') {
+            $header['tipo_operacao'] = TipoOperacaoSaida::fromInput($snap['necessidade'] ?? null);
+        }
+
+        return $header;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snap
+     * @return array<string, mixed>
+     */
+    private function jobComercialParaDuplicar(array $snap): array
+    {
+        $necessidade = strtoupper(trim((string) ($snap['necessidade'] ?? '')));
+        $tipo = TipoOperacaoSaida::fromInput($snap['tipo_operacao'] ?? $necessidade);
+
+        if ($tipo === TipoOperacaoSaida::SERVICO || $necessidade === 'SERVICO') {
+            $job = $this->pickSnapshot($snap, [
+                'tipo_servico',
+                'descricao_servico',
+                'material_cliente',
+                'unidade',
+                'horas_maquina',
+                'maquina',
+                'cessao_bem_id',
+                'valor_gordura',
+                'valor_reducao',
+            ]);
+            $job['necessidade'] = 'SERVICO';
+            $job['faixas'] = $this->faixasComerciaisParaDuplicar($snap['faixas'] ?? null, true);
+
+            return $job;
+        }
+
+        if (PedidoItem::isRevenda($necessidade)) {
+            $job = $this->pickSnapshot($snap, [
+                'produto_id',
+                'unidade',
+                'valor_gordura',
+                'valor_reducao',
+            ]);
+            $desc = trim((string) ($snap['produto_descricao'] ?? $snap['descricao_comercial'] ?? ''));
+            if ($desc !== '') {
+                $job['descricao_comercial'] = $desc;
+            }
+            $job['necessidade'] = PedidoItem::NEC_REVENDA;
+            $job['faixas'] = $this->faixasComerciaisParaDuplicar($snap['faixas'] ?? null, true);
+
+            return $job;
+        }
+
+        $job = $this->pickSnapshot($snap, [
+            'medida',
+            'largura_cm',
+            'puxada_cm',
+            'cores',
+            'papel',
+            'acabamento',
+            'modelos',
+            'colunas',
+            'etiq_por_rolo',
+            'tubete',
+            'caixa_medida',
+            'z',
+            'maquina',
+            'maquina_roda_servico',
+            'imposto_pct',
+            'valor_gordura',
+            'valor_reducao',
+            'matriz',
+            'coluna_rebobinacao',
+            'saida_etiqueta',
+            'tipo_troca_produto',
+            'rpm',
+            'overrides',
+            'facas',
+            'faca_nova',
+            'formato_faca',
+            'valor_faca_nova',
+            'prazo_faca_dias',
+            'faca_colunas_mapa',
+            'faca_posicao',
+            'faca_contorno_svg',
+            'faca_diametro_cm',
+            'faca_tamanho_raw',
+            'faca_tamanho_tipo',
+        ]);
+        $comp = $this->composicaoComercialParaDuplicar($snap['modelos_composicao'] ?? null);
+        if ($comp !== null) {
+            $job['modelos_composicao'] = $comp;
+            if (array_key_exists('modelos_composicao_quantidades', $snap)) {
+                $job['modelos_composicao_quantidades'] = $snap['modelos_composicao_quantidades'];
+            }
+        }
+        $job['necessidade'] = 'PRODUCAO';
+        $job['faixas'] = $this->faixasComerciaisParaDuplicar($snap['faixas'] ?? null, false);
+
+        return $job;
+    }
+
+    /**
+     * Composição nomeada, sem decisão do cliente.
+     * Equal-split sem nome fica de fora: o create() regenera.
+     *
+     * @return list<array<string, mixed>>|null
+     */
+    private function composicaoComercialParaDuplicar(mixed $raw): ?array
+    {
+        if (! is_array($raw) || $raw === []) {
+            return null;
+        }
+
+        $temNome = false;
+        foreach ($raw as $row) {
+            if (is_array($row) && trim((string) ($row['nome'] ?? '')) !== '') {
+                $temNome = true;
+                break;
+            }
+        }
+        if (! $temNome) {
+            return null;
+        }
+
+        $out = [];
+        foreach (array_values($raw) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $out[] = [
+                'ordem' => $row['ordem'] ?? null,
+                'nome' => $row['nome'] ?? '',
+                'percentual' => $row['percentual'] ?? 0,
+                'valor_arte' => $row['valor_arte'] ?? 0,
+                'arte_url' => $row['arte_url'] ?? null,
+                'tintas' => $row['tintas'] ?? [],
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function faixasComerciaisParaDuplicar(mixed $raw, bool $comValor): array
+    {
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($raw as $faixa) {
+            if (! is_array($faixa)) {
+                continue;
+            }
+            $row = [
+                'quantidade' => $faixa['quantidade'] ?? null,
+                'comissao_pct' => $faixa['comissao_pct'] ?? 0,
+            ];
+            if ($comValor) {
+                $row['valor_unitario'] = $faixa['valor_unitario'] ?? null;
+            }
+            $out[] = $row;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snap
+     * @param  list<string>  $keys
+     * @return array<string, mixed>
+     */
+    private function pickSnapshot(array $snap, array $keys): array
+    {
+        $out = [];
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $snap)) {
+                $out[$key] = $snap[$key];
+            }
+        }
+
+        return $out;
     }
 }

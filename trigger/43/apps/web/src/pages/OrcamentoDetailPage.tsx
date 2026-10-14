@@ -288,6 +288,24 @@ export function OrcamentoDetailPage() {
     );
   };
 
+  const handleDuplicar = async () => {
+    if (!orc || !canWrite || orc.status !== 'APROVADO') return;
+    setPending(true);
+    setErro(null);
+    try {
+      const res = await api.post<{ data: Orcamento & { copiado_de?: { codigo: string } } }>(
+        `/orcamentos/${orc.id}/duplicar`,
+      );
+      navigate(`/orcamentos/${res.data.id}/editar`, {
+        state: { copiadoDe: res.data.copiado_de?.codigo ?? orc.codigo },
+      });
+    } catch (e) {
+      const first = e instanceof ApiError ? Object.values(e.details ?? {})[0]?.[0] : null;
+      setErro(first || (e instanceof Error ? e.message : 'Falha ao duplicar orçamento'));
+      setPending(false);
+    }
+  };
+
   const handleExcluir = async () => {
     if (!orc || !canWrite || !isOrcEditavel(orc.status)) return;
     if (!window.confirm(`Excluir logicamente ${orc.codigo}? Cancela o rascunho (sem delete físico).`)) {
@@ -394,7 +412,7 @@ export function OrcamentoDetailPage() {
 
   const lockNote = (() => {
     if (orc.status === 'APROVADO') {
-      return 'Aprovado pelo destinatário do link — pronto para seguir (PED em entrega futura). Sem edição.';
+      return 'Aprovado pelo destinatário do link — pronto para seguir. Sem edição. Duplicar abre um orçamento novo em preparação, com as mesmas características.';
     }
     if (orc.status === 'REPROVADO') {
       return 'Rejeitado pelo destinatário. Edite, recalcule e reenvie a um contato autorizado.';
@@ -440,6 +458,17 @@ export function OrcamentoDetailPage() {
             >
               Ficha do cliente
             </a>
+            {canWrite && orc.status === 'APROVADO' ? (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={pending}
+                title="Novo orçamento em preparação, com as mesmas características. O aprovado permanece."
+                onClick={() => void handleDuplicar()}
+              >
+                Duplicar
+              </button>
+            ) : null}
             {enviavel ? (
               <button
                 type="button"

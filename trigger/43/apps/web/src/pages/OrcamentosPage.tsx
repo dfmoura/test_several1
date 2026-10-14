@@ -4,11 +4,11 @@ import {
   facaDesenhoFromSnapshot,
   OrcamentoFacaDesenho,
 } from '../components/OrcamentoFacaDesenho';
-import { IconEye, IconPencil } from '../components/NavIcons';
+import { IconDuplicate, IconEye, IconPencil } from '../components/NavIcons';
 import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
-import { api, type Orcamento } from '../lib/api';
+import { api, ApiError, type Orcamento } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDateTime } from '../lib/format';
 import { textoResumoModelosCliente } from '../lib/modeloDecisao';
@@ -75,6 +75,7 @@ export function OrcamentosPage() {
   const [status, setStatusState] = useState<StatusTab>(() => parseStatusTab(searchParams.get('status')));
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [duplicandoId, setDuplicandoId] = useState<number | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(lista, SORT);
 
   const load = useCallback(async (search?: string, statusFilter?: string) => {
@@ -119,6 +120,24 @@ export function OrcamentosPage() {
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     void load(q, status || undefined);
+  };
+
+  const duplicar = async (o: Orcamento) => {
+    if (!canWrite || o.status !== 'APROVADO' || duplicandoId != null) return;
+    setDuplicandoId(o.id);
+    setErro(null);
+    try {
+      const res = await api.post<{ data: Orcamento & { copiado_de?: { codigo: string } } }>(
+        `/orcamentos/${o.id}/duplicar`,
+      );
+      navigate(`/orcamentos/${res.data.id}/editar`, {
+        state: { copiadoDe: res.data.copiado_de?.codigo ?? o.codigo },
+      });
+    } catch (e) {
+      const first = e instanceof ApiError ? Object.values(e.details ?? {})[0]?.[0] : null;
+      setErro(first || (e instanceof Error ? e.message : 'Falha ao duplicar orçamento'));
+      setDuplicandoId(null);
+    }
   };
 
   return (
@@ -319,6 +338,18 @@ export function OrcamentosPage() {
                               >
                                 <IconPencil />
                               </Link>
+                            ) : null}
+                            {canWrite && o.status === 'APROVADO' ? (
+                              <button
+                                type="button"
+                                className="btn-icon"
+                                title="Novo orçamento em preparação, com as mesmas características. O aprovado permanece."
+                                aria-label={`Duplicar orçamento ${o.codigo}`}
+                                disabled={duplicandoId === o.id}
+                                onClick={() => void duplicar(o)}
+                              >
+                                <IconDuplicate />
+                              </button>
                             ) : null}
                           </div>
                         </td>

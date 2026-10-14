@@ -4347,6 +4347,16 @@ table.data-table td.acoes {
   margin: 0;
 }
 
+.orc-copia-aviso {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(124, 181, 24, 0.45);
+  background: var(--green-soft);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
 .orc-wizard .form-hint {
   /* Evita o espaço extra padrão de <p> (margin default do browser). */
   margin: 0.2rem 0 0;

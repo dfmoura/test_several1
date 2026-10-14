@@ -163,6 +163,12 @@ export function OrcamentoFormPage() {
   const { id } = useParams();
   const location = useLocation();
   const isNew = location.pathname.endsWith('/novo') || id === 'novo';
+  const copiadoDe = (() => {
+    const state = location.state as { copiadoDe?: unknown } | null;
+    return typeof state?.copiadoDe === 'string' && state.copiadoDe.trim() !== ''
+      ? state.copiadoDe.trim()
+      : '';
+  })();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission('orcamento.escrever');
@@ -990,6 +996,12 @@ export function OrcamentoFormPage() {
       />
 
       {erro ? <p className="form-error">{erro}</p> : null}
+
+      {copiadoDe ? (
+        <p className="orc-copia-aviso">
+          Em preparação, copiado de {copiadoDe}. O orçamento aprovado não foi alterado.
+        </p>
+      ) : null}
 
       <div className="card orc-wizard">
         <div className="card-body">
