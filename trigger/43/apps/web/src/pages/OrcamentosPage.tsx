@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   facaDesenhoFromSnapshot,
   OrcamentoFacaDesenho,
@@ -12,7 +12,12 @@ import { api, type Orcamento } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDateTime } from '../lib/format';
 import { textoResumoModelosCliente } from '../lib/modeloDecisao';
-import { isOrcEditavel, statusOrcPill } from '../lib/orcamentoForm';
+import {
+  isOrcEditavel,
+  ORC_LISTA_STATUSES,
+  statusOrcPill,
+  type OrcListaStatus,
+} from '../lib/orcamentoForm';
 import { tipoOperacaoFromSnap, tipoOperacaoLabel } from '../lib/operacoesSaida';
 import { totalPropostaFaixa } from '../lib/orcamentoFrete';
 import { useTableSort } from '../lib/useTableSort';
@@ -38,23 +43,48 @@ const SORT = {
   atualizado: (o: Orcamento) => o.updated_at,
 };
 
+type StatusTab = '' | OrcListaStatus;
+
+const STATUS_TABS: { id: StatusTab; label: string }[] = [
+  { id: '', label: 'Todos' },
+  ...ORC_LISTA_STATUSES.map((id) => ({ id, label: statusOrcPill(id) })),
+];
+
+function parseStatusTab(raw: string | null): StatusTab {
+  if (!raw) return '';
+  return (ORC_LISTA_STATUSES as readonly string[]).includes(raw) ? (raw as OrcListaStatus) : '';
+}
+
+function emptyMessage(status: StatusTab, q: string): string {
+  const qTrim = q.trim();
+  if (status && !qTrim) {
+    return `Nenhum orçamento com status ${statusOrcPill(status)}.`;
+  }
+  if (status || qTrim) {
+    return 'Nenhum orçamento encontrado com estes filtros.';
+  }
+  return 'Nenhum orçamento nesta empresa. O livro começa vazio.';
+}
+
 export function OrcamentosPage() {
   const { hasPermission } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const canWrite = hasPermission('orcamento.escrever');
   const [lista, setLista] = useState<Orcamento[]>([]);
   const [q, setQ] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatusState] = useState<StatusTab>(() => parseStatusTab(searchParams.get('status')));
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(lista, SORT);
 
-  const load = async (search?: string, statusFilter?: string) => {
+  const load = useCallback(async (search?: string, statusFilter?: string) => {
     setLoading(true);
     setErro(null);
     try {
       const params = new URLSearchParams();
-      if (search) params.set('q', search);
+      const qTrim = search?.trim();
+      if (qTrim) params.set('q', qTrim);
       if (statusFilter) params.set('status', statusFilter);
       const qs = params.toString();
       const res = await api.get<{ data: Orcamento[] }>(`/orcamentos${qs ? `?${qs}` : ''}`);
@@ -64,11 +94,33 @@ export function OrcamentosPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    void load();
+    void load(undefined, status || undefined);
+    // Carga inicial (aba vinda da URL). Trocas de aba/busca disparam load à parte.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const setStatus = (next: StatusTab) => {
+    if (next === status) return;
+    setStatusState(next);
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        if (next) p.set('status', next);
+        else p.delete('status');
+        return p;
+      },
+      { replace: true },
+    );
+    void load(q, next || undefined);
+  };
+
+  const handleSearch = (e: FormEvent) => {
+    e.preventDefault();
+    void load(q, status || undefined);
+  };
 
   return (
     <>
@@ -91,38 +143,36 @@ export function OrcamentosPage() {
 
       {erro ? <p className="form-error">{erro}</p> : null}
 
+      <div className="tabs tabs-orcamentos" role="tablist" aria-label="Status do orçamento">
+        {STATUS_TABS.map((t) => (
+          <button
+            key={t.id || 'todos'}
+            type="button"
+            role="tab"
+            className={`tab${status === t.id ? ' active' : ''}`}
+            aria-selected={status === t.id}
+            onClick={() => setStatus(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <div className="card" style={{ marginBottom: '1rem' }}>
         <div className="card-body">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void load(q, status);
-            }}
-            style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}
-          >
+          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
-              <label>Buscar</label>
+              <label htmlFor="orcamentos-busca">Buscar</label>
               <input
+                id="orcamentos-busca"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Código ou cliente"
               />
             </div>
-            <div className="form-group" style={{ minWidth: 160 }}>
-              <label>Status</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="">Todos</option>
-                <option value="CALCULADO">Em preparação</option>
-                <option value="ENVIADO">Enviado p/ aprovação</option>
-                <option value="VISUALIZADO">Visualizado</option>
-                <option value="APROVADO">Aprovado</option>
-                <option value="REPROVADO">Rejeitado</option>
-                <option value="CANCELADO">Cancelado</option>
-              </select>
-            </div>
             <div style={{ alignSelf: 'flex-end' }}>
               <button type="submit" className="btn btn-secondary">
-                Filtrar
+                Buscar
               </button>
             </div>
           </form>
@@ -130,6 +180,13 @@ export function OrcamentosPage() {
       </div>
 
       <div className="card">
+        {!loading && lista.length > 0 ? (
+          <div className="card-body" style={{ paddingBottom: 0 }}>
+            <span className="form-hint">
+              {lista.length} orçamento(s) nesta empresa
+            </span>
+          </div>
+        ) : null}
         <div className="card-body" style={{ padding: 0 }}>
           {loading ? (
             <p className="loading" style={{ padding: '1.5rem' }}>
@@ -137,8 +194,8 @@ export function OrcamentosPage() {
             </p>
           ) : lista.length === 0 ? (
             <div className="empty-state empty-state--cta">
-              <p>Nenhum orçamento nesta empresa. O livro começa vazio.</p>
-              {canWrite ? (
+              <p>{emptyMessage(status, q)}</p>
+              {canWrite && !status && !q.trim() ? (
                 <Link to="/orcamentos/novo" className="btn btn-primary">
                   Novo orçamento
                 </Link>

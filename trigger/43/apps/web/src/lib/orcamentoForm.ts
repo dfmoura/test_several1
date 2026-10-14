@@ -35,6 +35,22 @@ export const CORES_OPCOES = [
 
 export const STATUS_EDITAVEL = new Set(['RASCUNHO', 'CALCULADO', 'REPROVADO']);
 
+/**
+ * Abas da lista de orçamentos: status comercial persistido, na ordem do fluxo.
+ * RASCUNHO permanece em Todos (mesmo rótulo de CALCULADO). VENCIDO não entra no filtro.
+ * “Aguardando pagamento” é financeiro_status sobre APROVADO — a pílula da linha distingue.
+ */
+export const ORC_LISTA_STATUSES = [
+  'CALCULADO',
+  'ENVIADO',
+  'VISUALIZADO',
+  'APROVADO',
+  'REPROVADO',
+  'CANCELADO',
+] as const;
+
+export type OrcListaStatus = (typeof ORC_LISTA_STATUSES)[number];
+
 export function isOrcEditavel(status: string | undefined | null): boolean {
   return STATUS_EDITAVEL.has(String(status || ''));
 }
