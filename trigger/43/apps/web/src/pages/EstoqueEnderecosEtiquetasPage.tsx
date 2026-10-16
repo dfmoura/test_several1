@@ -12,9 +12,8 @@ import {
 } from '../lib/volumeEtiquetaPrint';
 
 /**
- * Etiquetas QR dos vãos (gabarito 6×4×3) — ADR_CADASTRO_INSUMO_VOLUME F4.
- * Payload END:{empresa_id}:{id}:{codigo}. Impressão: Elgin L42 Pro Full · 50×40 mm
- * (mesmo canal do volume — uma face = uma etiqueta na bobina térmica).
+ * Etiquetas QR dos locais L00000001.
+ * Payload END:{empresa_id}:{id}:{codigo}. Impressão: Elgin L42 Pro Full · 50×40 mm.
  */
 export function EstoqueEnderecosEtiquetasPage() {
   const [enderecos, setEnderecos] = useState<EstoqueEndereco[]>([]);
@@ -23,7 +22,7 @@ export function EstoqueEnderecosEtiquetasPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
-  const [prateleiraFiltro, setPrateleiraFiltro] = useState<string>('');
+  const [busca, setBusca] = useState('');
 
   useEffect(() => enableVolumeEtiquetaPrintMode(), []);
 
@@ -32,7 +31,7 @@ export function EstoqueEnderecosEtiquetasPage() {
     setLoading(true);
     try {
       const res = await api.get<{ data: EstoqueEndereco[] }>('/estoque/enderecos');
-      setEnderecos(res.data.filter((e) => e.prateleira != null && e.coluna != null && e.vao != null));
+      setEnderecos(res.data);
       const next: Record<number, string> = {};
       await Promise.all(
         res.data.map(async (e) => {
@@ -57,10 +56,13 @@ export function EstoqueEnderecosEtiquetasPage() {
   }, []);
 
   const filtrados = useMemo(() => {
-    if (!prateleiraFiltro) return enderecos;
-    const p = Number(prateleiraFiltro);
-    return enderecos.filter((e) => e.prateleira === p);
-  }, [enderecos, prateleiraFiltro]);
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return enderecos;
+    return enderecos.filter((e) => {
+      const nome = (e.nome ?? '').toLowerCase();
+      return e.codigo.toLowerCase().includes(termo) || nome.includes(termo);
+    });
+  }, [enderecos, busca]);
 
   const seed = async () => {
     setSeeding(true);
@@ -77,11 +79,11 @@ export function EstoqueEnderecosEtiquetasPage() {
         };
       }>('/estoque/enderecos/seed');
       const d = res.data;
-      const renomeados = (d.renomeados ?? 0) > 0 ? `, ${d.renomeados} V→L` : '';
+      const renomeados = (d.renomeados ?? 0) > 0 ? `, ${d.renomeados} alinhados para L` : '';
       const desativados =
-        d.desativados > 0 ? `, ${d.desativados} legado duplicado inativado(s)` : '';
+        d.desativados > 0 ? `, ${d.desativados} duplicado(s) inativado(s)` : '';
       setMsg(
-        `Gabarito 6×4×3: ${d.total} locais (${d.criados} criados, ${d.existentes} ok${renomeados}${desativados}).`,
+        `Locais L00000001–L${String(d.total).padStart(8, '0')}: ${d.criados} criados, ${d.existentes} já existiam${renomeados}${desativados}.`,
       );
       await load();
     } catch (err) {
@@ -95,7 +97,7 @@ export function EstoqueEnderecosEtiquetasPage() {
     <div className="page">
       <PageHeader
         title="Etiquetas dos locais"
-        description="QR da localização (estante). Cole no endereço impresso, do gabarito ou do local cadastrado."
+        description="QR do local. O código impresso é L00000001. Cole no endereço físico."
         actions={
           <>
             <Link className="btn btn-secondary" to="/estoque">
@@ -130,27 +132,23 @@ export function EstoqueEnderecosEtiquetasPage() {
         <div className="card-body" style={{ display: 'grid', gap: '0.65rem' }}>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'end' }}>
             <div className="form-group" style={{ margin: 0 }}>
-              <label>Prateleira</label>
-              <select value={prateleiraFiltro} onChange={(e) => setPrateleiraFiltro(e.target.value)}>
-                <option value="">{`Todas (${enderecos.length})`}</option>
-                {[...new Set(enderecos.map((e) => e.prateleira).filter((p): p is number => p != null))]
-                  .sort((a, b) => a - b)
-                  .map((p) => (
-                    <option key={p} value={String(p)}>
-                      P{String(p).padStart(2, '0')}
-                    </option>
-                  ))}
-              </select>
+              <label htmlFor="etq-local">Local</label>
+              <input
+                id="etq-local"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder={`Todos (${enderecos.length})`}
+              />
             </div>
             <button type="button" className="btn btn-secondary" disabled={seeding} onClick={() => void seed()}>
               {seeding
                 ? 'Alinhando…'
                 : enderecos.length === 0
-                  ? 'Gerar gabarito 6×4×3'
-                  : 'Alinhar gabarito 6×4×3'}
+                  ? 'Gerar L00000001–L00000072'
+                  : 'Alinhar L00000001–L00000072'}
             </button>
             <p className="muted" style={{ margin: 0, flex: 1 }}>
-              {filtrados.length} etiqueta(s). Cole a etiqueta no local da estante. Depois, em{' '}
+              {filtrados.length} etiqueta(s). Cole no local. Depois, em{' '}
               <Link to="/estoque/guardar">Guardar</Link>, leia o QR do volume e o QR deste local.
             </p>
           </div>
@@ -164,7 +162,7 @@ export function EstoqueEnderecosEtiquetasPage() {
         <p>Carregando…</p>
       ) : filtrados.length === 0 ? (
         <div className="card">
-          <div className="card-body">Nenhum local. Gere o gabarito 6×4×3.</div>
+          <div className="card-body">Nenhum local. Gere L00000001–L00000072.</div>
         </div>
       ) : (
         <div className="vao-etiquetas-print-grid">

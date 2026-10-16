@@ -92,7 +92,7 @@ export function OpFiltroVolumes({
             id={`${idPrefix}-local`}
             value={value.local}
             onChange={(e) => set({ local: e.target.value })}
-            placeholder="P02, P00000001…"
+            placeholder="L00000001…"
             autoComplete="off"
           />
         </div>

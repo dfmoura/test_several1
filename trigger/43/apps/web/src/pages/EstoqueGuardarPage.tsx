@@ -156,7 +156,7 @@ export function EstoqueGuardarPage() {
 
       {pendentesSemLocal === 0 && (
         <div className="alert alert-success alert--compact" style={{ marginBottom: '0.75rem' }}>
-          Nenhum volume com saldo sem local. Pode guardar para mudar de prateleira.
+          Nenhum volume com saldo sem local. Pode guardar para mudar de local.
         </div>
       )}
 

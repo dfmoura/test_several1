@@ -141,8 +141,8 @@ export function EstoqueQrFilaPanel({
     <div className="alert alert-info" style={{ margin: 0 }} key="end-prev">
       <strong>Local {endereco.codigo}</strong>
       <div className="muted">
-        Prat. {endereco.prateleira} · Col. {endereco.coluna} · Local {endereco.vao}
-        {nFila > 0 ? ` · ${nFila} volume${nFila === 1 ? '' : 's'} na fila` : ' · aguardando volumes'}
+        {endereco.nome?.trim() ? `${endereco.nome.trim()} · ` : ''}
+        {nFila > 0 ? `${nFila} volume${nFila === 1 ? '' : 's'} na fila` : 'aguardando volumes'}
       </div>
     </div>
   ) : null;

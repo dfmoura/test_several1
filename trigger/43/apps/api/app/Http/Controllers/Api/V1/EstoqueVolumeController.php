@@ -27,7 +27,7 @@ class EstoqueVolumeController extends Controller
     }
 
     /**
-     * Mapa de ocupação — leitura agregada da malha gravada (ADR F4 / WMS leve).
+     * Mapa de ocupação — leitura dos locais L######## (ADR emenda 2026-10-16).
      */
     public function mapa(Request $request): JsonResponse
     {
@@ -63,9 +63,6 @@ class EstoqueVolumeController extends Controller
         }
 
         $data = $request->validate([
-            'prateleira' => ['required', 'integer', 'min:1', 'max:255'],
-            'coluna' => ['required', 'integer', 'min:1', 'max:255'],
-            'vao' => ['nullable', 'integer', 'min:1', 'max:255'],
             'largura_m' => ['nullable', 'numeric', 'min:0.001', 'max:999.999'],
             'profundidade_m' => ['nullable', 'numeric', 'min:0.001', 'max:999.999'],
             'altura_m' => ['nullable', 'numeric', 'min:0.001', 'max:999.999'],

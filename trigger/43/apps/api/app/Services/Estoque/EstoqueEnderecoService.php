@@ -12,16 +12,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Locais do almoxarifado — ADR_CADASTRO_INSUMO_VOLUME F4.
- * Gabarito 6×4×3 é o padrão da planta. Cadastro estende a mesma malha.
- * Malha = prateleira/coluna/vao; rótulo impresso = P00000001 (seq. por EMP).
- * QR legado Pxx-Cxx-Lxx / Vxx ainda resolve no mesmo id.
+ * Locais do almoxarifado — ADR_CADASTRO_INSUMO_VOLUME (emenda 2026-10-16).
+ * Cada local é um número L00000001, sequencial por EMP. Sem prateleira.
+ * O semente cria L00000001–L00000072 se faltarem e não apaga local criado depois.
+ * Número inativado permanece inativo.
+ * QR impresso com o prefixo antigo P######## (mesmo número) ainda resolve.
  */
 class EstoqueEnderecoService
 {
     /**
-     * Semear o gabarito, alinhar rótulo sequencial e legado de malha.
-     * Reativa só os 72 do gabarito. Extensão (L04, P07, …) permanece como está.
+     * Garante o conjunto inicial e alinha rótulo antigo (P ou malha) para L########.
+     * Não reativa número que o operador inativou. Local além dos 72 permanece como está.
      *
      * @return array{criados: int, existentes: int, renomeados: int, desativados: int, total: int}
      */
@@ -33,89 +34,48 @@ class EstoqueEnderecoService
         $desativados = 0;
 
         DB::transaction(function () use ($empresa, &$criados, &$existentes, &$renomeados, &$desativados) {
-            for ($p = 1; $p <= EstoqueEndereco::PRATELEIRAS; $p++) {
-                for ($c = 1; $c <= EstoqueEndereco::COLUNAS; $c++) {
-                    for ($v = 1; $v <= EstoqueEndereco::VAOS; $v++) {
-                        $r = $this->garantirSlot($empresa, $p, $c, $v);
-                        $criados += $r['criados'];
-                        $existentes += $r['existentes'];
-                        $renomeados += $r['renomeados'];
-                        $desativados += $r['desativados'];
-                    }
-                }
-            }
-
-            $alinhados = $this->alinharRotulosForaDoGabarito($empresa);
+            $alinhados = $this->alinharPrefixoLegado($empresa);
             $renomeados += $alinhados['renomeados'];
             $desativados += $alinhados['desativados'];
-        });
 
-        $total = EstoqueEndereco::PRATELEIRAS * EstoqueEndereco::COLUNAS * EstoqueEndereco::VAOS;
+            for ($n = 1; $n <= EstoqueEndereco::LOCAIS_INICIAIS; $n++) {
+                $r = $this->garantirNumero($empresa, $n);
+                $criados += $r['criados'];
+                $existentes += $r['existentes'];
+            }
+
+            $livres = $this->alinharCodigosLivres($empresa);
+            $renomeados += $livres['renomeados'];
+            $this->sincronizarSequencia($empresa);
+        });
 
         return [
             'criados' => $criados,
             'existentes' => $existentes,
             'renomeados' => $renomeados,
             'desativados' => $desativados,
-            'total' => $total,
+            'total' => EstoqueEndereco::LOCAIS_INICIAIS,
         ];
     }
 
     /**
-     * Novo local na malha. Sem `vao`, usa o primeiro número sem local ativo.
-     * Posição inativa volta no mesmo id (rótulo já impresso continua válido).
+     * Próximo local da empresa. O operador não escolhe número.
      *
-     * @param  array{prateleira: int|string, coluna: int|string, vao?: int|string|null, largura_m?: string|null, profundidade_m?: string|null, altura_m?: string|null}  $input
+     * @param  array{largura_m?: string|null, profundidade_m?: string|null, altura_m?: string|null}  $input
      */
     public function cadastrar(Empresa $empresa, array $input): EstoqueEndereco
     {
-        $p = (int) $input['prateleira'];
-        $c = (int) $input['coluna'];
-
-        return DB::transaction(function () use ($empresa, $input, $p, $c) {
-            $v = isset($input['vao']) && $input['vao'] !== null && $input['vao'] !== ''
-                ? (int) $input['vao']
-                : $this->proximoVao($empresa, $p, $c);
-
-            $row = EstoqueEndereco::query()
-                ->where('empresa_id', $empresa->id)
-                ->where('prateleira', $p)
-                ->where('coluna', $c)
-                ->where('vao', $v)
-                ->lockForUpdate()
-                ->first();
-
-            if ($row !== null && $row->ativo) {
-                throw ValidationException::withMessages([
-                    'vao' => ["Local {$row->codigo} já está cadastrado."],
-                ]);
-            }
-
-            $dims = [
-                'largura_m' => $this->medida($input['largura_m'] ?? null, EstoqueEndereco::LARGURA_M),
-                'profundidade_m' => $this->medida($input['profundidade_m'] ?? null, EstoqueEndereco::PROFUNDIDADE_M),
-                'altura_m' => $this->medida($input['altura_m'] ?? null, EstoqueEndereco::ALTURA_M),
-            ];
-
-            if ($row !== null) {
-                if (! EstoqueEndereco::isCodigoSequencial((string) $row->codigo)) {
-                    $row->codigo = $this->proximoCodigoRotulo($empresa);
-                }
-                $row->ativo = true;
-                $row->fill($dims);
-                $row->save();
-
-                return $row;
-            }
-
+        return DB::transaction(function () use ($empresa, $input) {
             return EstoqueEndereco::query()->create([
                 'empresa_id' => $empresa->id,
                 'codigo' => $this->proximoCodigoRotulo($empresa),
-                'prateleira' => $p,
-                'coluna' => $c,
-                'vao' => $v,
+                'prateleira' => null,
+                'coluna' => null,
+                'vao' => null,
+                'largura_m' => $this->medida($input['largura_m'] ?? null, EstoqueEndereco::LARGURA_M),
+                'profundidade_m' => $this->medida($input['profundidade_m'] ?? null, EstoqueEndereco::PROFUNDIDADE_M),
+                'altura_m' => $this->medida($input['altura_m'] ?? null, EstoqueEndereco::ALTURA_M),
                 'ativo' => true,
-                ...$dims,
             ]);
         });
     }
@@ -236,6 +196,11 @@ class EstoqueEnderecoService
             return null;
         }
 
+        $numero = EstoqueEndereco::numeroSequencial($texto, true);
+        if ($numero !== null) {
+            $texto = EstoqueEndereco::codigoSequencialDe($numero);
+        }
+
         $porCodigo = EstoqueEndereco::query()
             ->where('empresa_id', $empresa->id)
             ->where('ativo', true)
@@ -281,181 +246,58 @@ class EstoqueEnderecoService
     }
 
     /**
-     * @return array{criados: int, existentes: int, renomeados: int, desativados: int}
-     */
-    private function garantirSlot(Empresa $empresa, int $p, int $c, int $v): array
-    {
-        $malha = EstoqueEndereco::codigoMalhaDe($p, $c, $v);
-        $legado = EstoqueEndereco::codigoLegadoDe($p, $c, $v);
-
-        $rowPos = EstoqueEndereco::query()
-            ->where('empresa_id', $empresa->id)
-            ->where('prateleira', $p)
-            ->where('coluna', $c)
-            ->where('vao', $v)
-            ->first();
-        $rowMalha = EstoqueEndereco::query()
-            ->where('empresa_id', $empresa->id)
-            ->where('codigo', $malha)
-            ->first();
-        $rowLegado = EstoqueEndereco::query()
-            ->where('empresa_id', $empresa->id)
-            ->where('codigo', $legado)
-            ->first();
-
-        if ($rowMalha !== null && $rowLegado !== null && $rowMalha->id !== $rowLegado->id) {
-            $this->fundirVolumes($empresa, (int) $rowLegado->id, (int) $rowMalha->id);
-            $rowLegado->ativo = false;
-            $rowLegado->save();
-            $survivor = $rowPos ?? $rowMalha;
-            $r = $this->ativarEAlinharRotulo($empresa, $survivor);
-            $r['desativados'] = 1;
-
-            return $r;
-        }
-
-        if ($rowLegado !== null && $rowPos === null && $rowMalha === null) {
-            $rowLegado->prateleira = $p;
-            $rowLegado->coluna = $c;
-            $rowLegado->vao = $v;
-            $r = $this->ativarEAlinharRotulo($empresa, $rowLegado);
-            $r['renomeados'] = max(1, $r['renomeados']);
-
-            return $r;
-        }
-
-        if ($rowMalha !== null && $rowPos === null) {
-            $rowMalha->prateleira = $p;
-            $rowMalha->coluna = $c;
-            $rowMalha->vao = $v;
-
-            return $this->ativarEAlinharRotulo($empresa, $rowMalha);
-        }
-
-        if ($rowPos !== null) {
-            if ($rowLegado !== null && $rowLegado->id !== $rowPos->id) {
-                $this->fundirVolumes($empresa, (int) $rowLegado->id, (int) $rowPos->id);
-                $rowLegado->ativo = false;
-                $rowLegado->save();
-                $r = $this->ativarEAlinharRotulo($empresa, $rowPos);
-                $r['desativados'] = 1;
-
-                return $r;
-            }
-
-            return $this->ativarEAlinharRotulo($empresa, $rowPos);
-        }
-
-        EstoqueEndereco::query()->create([
-            'empresa_id' => $empresa->id,
-            'codigo' => $this->proximoCodigoRotulo($empresa),
-            'prateleira' => $p,
-            'coluna' => $c,
-            'vao' => $v,
-            'largura_m' => EstoqueEndereco::LARGURA_M,
-            'profundidade_m' => EstoqueEndereco::PROFUNDIDADE_M,
-            'altura_m' => EstoqueEndereco::ALTURA_M,
-            'ativo' => true,
-        ]);
-
-        return ['criados' => 1, 'existentes' => 0, 'renomeados' => 0, 'desativados' => 0];
-    }
-
-    /**
-     * @return array{criados: int, existentes: int, renomeados: int, desativados: int}
-     */
-    private function ativarEAlinharRotulo(Empresa $empresa, EstoqueEndereco $row): array
-    {
-        $renomeados = 0;
-        $existentes = 0;
-
-        if (! EstoqueEndereco::isCodigoSequencial((string) $row->codigo)) {
-            $row->codigo = $this->proximoCodigoRotulo($empresa);
-            $renomeados = 1;
-        } else {
-            $existentes = 1;
-        }
-
-        if (! $row->ativo) {
-            $row->ativo = true;
-        }
-
-        $row->save();
-
-        return [
-            'criados' => 0,
-            'existentes' => $existentes,
-            'renomeados' => $renomeados,
-            'desativados' => 0,
-        ];
-    }
-
-    private function fundirVolumes(Empresa $empresa, int $deEnderecoId, int $paraEnderecoId): void
-    {
-        EstoqueLote::query()
-            ->where('empresa_id', $empresa->id)
-            ->where('endereco_id', $deEnderecoId)
-            ->update(['endereco_id' => $paraEnderecoId]);
-    }
-
-    /**
-     * Fora do gabarito: malha L/V vira rótulo sequencial no mesmo id.
-     * Duplicata malha+legado funde o volume e inativa o legado.
+     * P00000001 no mesmo número vira L00000001. Se o L já existe, o volume muda de id e o P sai.
      *
      * @return array{renomeados: int, desativados: int}
      */
-    private function alinharRotulosForaDoGabarito(Empresa $empresa): array
+    private function alinharPrefixoLegado(Empresa $empresa): array
     {
         $renomeados = 0;
         $desativados = 0;
 
-        $fora = EstoqueEndereco::query()
+        $rows = EstoqueEndereco::query()
             ->where('empresa_id', $empresa->id)
-            ->where(function ($q) {
-                $q->where('prateleira', '>', EstoqueEndereco::PRATELEIRAS)
-                    ->orWhere('coluna', '>', EstoqueEndereco::COLUNAS)
-                    ->orWhere('vao', '>', EstoqueEndereco::VAOS);
-            })
             ->orderBy('id')
+            ->lockForUpdate()
             ->get();
 
-        foreach ($fora as $row) {
-            if (EstoqueEndereco::isCodigoSequencial((string) $row->codigo)) {
+        foreach ($rows as $row) {
+            $codigo = (string) $row->codigo;
+            if (! str_starts_with($codigo, EstoqueEndereco::PREFIXO_ROTULO_LEGADO)) {
+                $this->limparMalha($row);
+                $row->save();
+
                 continue;
             }
 
-            $malha = EstoqueEndereco::codigoMalhaDe($row->prateleira, $row->coluna, $row->vao);
-            $legado = EstoqueEndereco::codigoLegadoDe($row->prateleira, $row->coluna, $row->vao);
-            $codigoAtual = (string) $row->codigo;
+            $numero = EstoqueEndereco::numeroSequencial($codigo, true);
+            if ($numero === null) {
+                $this->limparMalha($row);
+                $row->save();
 
-            if (strcasecmp($codigoAtual, $legado) !== 0 && strcasecmp($codigoAtual, $malha) !== 0
-                && ! EstoqueEndereco::isCodigoMalha($codigoAtual)) {
                 continue;
             }
 
+            $alvo = EstoqueEndereco::codigoSequencialDe($numero);
             $outro = EstoqueEndereco::query()
                 ->where('empresa_id', $empresa->id)
-                ->where('prateleira', $row->prateleira)
-                ->where('coluna', $row->coluna)
-                ->where('vao', $row->vao)
+                ->where('codigo', $alvo)
                 ->where('id', '!=', $row->id)
                 ->first();
 
             if ($outro !== null) {
-                $this->fundirVolumes($empresa, (int) $row->id, (int) $outro->id);
+                $this->fundirVinculos($empresa, (int) $row->id, (int) $outro->id);
+                $row->codigo = 'LEG-'.$row->id;
                 $row->ativo = false;
+                $this->limparMalha($row);
                 $row->save();
                 $desativados++;
-                if (! EstoqueEndereco::isCodigoSequencial((string) $outro->codigo)) {
-                    $outro->codigo = $this->proximoCodigoRotulo($empresa);
-                    $outro->save();
-                    $renomeados++;
-                }
 
                 continue;
             }
 
-            $row->codigo = $this->proximoCodigoRotulo($empresa);
+            $row->codigo = $alvo;
+            $this->limparMalha($row);
             $row->save();
             $renomeados++;
         }
@@ -464,6 +306,117 @@ class EstoqueEnderecoService
             'renomeados' => $renomeados,
             'desativados' => $desativados,
         ];
+    }
+
+    /**
+     * @return array{criados: int, existentes: int}
+     */
+    private function garantirNumero(Empresa $empresa, int $numero): array
+    {
+        $codigo = EstoqueEndereco::codigoSequencialDe($numero);
+        $row = EstoqueEndereco::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('codigo', $codigo)
+            ->lockForUpdate()
+            ->first();
+
+        if ($row === null) {
+            EstoqueEndereco::query()->create([
+                'empresa_id' => $empresa->id,
+                'codigo' => $codigo,
+                'prateleira' => null,
+                'coluna' => null,
+                'vao' => null,
+                'largura_m' => EstoqueEndereco::LARGURA_M,
+                'profundidade_m' => EstoqueEndereco::PROFUNDIDADE_M,
+                'altura_m' => EstoqueEndereco::ALTURA_M,
+                'ativo' => true,
+            ]);
+
+            return ['criados' => 1, 'existentes' => 0];
+        }
+
+        $this->limparMalha($row);
+        $row->save();
+
+        return ['criados' => 0, 'existentes' => 1];
+    }
+
+    /**
+     * Código que não é L######## (malha antiga, nome solto no código) recebe o próximo número.
+     * Local já inativo com código de fusão (LEG-) fica quieto.
+     *
+     * @return array{renomeados: int}
+     */
+    private function alinharCodigosLivres(Empresa $empresa): array
+    {
+        $renomeados = 0;
+        $rows = EstoqueEndereco::query()
+            ->where('empresa_id', $empresa->id)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($rows as $row) {
+            $codigo = (string) $row->codigo;
+            if (EstoqueEndereco::isCodigoSequencial($codigo) || str_starts_with($codigo, 'LEG-')) {
+                $this->limparMalha($row);
+                $row->save();
+
+                continue;
+            }
+
+            $row->codigo = $this->proximoCodigoRotulo($empresa);
+            $this->limparMalha($row);
+            $row->save();
+            $renomeados++;
+        }
+
+        return ['renomeados' => $renomeados];
+    }
+
+    private function limparMalha(EstoqueEndereco $row): void
+    {
+        $row->prateleira = null;
+        $row->coluna = null;
+        $row->vao = null;
+    }
+
+    private function fundirVinculos(Empresa $empresa, int $deEnderecoId, int $paraEnderecoId): void
+    {
+        EstoqueLote::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('endereco_id', $deEnderecoId)
+            ->update(['endereco_id' => $paraEnderecoId]);
+
+        EstoqueSaldo::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('endereco_id', $deEnderecoId)
+            ->update(['endereco_id' => $paraEnderecoId]);
+    }
+
+    private function sincronizarSequencia(Empresa $empresa): void
+    {
+        $proximo = $this->maxCodigoSequencialExistente($empresa) + 1;
+        $row = CodigoSequence::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('prefixo', EstoqueEndereco::SEQ_PREFIXO)
+            ->lockForUpdate()
+            ->first();
+
+        if ($row === null) {
+            CodigoSequence::query()->create([
+                'empresa_id' => $empresa->id,
+                'prefixo' => EstoqueEndereco::SEQ_PREFIXO,
+                'proximo' => $proximo,
+            ]);
+
+            return;
+        }
+
+        if ((int) $row->proximo < $proximo) {
+            $row->update(['proximo' => $proximo]);
+        }
     }
 
     private function proximoCodigoRotulo(Empresa $empresa): string
@@ -499,49 +452,23 @@ class EstoqueEnderecoService
 
     private function maxCodigoSequencialExistente(Empresa $empresa): int
     {
-        $prefix = EstoqueEndereco::PREFIXO_ROTULO;
-        $pad = EstoqueEndereco::PAD_ROTULO;
         $codes = EstoqueEndereco::query()
             ->where('empresa_id', $empresa->id)
-            ->where('codigo', 'like', $prefix.'%')
+            ->where(function ($q) {
+                $q->where('codigo', 'like', EstoqueEndereco::PREFIXO_ROTULO.'%')
+                    ->orWhere('codigo', 'like', EstoqueEndereco::PREFIXO_ROTULO_LEGADO.'%');
+            })
             ->pluck('codigo');
 
         $max = 0;
         foreach ($codes as $codigo) {
-            if (! EstoqueEndereco::isCodigoSequencial((string) $codigo)) {
-                continue;
-            }
-            $n = (int) substr((string) $codigo, strlen($prefix), $pad);
-            if ($n > $max) {
+            $n = EstoqueEndereco::numeroSequencial((string) $codigo, true);
+            if ($n !== null && $n > $max) {
                 $max = $n;
             }
         }
 
         return $max;
-    }
-
-    private function proximoVao(Empresa $empresa, int $prateleira, int $coluna): int
-    {
-        $ativos = EstoqueEndereco::query()
-            ->where('empresa_id', $empresa->id)
-            ->where('prateleira', $prateleira)
-            ->where('coluna', $coluna)
-            ->where('ativo', true)
-            ->lockForUpdate()
-            ->pluck('vao')
-            ->map(fn ($vao) => (int) $vao)
-            ->all();
-
-        $ocupados = array_fill_keys($ativos, true);
-        for ($vao = 1; $vao <= EstoqueEndereco::EIXO_MAX; $vao++) {
-            if (! isset($ocupados[$vao])) {
-                return $vao;
-            }
-        }
-
-        throw ValidationException::withMessages([
-            'vao' => ['Esta prateleira e coluna já têm o local 255.'],
-        ]);
     }
 
     private function medida(mixed $valor, string $padrao): string
@@ -567,9 +494,7 @@ class EstoqueEnderecoService
     {
         $q = EstoqueEndereco::query()
             ->where('empresa_id', $empresa->id)
-            ->orderBy('prateleira')
-            ->orderBy('coluna')
-            ->orderBy('vao');
+            ->orderBy('codigo');
 
         if ($somenteAtivos) {
             $q->where('ativo', true);
@@ -592,9 +517,7 @@ class EstoqueEnderecoService
         $locais = EstoqueEndereco::query()
             ->where('empresa_id', $empresa->id)
             ->where('ativo', true)
-            ->orderBy('prateleira')
-            ->orderBy('coluna')
-            ->orderBy('vao')
+            ->orderBy('codigo')
             ->get();
 
         $aggQuery = EstoqueLote::query()
@@ -625,21 +548,18 @@ class EstoqueEnderecoService
 
         $volumesSemLocal = (int) $semLocalQuery->count();
 
-        $idsNomeados = $locais
-            ->filter(fn (EstoqueEndereco $end) => $end->prateleira === null)
-            ->map(fn (EstoqueEndereco $end) => (int) $end->id)
-            ->all();
-        $saldosNomeados = EstoqueSaldo::query()
+        $ids = $locais->map(fn (EstoqueEndereco $end) => (int) $end->id)->all();
+        $saldosQuery = EstoqueSaldo::query()
             ->with('produto:id,codigo,descricao_comercial,descricao_fiscal,controla_lote')
             ->where('empresa_id', $empresa->id)
-            ->whereIn('endereco_id', $idsNomeados === [] ? [0] : $idsNomeados)
+            ->whereIn('endereco_id', $ids === [] ? [0] : $ids)
             ->where('qtde', '>', 0);
         if ($produtoId !== null && $produtoId > 0) {
-            $saldosNomeados->where('produto_id', $produtoId);
+            $saldosQuery->where('produto_id', $produtoId);
         }
-        $saldosPorLocal = $idsNomeados === []
+        $saldosPorLocal = $ids === []
             ? collect()
-            : $saldosNomeados->get()->groupBy(fn (EstoqueSaldo $s) => (int) $s->endereco_id);
+            : $saldosQuery->get()->groupBy(fn (EstoqueSaldo $s) => (int) $s->endereco_id);
 
         $out = [];
         $nomeados = [];
@@ -647,42 +567,37 @@ class EstoqueEnderecoService
         $volumesGuardados = 0;
 
         foreach ($locais as $end) {
-            if ($end->prateleira === null) {
-                $volumes = isset($porEndereco[(int) $end->id]) ? (int) $porEndereco[(int) $end->id]->volumes_count : 0;
-                $pilhas = [];
-                foreach ($saldosPorLocal->get((int) $end->id, collect()) as $saldo) {
-                    if ($saldo->produto?->controla_lote) {
-                        continue;
-                    }
-                    $pilhas[] = [
-                        'produto_id' => (int) $saldo->produto_id,
-                        'codigo' => (string) ($saldo->produto?->codigo ?? ''),
-                        'descricao' => (string) ($saldo->produto?->descricao_comercial ?: $saldo->produto?->descricao_fiscal ?: ''),
-                        'qtde' => (string) $saldo->qtde,
-                        'unidade' => (string) $saldo->unidade,
-                    ];
-                }
-                if ($produtoId !== null && $produtoId > 0 && $volumes === 0 && $pilhas === []) {
-                    continue;
-                }
-                $cell = $this->toOut($end);
-                $cell['volumes_count'] = $volumes;
-                $cell['itens'] = $pilhas;
-                $nomeados[] = $cell;
-
-                continue;
-            }
             $row = $porEndereco[(int) $end->id] ?? null;
             $volumes = $row !== null ? (int) $row->volumes_count : 0;
             $skus = $row !== null ? (int) $row->skus_count : 0;
-            if ($volumes > 0) {
+            $pilhas = [];
+            foreach ($saldosPorLocal->get((int) $end->id, collect()) as $saldo) {
+                if ($saldo->produto?->controla_lote) {
+                    continue;
+                }
+                $pilhas[] = [
+                    'produto_id' => (int) $saldo->produto_id,
+                    'codigo' => (string) ($saldo->produto?->codigo ?? ''),
+                    'descricao' => (string) ($saldo->produto?->descricao_comercial ?: $saldo->produto?->descricao_fiscal ?: ''),
+                    'qtde' => (string) $saldo->qtde,
+                    'unidade' => (string) $saldo->unidade,
+                ];
+            }
+            if ($produtoId !== null && $produtoId > 0 && $volumes === 0 && $pilhas === []) {
+                continue;
+            }
+            if ($volumes > 0 || $pilhas !== []) {
                 $ocupados++;
                 $volumesGuardados += $volumes;
             }
             $cell = $this->toOut($end);
             $cell['volumes_count'] = $volumes;
             $cell['skus_count'] = $skus;
+            $cell['itens'] = $pilhas;
             $out[] = $cell;
+            if (trim((string) $end->nome) !== '') {
+                $nomeados[] = $cell;
+            }
         }
 
         if ($produtoId !== null && $produtoId > 0) {
@@ -715,18 +630,10 @@ class EstoqueEnderecoService
      */
     public function toOut(EstoqueEndereco $e): array
     {
-        $temMalha = $e->prateleira !== null && $e->coluna !== null && $e->vao !== null;
-
         return [
             'id' => $e->id,
             'codigo' => $e->codigo,
             'nome' => $e->nome,
-            'codigo_malha' => $temMalha
-                ? EstoqueEndereco::codigoMalhaDe((int) $e->prateleira, (int) $e->coluna, (int) $e->vao)
-                : null,
-            'prateleira' => $e->prateleira,
-            'coluna' => $e->coluna,
-            'vao' => $e->vao,
             'largura_m' => (string) $e->largura_m,
             'profundidade_m' => (string) $e->profundidade_m,
             'altura_m' => (string) $e->altura_m,
@@ -737,7 +644,7 @@ class EstoqueEnderecoService
 
     /**
      * Resolve payload END:{empresa_id}:{id}:{codigo} — valida EMP e código.
-     * Aceita rótulo sequencial atual e malha legada Pxx-Cxx-Lxx / Vxx do mesmo slot.
+     * Aceita o rótulo L######## e o prefixo antigo P######## do mesmo número.
      */
     public function resolverPorQr(Empresa $empresa, string $payload): EstoqueEndereco
     {
@@ -779,22 +686,9 @@ class EstoqueEnderecoService
             return true;
         }
 
-        if ($end->prateleira === null || $end->coluna === null || $end->vao === null) {
-            return false;
-        }
+        $atual = EstoqueEndereco::numeroSequencial((string) $end->codigo, true);
+        $lido = EstoqueEndereco::numeroSequencial($codigo, true);
 
-        $malha = EstoqueEndereco::codigoMalhaDe(
-            (int) $end->prateleira,
-            (int) $end->coluna,
-            (int) $end->vao
-        );
-        $legado = EstoqueEndereco::codigoLegadoDe(
-            (int) $end->prateleira,
-            (int) $end->coluna,
-            (int) $end->vao
-        );
-
-        return strcasecmp($codigo, $malha) === 0
-            || strcasecmp($codigo, $legado) === 0;
+        return $atual !== null && $lido !== null && $atual === $lido;
     }
 }

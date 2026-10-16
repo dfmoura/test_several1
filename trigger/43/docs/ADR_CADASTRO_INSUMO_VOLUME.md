@@ -52,7 +52,7 @@ Conferência cria N VOLUMES (1 rastro ≈ 1 bobina quando nLote é unitário)
 | **De-para** | `produto_fornecedor_codigos` | `cProd` + descrição do fornecedor **obrigatórios** — sem isso não há entrada assistida. |
 | **Dimensão nominal** | `produtos.atributos` | `largura_mm` / `comprimento_m` / `gramatura_g_m2` / `programa_compra` = **referência** de OC/conversão — **não** chave do SKU. |
 | **Volume / bobina** | `estoque_lotes` (+ payload futuro) | Unidade física manuseável; para Avery, 1 `nLote` = 1 volume. Dimensão **real** na entrada. |
-| **Localização** | `estoque_enderecos` | Gabarito inicial: 6 prateleiras × 4 colunas × 3 locais (1,50 × 0,60 × 1,00 m). Local além dessa malha nasce por cadastro. UX: **Local/Locais**; domínio: `prateleira`/`coluna`/`vao` (malha); rótulo impresso canônico **`P00000001`** sequencial por EMP (`codigo_sequences` prefixo `LOC`); malha legada `Pxx-Cxx-Lxx` / `Vxx` ainda resolve no QR. Fora do cadastro de produto. |
+| **Localização** | `estoque_enderecos` | Identidade: **`L00000001`** sequencial por EMP (`codigo_sequences` prefixo `LOC`). Conjunto inicial L00000001–L00000072. Sem prateleira, coluna ou vão. QR antigo `P########` do mesmo número ainda resolve. Nome livre (Garagem) é opcional no mesmo local. Fora do cadastro de produto. |
 
 ### Unidades (inalteradas — ADR-039-UNID-001)
 
@@ -180,17 +180,16 @@ Evidência Avery NF 889513: `infAdProd` traz padrões `4x205x1000` e misturas `1
 
 ### F4 — Localização (WMS leve)
 
-- **Vocabulário de produto (UX):** **Local / Locais**.  
-- **Duas camadas (norma):**  
-  - **Malha (posição):** `prateleira` × `coluna` × `vao` — identidade espacial (mapa, seed, cadastro, unique por EMP). Não se apaga.  
-  - **Rótulo (`codigo`):** canônico **`P00000001`** (P + 8 dígitos), sequencial **por EMP** via `codigo_sequences` prefixo `LOC`. Cadastro/seed geram; operador **não** digita.  
-- **Malha legada (só referência / QR antigo):** `Pxx-Cxx-Lxx` e `Pxx-Cxx-Vxx` — o seed alinha rótulo estrutural → sequencial no **mesmo id**; QR com malha legada **ainda resolve** (`codigoCompativel`). Após realinhar, **reimprimir** etiquetas de local (payload `END:` carrega o `codigo` atual).  
-- **Gabarito inicial** da planta: 6 prateleiras × 4 colunas × **3 locais** (1,50 × 0,60 × 1,00 m) — 72 endereços. Extensão na mesma malha (`POST /estoque/enderecos`: vao 4, prateleira 7, …) recebe o próximo `P########`; API devolve também `codigo_malha` derivado (ex.: `P01-C01-L04`) só para leitura.  
-- Inativar tira do mapa; não se apaga a linha (o volume continua no `endereco_id`). Reativar **mantém** o mesmo `codigo` (etiqueta válida).  
-- QR do local: payload `END:{empresa_id}:{id}:{codigo}` (espelho do `VOL:…`). Resolução por `id` + EMP; segmento `codigo` = checksum (atual ou malha legada do slot).  
+- **Vocabulário de produto (UX):** **Local / Locais**. O código é o número.  
+- **Rótulo (`codigo`):** canônico **`L00000001`** (L + 8 dígitos), sequencial **por EMP** via `codigo_sequences` prefixo `LOC`. Cadastro e semente geram; operador **não** digita.  
+- **Sem prateleira, coluna ou vão** na identidade, no mapa, na etiqueta e na API. Colunas SQL permanecem nulas.  
+- **QR antigo** `END:…:P########` do **mesmo número** ainda resolve (`codigoCompativel`). Código de malha `Pxx-Cxx-Lxx` não resolve — reimprimir essa etiqueta.  
+- **Conjunto inicial:** L00000001–L00000072. `POST /estoque/enderecos` sem posição cria o próximo número.  
+- Inativar tira do mapa e do Guardar; não se apaga a linha (o volume continua no `endereco_id`). O número inativo **não** é reaproveitado.  
+- QR do local: payload `END:{empresa_id}:{id}:{codigo}` (espelho do `VOL:…`). Resolução por `id` + EMP; segmento `codigo` = checksum (L atual ou P do mesmo número).  
 - Vínculo volume ↔ endereço por `endereco_id` (não pelo texto do rótulo).  
-- Comando `erp:seed-estoque-enderecos` (cria faltantes do gabarito com rótulo sequencial; reativa só os 72; alinha malha legada → sequencial; **não** desativa extensão cadastrada).  
-- **Etiquetas dos locais:** `/estoque/enderecos/etiquetas` — face mostra `P########` + Prat/Col/Local da malha.  
+- Comando `erp:seed-estoque-enderecos` (cria os 72 que faltarem; alinha `P########` e código de malha → `L########` no mesmo id; **não** reativa número inativado; **não** desativa local criado além do conjunto).  
+- **Etiquetas dos locais:** `/estoque/enderecos/etiquetas` — face mostra `L########` (e o nome, se houver).  
   Canônico: **Elgin L42 Pro Full · 50 × 40 mm** (mesmo canal/driver do volume F3; uma face = uma etiqueta).  
 - **Reimprimir volumes:** `/estoque/lotes/etiquetas` (filtro “sem local”).  
 - **Guardar:** `/estoque/guardar` — duas ordens de leitura no chão (mesma API 1:1):  
@@ -205,9 +204,9 @@ Evidência Avery NF 889513: `infAdProd` traz padrões `4x205x1000` e misturas `1
 - [x] PHPUnit gabarito + vínculo  
 - [x] Impressão QR dos locais + resolve `END:`  
 - [x] Tela Guardar (volume ↔ local, duas ordens) + reimpressão de volumes
-- [x] UX Local/Locais (domínio `vao` intacto)
-- [x] Mapa de ocupação (`GET /estoque/mapa` + `/estoque/mapa`) — célula = endereço; drill-down volumes; só leitura
-- [x] Cadastro de local na mesma malha (`POST`/`PATCH /estoque/enderecos`); seed preserva extensão; mapa e etiquetas leem a malha gravada
+- [x] UX Local/Locais — código `L00000001`, sem prateleira (emenda 2026-10-16)
+- [x] Mapa de ocupação (`GET /estoque/mapa` + `/estoque/mapa`) — célula = local sequencial; drill-down volumes; só leitura
+- [x] Cadastro do próximo local (`POST`/`PATCH /estoque/enderecos`); seed preserva o que passou de L00000072
 
 ### F5 — Reposição → OC → ciclo fechado
 
@@ -293,10 +292,24 @@ Largura, metro linear e m² são a mesma conta do volume. Kg é a mesma quantida
 
 Bobina continua com local no volume (Guardar). Tubete, caixa e demais SKUs sem lote têm **um** local para a quantidade inteira, em `estoque_saldos.endereco_id`.
 
-- O lugar é um `estoque_enderecos`: célula da malha ou nome livre (Garagem, em cima das estantes), com rótulo `P########` e sem prateleira/coluna/vão.
+- O lugar é um `estoque_enderecos`: número `L########`, com nome livre opcional (Garagem, em cima das estantes).
 - Marcar ou tirar o local não gera MOV, não altera a quantidade e não cria saldo. Sem saldo, recebe antes.
 - SKU com volume recusa esse vínculo — o local de cada bobina segue no Guardar.
 - Dois lugares para o mesmo tubete exigem volume (lote ligado de propósito), não um segundo saldo.
+
+---
+
+## Emenda 2026-10-16 — local só com número L########
+
+A prateleira deixa de organizar o almoxarifado. O local é um número sequencial por EMP.
+
+- Código canônico **`L` + 8 dígitos** (`L00000001`). O prefixo interno da sequência continua `LOC`.
+- `P########` impresso no mesmo número ainda abre o QR. Malha `Pxx-Cxx-Lxx` não abre: reimprimir.
+- Migração reescreve `P########` → `L########` no mesmo id, anula prateleira/coluna/vão e solta o unique da posição. Volume e saldo seguem em `endereco_id`.
+- Conjunto inicial: 72 números. Local novo é o próximo número. Inativo não é reutilizado.
+- Mapa, etiqueta e Guardar mostram o código. Nome livre continua opcional no mesmo registro.
+
+Não altera: entrada, saldo, MOV, Guardar por QR, isolamento `empresa_id`.
 
 ---
 

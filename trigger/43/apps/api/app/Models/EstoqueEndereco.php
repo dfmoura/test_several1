@@ -8,34 +8,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Endereço físico do almoxarifado — ADR_CADASTRO_INSUMO_VOLUME F4.
- * Gabarito inicial (seed): 6 prateleiras × 4 colunas × 3 locais.
- * Malha (prateleira/coluna/vao) = posição; código impresso = P00000001 sequencial por EMP.
- * UX: Local/Locais · coluna SQL: `vao` (eixo do slot).
+ * Local do almoxarifado — ADR_CADASTRO_INSUMO_VOLUME (emenda 2026-10-16).
+ * Identidade operacional: L00000001, sequencial por EMP. Sem prateleira/coluna/vão.
+ * O conjunto inicial semeado tem 72 números (L00000001–L00000072).
  */
 class EstoqueEndereco extends Model
 {
-    /** Teto do gabarito semeado — não é o limite do cadastro. */
-    public const PRATELEIRAS = 6;
+    /** Quantos locais o comando de semente garante. Não é o limite do cadastro. */
+    public const LOCAIS_INICIAIS = 72;
 
-    public const COLUNAS = 4;
+    /** Prefixo do rótulo sequencial impresso (L00000001). */
+    public const PREFIXO_ROTULO = 'L';
 
-    public const VAOS = 3;
-
-    public const EIXO_MAX = 255;
-
-    /** Prefixo do rótulo sequencial impresso (P00000001). */
-    public const PREFIXO_ROTULO = 'P';
+    /** Prefixo impresso antes da emenda 2026-10-16. O QR antigo ainda resolve. */
+    public const PREFIXO_ROTULO_LEGADO = 'P';
 
     public const PAD_ROTULO = 8;
 
     /** Prefixo em codigo_sequences (não aparece na etiqueta). */
     public const SEQ_PREFIXO = 'LOC';
-
-    /** Prefixo do slot na malha legada (Local). Impresso antigo: V. */
-    public const PREFIXO_SLOT = 'L';
-
-    public const PREFIXO_SLOT_LEGADO = 'V';
 
     public const LARGURA_M = '1.500';
 
@@ -93,53 +84,36 @@ class EstoqueEndereco extends Model
         ];
     }
 
-    /** Rótulo canônico impresso — P00000001. */
+    /** Rótulo canônico impresso — L00000001. */
     public static function codigoSequencialDe(int $numero): string
     {
         return self::PREFIXO_ROTULO.str_pad((string) $numero, self::PAD_ROTULO, '0', STR_PAD_LEFT);
     }
 
+    /** Mesmo número com o prefixo impresso antigo (P00000001). */
+    public static function codigoSequencialLegadoDe(int $numero): string
+    {
+        return self::PREFIXO_ROTULO_LEGADO.str_pad((string) $numero, self::PAD_ROTULO, '0', STR_PAD_LEFT);
+    }
+
     public static function isCodigoSequencial(string $codigo): bool
     {
-        return preg_match('/^'.preg_quote(self::PREFIXO_ROTULO, '/').'\d{'.self::PAD_ROTULO.'}$/', $codigo) === 1;
+        return self::numeroSequencial($codigo, false) !== null;
     }
 
     /**
-     * Malha legada (só referência espacial / QR antigo) — Pxx-Cxx-Lxx.
-     * Não é mais o código gravado em cadastros novos.
+     * Número do rótulo. Canônico aceita só L; leitura de QR aceita também o P antigo.
      */
-    public static function codigoMalhaDe(int $prateleira, int $coluna, int $vao): string
+    public static function numeroSequencial(string $codigo, bool $aceitaLegado = false): ?int
     {
-        return sprintf(
-            'P%02d-C%02d-%s%02d',
-            $prateleira,
-            $coluna,
-            self::PREFIXO_SLOT,
-            $vao
-        );
-    }
+        $prefixos = $aceitaLegado
+            ? self::PREFIXO_ROTULO.self::PREFIXO_ROTULO_LEGADO
+            : self::PREFIXO_ROTULO;
+        if (preg_match('/^['.$prefixos.'](\d{'.self::PAD_ROTULO.'})$/', $codigo, $m) !== 1) {
+            return null;
+        }
 
-    /** @deprecated use codigoMalhaDe — mantido para testes/legado V→L */
-    public static function codigoDe(int $prateleira, int $coluna, int $vao): string
-    {
-        return self::codigoMalhaDe($prateleira, $coluna, $vao);
-    }
-
-    /** Código legado (pré-Local) — Pxx-Cxx-Vxx. */
-    public static function codigoLegadoDe(int $prateleira, int $coluna, int $vao): string
-    {
-        return sprintf(
-            'P%02d-C%02d-%s%02d',
-            $prateleira,
-            $coluna,
-            self::PREFIXO_SLOT_LEGADO,
-            $vao
-        );
-    }
-
-    public static function isCodigoMalha(string $codigo): bool
-    {
-        return preg_match('/^P\d{2}-C\d{2}-[LV]\d{2}$/i', $codigo) === 1;
+        return (int) $m[1];
     }
 
     public function qrPayload(): string

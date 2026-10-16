@@ -12,14 +12,8 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
-const GABARITO_P = 6;
-const GABARITO_C = 4;
-const GABARITO_L = 3;
+const LOCAIS_INICIAIS = 72;
 const DOTS_MAX = 6;
-
-function seqAte(n: number): number[] {
-  return Array.from({ length: n }, (_, i) => i + 1);
-}
 
 function erroApi(err: unknown, fallback: string): string {
   if (err instanceof ApiError) {
@@ -27,10 +21,6 @@ function erroApi(err: unknown, fallback: string): string {
     return first ?? err.message;
   }
   return fallback;
-}
-
-function pad2(n: number): string {
-  return String(n).padStart(2, '0');
 }
 
 function densidadeClass(volumes: number): string {
@@ -41,8 +31,7 @@ function densidadeClass(volumes: number): string {
 }
 
 /**
- * Mapa de ocupação dos locais — ADR_CADASTRO_INSUMO_VOLUME F4.
- * A grade lê a malha gravada (gabarito 6×4×3 e o que foi cadastrado além).
+ * Mapa de ocupação dos locais — código L00000001, sem prateleira.
  * Leitura agregada; saldo oficial continua em Saldos.
  */
 export function EstoqueMapaPage() {
@@ -57,15 +46,7 @@ export function EstoqueMapaPage() {
   const [seeding, setSeeding] = useState(false);
   const [cadastrando, setCadastrando] = useState(false);
   const [inativando, setInativando] = useState(false);
-  const [prateleiraFiltro, setPrateleiraFiltro] = useState<string>('');
-  const [novo, setNovo] = useState({
-    prateleira: '1',
-    coluna: '1',
-    vao: '',
-    largura_m: '1.500',
-    profundidade_m: '0.600',
-    altura_m: '1.000',
-  });
+  const [busca, setBusca] = useState('');
   const [soOcupados, setSoOcupados] = useState(false);
   const [selecionado, setSelecionado] = useState<EstoqueMapaLocal | null>(null);
   const [volumes, setVolumes] = useState<EstoqueLote[]>([]);
@@ -93,41 +74,15 @@ export function EstoqueMapaPage() {
     void load();
   }, [load]);
 
-  const bySlot = useMemo(() => {
-    const map = new Map<string, EstoqueMapaLocal>();
-    for (const e of locais) {
-      map.set(`${e.prateleira}-${e.coluna}-${e.vao}`, e);
-    }
-    return map;
-  }, [locais]);
-
-  const malha = useMemo(() => {
-    let maxP = GABARITO_P;
-    let maxC = GABARITO_C;
-    let maxL = GABARITO_L;
-    for (const e of locais) {
-      if (e.prateleira == null || e.coluna == null || e.vao == null) continue;
-      maxP = Math.max(maxP, e.prateleira);
-      maxC = Math.max(maxC, e.coluna);
-      maxL = Math.max(maxL, e.vao);
-    }
-    return {
-      prateleiras: seqAte(maxP),
-      colunas: seqAte(maxC),
-      locais: seqAte(maxL),
-    };
-  }, [locais]);
-
-  const prateleirasVisiveis = useMemo(() => {
-    if (!prateleiraFiltro) return malha.prateleiras;
-    return malha.prateleiras.filter((p) => p === Number(prateleiraFiltro));
-  }, [malha.prateleiras, prateleiraFiltro]);
-
-  useEffect(() => {
-    if (prateleiraFiltro && !malha.prateleiras.includes(Number(prateleiraFiltro))) {
-      setPrateleiraFiltro('');
-    }
-  }, [malha.prateleiras, prateleiraFiltro]);
+  const visiveis = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return locais.filter((e) => {
+      if (soOcupados && e.volumes_count <= 0 && (e.itens?.length ?? 0) === 0) return false;
+      if (!termo) return true;
+      const nome = (e.nome ?? '').toLowerCase();
+      return e.codigo.toLowerCase().includes(termo) || nome.includes(termo);
+    });
+  }, [locais, busca, soOcupados]);
 
   const abrirLocal = async (cell: EstoqueMapaLocal) => {
     setSelecionado(cell);
@@ -161,11 +116,11 @@ export function EstoqueMapaPage() {
         };
       }>('/estoque/enderecos/seed');
       const d = res.data;
-      const renomeados = (d.renomeados ?? 0) > 0 ? `, ${d.renomeados} V→L` : '';
+      const renomeados = (d.renomeados ?? 0) > 0 ? `, ${d.renomeados} alinhados para L` : '';
       const desativados =
-        d.desativados > 0 ? `, ${d.desativados} legado duplicado inativado(s)` : '';
+        d.desativados > 0 ? `, ${d.desativados} duplicado(s) inativado(s)` : '';
       setMsg(
-        `Gabarito 6×4×3: ${d.total} locais (${d.criados} criados, ${d.existentes} ok${renomeados}${desativados}).`,
+        `Locais L00000001–L${String(d.total).padStart(8, '0')}: ${d.criados} criados, ${d.existentes} já existiam${renomeados}${desativados}.`,
       );
       await load();
     } catch (err) {
@@ -181,27 +136,8 @@ export function EstoqueMapaPage() {
     setMsg(null);
     setError(null);
     try {
-      const body: {
-        prateleira: number;
-        coluna: number;
-        vao?: number;
-        largura_m: string;
-        profundidade_m: string;
-        altura_m: string;
-      } = {
-        prateleira: Number(novo.prateleira),
-        coluna: Number(novo.coluna),
-        largura_m: novo.largura_m,
-        profundidade_m: novo.profundidade_m,
-        altura_m: novo.altura_m,
-      };
-      if (novo.vao.trim() !== '') body.vao = Number(novo.vao);
-      body.largura_m = body.largura_m.replace(',', '.');
-      body.profundidade_m = body.profundidade_m.replace(',', '.');
-      body.altura_m = body.altura_m.replace(',', '.');
-      const res = await api.post<{ data: { codigo: string } }>('/estoque/enderecos', body);
+      const res = await api.post<{ data: { codigo: string } }>('/estoque/enderecos', {});
       setMsg(`Local ${res.data.codigo} cadastrado. Imprima a etiqueta antes de guardar volume.`);
-      setNovo((atual) => ({ ...atual, vao: '' }));
       await load();
     } catch (err) {
       setError(erroApi(err, 'Falha ao cadastrar o local.'));
@@ -229,7 +165,7 @@ export function EstoqueMapaPage() {
       await api.patch(`/estoque/enderecos/${cell.id}`, { ativo: false });
       setSelecionado(null);
       setVolumes([]);
-      setMsg(`${cell.codigo} inativado. Cadastrar a mesma posição reativa este endereço.`);
+      setMsg(`${cell.codigo} inativado. O número não volta a ser usado.`);
       await load();
     } catch (err) {
       setError(erroApi(err, 'Falha ao inativar o local.'));
@@ -242,7 +178,7 @@ export function EstoqueMapaPage() {
     <div className="page estoque-mapa-page">
       <PageHeader
         title="Mapa dos locais"
-        description="Ocupação por local (rótulo P00000001; malha Prat/Col/Local). Gabarito 6×4×3; local novo entra na mesma malha."
+        description="Ocupação por local. O código é só o número L00000001, em sequência."
         actions={
           <>
             <Link className="btn btn-secondary" to="/estoque">
@@ -313,7 +249,7 @@ export function EstoqueMapaPage() {
         <div className="card" style={{ marginBottom: '0.75rem' }}>
           <div className="card-body">
             <h3 className="orc-subsection-title" style={{ marginTop: 0 }}>
-              Fora da malha
+              Com nome
             </h3>
             <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem' }}>
               {nomeados.map((lugar) => (
@@ -345,19 +281,14 @@ export function EstoqueMapaPage() {
       <div className="card estoque-filtros-card">
         <div className="card-body" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'end' }}>
           <div className="form-group" style={{ margin: 0 }}>
-            <label htmlFor="mapa-prateleira">Prateleira</label>
-            <select
-              id="mapa-prateleira"
-              value={prateleiraFiltro}
-              onChange={(e) => setPrateleiraFiltro(e.target.value)}
-            >
-              <option value="">Todas</option>
-              {malha.prateleiras.map((p) => (
-                <option key={p} value={String(p)}>
-                  P{pad2(p)}
-                </option>
-              ))}
-            </select>
+            <label htmlFor="mapa-busca">Local</label>
+            <input
+              id="mapa-busca"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="L00000001"
+              style={{ width: '9rem' }}
+            />
           </div>
           <label className="estoque-mapa-check" htmlFor="mapa-ocupados">
             <input
@@ -371,9 +302,9 @@ export function EstoqueMapaPage() {
           <button type="button" className="btn btn-secondary btn-sm" disabled={loading} onClick={() => void load()}>
             Atualizar
           </button>
-          {(locais.length === 0 || (resumo && resumo.total_locais < 72)) && (
+          {(locais.length === 0 || (resumo && resumo.total_locais < LOCAIS_INICIAIS)) && (
             <button type="button" className="btn btn-secondary btn-sm" disabled={seeding} onClick={() => void seed()}>
-              {seeding ? 'Alinhando…' : 'Gerar gabarito 6×4×3'}
+              {seeding ? 'Alinhando…' : 'Gerar L00000001–L00000072'}
             </button>
           )}
         </div>
@@ -381,85 +312,12 @@ export function EstoqueMapaPage() {
 
       {canWrite && (
         <form className="card estoque-filtros-card" onSubmit={(e) => void cadastrar(e)}>
-          <div className="card-body" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'end' }}>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label htmlFor="novo-prateleira">Prateleira</label>
-              <input
-                id="novo-prateleira"
-                type="number"
-                min={1}
-                max={255}
-                required
-                value={novo.prateleira}
-                onChange={(e) => setNovo((atual) => ({ ...atual, prateleira: e.target.value }))}
-                style={{ width: '5.5rem' }}
-              />
-            </div>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label htmlFor="novo-coluna">Coluna</label>
-              <input
-                id="novo-coluna"
-                type="number"
-                min={1}
-                max={255}
-                required
-                value={novo.coluna}
-                onChange={(e) => setNovo((atual) => ({ ...atual, coluna: e.target.value }))}
-                style={{ width: '5.5rem' }}
-              />
-            </div>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label htmlFor="novo-local">Local</label>
-              <input
-                id="novo-local"
-                type="number"
-                min={1}
-                max={255}
-                placeholder="próximo"
-                value={novo.vao}
-                onChange={(e) => setNovo((atual) => ({ ...atual, vao: e.target.value }))}
-                style={{ width: '5.5rem' }}
-              />
-            </div>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label htmlFor="novo-largura">Largura (m)</label>
-              <input
-                id="novo-largura"
-                inputMode="decimal"
-                required
-                value={novo.largura_m}
-                onChange={(e) => setNovo((atual) => ({ ...atual, largura_m: e.target.value }))}
-                style={{ width: '6rem' }}
-              />
-            </div>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label htmlFor="novo-prof">Profundidade (m)</label>
-              <input
-                id="novo-prof"
-                inputMode="decimal"
-                required
-                value={novo.profundidade_m}
-                onChange={(e) => setNovo((atual) => ({ ...atual, profundidade_m: e.target.value }))}
-                style={{ width: '6rem' }}
-              />
-            </div>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label htmlFor="novo-alt">Altura (m)</label>
-              <input
-                id="novo-alt"
-                inputMode="decimal"
-                required
-                value={novo.altura_m}
-                onChange={(e) => setNovo((atual) => ({ ...atual, altura_m: e.target.value }))}
-                style={{ width: '6rem' }}
-              />
-            </div>
+          <div className="card-body" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <button type="submit" className="btn btn-primary btn-sm" disabled={cadastrando}>
-              {cadastrando ? 'Cadastrando…' : 'Cadastrar local'}
+              {cadastrando ? 'Cadastrando…' : 'Cadastrar próximo local'}
             </button>
             <p className="muted" style={{ margin: 0, flex: '1 1 16rem' }}>
-              Em branco, entra o primeiro local livre daquela prateleira e coluna. O código
-              sai sozinho. Se esse número estiver inativo, volta o mesmo endereço.
+              O número sai sozinho, em sequência. Local inativo não volta a ser usado.
             </p>
           </div>
         </form>
@@ -471,90 +329,54 @@ export function EstoqueMapaPage() {
         <div className="card">
           <div className="card-body">
             <p style={{ margin: '0 0 0.75rem' }}>
-              Nenhum local cadastrado nesta empresa. Gere o gabarito 6×4×3 para ver o mapa.
+              Nenhum local cadastrado nesta empresa. Gere L00000001–L00000072 para ver o mapa.
             </p>
             <button type="button" className="btn btn-primary" disabled={seeding} onClick={() => void seed()}>
-              {seeding ? 'Gerando…' : 'Gerar gabarito 6×4×3'}
+              {seeding ? 'Gerando…' : 'Gerar L00000001–L00000072'}
             </button>
           </div>
         </div>
       ) : (
         <div className="estoque-mapa-layout">
-          <div className="estoque-mapa-grades" role="region" aria-label="Grade de locais">
-            {prateleirasVisiveis.map((p) => (
-              <section key={p} className="estoque-mapa-prateleira" aria-label={`Prateleira P${pad2(p)}`}>
-                <header className="estoque-mapa-prateleira-head">
-                  <h2>P{pad2(p)}</h2>
-                </header>
-                <div
-                  className="estoque-mapa-colunas"
-                  style={
-                    malha.colunas.length === GABARITO_C
-                      ? undefined
-                      : { gridTemplateColumns: `repeat(${malha.colunas.length}, minmax(6.5rem, 1fr))` }
-                  }
-                >
-                  {malha.colunas.map((c) => (
-                    <div key={c} className="estoque-mapa-coluna">
-                      <div className="estoque-mapa-coluna-head">C{pad2(c)}</div>
-                      <div className="estoque-mapa-locais">
-                        {malha.locais.map((v) => {
-                          const cell = bySlot.get(`${p}-${c}-${v}`);
-                          if (!cell) {
-                            return (
-                              <div
-                                key={v}
-                                className="estoque-mapa-celula estoque-mapa-celula--ausente"
-                                aria-hidden
-                              />
-                            );
-                          }
-                          if (soOcupados && cell.volumes_count <= 0) {
-                            return (
-                              <div
-                                key={v}
-                                className="estoque-mapa-celula estoque-mapa-celula--oculta"
-                                aria-hidden
-                              />
-                            );
-                          }
-                          const nDots = Math.min(cell.volumes_count, DOTS_MAX);
-                          const ativo = selecionado?.id === cell.id;
-                          return (
-                            <button
-                              key={v}
-                              type="button"
-                              className={`estoque-mapa-celula ${densidadeClass(cell.volumes_count)}${
-                                ativo ? ' estoque-mapa-celula--ativa' : ''
-                              }`}
-                              onClick={() => void abrirLocal(cell)}
-                              title={`${cell.codigo}: ${cell.volumes_count} volume(s)`}
-                              aria-pressed={ativo}
-                              aria-label={`${cell.codigo}, ${cell.volumes_count} volumes`}
-                            >
-                              <span className="estoque-mapa-celula-cod">{cell.codigo}</span>
-                              <span className="estoque-mapa-dots" aria-hidden>
-                                {cell.volumes_count <= 0 ? (
-                                  <span className="estoque-mapa-dot estoque-mapa-dot--vazio" />
-                                ) : (
-                                  Array.from({ length: nDots }, (_, i) => (
-                                    <span key={i} className="estoque-mapa-dot" />
-                                  ))
-                                )}
-                                {cell.volumes_count > DOTS_MAX && (
-                                  <span className="estoque-mapa-mais">+{cell.volumes_count - DOTS_MAX}</span>
-                                )}
-                              </span>
-                              <span className="estoque-mapa-celula-n">{cell.volumes_count}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            ))}
+          <div className="estoque-mapa-lista" role="region" aria-label="Locais">
+            {visiveis.length === 0 ? (
+              <p className="muted" style={{ margin: 0 }}>
+                Nenhum local com esse filtro.
+              </p>
+            ) : (
+              visiveis.map((cell) => {
+                const nDots = Math.min(cell.volumes_count, DOTS_MAX);
+                const ativo = selecionado?.id === cell.id;
+                return (
+                  <button
+                    key={cell.id}
+                    type="button"
+                    className={`estoque-mapa-celula ${densidadeClass(cell.volumes_count)}${
+                      ativo ? ' estoque-mapa-celula--ativa' : ''
+                    }`}
+                    onClick={() => void abrirLocal(cell)}
+                    title={`${cell.codigo}: ${cell.volumes_count} volume(s)`}
+                    aria-pressed={ativo}
+                    aria-label={`${cell.codigo}, ${cell.volumes_count} volumes`}
+                  >
+                    <span className="estoque-mapa-celula-cod">{cell.codigo}</span>
+                    <span className="estoque-mapa-dots" aria-hidden>
+                      {cell.volumes_count <= 0 ? (
+                        <span className="estoque-mapa-dot estoque-mapa-dot--vazio" />
+                      ) : (
+                        Array.from({ length: nDots }, (_, i) => (
+                          <span key={i} className="estoque-mapa-dot" />
+                        ))
+                      )}
+                      {cell.volumes_count > DOTS_MAX && (
+                        <span className="estoque-mapa-mais">+{cell.volumes_count - DOTS_MAX}</span>
+                      )}
+                    </span>
+                    <span className="estoque-mapa-celula-n">{cell.volumes_count}</span>
+                  </button>
+                );
+              })
+            )}
           </div>
 
           <aside className="estoque-mapa-detalhe card" aria-live="polite">
@@ -569,13 +391,7 @@ export function EstoqueMapaPage() {
                     <div>
                       <h3 style={{ margin: 0 }}>{selecionado.codigo}</h3>
                       <p className="muted" style={{ margin: '0.2rem 0 0' }}>
-                        {selecionado.codigo_malha
-                          ? `${selecionado.codigo_malha} · `
-                          : selecionado.prateleira != null &&
-                              selecionado.coluna != null &&
-                              selecionado.vao != null
-                            ? `P${pad2(selecionado.prateleira)}-C${pad2(selecionado.coluna)}-L${pad2(selecionado.vao)} · `
-                            : ''}
+                        {selecionado.nome?.trim() ? `${selecionado.nome.trim()} · ` : ''}
                         {selecionado.volumes_count} volume(s)
                         {selecionado.skus_count > 0 ? ` · ${selecionado.skus_count} SKU(s)` : ''}
                       </p>

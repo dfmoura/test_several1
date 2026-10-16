@@ -1,15 +1,17 @@
 import type { EstoqueEndereco } from '../lib/api';
 
 type Props = {
-  endereco: Pick<EstoqueEndereco, 'codigo' | 'prateleira' | 'coluna' | 'vao'>;
+  endereco: Pick<EstoqueEndereco, 'codigo' | 'nome'>;
   qrDataUrl: string | null;
 };
 
 /**
- * Face física 50×40 mm do vão — Elgin L42 Pro Full (mesmo canal do volume, ADR F4).
- * Código legível + QR END:… para Guardar.
+ * Face física 50×40 mm do local — Elgin L42 Pro Full (mesmo canal do volume).
+ * Código L00000001 + QR END:… para Guardar.
  */
 export function VaoEtiquetaSheet({ endereco, qrDataUrl }: Props) {
+  const nome = endereco.nome?.trim() ?? '';
+
   return (
     <article className="vao-etiqueta-sheet" aria-label={`Etiqueta local ${endereco.codigo}`}>
       <div className="vao-etiqueta-face">
@@ -22,16 +24,8 @@ export function VaoEtiquetaSheet({ endereco, qrDataUrl }: Props) {
         </div>
         <div className="vao-etiqueta-meta">
           <div className="vao-etiqueta-codigo">{endereco.codigo}</div>
-          <div className="vao-etiqueta-row">
-            <span className="vao-etiqueta-k">Prat.</span> {String(endereco.prateleira).padStart(2, '0')}
-          </div>
-          <div className="vao-etiqueta-row">
-            <span className="vao-etiqueta-k">Col.</span> {String(endereco.coluna).padStart(2, '0')}
-          </div>
-          <div className="vao-etiqueta-row">
-            <span className="vao-etiqueta-k">Local</span> {String(endereco.vao).padStart(2, '0')}
-          </div>
-          <div className="vao-etiqueta-row vao-etiqueta-row--muted">Local · estante</div>
+          {nome !== '' && <div className="vao-etiqueta-row">{nome}</div>}
+          <div className="vao-etiqueta-row vao-etiqueta-row--muted">Local</div>
         </div>
       </div>
     </article>

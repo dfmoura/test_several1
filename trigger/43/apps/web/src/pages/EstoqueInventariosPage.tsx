@@ -35,9 +35,7 @@ type VolumeFila = {
 type EnderecoScan = {
   id: number;
   codigo: string;
-  prateleira?: number;
-  coluna?: number;
-  vao?: number;
+  nome?: string | null;
   qr_payload: string;
 };
 
@@ -963,12 +961,10 @@ function InventarioDetail({ id }: { id: number }) {
                         <div className="alert alert-info" style={{ margin: 0 }} key="end-prev">
                           <strong>Local {endereco.codigo}</strong>
                           <div className="muted">
-                            {endereco.prateleira != null
-                              ? `Prat. ${endereco.prateleira} · Col. ${endereco.coluna} · Local ${endereco.vao}`
-                              : 'Local confirmado'}
+                            {endereco.nome?.trim() ? `${endereco.nome.trim()} · ` : ''}
                             {nFila > 0
-                              ? ` · ${nFila} volume${nFila === 1 ? '' : 's'} na fila`
-                              : ' · aguardando volumes'}
+                              ? `${nFila} volume${nFila === 1 ? '' : 's'} na fila`
+                              : 'aguardando volumes'}
                           </div>
                         </div>
                       ) : null;

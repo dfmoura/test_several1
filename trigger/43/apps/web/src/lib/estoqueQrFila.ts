@@ -15,9 +15,7 @@ export type EstoqueQrVolumeInfo = {
 export type EstoqueQrEnderecoInfo = {
   id: number;
   codigo: string;
-  prateleira: number;
-  coluna: number;
-  vao: number;
+  nome?: string | null;
   qr_payload: string;
 };
 

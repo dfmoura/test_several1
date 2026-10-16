@@ -156,8 +156,7 @@ export function EstoqueLoteEtiquetaPage() {
           </label>
           {enderecos.length === 0 && (
             <p className="form-hint" style={{ margin: 0 }}>
-              Nenhum local cadastrado. Rode <code>php artisan erp:seed-estoque-enderecos</code> (gabarito
-              6×4×3).
+              Nenhum local cadastrado. No mapa, gere os locais L00000001–L00000072.
             </p>
           )}
           <button

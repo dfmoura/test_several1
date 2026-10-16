@@ -81,15 +81,11 @@ class EstoqueInventarioContagemFisicaTest extends TestCase
         app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
         $this->end1 = EstoqueEndereco::query()
             ->where('empresa_id', $this->empresa->id)
-            ->where('prateleira', 1)
-            ->where('coluna', 1)
-            ->where('vao', 1)
+            ->where('codigo', 'L00000001')
             ->firstOrFail();
         $this->end2 = EstoqueEndereco::query()
             ->where('empresa_id', $this->empresa->id)
-            ->where('prateleira', 1)
-            ->where('coluna', 1)
-            ->where('vao', 2)
+            ->where('codigo', 'L00000002')
             ->firstOrFail();
 
         $this->produtoMp = Produto::query()->create([

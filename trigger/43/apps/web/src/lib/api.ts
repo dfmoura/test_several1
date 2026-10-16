@@ -1796,15 +1796,10 @@ export type ReceberXmlPreview = {
 
 export type EstoqueEndereco = {
   id: number;
-  /** Rótulo impresso sequencial (P00000001). */
+  /** Rótulo impresso sequencial (L00000001). */
   codigo: string;
-  /** Nome livre (Garagem). Vazio na célula da malha. */
+  /** Nome livre (Garagem), quando o local não é só o número. */
   nome?: string | null;
-  /** Malha derivada Pxx-Cxx-Lxx (posição; não é o código da etiqueta). */
-  codigo_malha?: string | null;
-  prateleira: number | null;
-  coluna: number | null;
-  vao: number | null;
   largura_m: string;
   profundidade_m: string;
   altura_m: string;
@@ -1816,6 +1811,13 @@ export type EstoqueEndereco = {
 export type EstoqueMapaLocal = EstoqueEndereco & {
   volumes_count: number;
   skus_count: number;
+  itens?: Array<{
+    produto_id: number;
+    codigo: string;
+    descricao: string;
+    qtde: string;
+    unidade: string;
+  }>;
 };
 
 export type EstoqueMapaNomeado = EstoqueEndereco & {
