@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Empresa;
+use App\Models\EstoqueSaldo;
 use App\Models\Orcamento;
 use App\Models\OrdemProducao;
 use App\Models\PaEmbalagem;
@@ -368,5 +369,42 @@ class PaEmbalagemTest extends TestCase
                 'qtde_caixas' => 3,
             ])
             ->assertStatus(422);
+    }
+
+    public function test_caixa_escolhida_grava_o_sku_sem_mover_saldo(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $caixa = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'EMB-CX-007',
+            'familia' => 'EMB',
+            'descricao_fiscal' => 'CAIXA PAPELAO 500X300X300',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'atributos' => ['comp_mm' => '500', 'larg_mm' => '300', 'alt_mm' => '300'],
+        ]);
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $caixa->id,
+            'qtde' => '40',
+            'unidade' => 'UN',
+            'custo_medio' => '1',
+        ]);
+
+        $res = $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$this->op->id}/embalar", [
+                'qtde_bobinas' => 5,
+                'qtde_caixas' => 2,
+                'caixa_produto_id' => $caixa->id,
+            ]);
+
+        $res->assertOk();
+        $this->assertSame($caixa->id, $res->json('data.caixa_produto_id'));
+        $this->assertSame('EMB-CX-007', $res->json('data.caixa_produto_codigo'));
+        $this->assertSame(2, $res->json('data.qtde_caixas'));
+        $this->assertSame('40.0000', EstoqueSaldo::query()->where('produto_id', $caixa->id)->value('qtde'));
     }
 }

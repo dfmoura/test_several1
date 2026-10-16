@@ -1,6 +1,6 @@
 {
   "arquivo": "ORcAMENTO_OFICIAL_rv4.xlsm",
-  "fonte": "ORÇAMENTO linha 13 — motor v2 (fórmulas canônicas linha 14+)",
+  "fonte": "ORÇAMENTO linha 13 — motor v2 (fórmulas canônicas linha 14+). Etiqueta sem o valor de caixa.",
   "cliente": "SABORIO",
   "medida": "4,8 REDONDA",
   "largura_cm": 8.5,
@@ -24,9 +24,9 @@
       "quantidade": 40000,
       "comissao_pct": 0.0,
       "motor_v2": {
-        "etiqueta": 3520.0,
+        "etiqueta": 3490.0,
         "matriz": 0.0,
-        "total": 3520.0,
+        "total": 3490.0,
         "m2": 280.4,
         "metragem": 1099.45333333333,
         "hora_maq": 2.09945333333333,

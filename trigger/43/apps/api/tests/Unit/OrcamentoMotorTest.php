@@ -283,9 +283,7 @@ class OrcamentoMotorTest extends TestCase
             (float) $adj['faixas'][0]['valor_maquina'],
         );
         $this->assertEqualsWithDelta(99.0, (float) $adj['catalog_snapshot']['tarifas_resolvidas']['preco_caixa'], 0.001);
-        $this->assertGreaterThan(
-            (float) $base['faixas'][0]['valor_caixa'],
-            (float) $adj['faixas'][0]['valor_caixa'],
-        );
+        $this->assertEquals(0.0, (float) $base['faixas'][0]['valor_caixa']);
+        $this->assertEquals(0.0, (float) $adj['faixas'][0]['valor_caixa']);
     }
 }

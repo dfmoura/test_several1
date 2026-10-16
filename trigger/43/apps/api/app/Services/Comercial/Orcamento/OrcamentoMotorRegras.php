@@ -179,9 +179,9 @@ final class OrcamentoMotorRegras
             [
                 'id' => 'R9_embalagem',
                 'grupo' => 'embalagem',
-                'titulo' => 'Rolos e caixas',
-                'resumo' => 'Embalagem derivada de etiq/rolo e tubete.',
-                'formula' => 'rolos = qtd ÷ etiq_por_rolo · caixas = CEILING(rolos ÷ capacidade)',
+                'titulo' => 'Rolos',
+                'resumo' => 'Rolos derivados de etiq/rolo. A caixa é escolhida na OP, antes da nota.',
+                'formula' => 'rolos = qtd ÷ etiq_por_rolo',
                 'parametrizado' => true,
                 'parametros' => [OrcCatalogoParametro::CHAVE_PRECO_CAIXA],
                 'catalogo_tab' => 'embalagem',
@@ -229,9 +229,9 @@ final class OrcamentoMotorRegras
             [
                 'id' => 'CUSTO_tubete_caixa',
                 'grupo' => 'custos',
-                'titulo' => 'Tubete e caixa',
-                'resumo' => 'Embalagem unitária.',
-                'formula' => 'rolos × preco_tubete + CEILING(rolos ÷ rolos_por_caixa) × preco_caixa',
+                'titulo' => 'Tubete',
+                'resumo' => 'Um tubete por rolo. A caixa não entra no preço da etiqueta.',
+                'formula' => 'rolos × preco_tubete',
                 'parametrizado' => true,
                 'parametros' => [
                     OrcCatalogoParametro::CHAVE_TUBETE_1,

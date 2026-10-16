@@ -11,6 +11,7 @@ import { buildItensResultadoUi } from '../lib/orcamentoResultadoItens';
 import { PageHeader } from '../components/PageHeader';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
 import { RevendaSkuCombobox, type RevendaSkuOpcao } from '../components/RevendaSkuCombobox';
+import { InsumoSkuCombobox, type InsumoSkuOpcao } from '../components/InsumoSkuCombobox';
 import { FORMATOS_CANONICOS, mergeVocabulario } from '../lib/facasMapa';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { ProspectRapidoPanel } from '../components/ProspectRapidoPanel';
@@ -40,6 +41,8 @@ import {
   aplicarQuantidadeModeloMatriz,
   cloneOrcFormItem,
   defaultOrcForm,
+  descricaoFilmeAcabamento,
+  rotuloAcabamento,
   equalizarMatrizTodasFaixas,
   facaPrincipal,
   formFromSnapshot,
@@ -839,25 +842,6 @@ export function OrcamentoFormPage() {
       setCalculo(res.data);
     } catch (e) {
       setErro(e instanceof ApiError ? e.message : 'Falha ao calcular');
-    } finally {
-      setPending(false);
-    }
-  };
-
-  const handleEscolherCaixa = async (medida: string) => {
-    const nextForm: OrcForm = { ...form, caixa_medida: medida };
-    const nextItens = itens.map((item, i) => (i === ativo ? nextForm : item));
-    setItens(nextItens);
-    setPending(true);
-    setErro(null);
-    try {
-      const res = await api.post<{ data: OrcamentoResult }>(
-        '/orcamentos/calcular',
-        payloadFromFormDocumento(nextItens, rotulos),
-      );
-      setCalculo(res.data);
-    } catch (e) {
-      setErro(e instanceof ApiError ? e.message : 'Falha ao recalcular a caixa');
     } finally {
       setPending(false);
     }
@@ -1690,32 +1674,105 @@ export function OrcamentoFormPage() {
                 </select>
               </div>
               <div className="form-group">
-                <label>Papel *</label>
-                <select
-                  value={form.papel}
-                  onChange={(e) => setField('papel', e.target.value)}
+                <InsumoSkuCombobox
+                  slot="papel"
+                  label="Papel *"
                   disabled={!canWrite}
-                >
-                  {(catalog?.papeis ?? []).map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
+                  hint="Papel e filme com saldo (MP-PAP, MP-FLM)."
+                  value={
+                    form.papel
+                      ? {
+                          id: form.papel_produto_id === '' ? 0 : form.papel_produto_id,
+                          codigo: form.papel_produto_codigo,
+                          descricao: form.papel,
+                          unidade: '',
+                          saldo: '',
+                          grupo: '',
+                          tarifa: form.papel_tarifa || null,
+                        }
+                      : null
+                  }
+                  onChange={(sku: InsumoSkuOpcao | null) => {
+                    if (!sku || sku.id < 1) return;
+                    setForm((prev) => ({
+                      ...prev,
+                      papel: sku.descricao,
+                      papel_produto_id: sku.id,
+                      papel_produto_codigo: sku.codigo,
+                      papel_tarifa: sku.tarifa ?? '',
+                    }));
+                  }}
+                />
               </div>
               <div className="form-group">
-                <label>Acabamento *</label>
-                <select
-                  value={form.acabamento}
-                  onChange={(e) => setField('acabamento', e.target.value)}
+                <InsumoSkuCombobox
+                  slot="acabamento"
+                  label="Acabamento"
                   disabled={!canWrite}
+                  allowEmpty
+                  hint="Laminação ou cold com saldo (MP-LAM, MP-CLD)."
+                  value={
+                    form.acabamento_produto_id === ''
+                      ? null
+                      : {
+                          id: form.acabamento_produto_id,
+                          codigo: form.acabamento_produto_codigo,
+                          descricao: descricaoFilmeAcabamento(form),
+                          unidade: '',
+                          saldo: '',
+                          grupo: '',
+                          tarifa: form.acabamento_tarifa || null,
+                        }
+                  }
+                  onChange={(sku) => {
+                    setForm((prev) => {
+                      const cold = sku != null && (sku.grupo === 'MP-CLD' || /cold/i.test(sku.descricao));
+                      const complemento: '' | 'VERNIZ' | 'COLA' =
+                        sku == null
+                          ? prev.acabamento_complemento === 'VERNIZ'
+                            ? 'VERNIZ'
+                            : ''
+                          : prev.acabamento_complemento === 'COLA' && !cold
+                            ? ''
+                            : prev.acabamento_complemento;
+                      return {
+                        ...prev,
+                        acabamento_produto_id: sku && sku.id > 0 ? sku.id : '',
+                        acabamento_produto_codigo: sku && sku.id > 0 ? sku.codigo : '',
+                        acabamento_tarifa: sku?.tarifa ?? '',
+                        acabamento_complemento: complemento,
+                        acabamento: rotuloAcabamento(sku && sku.id > 0 ? sku.descricao : '', complemento),
+                      };
+                    });
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label>Complemento</label>
+                <select
+                  value={form.acabamento_complemento}
+                  disabled={!canWrite}
+                  onChange={(e) => {
+                    const complemento = e.target.value as '' | 'VERNIZ' | 'COLA';
+                    setForm((prev) => ({
+                      ...prev,
+                      acabamento_complemento: complemento,
+                      acabamento: rotuloAcabamento(descricaoFilmeAcabamento(prev), complemento),
+                    }));
+                  }}
                 >
-                  {(catalog?.acabamentos ?? []).map((a) => (
-                    <option key={a} value={a}>
-                      {a}
-                    </option>
-                  ))}
+                  <option value="">Nenhum</option>
+                  <option value="VERNIZ">VERNIZ</option>
+                  <option
+                    value="COLA"
+                    disabled={form.acabamento_produto_id === '' || !/cold/i.test(`${form.acabamento} ${form.acabamento_tarifa}`)}
+                  >
+                    COLA
+                  </option>
                 </select>
+                <p className="field-note">
+                  Verniz sozinho, laminação com verniz, ou cold com verniz ou cola.
+                </p>
               </div>
               <div className="form-group">
                 <label>Cores *</label>
@@ -1779,19 +1836,36 @@ export function OrcamentoFormPage() {
                 />
               </div>
               <div className="form-group">
-                <label>Tubete</label>
-                <select
-                  value={form.tubete}
-                  onChange={(e) => setField('tubete', e.target.value)}
+                <InsumoSkuCombobox
+                  slot="tubete"
+                  label="Tubete *"
                   disabled={!canWrite}
-                >
-                  {(catalog?.tubetes ?? ['1"', '3"']).map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-                <p className="field-note">A quantidade de caixas sai dos rolos deste tubete.</p>
+                  hint="Embalagem com tubete e saldo. A caixa é escolhida na ordem, antes de faturar."
+                  value={
+                    form.tubete || form.tubete_rotulo
+                      ? {
+                          id: form.tubete_produto_id === '' ? 0 : form.tubete_produto_id,
+                          codigo: form.tubete_produto_codigo,
+                          descricao: form.tubete_rotulo || form.tubete,
+                          unidade: '',
+                          saldo: '',
+                          grupo: '',
+                          tarifa: form.tubete || null,
+                        }
+                      : null
+                  }
+                  onChange={(sku) => {
+                    if (!sku || sku.id < 1) return;
+                    const polegada = (sku.tarifa || sku.descricao).slice(0, 32);
+                    setForm((prev) => ({
+                      ...prev,
+                      tubete: polegada,
+                      tubete_produto_id: sku.id,
+                      tubete_produto_codigo: sku.codigo,
+                      tubete_rotulo: sku.descricao,
+                    }));
+                  }}
+                />
               </div>
               <div className="form-group">
                 <label>Col. rebobinação</label>
@@ -2197,7 +2271,8 @@ export function OrcamentoFormPage() {
                         papel: itemForm.papel,
                         acabamento: itemForm.acabamento,
                         maquina: itemForm.maquina,
-                        tubete: itemForm.tubete,
+                        tubete: itemForm.tubete_rotulo || itemForm.tubete,
+                        tubete_rotulo: itemForm.tubete_rotulo,
                         etiq_por_rolo: itemForm.etiq_por_rolo,
                         modelos: itemForm.modelos,
                         colunas: itemForm.colunas,
@@ -2228,7 +2303,7 @@ export function OrcamentoFormPage() {
               modoPrecoComercial || !canWrite
                 ? null
                 : {
-                    papel: form.papel,
+                    papel: form.papel_tarifa || form.papel,
                     acabamento: form.acabamento,
                     maquina: form.maquina,
                     cores: String(form.cores),
@@ -2244,10 +2319,6 @@ export function OrcamentoFormPage() {
               modoPrecoComercial || !canWrite
                 ? undefined
                 : handleAplicarParametros
-            }
-            caixaMedidaEscolhida={modoPrecoComercial ? '' : form.caixa_medida}
-            onEscolherCaixa={
-              modoPrecoComercial || !canWrite ? undefined : handleEscolherCaixa
             }
             valorGordura={form.valor_gordura}
             onCommitGordura={
@@ -2273,7 +2344,7 @@ export function OrcamentoFormPage() {
                     papel: form.papel,
                     acabamento: form.acabamento,
                     maquina: form.maquina,
-                    tubete: form.tubete,
+                    tubete: form.tubete_rotulo || form.tubete,
                     etiq_por_rolo: form.etiq_por_rolo,
                     modelos: form.modelos,
                     colunas: form.colunas,

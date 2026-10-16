@@ -35,7 +35,6 @@ import {
   type OrcResultadoItemUi,
 } from '../lib/orcamentoResultadoItens';
 import { SortableTh } from './SortableTh';
-import { CaixaRoloLeitura } from './CaixaRoloLeitura';
 import { NumericInput } from './NumericInput';
 
 type AbaResultado = 'comercial' | 'interno' | 'producao';
@@ -96,9 +95,6 @@ type Props = {
    */
   parametrosAjuste?: ParametrosAjusteCtx | null;
   onAplicarParametros?: (a: ParametrosAjusteApply) => void | Promise<void>;
-  /** Medida nomeada no item em edição. Vazio = padrão do tubete. */
-  caixaMedidaEscolhida?: string;
-  onEscolherCaixa?: (medida: string) => void;
   /**
    * Pad interno do item (`valor_gordura`). Na edição dos Totais é o mesmo campo
    * da especificação: um valor, todas as faixas, enrich pós-motor.
@@ -273,8 +269,6 @@ function ParametrosCalculoPanel({
   aplicandoParametros,
   guiaEspec,
   modelosComposicao,
-  caixaMedidaEscolhida,
-  onEscolherCaixa,
   valorGordura = 0,
   onCommitGordura,
   valorReducao = 0,
@@ -289,8 +283,6 @@ function ParametrosCalculoPanel({
   aplicandoParametros?: boolean;
   guiaEspec?: OrcGuiaProducaoEspec | null;
   modelosComposicao?: ModeloComposicaoForm[] | null;
-  caixaMedidaEscolhida?: string;
-  onEscolherCaixa?: (medida: string) => void;
   valorGordura?: number;
   onCommitGordura?: (valor: number) => void | Promise<void>;
   valorReducao?: number;
@@ -816,14 +808,6 @@ function ParametrosCalculoPanel({
         </p>
       ) : null}
 
-      <CaixaRoloLeitura
-        larguraCm={guiaEspec?.largura_cm}
-        medidaEmUso={String(faixas[0]?.caixa_medida ?? '')}
-        medidaEscolhida={caixaMedidaEscolhida}
-        onEscolher={editavel ? onEscolherCaixa : undefined}
-        disabled={aplicandoParametros}
-      />
-
       {editavel ? (
         <div className="btn-row" style={{ marginTop: '0.85rem' }}>
           <button
@@ -1326,8 +1310,6 @@ export function OrcamentoResultado({
   modoServico = false,
   parametrosAjuste = null,
   onAplicarParametros,
-  caixaMedidaEscolhida = '',
-  onEscolherCaixa,
   valorGordura = 0,
   onCommitGordura,
   valorReducao = 0,
@@ -1697,8 +1679,6 @@ export function OrcamentoResultado({
               snapshot={resultAtivo.catalog_snapshot}
               parametrosAjuste={podeAjustarItem ? parametrosAjuste : null}
               onAplicarParametros={podeAjustarItem ? onAplicarParametros : undefined}
-              caixaMedidaEscolhida={podeAjustarItem ? caixaMedidaEscolhida : ''}
-              onEscolherCaixa={podeAjustarItem ? onEscolherCaixa : undefined}
               valorGordura={podeAjustarItem ? valorGordura : Number(resultAtivo.valor_gordura) || 0}
               onCommitGordura={podeAjustarItem ? onCommitGordura : undefined}
               valorReducao={podeAjustarItem ? valorReducao : Number(resultAtivo.valor_reducao) || 0}

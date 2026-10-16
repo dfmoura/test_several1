@@ -109,7 +109,7 @@ function buildOrcSpecTiles(
       ['Modelos', snap.modelos],
       ['Colunas', snap.colunas],
       ['Etiq./rolo', snap.etiq_por_rolo],
-      ['Tubete', snap.tubete],
+      ['Tubete', snap.tubete_rotulo || snap.tubete],
       ['Col. rebob.', snap.coluna_rebobinacao],
       ['Matriz', snap.matriz],
       ['Imposto %', snap.imposto_pct],
@@ -1055,7 +1055,7 @@ export function OrcamentoDetailPage() {
                     ? (input.faixas as Array<{ comissao_pct?: number }>)
                     : [];
                   return {
-                    papel: String(input.papel ?? ''),
+                    papel: String(input.papel_tarifa || input.papel || ''),
                     acabamento: String(input.acabamento ?? ''),
                     maquina: String(input.maquina ?? ''),
                     cores: String(input.cores ?? ''),

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, type OrdemProducao, type PaEmbalagemResumo } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
+import { InsumoSkuCombobox, type InsumoSkuOpcao } from './InsumoSkuCombobox';
 
 type Plano = {
   resumo: string;
@@ -11,6 +12,7 @@ type Plano = {
   rolos_por_caixa: number;
   tubete?: string | null;
   caixa_medida?: string | null;
+  caixa_planejada_no_orcamento?: boolean;
   encaixe?: {
     status: string;
     texto: string | null;
@@ -34,6 +36,7 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
   const [plano, setPlano] = useState<Plano | null>(null);
   const [rolos, setRolos] = useState('');
   const [caixas, setCaixas] = useState('');
+  const [caixaSku, setCaixaSku] = useState<InsumoSkuOpcao | null>(null);
   const [tocado, setTocado] = useState(false);
 
   const emb = op.embalagem as PaEmbalagemResumo | null | undefined;
@@ -64,18 +67,34 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
     setTocado(false);
     setRolos('');
     setCaixas('');
+    setCaixaSku(null);
   }, [op.id]);
 
   useEffect(() => {
     if (tocado) return;
     if (plano) {
       setRolos(String(plano.qtde_bobinas));
-      setCaixas(String(plano.qtde_caixas));
+      setCaixas(
+        plano.caixa_planejada_no_orcamento && plano.qtde_caixas > 0
+          ? String(plano.qtde_caixas)
+          : '',
+      );
       return;
     }
     if (emb) {
       setRolos(String(emb.qtde_bobinas));
       setCaixas(String(emb.qtde_caixas));
+      if (emb.caixa_produto_id) {
+        setCaixaSku({
+          id: emb.caixa_produto_id,
+          codigo: emb.caixa_produto_codigo ?? '',
+          descricao: emb.caixa_produto_descricao ?? emb.caixa_medida ?? '',
+          unidade: 'UN',
+          saldo: '',
+          grupo: 'EMB-CX',
+          tarifa: emb.caixa_medida ?? null,
+        });
+      }
     }
   }, [plano, emb, tocado]);
 
@@ -112,12 +131,16 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
     if (!plano) return;
     setTocado(false);
     setRolos(String(plano.qtde_bobinas));
-    setCaixas(String(plano.qtde_caixas));
+    setCaixas(
+      plano.caixa_planejada_no_orcamento && plano.qtde_caixas > 0
+        ? String(plano.qtde_caixas)
+        : '',
+    );
   };
 
   const confirmar = async () => {
-    if (!contagemValida) {
-      setErr('Informe os rolos reais e as caixas. Cada caixa leva ao menos um rolo.');
+    if (!contagemValida || !caixaSku || caixaSku.id < 1) {
+      setErr('Escolha a caixa do estoque e informe os rolos reais e quantas caixas saíram.');
       return;
     }
     setBusy(true);
@@ -127,6 +150,7 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
       await api.post(`/ordens-producao/${op.id}/embalar`, {
         qtde_bobinas: nRolos,
         qtde_caixas: nCaixas,
+        caixa_produto_id: caixaSku.id,
       });
       setPlano(null);
       setTocado(false);
@@ -145,8 +169,9 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
         <div className="form-section">
           <h3>Embalagem PA</h3>
           <p className="muted" style={{ marginTop: 0 }}>
-            Rolos reais depois da rebobinação e caixas em que eles foram alocados. A soma dos rolos
-            fica igual às etiquetas boas. A nota usa as caixas como volumes.
+            Rolos reais depois da rebobinação. A caixa é escolhida aqui, antes de faturar, com a
+            quantidade que saiu. A soma dos rolos fica igual às etiquetas boas. A nota usa as
+            caixas como volumes. Esta confirmação não baixa o estoque.
           </p>
         </div>
 
@@ -182,6 +207,15 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
                   <strong>{emb.tubete}</strong>
                 </div>
               ) : null}
+              {emb.caixa_produto_codigo ? (
+                <div>
+                  <span>Caixa</span>
+                  <strong>
+                    {emb.caixa_produto_codigo}
+                    {emb.caixa_medida ? ` · ${emb.caixa_medida}` : ''}
+                  </strong>
+                </div>
+              ) : null}
             </div>
             <p className="muted" style={{ marginTop: 0 }}>
               {emb.resumo}
@@ -200,13 +234,18 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
             {plano ? (
               <div style={{ marginBottom: '1rem' }}>
                 <p style={{ marginBottom: '0.35rem' }}>
-                  <strong>Sugestão do ORC:</strong> {plano.resumo}
-                </p>
-                <p className="muted" style={{ marginTop: 0 }}>
-                  {plano.etiq_por_rolo} etiq./rolo · {plano.rolos_por_caixa} rolos/caixa
+                  <strong>Rolos a partir das etiquetas:</strong> {plano.qtde_bobinas}{' '}
+                  {plano.qtde_bobinas === 1 ? 'rolo' : 'rolos'} · {plano.etiq_por_rolo} etiq./rolo
                   {plano.tubete ? ` · tubete ${plano.tubete}` : ''}
-                  {plano.caixa_medida ? ` · ${plano.caixa_medida}` : ''}
                 </p>
+                {plano.caixa_planejada_no_orcamento && plano.qtde_caixas > 0 ? (
+                  <p className="muted" style={{ marginTop: 0 }}>
+                    Este pedido ainda traz a estimativa antiga: {plano.qtde_caixas}{' '}
+                    {plano.qtde_caixas === 1 ? 'caixa' : 'caixas'}
+                    {plano.caixa_medida ? ` · ${plano.caixa_medida}` : ''}. A caixa usada é a que
+                    você escolher abaixo.
+                  </p>
+                ) : null}
                 {plano.encaixe?.texto ? (
                   <p
                     className="muted"
@@ -220,14 +259,24 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
                 ) : null}
               </div>
             ) : (
-              <p className="muted">Carregando sugestão de bobinas e caixas…</p>
+              <p className="muted">Carregando a quantidade de rolos…</p>
             )}
           </>
         )}
 
         {canWrite ? (
           <div style={{ marginTop: '1rem' }}>
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div className="form-group" style={{ minWidth: 280, flex: '1 1 280px' }}>
+                <InsumoSkuCombobox
+                  slot="caixa"
+                  label="Caixa *"
+                  disabled={busy}
+                  hint="Caixa do estoque (EMB-CX) com saldo."
+                  value={caixaSku}
+                  onChange={setCaixaSku}
+                />
+              </div>
               <div className="form-group">
                 <label htmlFor="emb-rolos">Rolos reais</label>
                 <input
@@ -257,9 +306,8 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
             </div>
             {plano ? (
               <p className="muted" style={{ marginTop: 0 }}>
-                Sugestão do orçamento: {plano.qtde_bobinas}{' '}
-                {plano.qtde_bobinas === 1 ? 'rolo' : 'rolos'} · {plano.qtde_caixas}{' '}
-                {plano.qtde_caixas === 1 ? 'caixa' : 'caixas'}.
+                {plano.qtde_bobinas} {plano.qtde_bobinas === 1 ? 'rolo' : 'rolos'} a partir das
+                etiquetas boas. A quantidade de caixas é a que saiu nesta ordem.
               </p>
             ) : null}
             {plano && emb ? (
@@ -271,7 +319,7 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={busy || !contagemValida}
+                disabled={busy || !contagemValida || !caixaSku || caixaSku.id < 1}
                 onClick={() => void confirmar()}
               >
                 {emb ? 'Substituir embalagem' : 'Confirmar embalagem'}

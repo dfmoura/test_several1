@@ -15,8 +15,8 @@ use App\Support\PadraoDecimal;
 
 /**
  * Deriva BOM leve da OP a partir do snapshot do PED/ORC (estudo 32 PRODUCAO §2.2).
- * Papel e acabamento com grupo no catálogo nascem sem SKU. Sem grupo, o papel
- * fica sem casar — o texto do orçamento não escolhe bobina. Não baixa estoque.
+ * Papel e acabamento com SKU no snapshot nascem nessa bobina. Sem SKU, o grupo
+ * do catálogo deixa a escolha para a OP. Não baixa estoque.
  */
 class OpBomDeriver
 {
@@ -70,6 +70,28 @@ class OpBomDeriver
         $usedProdutoIds = [];
 
         if ($ctx['papel'] !== '' && $ctx['papel_m2'] > 0) {
+            $papelSku = $this->produtoDoSnapshot($empresa, $ctx['papel_produto_id']);
+            if ($ctx['papel_produto_id'] > 0 && $papelSku) {
+                $out[] = [
+                    'produto_id' => (int) $papelSku->id,
+                    'grupo_id' => $papelSku->grupo_id ? (int) $papelSku->grupo_id : null,
+                    'qtde' => $this->qtdeSnapshot($ctx['papel_m2']),
+                    'unidade' => 'M2',
+                    'componente' => 'PAPEL',
+                    'origem_texto' => $ctx['papel'],
+                    'match_score' => 10,
+                ];
+                $usedProdutoIds[] = (int) $papelSku->id;
+            } elseif ($ctx['papel_produto_id'] > 0) {
+                $naoCasados[] = [
+                    'componente' => 'PAPEL',
+                    'origem_texto' => $ctx['papel'],
+                    'qtde' => $this->qtdeSnapshot($ctx['papel_m2']),
+                    'unidade' => 'M2',
+                    'metragem' => $ctx['metragem'] > 0 ? $this->qtdeSnapshot($ctx['metragem']) : null,
+                    'motivo' => 'Papel escolhido no orçamento não está ativo nesta empresa.',
+                ];
+            } else {
             $grupoId = $this->grupoDoCatalogo($empresa, 'papel', $ctx['papel']);
             if ($grupoId) {
                 $out[] = [
@@ -91,28 +113,41 @@ class OpBomDeriver
                     'motivo' => 'Papel do orçamento sem grupo de matéria-prima no catálogo.',
                 ];
             }
+            }
         }
 
         if ($ctx['tubete'] !== '' && $ctx['rolos'] > 0) {
-            $match = $this->matchTubete($empresa, $ctx['tubete'], $usedProdutoIds);
-            if ($match) {
-                $out[] = [
-                    'produto_id' => (int) $match->id,
-                    'qtde' => PadraoDecimal::roundHalfUp((string) $ctx['rolos'], PadraoDecimal::SCALE_QTY),
-                    'unidade' => (string) ($match->unidade_interna ?: 'UN'),
-                    'componente' => 'TUBETE',
-                    'origem_texto' => $ctx['tubete'],
-                    'match_score' => (int) ($match->getAttribute('_score') ?? 0),
-                ];
-                $usedProdutoIds[] = (int) $match->id;
-            } else {
+            $rotuloTubete = $ctx['tubete_rotulo'] !== '' ? $ctx['tubete_rotulo'] : $ctx['tubete'];
+            $tubeteSku = $this->produtoDoSnapshot($empresa, $ctx['tubete_produto_id']);
+            if ($ctx['tubete_produto_id'] > 0 && ! $tubeteSku) {
                 $naoCasados[] = [
                     'componente' => 'TUBETE',
-                    'origem_texto' => $ctx['tubete'],
+                    'origem_texto' => $rotuloTubete,
                     'qtde' => $this->qtdeSnapshot($ctx['rolos']),
                     'unidade' => 'UN',
-                    'motivo' => 'Nenhum SKU de tubete (EMB) casado nesta empresa.',
+                    'motivo' => 'Tubete escolhido no orçamento não está ativo nesta empresa.',
                 ];
+            } else {
+                $match = $tubeteSku ?: $this->matchTubete($empresa, $ctx['tubete'], $usedProdutoIds);
+                if ($match) {
+                    $out[] = [
+                        'produto_id' => (int) $match->id,
+                        'qtde' => PadraoDecimal::roundHalfUp((string) $ctx['rolos'], PadraoDecimal::SCALE_QTY),
+                        'unidade' => (string) ($match->unidade_interna ?: 'UN'),
+                        'componente' => 'TUBETE',
+                        'origem_texto' => $rotuloTubete,
+                        'match_score' => $tubeteSku ? 10 : (int) ($match->getAttribute('_score') ?? 0),
+                    ];
+                    $usedProdutoIds[] = (int) $match->id;
+                } else {
+                    $naoCasados[] = [
+                        'componente' => 'TUBETE',
+                        'origem_texto' => $rotuloTubete,
+                        'qtde' => $this->qtdeSnapshot($ctx['rolos']),
+                        'unidade' => 'UN',
+                        'motivo' => 'Nenhum SKU de tubete (EMB) casado nesta empresa.',
+                    ];
+                }
             }
         }
 
@@ -138,18 +173,39 @@ class OpBomDeriver
             }
         }
 
-        if ($ctx['acab_m2'] > 0 && $this->acabamentoConsomeBobina($ctx['acabamento'])) {
-            $grupoId = $this->grupoDoCatalogo($empresa, 'acabamento', $ctx['acabamento']);
-            if ($grupoId) {
+        if ($ctx['acab_m2'] > 0 && ($ctx['acabamento_produto_id'] > 0 || $this->acabamentoConsomeBobina($ctx['acabamento']))) {
+            $acabSku = $this->produtoDoSnapshot($empresa, $ctx['acabamento_produto_id']);
+            if ($ctx['acabamento_produto_id'] > 0 && $acabSku) {
                 $out[] = [
-                    'produto_id' => null,
-                    'grupo_id' => $grupoId,
+                    'produto_id' => (int) $acabSku->id,
+                    'grupo_id' => $acabSku->grupo_id ? (int) $acabSku->grupo_id : null,
                     'qtde' => $this->qtdeSnapshot($ctx['acab_m2']),
                     'unidade' => 'M2',
                     'componente' => 'ACABAMENTO',
                     'origem_texto' => $ctx['acabamento'],
-                    'match_score' => 0,
+                    'match_score' => 10,
                 ];
+            } elseif ($ctx['acabamento_produto_id'] > 0) {
+                $naoCasados[] = [
+                    'componente' => 'ACABAMENTO',
+                    'origem_texto' => $ctx['acabamento'],
+                    'qtde' => $this->qtdeSnapshot($ctx['acab_m2']),
+                    'unidade' => 'M2',
+                    'motivo' => 'Acabamento escolhido no orçamento não está ativo nesta empresa.',
+                ];
+            } else {
+                $grupoId = $this->grupoDoCatalogo($empresa, 'acabamento', $ctx['acabamento']);
+                if ($grupoId) {
+                    $out[] = [
+                        'produto_id' => null,
+                        'grupo_id' => $grupoId,
+                        'qtde' => $this->qtdeSnapshot($ctx['acab_m2']),
+                        'unidade' => 'M2',
+                        'componente' => 'ACABAMENTO',
+                        'origem_texto' => $ctx['acabamento'],
+                        'match_score' => 0,
+                    ];
+                }
             }
         }
 
@@ -186,9 +242,13 @@ class OpBomDeriver
     /**
      * @return array{
      *   papel: string,
+     *   papel_produto_id: int,
      *   tubete: string,
+     *   tubete_rotulo: string,
+     *   tubete_produto_id: int,
      *   cores: string,
      *   acabamento: string,
+     *   acabamento_produto_id: int,
      *   papel_m2: float,
      *   tinta_m2: float,
      *   acab_m2: float,
@@ -211,6 +271,7 @@ class OpBomDeriver
 
         $papel = trim((string) ($espec['papel'] ?? $input['papel'] ?? ''));
         $tubete = trim((string) ($espec['tubete'] ?? $input['tubete'] ?? ''));
+        $tubeteRotulo = trim((string) ($espec['tubete_rotulo'] ?? $input['tubete_rotulo'] ?? ''));
         $cores = trim((string) ($espec['cores'] ?? $input['cores'] ?? ''));
         $acabamento = trim((string) ($espec['acabamento'] ?? $input['acabamento'] ?? ''));
 
@@ -222,9 +283,13 @@ class OpBomDeriver
 
         return [
             'papel' => $papel,
+            'papel_produto_id' => (int) ($espec['papel_produto_id'] ?? $input['papel_produto_id'] ?? 0),
             'tubete' => $tubete,
+            'tubete_rotulo' => $tubeteRotulo,
+            'tubete_produto_id' => (int) ($espec['tubete_produto_id'] ?? $input['tubete_produto_id'] ?? 0),
             'cores' => $cores,
             'acabamento' => $acabamento,
+            'acabamento_produto_id' => (int) ($espec['acabamento_produto_id'] ?? $input['acabamento_produto_id'] ?? 0),
             'papel_m2' => $m2 + $perdaAcerto + $perdaBobina + $perdaTroca,
             'tinta_m2' => $m2 + $perdaAcerto,
             'acab_m2' => $m2 + $perdaAcerto + $perdaAcab,
@@ -400,6 +465,19 @@ class OpBomDeriver
         }
 
         return $best;
+    }
+
+    private function produtoDoSnapshot(Empresa $empresa, int $id): ?Produto
+    {
+        if ($id < 1) {
+            return null;
+        }
+
+        return Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereKey($id)
+            ->where('situacao', 'ATIVO')
+            ->first(['id', 'codigo', 'descricao_fiscal', 'descricao_comercial', 'unidade_interna', 'familia', 'grupo_id', 'atributos', 'fator_conversao']);
     }
 
     private function normalize(string $text): string

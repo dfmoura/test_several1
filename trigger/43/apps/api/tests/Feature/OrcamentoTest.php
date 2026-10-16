@@ -168,7 +168,7 @@ class OrcamentoTest extends TestCase
             ->postJson('/api/v1/orcamentos/calcular', $this->payload());
 
         $res->assertOk();
-        $this->assertEqualsWithDelta(2470.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(2460.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
         $this->assertSame('RETIRAR', $res->json('data.frete.modo'));
         $this->assertFalse($res->json('data.faixas.0.frete_somavel'));
         $this->assertSame(0, Orcamento::query()->count());
@@ -201,7 +201,7 @@ class OrcamentoTest extends TestCase
 
         $show = $this->withHeaders($h)->getJson('/api/v1/orcamentos/'.$id);
         $show->assertOk();
-        $this->assertEqualsWithDelta(2470.0, (float) $show->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(2460.0, (float) $show->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
         $this->assertCount(1, $show->json('data.itens'));
 
         $updPayload = $this->payload();
@@ -457,8 +457,8 @@ class OrcamentoTest extends TestCase
         $this->assertEqualsWithDelta(800.0, (float) $res->json('data.valor_faca_nova'), 0.01);
         $this->assertSame(10, $res->json('data.prazo_faca_dias'));
         // motor BRAHVA intacto
-        $this->assertEqualsWithDelta(2470.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
-        $this->assertEqualsWithDelta(3806.0, (float) $res->json('data.faixas.0.valor_total_com_faca'), 0.01);
+        $this->assertEqualsWithDelta(2460.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(3796.0, (float) $res->json('data.faixas.0.valor_total_com_faca'), 0.01);
 
         $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload);
         $create->assertCreated();
@@ -550,7 +550,7 @@ class OrcamentoTest extends TestCase
         $this->assertSame('14/28/42', $create->json('data.input_snapshot.condicao_pagamento'));
         $this->assertSame('Boleto', $create->json('data.input_snapshot.forma_pagamento'));
         // motor de preço intacto
-        $this->assertEqualsWithDelta(2470.0, (float) $create->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(2460.0, (float) $create->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
     }
 
     public function test_modelos_composicao_persiste_e_nao_altera_preco(): void
@@ -644,7 +644,7 @@ class OrcamentoTest extends TestCase
         $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload);
         $create->assertCreated();
         $this->assertSame('CIMA', $create->json('data.input_snapshot.faca_posicao'));
-        $this->assertEqualsWithDelta(2470.0, (float) $create->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(2460.0, (float) $create->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
 
         $this->withHeaders($h)
             ->postJson('/api/v1/orcamentos', array_merge($payload, ['faca_posicao' => 'INVALIDO']))
@@ -662,7 +662,7 @@ class OrcamentoTest extends TestCase
         $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload);
         $create->assertCreated();
         $this->assertSame('DEITADA', $create->json('data.input_snapshot.saida_etiqueta'));
-        $this->assertEqualsWithDelta(2470.0, (float) $create->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(2460.0, (float) $create->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
 
         $this->withHeaders($h)
             ->postJson('/api/v1/orcamentos', array_merge($payload, ['saida_etiqueta' => 'INVALIDO']))
@@ -727,18 +727,18 @@ class OrcamentoTest extends TestCase
         $base = $this->withHeaders($h)->postJson('/api/v1/orcamentos/calcular', $this->payload());
         $base->assertOk();
         $preco = $base->json('data.faixas.0.valor_etiqueta');
-        $qtde = $base->json('data.faixas.0.qtde_caixas');
-        $cap = $base->json('data.faixas.0.rolos_por_caixa');
-        $this->assertNotSame('250x200x200', $base->json('data.faixas.0.caixa_medida'));
+        $this->assertSame(0, $base->json('data.faixas.0.qtde_caixas'));
+        $this->assertEquals(0, $base->json('data.faixas.0.valor_caixa'));
+        $this->assertNull($base->json('data.faixas.0.caixa_medida'));
 
         $escolhida = $this->payload();
         $escolhida['caixa_medida'] = '250x200x200';
         $res = $this->withHeaders($h)->postJson('/api/v1/orcamentos/calcular', $escolhida);
         $res->assertOk();
-        $this->assertSame('250x200x200', $res->json('data.faixas.0.caixa_medida'));
+        $this->assertNull($res->json('data.faixas.0.caixa_medida'));
         $this->assertEquals($preco, $res->json('data.faixas.0.valor_etiqueta'));
-        $this->assertEquals($qtde, $res->json('data.faixas.0.qtde_caixas'));
-        $this->assertEquals($cap, $res->json('data.faixas.0.rolos_por_caixa'));
+        $this->assertSame(0, $res->json('data.faixas.0.qtde_caixas'));
+        $this->assertEquals(0, $res->json('data.faixas.0.valor_caixa'));
 
         $ruim = $this->payload();
         $ruim['caixa_medida'] = 'caixa';

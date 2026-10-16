@@ -3240,6 +3240,9 @@ export type PaEmbalagemResumo = {
   rolos_por_caixa?: number | null;
   tubete?: string | null;
   caixa_medida?: string | null;
+  caixa_produto_id?: number | null;
+  caixa_produto_codigo?: string | null;
+  caixa_produto_descricao?: string | null;
   saida_etiqueta?: string | null;
   origem?: string;
   resumo: string;

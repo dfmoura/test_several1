@@ -13,6 +13,7 @@ use App\Services\Calendario\DiasUteisService;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Comercial\Orcamento\OrcamentoCatalogo;
 use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
+use App\Services\Comercial\Orcamento\OrcamentoInsumoEstoque;
 use App\Services\Comercial\Orcamento\OrcamentoMotor;
 use App\Services\Comercial\Orcamento\OrcamentoRevendaPrecificador;
 use App\Services\Comercial\Orcamento\OrcamentoServicoPrecificador;
@@ -44,6 +45,7 @@ class OrcamentoService
         private readonly ContornoSvgSanitizer $contornoSvgSanitizer,
         private readonly DiasUteisService $diasUteis,
         private readonly OrcamentoContatoFicha $contatoFicha,
+        private readonly OrcamentoInsumoEstoque $insumos,
     ) {}
 
     /** @return array<string, mixed> */
@@ -244,7 +246,14 @@ class OrcamentoService
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
         $vendedor = $this->vendedores->resolve($empresa, $data['vendedor_parceiro_id'] ?? null);
         $transportador = $this->resolveTransportadorOpcional($empresa, $data);
-        $doc = $this->precificarDocumento($empresa, $parceiro, $data, $vendedor, $transportador);
+        $doc = $this->precificarDocumento(
+            $empresa,
+            $parceiro,
+            $data,
+            $vendedor,
+            $transportador,
+            $this->idsInsumoGravados($orcamento),
+        );
         $orcamento->loadMissing('itens');
         $doc['jobs'] = $this->preservarDecisoesModelos($orcamento, $doc['jobs']);
         $doc['flat_input'] = $doc['jobs'][0]['input'];
@@ -420,12 +429,16 @@ class OrcamentoService
      *   n_itens: int
      * }
      */
+    /**
+     * @param  list<int>  $idsInsumoJaGravados
+     */
     private function precificarDocumento(
         Empresa $empresa,
         Parceiro $parceiro,
         array $data,
         ?Parceiro $vendedor = null,
         ?Parceiro $transportador = null,
+        array $idsInsumoJaGravados = [],
     ): array {
         $expanded = OrcamentoItens::expandPayload($data);
         $header = $expanded['header'];
@@ -435,7 +448,7 @@ class OrcamentoService
             $jobData = $jobSpec['data'];
             // Modelos/facas: ensure fica em buildMotorInput / ensurePayloadFacas (evita
             // equal-split com nome "" ser revalidado e 422 em ORCs/testes legados).
-            [$input, $bruto] = $this->precificar($empresa, $parceiro, $jobData);
+            [$input, $bruto] = $this->precificar($empresa, $parceiro, $jobData, $idsInsumoJaGravados);
             $result = $this->enrichResult($bruto, $jobData, $parceiro, $empresa, $transportador);
             $jobs[] = [
                 'rotulo' => $jobSpec['rotulo'],
@@ -511,9 +524,10 @@ class OrcamentoService
 
     /**
      * @param  array<string, mixed>  $data
+     * @param  list<int>  $idsInsumoJaGravados
      * @return array{0: array<string, mixed>, 1: array<string, mixed>}
      */
-    private function precificar(Empresa $empresa, Parceiro $parceiro, array $data): array
+    private function precificar(Empresa $empresa, Parceiro $parceiro, array $data, array $idsInsumoJaGravados = []): array
     {
         if (TipoOperacaoSaida::isServico($data['tipo_operacao'] ?? $data['necessidade'] ?? null)) {
             $input = $this->buildServicoInput($data, $parceiro);
@@ -527,7 +541,7 @@ class OrcamentoService
             return [$input, $this->revendaPrecificador->calcular($input)];
         }
 
-        $input = $this->buildMotorInput($data, $parceiro, $empresa);
+        $input = $this->buildMotorInput($data, $parceiro, $empresa, $idsInsumoJaGravados);
 
         return [$input, $this->motor->calcular($input)];
     }
@@ -714,11 +728,54 @@ class OrcamentoService
     }
 
     /**
+     * SKUs com saldo para papel, acabamento ou tubete.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function buscarInsumos(Empresa $empresa, string $slot, ?string $q, ?int $incluirId = null): array
+    {
+        return $this->insumos->buscar($empresa, $slot, $q, $incluirId);
+    }
+
+    /**
+     * SKUs de papel, filme e tubete já gravados neste orçamento.
+     *
+     * @return list<int>
+     */
+    private function idsInsumoGravados(Orcamento $orcamento): array
+    {
+        $orcamento->loadMissing('itens');
+        $snaps = [is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : []];
+        foreach ($orcamento->itens as $item) {
+            $snap = $item->input_snapshot;
+            if (is_array($snap)) {
+                $snaps[] = $snap;
+            }
+        }
+
+        $ids = [];
+        foreach ($snaps as $snap) {
+            foreach (['papel_produto_id', 'acabamento_produto_id', 'tubete_produto_id'] as $chave) {
+                $id = (int) ($snap[$chave] ?? 0);
+                if ($id > 0) {
+                    $ids[$id] = $id;
+                }
+            }
+        }
+
+        return array_values($ids);
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    private function buildMotorInput(array $data, Parceiro $parceiro, Empresa $empresa): array
+    /**
+     * @param  list<int>  $idsInsumoJaGravados
+     */
+    private function buildMotorInput(array $data, Parceiro $parceiro, Empresa $empresa, array $idsInsumoJaGravados = []): array
     {
+        $data = $this->insumos->aplicar($empresa, $data, $idsInsumoJaGravados);
         $data = ModelosComposicao::ensureInPayload($data);
         $data = FacasComposicao::ensureInPayload($data);
 
@@ -731,13 +788,24 @@ class OrcamentoService
             'puxada_cm' => (float) $data['puxada_cm'],
             'cores' => $data['cores'],
             'papel' => $data['papel'],
+            'papel_tarifa' => $data['papel_tarifa'] ?? null,
+            'papel_produto_id' => $data['papel_produto_id'] ?? null,
+            'papel_produto_codigo' => $data['papel_produto_codigo'] ?? null,
             'acabamento' => $data['acabamento'],
+            'acabamento_tarifa' => $data['acabamento_tarifa'] ?? null,
+            'acabamento_tarifa_composta' => (bool) ($data['acabamento_tarifa_composta'] ?? false),
+            'acabamento_complemento' => $data['acabamento_complemento'] ?? null,
+            'acabamento_produto_id' => $data['acabamento_produto_id'] ?? null,
+            'acabamento_produto_codigo' => $data['acabamento_produto_codigo'] ?? null,
             'modelos' => (int) $data['modelos'],
             // Snapshot operacional — não entra nas fórmulas R1–R20 do motor.
             'modelos_composicao' => $data['modelos_composicao'],
             'colunas' => (int) $data['colunas'],
             'etiq_por_rolo' => (int) $data['etiq_por_rolo'],
             'tubete' => $data['tubete'],
+            'tubete_rotulo' => $data['tubete_rotulo'] ?? null,
+            'tubete_produto_id' => $data['tubete_produto_id'] ?? null,
+            'tubete_produto_codigo' => $data['tubete_produto_codigo'] ?? null,
             'z' => array_key_exists('z', $data) && $data['z'] !== null && $data['z'] !== ''
                 ? (float) $data['z']
                 : null,

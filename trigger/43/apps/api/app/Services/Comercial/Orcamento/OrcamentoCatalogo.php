@@ -467,7 +467,6 @@ final class OrcamentoCatalogo
      */
     public function tarifasResolvidas(array $input): array
     {
-        $papel = (string) ($input['papel'] ?? '');
         $acabamento = (string) ($input['acabamento'] ?? '');
         $maquina = (string) ($input['maquina'] ?? '');
         $cores = $input['cores'] ?? null;
@@ -484,6 +483,9 @@ final class OrcamentoCatalogo
             $taxa = 0.0;
         }
 
+        $papelChave = $this->nomePapelEfetivo($input);
+        $papel = $papelChave;
+
         return [
             'preco_papel' => $papel !== '' ? $this->precoPapel($papel) : null,
             'papel' => $papel !== '' ? $papel : null,
@@ -497,7 +499,9 @@ final class OrcamentoCatalogo
             'tinta_faixa_m2' => $this->tintaFaixaM2,
             'tinta_valor_ate_30_por_cor' => $this->tintaAte30PorCor,
             'tinta_acima_m2' => $this->tintaAcimaM2,
-            'preco_acabamento' => $acabamento !== '' ? $this->precoAcabamento($acabamento) : null,
+            'preco_acabamento' => $acabamento !== '' || ($input['acabamento_tarifa'] ?? null)
+                ? $this->precoAcabamentoEfetivo($input)
+                : null,
             'acabamento' => $acabamento !== '' ? $acabamento : null,
             'preco_rebobinacao' => $this->precoRebobinacao(),
             'rebobinacao' => $rebobNome,
@@ -512,9 +516,102 @@ final class OrcamentoCatalogo
         return (float) $this->lookup($this->papel, $nome);
     }
 
+    /**
+     * Tarifa do catálogo. Com SKU, o texto humano fica em `papel` e o preço nesta chave.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function nomePapelEfetivo(array $input): string
+    {
+        $tarifa = trim((string) ($input['papel_tarifa'] ?? ''));
+
+        return $tarifa !== '' ? $tarifa : trim((string) ($input['papel'] ?? ''));
+    }
+
     public function precoAcabamento(string $nome): float
     {
         return (float) $this->lookup($this->acabamentos, $nome);
+    }
+
+    /**
+     * Legado: nome exato do catálogo. Com SKU: tarifa casada, somando VERNIZ/COLA quando a tarifa não é a combinação pronta.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function precoAcabamentoEfetivo(array $input): float
+    {
+        $display = self::norm((string) ($input['acabamento'] ?? ''));
+        $tarifaPre = self::norm((string) ($input['acabamento_tarifa'] ?? ''));
+        $novo = $tarifaPre !== '' || (int) ($input['acabamento_produto_id'] ?? 0) > 0;
+        if (! $novo) {
+            return $this->precoAcabamento($display);
+        }
+        if ($display !== '' && array_key_exists($display, $this->acabamentos)) {
+            return (float) $this->acabamentos[$display];
+        }
+        $tarifa = self::norm((string) ($input['acabamento_tarifa'] ?? ''));
+        if ($tarifa === '' || ! array_key_exists($tarifa, $this->acabamentos)) {
+            return $this->precoAcabamento($display);
+        }
+        $preco = (float) $this->acabamentos[$tarifa];
+        $composta = (bool) ($input['acabamento_tarifa_composta'] ?? false);
+        $comp = self::norm((string) ($input['acabamento_complemento'] ?? ''));
+        if (! $composta && $comp !== '' && ! str_contains(mb_strtoupper($tarifa, 'UTF-8'), mb_strtoupper($comp, 'UTF-8'))) {
+            $preco += (float) $this->lookup($this->acabamentos, $comp);
+        }
+
+        return $preco;
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    public function perdaAcabEfetiva(array $input): float
+    {
+        $tarifaPre = trim((string) ($input['acabamento_tarifa'] ?? ''));
+        $novo = $tarifaPre !== '' || (int) ($input['acabamento_produto_id'] ?? 0) > 0;
+        if (! $novo) {
+            return $this->perdaAcab((string) ($input['acabamento'] ?? ''));
+        }
+
+        $tarifa = trim((string) ($input['acabamento_tarifa'] ?? ''));
+        $display = trim((string) ($input['acabamento'] ?? ''));
+        $candidatos = [];
+        foreach ([$tarifa, $display] as $nome) {
+            if ($nome === '') {
+                continue;
+            }
+            $candidatos[] = $nome;
+            $base = trim((string) (preg_replace('/\s*\+\s*(VERNIZ|COLA)\s*$/iu', '', $nome) ?? ''));
+            if ($base !== '' && $base !== $nome) {
+                $candidatos[] = $base;
+            }
+        }
+        $fold = mb_strtoupper($tarifa.' '.$display, 'UTF-8');
+        if (str_contains($fold, 'COLD')) {
+            $candidatos[] = 'COLD STAMP';
+        }
+        foreach ($candidatos as $nome) {
+            $n = self::norm($nome);
+            if ($n !== '' && array_key_exists($n, $this->perdaAcabamento)) {
+                return (float) $this->perdaAcabamento[$n];
+            }
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    public function perdaAcabM2Efetiva(array $input, float $larguraCm, int $colunas): float
+    {
+        $perda = $this->perdaAcabEfetiva($input);
+        if ($perda <= 0.0) {
+            return 0.0;
+        }
+
+        return $perda * ($larguraCm / 100.0) * max(0, $colunas);
     }
 
     public function perdaAcab(string $nome): float

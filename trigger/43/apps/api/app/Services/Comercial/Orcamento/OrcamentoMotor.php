@@ -2,8 +2,6 @@
 
 namespace App\Services\Comercial\Orcamento;
 
-use App\Support\CaixaMedida;
-
 /**
  * Motor R1–R20 — port fiel de trigger/36 calculator.py + matrix_key.py.
  * Intermediários espelham o Excel (float); teto comercial (ceiling) no fechamento.
@@ -231,22 +229,22 @@ final class OrcamentoMotor
         $perdaAcerto = $this->perdaAcertoM2($inp['cores'], $largura, $cat);
         $perdaTroca = $this->perdaTrocaProdutoM2($inp['cores'], $largura, $modelos, $colunas, $cat);
         $perdaAcab = $cat->usaTintaMatriz()
-            ? $cat->perdaAcabM2((string) $inp['acabamento'], $largura, $colunas)
-            : $cat->perdaAcab((string) $inp['acabamento']);
+            ? $cat->perdaAcabM2Efetiva($inp, $largura, $colunas)
+            : $cat->perdaAcabEfetiva($inp);
         if ($metragem <= $limite) {
             $perdaBobinaM2 = 0.0;
         } else {
             $perdaBobinaM2 = (5 * ($largura - 0.75) * $colunas / 100.0) * ($metragem / 1000.0);
         }
-        // R9 — quantidade e preço seguem o tubete. A medida só troca se o pedido nomeou outra caixa.
+        // R9 — rolos e preço seguem o tubete. A caixa (qual SKU e quantas) é escolhida
+        // na OP concluída, antes do faturamento. Cálculo novo não inventa plano nem valor.
         $rolos = $q / $etiq;
-        $rolosPorCaixa = $cat->rolosPorCaixa((string) $inp['tubete']);
-        $escolhida = CaixaMedida::rotuloCanonico(trim((string) ($inp['caixa_medida'] ?? '')));
-        $caixaMedida = $escolhida ?? $cat->medidaCaixaPreferida((string) $inp['tubete']);
-        $qtdeCaixas = $cat->qtdeCaixas((string) $inp['tubete'], $rolos);
+        $rolosPorCaixa = null;
+        $caixaMedida = null;
+        $qtdeCaixas = 0;
 
         $taxa = $cat->taxaHoraMaquina((string) $inp['maquina'], $inp['cores']);
-        $precoPapel = $cat->precoPapel((string) $inp['papel']);
+        $precoPapel = $cat->precoPapel($cat->nomePapelEfetivo($inp));
         $valorPapel = ($m2 + $perdaAcerto + $perdaTroca + $perdaBobinaM2) * $precoPapel;
         $valorMaquina = $taxa * $horaMaq;
         if ($trocaPretoInteiro) {
@@ -271,13 +269,13 @@ final class OrcamentoMotor
             }
         }
 
+        $precoAcabamento = $cat->precoAcabamentoEfetivo($inp);
         $valorAcabamento = $cat->usaTintaMatriz()
-            ? $cat->precoAcabamento((string) $inp['acabamento']) * ($m2 + $perdaAcab)
-            : $cat->precoAcabamento((string) $inp['acabamento'])
-                * ($m2 + $perdaAcerto + $perdaAcab);
+            ? $precoAcabamento * ($m2 + $perdaAcab)
+            : $precoAcabamento * ($m2 + $perdaAcerto + $perdaAcab);
         $valorRebob = (($metragem * $colunas) / $colReb / 1000.0) * $cat->precoRebobinacao();
         $valorTubete = ($q / $etiq) * $cat->precoTubete((string) $inp['tubete']);
-        $valorCaixa = $qtdeCaixas * $cat->precoCaixa;
+        $valorCaixa = 0.0;
 
         $valorServico = $valorPapel
             + $valorMaquina

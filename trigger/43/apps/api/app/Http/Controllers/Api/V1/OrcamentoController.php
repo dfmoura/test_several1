@@ -37,6 +37,29 @@ class OrcamentoController extends Controller
         ]);
     }
 
+    public function insumos(Request $request): JsonResponse
+    {
+        $this->authorizeRead($request);
+        $empresa = app('empresa');
+        if (! $empresa instanceof \App\Models\Empresa) {
+            abort(400, 'Empresa não selecionada.');
+        }
+        $filtros = $request->validate([
+            'slot' => ['required', 'string', 'in:papel,acabamento,tubete,caixa'],
+            'q' => ['nullable', 'string', 'max:120'],
+            'incluir_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        return response()->json([
+            'data' => $this->orcamentoService->buscarInsumos(
+                $empresa,
+                $filtros['slot'],
+                $filtros['q'] ?? null,
+                isset($filtros['incluir_id']) ? (int) $filtros['incluir_id'] : null,
+            ),
+        ]);
+    }
+
     public function caixasRolo(Request $request): JsonResponse
     {
         $this->authorizeRead($request);

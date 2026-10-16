@@ -100,7 +100,12 @@ export function descricaoFromPedidoSpec(
     medida: s.medida != null ? String(s.medida) : null,
     papel: s.papel != null ? String(s.papel) : null,
     acabamento: s.acabamento != null ? String(s.acabamento) : null,
-    tubete: s.tubete != null ? String(s.tubete) : null,
+    tubete:
+      s.tubete_rotulo != null && String(s.tubete_rotulo).trim() !== ''
+        ? String(s.tubete_rotulo)
+        : s.tubete != null
+          ? String(s.tubete)
+          : null,
     cores: s.cores != null ? String(s.cores) : null,
     etiq_por_rolo: s.etiq_por_rolo != null ? Number(s.etiq_por_rolo) : null,
     largura_cm: s.largura_cm != null ? Number(s.largura_cm) : null,

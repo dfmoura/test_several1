@@ -387,6 +387,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/orcamentos/catalogo', [OrcamentoController::class, 'catalog']);
         Route::get('/orcamentos/revenda-skus', [OrcamentoController::class, 'revendaSkus']);
+        Route::get('/orcamentos/insumos', [OrcamentoController::class, 'insumos']);
         Route::get('/orcamentos/caixas-rolo', [OrcamentoController::class, 'caixasRolo']);
         Route::post('/orcamentos/calcular', [OrcamentoController::class, 'calcular']);
         Route::post('/orc-arte-modelos', [OrcArteModeloController::class, 'store'])

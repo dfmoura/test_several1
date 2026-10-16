@@ -1,6 +1,6 @@
 {
   "arquivo": "15-07 BRAHVA.xlsm",
-  "nota_motor_v3": "PRETO INTEIRO: valor_troca = (modelos-1)×(cromia÷4); etiqueta recalculada vs Excel legado (hora×taxa). Matriz 536 intacta.",
+  "nota_motor_v3": "PRETO INTEIRO: valor_troca = (modelos-1)×(cromia÷4); etiqueta recalculada vs Excel legado (hora×taxa). Matriz 536 intacta. Caixa saiu do preço: a etiqueta não soma mais quantidade de caixas.",
   "cliente": "BRAHVA",
   "medida": "8,0X12,4",
   "largura_cm": 9.0,
@@ -33,9 +33,9 @@
       "quantidade": 7000,
       "comissao_pct": 0.0,
       "excel": {
-        "etiqueta": 2470.0,
+        "etiqueta": 2460.0,
         "matriz": 536.0,
-        "total": 3006.0,
+        "total": 2996.0,
         "metragem": 865.8195000000001,
         "m2": 78.0,
         "hora_maq": 1.8658195000000002,
@@ -65,9 +65,9 @@
       "quantidade": 14000,
       "comissao_pct": 0.0,
       "excel": {
-        "etiqueta": 3530.0,
+        "etiqueta": 3510.0,
         "matriz": 536.0,
-        "total": 4066.0,
+        "total": 4046.0,
         "metragem": 1731.6390000000001,
         "m2": 155.9,
         "hora_maq": 2.7316390000000004,

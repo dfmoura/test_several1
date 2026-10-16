@@ -34,6 +34,7 @@ class PaEmbalagem extends Model
         'rolos_por_caixa',
         'tubete',
         'caixa_medida',
+        'caixa_produto_id',
         'saida_etiqueta',
         'origem',
         'observacao',
@@ -81,6 +82,11 @@ class PaEmbalagem extends Model
     public function bobinas(): HasMany
     {
         return $this->hasMany(PaEmbalagemBobina::class, 'embalagem_id')->orderBy('sequencia');
+    }
+
+    public function caixaProduto(): BelongsTo
+    {
+        return $this->belongsTo(Produto::class, 'caixa_produto_id');
     }
 
     public function caixas(): HasMany

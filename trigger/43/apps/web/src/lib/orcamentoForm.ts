@@ -170,7 +170,16 @@ export type OrcForm = {
   puxada_cm: number;
   cores: string;
   papel: string;
+  papel_produto_id: number | '';
+  papel_produto_codigo: string;
+  /** Chave da tarifa R$/m² no catálogo. O texto de `papel` é o SKU. */
+  papel_tarifa: string;
   acabamento: string;
+  acabamento_produto_id: number | '';
+  acabamento_produto_codigo: string;
+  acabamento_tarifa: string;
+  /** VERNIZ sozinho, ou filme + VERNIZ / filme + COLA. */
+  acabamento_complemento: '' | 'VERNIZ' | 'COLA';
   modelos: number;
   /** Detalhe operacional; motor usa só `modelos`. */
   modelos_composicao: ModeloComposicaoForm[];
@@ -178,7 +187,11 @@ export type OrcForm = {
   modelos_composicao_quantidades: number[][];
   colunas: number;
   etiq_por_rolo: number;
+  /** Polegada canônica (1", 1" 1/2, 3") — preço e caixas. */
   tubete: string;
+  tubete_produto_id: number | '';
+  tubete_produto_codigo: string;
+  tubete_rotulo: string;
   /** Medida nomeada no pedido. Vazio = padrão do tubete. Não muda preço nem quantidade. */
   caixa_medida: string;
   z: number | '';
@@ -836,9 +849,26 @@ export function alocarQuantidadePorModelo(
   });
 }
 
+export function descricaoFilmeAcabamento(form: Pick<OrcForm, 'acabamento' | 'acabamento_complemento' | 'acabamento_produto_id'>): string {
+  if (form.acabamento_produto_id === '') return '';
+  const comp = form.acabamento_complemento;
+  const suffix = comp ? ` + ${comp}` : '';
+  if (suffix && form.acabamento.endsWith(suffix)) {
+    return form.acabamento.slice(0, -suffix.length);
+  }
+  if (form.acabamento === 'SEM ACABAMENTO' || form.acabamento === 'VERNIZ') return '';
+  return form.acabamento;
+}
+
+export function rotuloAcabamento(descricao: string, complemento: '' | 'VERNIZ' | 'COLA'): string {
+  const desc = descricao.trim();
+  if (!desc && complemento === 'VERNIZ') return 'VERNIZ';
+  if (!desc) return 'SEM ACABAMENTO';
+  if (!complemento) return desc;
+  return `${desc} + ${complemento}`;
+}
+
 export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
-  const papeis = catalog?.papeis ?? [];
-  const acabamentos = catalog?.acabamentos ?? [];
   const maquinas = catalog?.maquinas ?? [];
   const tipos = catalog?.tipos_troca_produto ?? [];
   return {
@@ -858,14 +888,24 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     largura_cm: 0,
     puxada_cm: 0,
     cores: '4',
-    papel: papeis[0] ?? 'COUCHE',
-    acabamento: acabamentos[0] ?? 'SEM ACABAMENTO',
+    papel: '',
+    papel_produto_id: '',
+    papel_produto_codigo: '',
+    papel_tarifa: '',
+    acabamento: 'SEM ACABAMENTO',
+    acabamento_produto_id: '',
+    acabamento_produto_codigo: '',
+    acabamento_tarifa: '',
+    acabamento_complemento: '',
     modelos: 1,
     modelos_composicao: syncModelosComposicao([], 1),
     modelos_composicao_quantidades: [alocarEqualSplitQuantidades(0, 1)],
     colunas: 1,
     etiq_por_rolo: 1000,
-    tubete: '1"',
+    tubete: '',
+    tubete_produto_id: '',
+    tubete_produto_codigo: '',
+    tubete_rotulo: '',
     caixa_medida: '',
     z: '',
     maquina: maquinas[0] ?? 'BETA',
@@ -971,13 +1011,31 @@ export function formFromSnapshot(
     puxada_cm: Number(snap.puxada_cm) || 0,
     cores: String(snap.cores ?? base.cores),
     papel: String(snap.papel ?? base.papel),
+    papel_produto_id:
+      snap.papel_produto_id == null || snap.papel_produto_id === '' ? '' : Number(snap.papel_produto_id),
+    papel_produto_codigo: String(snap.papel_produto_codigo ?? ''),
+    papel_tarifa: String(snap.papel_tarifa ?? ''),
     acabamento: String(snap.acabamento ?? base.acabamento),
+    acabamento_produto_id:
+      snap.acabamento_produto_id == null || snap.acabamento_produto_id === ''
+        ? ''
+        : Number(snap.acabamento_produto_id),
+    acabamento_produto_codigo: String(snap.acabamento_produto_codigo ?? ''),
+    acabamento_tarifa: String(snap.acabamento_tarifa ?? ''),
+    acabamento_complemento: ((): '' | 'VERNIZ' | 'COLA' => {
+      const comp = String(snap.acabamento_complemento ?? '');
+      return comp === 'VERNIZ' || comp === 'COLA' ? comp : '';
+    })(),
     modelos,
     modelos_composicao,
     modelos_composicao_quantidades,
     colunas: Number(snap.colunas) || 1,
     etiq_por_rolo: Number(snap.etiq_por_rolo) || 1000,
     tubete: String(snap.tubete ?? base.tubete),
+    tubete_produto_id:
+      snap.tubete_produto_id == null || snap.tubete_produto_id === '' ? '' : Number(snap.tubete_produto_id),
+    tubete_produto_codigo: String(snap.tubete_produto_codigo ?? ''),
+    tubete_rotulo: String(snap.tubete_rotulo ?? ''),
     caixa_medida: String(snap.caixa_medida ?? ''),
     z: snap.z == null || snap.z === '' ? '' : Number(snap.z),
     maquina: String(snap.maquina ?? base.maquina),
@@ -1305,7 +1363,24 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
     puxada_cm: form.puxada_cm,
     cores: form.cores,
     papel: form.papel,
+    ...(form.papel_produto_id !== ''
+      ? {
+          papel_produto_id: form.papel_produto_id,
+          papel_produto_codigo: form.papel_produto_codigo || null,
+          papel_tarifa: form.papel_tarifa || null,
+        }
+      : {}),
     acabamento: form.acabamento,
+    ...(form.acabamento_produto_id !== ''
+      ? {
+          acabamento_produto_id: form.acabamento_produto_id,
+          acabamento_produto_codigo: form.acabamento_produto_codigo || null,
+          acabamento_tarifa: form.acabamento_tarifa || null,
+        }
+      : {}),
+    ...(form.acabamento_complemento
+      ? { acabamento_complemento: form.acabamento_complemento }
+      : {}),
     modelos: form.modelos,
     modelos_composicao: syncPercentualReferencia(
       form.modelos_composicao,
@@ -1327,6 +1402,13 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
     colunas: form.colunas,
     etiq_por_rolo: form.etiq_por_rolo,
     tubete: form.tubete,
+    ...(form.tubete_produto_id !== ''
+      ? {
+          tubete_produto_id: form.tubete_produto_id,
+          tubete_produto_codigo: form.tubete_produto_codigo || null,
+          tubete_rotulo: form.tubete_rotulo || null,
+        }
+      : {}),
     ...(form.caixa_medida.trim() ? { caixa_medida: form.caixa_medida.trim() } : {}),
     z: form.z === '' ? null : form.z,
     maquina: form.maquina,

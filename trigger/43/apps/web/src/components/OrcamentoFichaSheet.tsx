@@ -283,7 +283,11 @@ function FichaItemBody({
     pushDesc('Modelos', snap(input, 'modelos'), snap(input, 'modelos') === '—');
     pushDesc('Colunas', snap(input, 'colunas'), snap(input, 'colunas') === '—');
     pushDesc('Etiq/rolo', snap(input, 'etiq_por_rolo'), snap(input, 'etiq_por_rolo') === '—');
-    pushDesc('Tubete', snap(input, 'tubete'), snap(input, 'tubete') === '—');
+    pushDesc(
+      'Tubete',
+      snap(input, 'tubete_rotulo') !== '—' ? snap(input, 'tubete_rotulo') : snap(input, 'tubete'),
+      snap(input, 'tubete_rotulo') === '—' && snap(input, 'tubete') === '—',
+    );
     pushDesc('Z', snap(input, 'z'), snap(input, 'z') === '—');
     pushDesc('Máq.', snap(input, 'maquina'), snap(input, 'maquina') === '—');
     pushDesc(

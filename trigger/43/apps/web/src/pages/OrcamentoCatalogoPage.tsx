@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
-import { ApiError, api, fiscalConsulta, type AtivacaoData, type OrcCatalogoResumo, type Produto, type ProdutoGrupo } from '../lib/api';
+import { ApiError, api, fiscalConsulta, type AtivacaoData, type OrcCatalogoResumo, type ProdutoGrupo } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { bemStatusLabel } from '../lib/patrimonio';
 import { useTableSort } from '../lib/useTableSort';
@@ -91,54 +91,9 @@ type TintaMatrizPayload = {
 
 type PerdaTrocaPayload = Record<string, number>;
 
-type CaixaEmpRow = {
-  caixa_id?: number | null;
-  medida?: string;
-  rolos_por_caixa: number;
-  produto_codigo?: string | null;
-};
-
-type CaixaDraft = {
-  medida: string;
-  rolos: string;
-  produtoCodigo: string;
-  caixaId: string;
-};
-
-function medidaNominalCaixa(attrs: Record<string, unknown> | null | undefined): string {
-  if (!attrs) return '';
-  const lados = (['comp_mm', 'larg_mm', 'alt_mm'] as const).map((k) => {
-    const raw = String(attrs[k] ?? '')
-      .trim()
-      .replace(',', '.');
-    const n = Number(raw);
-    if (raw === '' || !Number.isFinite(n) || n <= 0) return '';
-    return String(n);
-  });
-  return lados.every((lado) => lado !== '') ? lados.join('x') : '';
-}
-
-function rotuloCaixaEstoque(p: Pick<Produto, 'codigo' | 'descricao_comercial' | 'descricao_fiscal' | 'atributos'>): string {
-  const med = medidaNominalCaixa(p.atributos);
-  if (med) return `${p.codigo} · ${med}`;
-  const nome = (p.descricao_comercial || p.descricao_fiscal || '').trim();
-  return nome ? `${p.codigo} · ${nome}` : p.codigo;
-}
-
-const TUBETE_PADRAO = '1"';
-const TUBETE_SEGUE_PADRAO = '1" 1/2';
-const EXEMPLO_ETIQUETAS = 12_000;
-const EXEMPLO_POR_ROLO = 1_000;
-
-function caixasDoExemplo(rolos: number, capacidade: number): string {
-  if (capacidade < 1) return 'caixa ainda sem capacidade';
-  const n = Math.ceil(rolos / capacidade);
-  return n === 1 ? '1 caixa' : `${n.toLocaleString('pt-BR')} caixas`;
-}
-
 const TABS: Array<{ id: TabId; label: string; hint: string }> = [
-  { id: 'papeis', label: 'Papel', hint: 'R$/m² e o grupo de matéria-prima da bobina' },
-  { id: 'acabamentos', label: 'Acabamento', hint: 'R$/m² + perda m². Bobina: o grupo de matéria-prima' },
+  { id: 'papeis', label: 'Papel', hint: 'R$/m². O orçamento escolhe o SKU em estoque (MP-PAP e MP-FLM) e casa esta tarifa pelo nome' },
+  { id: 'acabamentos', label: 'Acabamento', hint: 'R$/m² + perda. O orçamento escolhe MP-LAM ou MP-CLD e soma verniz ou cola' },
   {
     id: 'trocas',
     label: 'Tipo troca produto',
@@ -167,7 +122,7 @@ const TABS: Array<{ id: TabId; label: string; hint: string }> = [
   {
     id: 'embalagem',
     label: 'Embalagem',
-    hint: 'Padrão de caixa: quantos rolos prontos cabem',
+    hint: 'Preço da caixa e do tubete',
   },
   {
     id: 'matriz',
@@ -185,8 +140,6 @@ const GRUPO_POR_TAB: Partial<Record<TabId, string[]>> = {
 };
 
 const CORES_TROCA_PRODUTO = ['0', '1', '2', '3', '4', '5', '6', '7', '8'];
-
-const TUBETES_EMBALAGEM = ['1"', '1" 1/2', '3"'];
 
 const CORES_TINTA_MATRIZ = ['1', '2', '3', '4'];
 
@@ -483,16 +436,6 @@ export function OrcamentoCatalogoPage() {
             <>
               {tab === 'perdas' ? (
                 <PerdaTrocaProdutoPanel
-                  estruturas={estruturas}
-                  onSaved={async (msg) => {
-                    setMessage(msg);
-                    await load();
-                  }}
-                  onError={setError}
-                />
-              ) : null}
-              {tab === 'embalagem' ? (
-                <CaixaEmpacotamentoPanel
                   estruturas={estruturas}
                   onSaved={async (msg) => {
                     setMessage(msg);
@@ -912,274 +855,6 @@ function PerdaTrocaProdutoPanel({
   );
 }
 
-function CaixaEmpacotamentoPanel({
-  estruturas,
-  onSaved,
-  onError,
-}: {
-  estruturas: EstruturaRow[];
-  onSaved: (msg: string) => Promise<void>;
-  onError: (msg: string) => void;
-}) {
-  const [drafts, setDrafts] = useState<Record<string, CaixaDraft>>({});
-  const [caixas, setCaixas] = useState<Produto[]>([]);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    const src = estruturaPayload<Record<string, CaixaEmpRow>>(estruturas, 'caixa_empacotamento') ?? {};
-    const next: Record<string, CaixaDraft> = {};
-    for (const tub of TUBETES_EMBALAGEM) {
-      const row = src[tub];
-      next[tub] = {
-        medida: row?.medida ?? '',
-        rolos: row?.rolos_por_caixa != null ? String(row.rolos_por_caixa) : '',
-        produtoCodigo: row?.produto_codigo ?? '',
-        caixaId: row?.caixa_id != null ? String(row.caixa_id) : '',
-      };
-    }
-    setDrafts(next);
-  }, [estruturas]);
-
-  useEffect(() => {
-    let cancel = false;
-    void api
-      .get<{ data: Produto[] }>('/produtos?familia=EMB&grupo=EMB-CX&limit=50')
-      .then((res) => {
-        if (!cancel) setCaixas(res.data ?? []);
-      })
-      .catch(() => {
-        if (!cancel) setCaixas([]);
-      });
-    return () => {
-      cancel = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (caixas.length === 0) return;
-    setDrafts((prev) => {
-      let changed = false;
-      const next = { ...prev };
-      for (const tub of TUBETES_EMBALAGEM) {
-        const d = next[tub];
-        if (!d || d.produtoCodigo) continue;
-        const alvo = d.medida.trim().toLowerCase();
-        const hit = caixas.find((c) => medidaNominalCaixa(c.atributos).toLowerCase() === alvo);
-        if (!hit) continue;
-        next[tub] = { ...d, produtoCodigo: hit.codigo };
-        changed = true;
-      }
-      return changed ? next : prev;
-    });
-  }, [caixas]);
-
-  const escolherCaixa = (tub: string, codigo: string) => {
-    setDrafts((prev) => {
-      const atual = prev[tub];
-      if (!atual) return prev;
-      if (tub === TUBETE_SEGUE_PADRAO && codigo === '') {
-        return {
-          ...prev,
-          [tub]: { medida: '', rolos: '', produtoCodigo: '', caixaId: '' },
-        };
-      }
-      const produto = caixas.find((c) => c.codigo === codigo);
-      const medidaNova = produto ? medidaNominalCaixa(produto.atributos) || atual.medida : atual.medida;
-      return {
-        ...prev,
-        [tub]: {
-          ...atual,
-          produtoCodigo: codigo,
-          medida: codigo ? medidaNova : atual.medida,
-          caixaId: codigo && medidaNova !== atual.medida ? '' : atual.caixaId,
-        },
-      };
-    });
-  };
-
-  const seguePadrao = (tub: string) => {
-    if (tub !== TUBETE_SEGUE_PADRAO) return false;
-    const d = drafts[tub];
-    if (!d) return true;
-    return d.produtoCodigo.trim() === '' && d.rolos.trim() === '' && d.medida.trim() === '';
-  };
-
-  const rotuloDo = (tub: string) => {
-    const d = drafts[tub];
-    if (!d) return '';
-    if (d.produtoCodigo) {
-      const produto = caixas.find((c) => c.codigo === d.produtoCodigo);
-      if (produto) return rotuloCaixaEstoque(produto);
-      return d.medida ? `${d.produtoCodigo} · ${d.medida}` : d.produtoCodigo;
-    }
-    return d.medida.trim();
-  };
-
-  const rotuloEfetivo = (tub: string) =>
-    seguePadrao(tub) ? rotuloDo(TUBETE_PADRAO) : rotuloDo(tub);
-
-  const capacidadeEfetiva = (tub: string) => {
-    const fonte = seguePadrao(tub) ? TUBETE_PADRAO : tub;
-    const n = parseInt(drafts[fonte]?.rolos ?? '', 10);
-    return Number.isFinite(n) && n > 0 ? n : 0;
-  };
-
-  const exemploRolos = EXEMPLO_ETIQUETAS / EXEMPLO_POR_ROLO;
-
-  const save = async () => {
-    const payload: Record<string, CaixaEmpRow> = {};
-    for (const tub of TUBETES_EMBALAGEM) {
-      const d = drafts[tub];
-      if (!d) {
-        continue;
-      }
-      const rolos = parseInt(d.rolos, 10);
-      if (!Number.isFinite(rolos) || rolos < 1) {
-        continue;
-      }
-      const codigo = d.produtoCodigo.trim();
-      payload[tub] = {
-        medida: d.medida.trim(),
-        rolos_por_caixa: rolos,
-        caixa_id: d.caixaId.trim() === '' ? null : parseInt(d.caixaId, 10),
-        produto_codigo: codigo !== '' ? codigo : null,
-      };
-    }
-    if (Object.keys(payload).length === 0) {
-      onError('Informe quantos rolos cabem para ao menos um tubete.');
-      return;
-    }
-    setSaving(true);
-    onError('');
-    try {
-      await api.put('/orcamento-catalogo/estruturas/caixa_empacotamento', { payload });
-      await onSaved('Padrão de caixa do orçamento atualizado.');
-    } catch (e) {
-      onError(fieldErrors(e));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="card" style={{ marginBottom: '1rem' }}>
-      <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
-        <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--navy)' }}>Padrão de caixa do orçamento</h3>
-        <p className="catalogo-nota" style={{ margin: 0 }}>
-          O orçamento calcula as caixas. Aqui fica quantos rolos prontos cabem em cada uma.
-          A medida é a do cadastro da caixa. O preço da caixa permanece o do catálogo.
-        </p>
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Tubete</th>
-                <th>Caixa do estoque</th>
-                <th>Rolos que cabem</th>
-              </tr>
-            </thead>
-            <tbody>
-              {TUBETES_EMBALAGEM.map((tub) => {
-                const segue = seguePadrao(tub);
-                return (
-                <tr key={tub}>
-                  <td>{tub}</td>
-                  <td>
-                    {caixas.length > 0 ? (
-                      <select
-                        value={drafts[tub]?.produtoCodigo ?? ''}
-                        disabled={saving}
-                        onChange={(e) => escolherCaixa(tub, e.target.value)}
-                      >
-                        <option value="">
-                          {tub === TUBETE_SEGUE_PADRAO && (segue || drafts[tub]?.produtoCodigo)
-                            ? rotuloEfetivo(TUBETE_PADRAO)
-                              ? `Mesma do 1" · ${rotuloEfetivo(TUBETE_PADRAO)}`
-                              : 'Mesma do 1"'
-                            : drafts[tub]?.medida
-                              ? `Medida atual ${drafts[tub].medida}`
-                              : tub === TUBETE_SEGUE_PADRAO
-                                ? 'Mesma do 1"'
-                                : '— escolha a caixa —'}
-                        </option>
-                        {caixas.map((c) => (
-                          <option key={c.id} value={c.codigo}>
-                            {rotuloCaixaEstoque(c)}
-                          </option>
-                        ))}
-                      </select>
-                    ) : segue ? (
-                      <span>{rotuloEfetivo(TUBETE_PADRAO) ? `Mesma do 1" · ${rotuloEfetivo(TUBETE_PADRAO)}` : 'Mesma do 1"'}</span>
-                    ) : (
-                      <input
-                        type="text"
-                        value={drafts[tub]?.medida ?? ''}
-                        disabled={saving}
-                        placeholder="250x200x200"
-                        onChange={(e) =>
-                          setDrafts((prev) => ({
-                            ...prev,
-                            [tub]: { ...prev[tub], medida: e.target.value, produtoCodigo: '' },
-                          }))
-                        }
-                      />
-                    )}
-                  </td>
-                  <td>
-                    {segue ? (
-                      <span>{drafts[TUBETE_PADRAO]?.rolos || '—'}</span>
-                    ) : (
-                      <input
-                        type="number"
-                        min={1}
-                        step={1}
-                        value={drafts[tub]?.rolos ?? ''}
-                        disabled={saving}
-                        onChange={(e) =>
-                          setDrafts((prev) => ({
-                            ...prev,
-                            [tub]: { ...prev[tub], rolos: e.target.value },
-                          }))
-                        }
-                        style={{ maxWidth: '6rem' }}
-                      />
-                    )}
-                  </td>
-                </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="catalogo-nota" style={{ margin: 0 }}>
-          <p style={{ margin: '0 0 0.35rem' }}>
-            Exemplo com {EXEMPLO_ETIQUETAS.toLocaleString('pt-BR')} etiquetas e{' '}
-            {EXEMPLO_POR_ROLO.toLocaleString('pt-BR')} por rolo:{' '}
-            {exemploRolos.toLocaleString('pt-BR')} rolos e {exemploRolos.toLocaleString('pt-BR')} tubetes.
-          </p>
-          <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
-            {TUBETES_EMBALAGEM.map((tub) => {
-              const caixa = rotuloEfetivo(tub);
-              const cap = capacidadeEfetiva(tub);
-              return (
-                <li key={tub}>
-                  {tub}: {caixasDoExemplo(exemploRolos, cap)}
-                  {caixa ? ` · ${seguePadrao(tub) ? `mesma do 1" · ${caixa}` : caixa}` : ''}
-                  {cap > 0 ? ` · ${cap.toLocaleString('pt-BR')} rolos que cabem` : ''}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-        <div className="btn-row">
-          <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={() => void save()}>
-            {saving ? 'Salvando…' : 'Salvar padrão'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function MatrizParametrosPanel({
   rows,

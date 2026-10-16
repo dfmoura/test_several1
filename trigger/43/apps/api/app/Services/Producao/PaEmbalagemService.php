@@ -104,13 +104,22 @@ class PaEmbalagemService
         $bobinasIn = isset($data['bobinas']) && is_array($data['bobinas']) ? $data['bobinas'] : null;
         $nRolos = isset($data['qtde_bobinas']) ? (int) $data['qtde_bobinas'] : null;
         $nCaixas = isset($data['qtde_caixas']) ? (int) $data['qtde_caixas'] : null;
-        $plano = $this->montarPlano($op, $qtdeBoa, $bobinasIn, $nRolos, $nCaixas);
+        if ($nCaixas === null && $this->capacidadeCaixaDoSnapshot($op) === null) {
+            throw ValidationException::withMessages([
+                'qtde_caixas' => ['Informe quantas caixas saíram.'],
+            ]);
+        }
+        $caixaProduto = $this->caixaInformada($empresa, $data['caixa_produto_id'] ?? null);
+        $medidaCaixa = $caixaProduto !== null
+            ? CaixaMedida::rotulo(is_array($caixaProduto->atributos) ? $caixaProduto->atributos : null)
+            : null;
+        $plano = $this->montarPlano($op, $qtdeBoa, $bobinasIn, $nRolos, $nCaixas, $medidaCaixa);
         $origem = ($bobinasIn !== null || $nRolos !== null || $nCaixas !== null)
             ? PaEmbalagem::ORIGEM_MANUAL
             : PaEmbalagem::ORIGEM_SUGERIDA;
         $obs = isset($data['observacao']) ? trim((string) $data['observacao']) : null;
 
-        $emb = DB::transaction(function () use ($empresa, $op, $plano, $origem, $obs, $existente) {
+        $emb = DB::transaction(function () use ($empresa, $op, $plano, $origem, $obs, $existente, $caixaProduto) {
             if ($existente) {
                 $existente->bobinas()->delete();
                 $existente->caixas()->delete();
@@ -134,6 +143,7 @@ class PaEmbalagemService
                 'rolos_por_caixa' => $plano['rolos_por_caixa'],
                 'tubete' => $plano['tubete'],
                 'caixa_medida' => $plano['caixa_medida'],
+                'caixa_produto_id' => $caixaProduto?->id,
                 'saida_etiqueta' => $plano['saida_etiqueta'],
                 'origem' => $origem,
                 'observacao' => $obs !== '' ? $obs : null,
@@ -701,6 +711,7 @@ class PaEmbalagemService
      */
     public function toOut(PaEmbalagem $e, bool $detalhe = true): array
     {
+        $e->loadMissing('caixaProduto');
         $out = [
             'id' => $e->id,
             'codigo' => $e->codigo,
@@ -712,6 +723,11 @@ class PaEmbalagemService
             'rolos_por_caixa' => $e->rolos_por_caixa,
             'tubete' => $e->tubete,
             'caixa_medida' => $e->caixa_medida,
+            'caixa_produto_id' => $e->caixa_produto_id,
+            'caixa_produto_codigo' => $e->caixaProduto?->codigo,
+            'caixa_produto_descricao' => $e->caixaProduto
+                ? trim((string) ($e->caixaProduto->descricao_comercial ?: $e->caixaProduto->descricao_fiscal))
+                : null,
             'saida_etiqueta' => $e->saida_etiqueta,
             'origem' => $e->origem,
             'resumo' => $e->resumoTexto(),
@@ -755,6 +771,7 @@ class PaEmbalagemService
         ?array $bobinasIn,
         ?int $nRolos = null,
         ?int $nCaixasPedidas = null,
+        ?string $medidaCaixaEscolhida = null,
     ): array
     {
         $pedido = $op->pedido;
@@ -768,13 +785,14 @@ class PaEmbalagemService
             $etiqPorRolo = 1000;
         }
 
-        $rolosPorCaixa = (int) ($faixa['rolos_por_caixa'] ?? 12);
-        if ($rolosPorCaixa < 1) {
-            $rolosPorCaixa = 12;
-        }
+        $capLegada = (int) ($faixa['rolos_por_caixa'] ?? 0);
+        $capLegada = $capLegada > 0 ? $capLegada : null;
 
         $tubete = trim((string) ($espec['tubete'] ?? $input['tubete'] ?? ''));
-        $caixaMedida = trim((string) ($faixa['caixa_medida'] ?? ''));
+        $medidaEscolhida = trim((string) $medidaCaixaEscolhida);
+        $caixaMedida = $medidaEscolhida !== ''
+            ? $medidaEscolhida
+            : trim((string) ($faixa['caixa_medida'] ?? ''));
         $saidaRaw = $espec['saida_etiqueta'] ?? $input['saida_etiqueta'] ?? null;
         $saida = $saidaRaw !== null ? trim((string) $saidaRaw) : null;
         if ($saida === '') {
@@ -823,6 +841,42 @@ class PaEmbalagemService
         }
 
         $nBobinas = count($qtys);
+        if ($nCaixasPedidas === null && $capLegada === null) {
+            $bobinas = [];
+            foreach ($qtys as $i => $q) {
+                $bobinas[] = [
+                    'sequencia' => $i + 1,
+                    'qtde_etiquetas' => $q,
+                    'caixa_idx' => 0,
+                ];
+            }
+            $caixa = $this->caixaDoEncaixe((int) $op->empresa_id, $caixaMedida);
+            $largura = $espec['largura_cm'] ?? $input['largura_cm'] ?? null;
+            $encaixe = RoloCaixaEncaixe::avaliar(
+                $largura !== null && $largura !== '' ? (string) $largura : null,
+                $caixa['lados'],
+                $caixa['rotulo'],
+            );
+
+            return [
+                'qtde_etiquetas' => $qtdeBoa,
+                'qtde_bobinas' => $nBobinas,
+                'qtde_caixas' => 0,
+                'etiq_por_rolo' => $etiqPorRolo,
+                'rolos_por_caixa' => null,
+                'caixa_planejada_no_orcamento' => false,
+                'tubete' => $tubete !== '' ? $tubete : null,
+                'caixa_medida' => $caixaMedida !== '' ? $caixaMedida : null,
+                'saida_etiqueta' => $saida,
+                'encaixe' => $encaixe,
+                'bobinas' => $bobinas,
+                'caixas' => [],
+                'resumo' => number_format((float) $qtdeBoa, 0, ',', '.').' etiquetas · '
+                    .$nBobinas.' bobina'.($nBobinas === 1 ? '' : 's'),
+            ];
+        }
+
+        $rolosPorCaixa = $capLegada ?? $nBobinas;
         $caixasNaturais = (int) ceil($nBobinas / max(1, $rolosPorCaixa));
         $nCaixas = $nCaixasPedidas ?? $caixasNaturais;
         if ($nCaixas < 1 || $nCaixas > $nBobinas) {
@@ -872,7 +926,8 @@ class PaEmbalagemService
             'qtde_bobinas' => $nBobinas,
             'qtde_caixas' => $nCaixas,
             'etiq_por_rolo' => $etiqPorRolo,
-            'rolos_por_caixa' => $rolosPorCaixa,
+            'rolos_por_caixa' => $capLegada,
+            'caixa_planejada_no_orcamento' => $capLegada !== null,
             'tubete' => $tubete !== '' ? $tubete : null,
             'caixa_medida' => $caixaMedida !== '' ? $caixaMedida : null,
             'saida_etiqueta' => $saida,
@@ -883,6 +938,53 @@ class PaEmbalagemService
                 .$nBobinas.' bobina'.($nBobinas === 1 ? '' : 's').' · '
                 .$nCaixas.' caixa'.($nCaixas === 1 ? '' : 's'),
         ];
+    }
+
+    private function capacidadeCaixaDoSnapshot(OrdemProducao $op): ?int
+    {
+        $snap = is_array($op->pedido?->snapshot) ? $op->pedido->snapshot : [];
+        $faixa = is_array($snap['faixa'] ?? null) ? $snap['faixa'] : [];
+        $cap = (int) ($faixa['rolos_por_caixa'] ?? 0);
+
+        return $cap > 0 ? $cap : null;
+    }
+
+    private function caixaInformada(Empresa $empresa, mixed $id): ?Produto
+    {
+        if ($id === null || $id === '' || (int) $id < 1) {
+            return null;
+        }
+
+        $produto = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereKey((int) $id)
+            ->where('situacao', 'ATIVO')
+            ->with('grupoCatalogo:id,codigo')
+            ->first();
+        if ($produto === null || ! $this->ehCaixaDeEstoque($produto)) {
+            throw ValidationException::withMessages([
+                'caixa_produto_id' => ['Escolha uma caixa ativa desta empresa.'],
+            ]);
+        }
+
+        return $produto;
+    }
+
+    private function ehCaixaDeEstoque(Produto $produto): bool
+    {
+        if ($produto->familia !== 'EMB') {
+            return false;
+        }
+        $grupo = (string) ($produto->grupoCatalogo?->codigo ?? '');
+        if ($grupo === 'EMB-CX') {
+            return true;
+        }
+        $hay = mb_strtoupper(
+            $produto->codigo.' '.$produto->descricao_fiscal.' '.$produto->descricao_comercial,
+            'UTF-8',
+        );
+
+        return str_starts_with((string) $produto->codigo, 'EMB-CX') || str_contains($hay, 'CAIXA');
     }
 
     /**

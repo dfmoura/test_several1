@@ -20,6 +20,7 @@ export type OrcGuiaProducaoEspec = {
   acabamento?: string | null;
   maquina?: string | null;
   tubete?: string | null;
+  tubete_rotulo?: string | null;
   etiq_por_rolo?: number | string | null;
   modelos?: number | string | null;
   colunas?: number | string | null;
@@ -245,7 +246,7 @@ export function buildGuiaProducaoLinhas(
   linhas.push({
     grupo: 'embalagem',
     item: 'Tubete',
-    especificacao: txt(espec.tubete),
+    especificacao: txt(espec.tubete_rotulo, txt(espec.tubete)),
     quantidade: qty(rolos, 0, 'un.'),
     nota: `${txt(espec.etiq_por_rolo)} etiq./rolo · ${qty(q, 0, 'etiq.')}`,
   });
@@ -322,6 +323,7 @@ export function especFromSnapshot(
     acabamento: snap.acabamento as string | undefined,
     maquina: snap.maquina as string | undefined,
     tubete: snap.tubete as string | undefined,
+    tubete_rotulo: snap.tubete_rotulo as string | undefined,
     etiq_por_rolo: snap.etiq_por_rolo as number | string | undefined,
     modelos: snap.modelos as number | string | undefined,
     colunas: snap.colunas as number | string | undefined,

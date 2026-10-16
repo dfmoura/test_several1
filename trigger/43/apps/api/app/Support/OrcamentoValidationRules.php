@@ -121,8 +121,16 @@ final class OrcamentoValidationRules
             'largura_cm' => ['required', 'numeric', 'gt:0'],
             'puxada_cm' => ['required', 'numeric', 'gt:0'],
             'cores' => ['required'],
-            'papel' => ['required', 'string', 'max:120'],
-            'acabamento' => ['required', 'string', 'max:120'],
+            'papel' => ['required', 'string', 'max:180'],
+            'papel_tarifa' => ['nullable', 'string', 'max:120'],
+            'papel_produto_id' => ['nullable', 'integer', 'min:1'],
+            'papel_produto_codigo' => ['nullable', 'string', 'max:40'],
+            'acabamento' => ['required', 'string', 'max:180'],
+            'acabamento_tarifa' => ['nullable', 'string', 'max:120'],
+            'acabamento_tarifa_composta' => ['nullable', 'boolean'],
+            'acabamento_complemento' => ['nullable', 'string', Rule::in(['VERNIZ', 'COLA'])],
+            'acabamento_produto_id' => ['nullable', 'integer', 'min:1'],
+            'acabamento_produto_codigo' => ['nullable', 'string', 'max:40'],
             'modelos' => ['required', 'integer', 'min:1'],
             // Composição operacional (nome + % qty + valor_arte). Motor usa só `modelos`.
             // Ausente → equal-split no service; presente → validado em ModelosComposicao.
@@ -140,6 +148,9 @@ final class OrcamentoValidationRules
             'colunas' => ['required', 'integer', 'min:1'],
             'etiq_por_rolo' => ['required', 'integer', 'min:1'],
             'tubete' => ['required', 'string', 'max:32'],
+            'tubete_rotulo' => ['nullable', 'string', 'max:180'],
+            'tubete_produto_id' => ['nullable', 'integer', 'min:1'],
+            'tubete_produto_codigo' => ['nullable', 'string', 'max:40'],
             // Medida nomeada no pedido. Vazio = padrão do tubete. Não entra em R1–R20.
             'caixa_medida' => ['nullable', 'string', 'max:40'],
             'z' => ['nullable', 'numeric', 'min:0'],

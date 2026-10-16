@@ -35,6 +35,7 @@ class PaEmbalagemController extends Controller
             'bobinas.*.qtde_etiquetas' => ['required_with:bobinas', 'numeric'],
             'qtde_bobinas' => ['nullable', 'integer', 'min:1', 'max:500'],
             'qtde_caixas' => ['nullable', 'integer', 'min:1', 'max:500'],
+            'caixa_produto_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         return response()->json([

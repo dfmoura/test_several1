@@ -36,19 +36,12 @@
           <div class="span-2"><dt>Não incluso.</dt><dd>{{ $vigente->nao_incluso }}</dd></div>
           <div class="span-2"><dt>Aceite.</dt><dd>{{ $vigente->criterios_aceite }}</dd></div>
         </dl>
-        <form id="form-aprovar" method="post" action="{{ route('demandas.aprovar', $demanda->codigo) }}">
+        <form method="post" action="{{ route('demandas.aprovar', $demanda->codigo) }}">
           @csrf
-          <p><button type="button" data-abre="confirma-aprovar">Aprovar proposta</button></p>
+          <label for="confirmar_valor">Digite {{ \App\Suporte\Dinheiro::reais($vigente->valor_centavos) }} para aprovar</label>
+          <input id="confirmar_valor" name="confirmar_valor" required inputmode="decimal">
+          <p><button type="submit">Aprovar proposta</button></p>
         </form>
-        <dialog class="confirma" id="confirma-aprovar" aria-labelledby="titulo-aprovar">
-          <p class="kicker">Confirmar</p>
-          <h2 id="titulo-aprovar">Aprovar a proposta de @reais($vigente->valor_centavos)</h2>
-          <p>Versão {{ $vigente->versao }} · {{ $vigente->prazo_dias_uteis }} dias úteis. A execução pode começar. O saldo só é abatido quando você validar a entrega.</p>
-          <div class="row">
-            <button type="button" class="btn-ghost" data-fecha autofocus>Voltar</button>
-            <button type="submit" form="form-aprovar">Confirmar aprovação</button>
-          </div>
-        </dialog>
         <details class="fold inset">
           <summary>Recusar proposta</summary>
           <div class="fold-body">
@@ -69,19 +62,12 @@
         @endif
         <p>Valide até {{ $demanda->validacao_ate?->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}. Sem resposta até lá, a entrega é aceita e o saldo é abatido.</p>
         <p>Ao validar, abatemos o saldo. Com o saldo de hoje, falta @reais($faltaValidacao) por PIX.</p>
-        <form id="form-validar" method="post" action="{{ route('demandas.validar', $demanda->codigo) }}">
+        <form method="post" action="{{ route('demandas.validar', $demanda->codigo) }}">
           @csrf
-          <p><button type="button" data-abre="confirma-validar">Validar entrega</button></p>
+          <label for="confirmar_entrega">Digite {{ \App\Suporte\Dinheiro::reais($aceite['valor_centavos'] ?? 0) }} para validar</label>
+          <input id="confirmar_entrega" name="confirmar_valor" required inputmode="decimal">
+          <p><button type="submit">Validar entrega</button></p>
         </form>
-        <dialog class="confirma" id="confirma-validar" aria-labelledby="titulo-validar">
-          <p class="kicker">Confirmar</p>
-          <h2 id="titulo-validar">Validar a entrega de @reais($aceite['valor_centavos'] ?? 0)</h2>
-          <p>O saldo é abatido agora. Com o saldo de hoje, falta @reais($faltaValidacao) por PIX.</p>
-          <div class="row">
-            <button type="button" class="btn-ghost" data-fecha autofocus>Voltar</button>
-            <button type="submit" form="form-validar">Confirmar validação</button>
-          </div>
-        </dialog>
         @if((int) $demanda->ajustes_usados < 1)
           <details class="fold inset">
             <summary>Pedir ajuste</summary>
@@ -225,24 +211,4 @@
       </details>
     @endif
   </div>
-  @if($vigente || $demanda->status === 'AGUARDANDO_VALIDACAO')
-    <script>
-      (function () {
-        document.querySelectorAll('[data-abre]').forEach(function (botao) {
-          botao.addEventListener('click', function () {
-            var caixa = document.getElementById(botao.getAttribute('data-abre'));
-            if (caixa && caixa.showModal) caixa.showModal();
-          });
-        });
-        document.querySelectorAll('dialog.confirma').forEach(function (caixa) {
-          caixa.addEventListener('click', function (evento) {
-            if (evento.target === caixa) caixa.close();
-          });
-          caixa.querySelectorAll('[data-fecha]').forEach(function (botao) {
-            botao.addEventListener('click', function () { caixa.close(); });
-          });
-        });
-      })();
-    </script>
-  @endif
 @endsection
