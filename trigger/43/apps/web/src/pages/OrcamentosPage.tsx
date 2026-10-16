@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  facaDesenhoFromSnapshot,
-  OrcamentoFacaDesenho,
-} from '../components/OrcamentoFacaDesenho';
 import { IconDuplicate, IconEye, IconPencil } from '../components/NavIcons';
 import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, ApiError, type Orcamento } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { formatCurrency, formatDateTime } from '../lib/format';
-import { textoResumoModelosCliente } from '../lib/modeloDecisao';
+import { formatDateTime } from '../lib/format';
 import {
   isOrcEditavel,
   ORC_LISTA_STATUSES,
@@ -19,26 +14,13 @@ import {
   type OrcListaStatus,
 } from '../lib/orcamentoForm';
 import { tipoOperacaoFromSnap, tipoOperacaoLabel } from '../lib/operacoesSaida';
-import { totalPropostaFaixa } from '../lib/orcamentoFrete';
 import { useTableSort } from '../lib/useTableSort';
-
-function totalPrimeiraFaixa(o: Orcamento): number | null {
-  const primeiro = o.result_snapshot?.faixas?.[0];
-  if (!primeiro) return null;
-  const facaNova = Boolean(o.input_snapshot?.faca_nova ?? o.result_snapshot?.faca_nova);
-  const raw = o.result_snapshot?.valor_faca_nova ?? o.input_snapshot?.valor_faca_nova;
-  const valorFaca = typeof raw === 'number' || typeof raw === 'string' ? raw : null;
-  const valorArtes = Number(o.result_snapshot?.valor_artes) || 0;
-  return totalPropostaFaixa(primeiro, facaNova, valorFaca, valorArtes);
-}
 
 const SORT = {
   codigo: (o: Orcamento) => o.codigo,
   parceiro: (o: Orcamento) => o.cliente_nome,
+  contato: (o: Orcamento) => o.contato_cliente?.nome,
   status: (o: Orcamento) => o.status,
-  matriz: (o: Orcamento) =>
-    o.cobra_matriz && o.valor_matriz != null ? Number(o.valor_matriz) : null,
-  faixa: (o: Orcamento) => totalPrimeiraFaixa(o),
   atualizado: (o: Orcamento) => o.updated_at,
 };
 
@@ -185,7 +167,7 @@ export function OrcamentosPage() {
                 id="orcamentos-busca"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Código ou cliente"
+                placeholder="Código, cliente ou contato"
               />
             </div>
             <div style={{ alignSelf: 'flex-end' }}>
@@ -227,32 +209,14 @@ export function OrcamentosPage() {
                     <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                       Código
                     </SortableTh>
-                    <th>Faca</th>
                     <SortableTh column="parceiro" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                       Parceiro
                     </SortableTh>
+                    <SortableTh column="contato" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Contato
+                    </SortableTh>
                     <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                       Status
-                    </SortableTh>
-                    <th title="Decisão do cliente sobre os modelos">Modelos</th>
-                    <SortableTh
-                      column="matriz"
-                      sorts={sorts} sortKey={sortKey}
-                      sortDir={sortDir}
-                      onSort={requestSort}
-                      className="num"
-                    >
-                      Matriz
-                    </SortableTh>
-                    <SortableTh
-                      column="faixa"
-                      sorts={sorts} sortKey={sortKey}
-                      sortDir={sortDir}
-                      onSort={requestSort}
-                      label="Primeira faixa"
-                      className="num"
-                    >
-                      1ª faixa
                     </SortableTh>
                     <SortableTh column="atualizado" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                       Atualizado
@@ -263,8 +227,6 @@ export function OrcamentosPage() {
                 <tbody>
                   {sorted.map((o) => {
                     const editavel = isOrcEditavel(o.status) && o.editavel;
-                    const faca = facaDesenhoFromSnapshot(o.input_snapshot);
-                    const totalPrimeira = totalPrimeiraFaixa(o);
                     return (
                       <tr
                         key={o.id}
@@ -285,13 +247,6 @@ export function OrcamentosPage() {
                             {tipoOperacaoLabel(o.tipo_operacao ?? tipoOperacaoFromSnap(o.input_snapshot))}
                           </div>
                         </td>
-                        <td className="faca">
-                          {faca ? (
-                            <OrcamentoFacaDesenho {...faca} variant="compact" />
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)' }}>—</span>
-                          )}
-                        </td>
                         <td className="parceiro" title={o.cliente_nome}>
                           {o.cliente_nome}
                           {o.vendedor ? (
@@ -300,19 +255,16 @@ export function OrcamentosPage() {
                             </div>
                           ) : null}
                         </td>
+                        <td className="contato" title={o.contato_cliente?.nome ?? undefined}>
+                          {o.contato_cliente?.nome ?? '—'}
+                          {o.contato_cliente?.funcao ? (
+                            <div className="muted" style={{ fontSize: '0.8em' }}>
+                              {o.contato_cliente.funcao}
+                            </div>
+                          ) : null}
+                        </td>
                         <td className="status">
                           <StatusPill status={statusOrcPill(o.status, o.financeiro_status)} />
-                        </td>
-                        <td className="orc-modelos-cliente-cell">
-                          {textoResumoModelosCliente(o.modelos_cliente) ?? (
-                            <span className="muted">—</span>
-                          )}
-                        </td>
-                        <td className="num">
-                          {o.cobra_matriz ? formatCurrency(o.valor_matriz) : '—'}
-                        </td>
-                        <td className="num">
-                          {totalPrimeira != null ? formatCurrency(totalPrimeira) : '—'}
                         </td>
                         <td>{formatDateTime(o.updated_at)}</td>
                         <td

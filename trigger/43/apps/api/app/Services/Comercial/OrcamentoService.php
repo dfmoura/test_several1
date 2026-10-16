@@ -84,9 +84,11 @@ class OrcamentoService
     {
         $q = Orcamento::query()
             ->with([
-                'parceiro:id,codigo,razao_social,nome_fantasia,is_prospect',
+                'parceiro:id,codigo,razao_social,nome_fantasia,is_prospect,whatsapp,email,telefone,contato_nome,contato_funcao',
+                'parceiro.contatos',
                 'vendedor:id,codigo,razao_social,nome_fantasia,comissao_percentual,papel_vendedor',
                 'itens:id,orcamento_id,ordem,input_snapshot',
+                'linkAprovacao',
                 ...Orcamento::userStampWith(),
             ])
             ->where('empresa_id', $empresa->id)
@@ -105,11 +107,14 @@ class OrcamentoService
             $term = '%'.$filters['q'].'%';
             $q->where(function ($inner) use ($term) {
                 $inner->where('codigo', 'like', $term)
-                    ->orWhere('cliente_nome', 'like', $term);
+                    ->orWhere('cliente_nome', 'like', $term)
+                    ->orWhereHas('parceiro', fn ($p) => $p->where('contato_nome', 'like', $term))
+                    ->orWhereHas('parceiro.contatos', fn ($c) => $c->where('nome', 'like', $term))
+                    ->orWhereHas('linkAprovacao', fn ($l) => $l->where('destino_nome', 'like', $term));
             });
         }
 
-        return $q->get()->map(fn (Orcamento $o) => $this->toOut($o))->all();
+        return $q->get()->map(fn (Orcamento $o) => $this->toOut($o, comContato: true))->all();
     }
 
     /** @return array<string, mixed> */
@@ -1202,7 +1207,8 @@ class OrcamentoService
                     'status' => $o->pedido->status,
                 ]
                 : null,
-            'link_aprovacao' => $o->relationLoaded('linkAprovacao') && $o->linkAprovacao
+            // Lista carrega o link só para resolver o contato. URL e token ficam no detalhe.
+            'link_aprovacao' => $comItens && $o->relationLoaded('linkAprovacao') && $o->linkAprovacao
                 ? [
                     'ativo' => (bool) $o->linkAprovacao->ativo,
                     'expira_em' => $o->linkAprovacao->expira_em?->toIso8601String(),

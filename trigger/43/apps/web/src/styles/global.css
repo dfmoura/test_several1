@@ -4259,7 +4259,7 @@ table.data-table td.acoes {
 
 /* —— Listagem Orçamentos (M02 / trigger/32 — densidade operacional) —— */
 .orcamentos-table {
-  min-width: 860px;
+  min-width: 640px;
   font-size: 0.84rem;
 }
 
@@ -4286,23 +4286,11 @@ table.data-table td.acoes {
   width: 1%;
 }
 
-.orcamentos-table td.parceiro {
+.orcamentos-table td.parceiro,
+.orcamentos-table td.contato {
   max-width: 11rem;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.orcamentos-table td.faca {
-  max-width: 11.5rem;
-}
-
-.orcamentos-table td.faca .orc-faca-desenho--compact {
-  min-width: 0;
-  max-width: 11rem;
-}
-
-.orcamentos-table td.faca .orc-faca-desenho-compact-text strong {
-  max-width: 7.5rem;
 }
 
 .orcamentos-table td.status {
@@ -4793,12 +4781,6 @@ table.data-table td.acoes {
 .orc-modelo-decisao-col {
   width: 6.5rem;
   white-space: nowrap;
-}
-
-.orc-modelos-cliente-cell {
-  font-size: 0.82rem;
-  white-space: nowrap;
-  color: var(--text);
 }
 
 .modelo-arte-preview__decisao {
@@ -6360,12 +6342,6 @@ table.data-table td.acoes {
 .orc-faca-desenho--compact .orc-faca-desenho-leading {
   gap: 0.28rem;
   align-items: center;
-}
-
-.orcamentos-table td.faca .faca-posicao-badge--symbol {
-  width: 1.1rem;
-  height: 1.1rem;
-  font-size: 0.68rem;
 }
 
 .orc-faca-desenho-visual {

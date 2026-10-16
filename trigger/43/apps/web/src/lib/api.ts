@@ -2681,7 +2681,7 @@ export type Orcamento = {
     canal_envio?: string | null;
     url?: string | null;
   } | null;
-  /** Pessoa do cliente nas fichas (nome + função). Só no detalhe. */
+  /** Pessoa do cliente (nome + função). Lista e detalhe. Sem telefone ou e-mail. */
   contato_cliente?: { nome: string; funcao: string | null } | null;
   parceiro?: {
     id: number;
