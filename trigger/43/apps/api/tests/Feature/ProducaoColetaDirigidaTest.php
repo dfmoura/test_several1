@@ -274,7 +274,7 @@ class ProducaoColetaDirigidaTest extends TestCase
         $ids = collect($papel['retirada']['volumes'])->pluck('lote_id')->all();
         $this->assertSame([$this->loteVencido->id, $this->loteVigente->id], $ids);
         $this->assertSame('100.0000', $papel['retirada']['volumes'][0]['qtde_retirar']);
-        $this->assertSame('50.0000', $papel['retirada']['volumes'][1]['qtde_retirar']);
+        $this->assertSame('120.0000', $papel['retirada']['volumes'][1]['qtde_retirar']);
         $this->assertSame('VENCIDO', $papel['retirada']['volumes'][0]['status']);
         $this->assertSame('P01-C02-L01', $papel['retirada']['volumes'][0]['endereco']['codigo']);
         $this->assertEqualsWithDelta(210.0, (float) $papel['retirada']['volumes'][0]['largura_mm'], 0.01);
@@ -300,9 +300,9 @@ class ProducaoColetaDirigidaTest extends TestCase
         $tubete = collect($ok->json('data.materiais'))->firstWhere('id', $this->matTubete->id);
         $this->assertFalse($papel['pendente']);
         $this->assertFalse($tubete['pendente']);
-        $this->assertSame('150.0000', (string) $papel['qtde_requisitada']);
+        $this->assertSame('220.0000', (string) $papel['qtde_requisitada']);
         $this->assertSame('0.0000', (string) $this->loteVencido->fresh()->qtde);
-        $this->assertSame('70.0000', (string) $this->loteVigente->fresh()->qtde);
+        $this->assertSame('0.0000', (string) $this->loteVigente->fresh()->qtde);
         $this->assertTrue(
             EstoqueMovimento::query()
                 ->where('ordem_producao_id', $this->op->id)
@@ -327,16 +327,16 @@ class ProducaoColetaDirigidaTest extends TestCase
                 'qtde' => '150.0000',
                 'volumes' => [
                     ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
-                    ['lote_id' => $this->loteVigente->id, 'qtde' => '50.0000'],
+                    ['lote_id' => $this->loteVigente->id, 'qtde' => '120.0000'],
                 ],
             ]
         );
         $req->assertOk();
 
         $this->assertSame('0.0000', (string) $this->loteVencido->fresh()->qtde);
-        $this->assertSame('70.0000', (string) $this->loteVigente->fresh()->qtde);
+        $this->assertSame('0.0000', (string) $this->loteVigente->fresh()->qtde);
         $this->assertSame('80.0000', (string) $this->loteSemValidade->fresh()->qtde);
-        $this->assertSame('150.0000', (string) EstoqueSaldo::query()
+        $this->assertSame('80.0000', (string) EstoqueSaldo::query()
             ->where('produto_id', $this->mp->id)
             ->value('qtde'));
 
@@ -357,7 +357,7 @@ class ProducaoColetaDirigidaTest extends TestCase
                 'qtde' => '150.0000',
                 'volumes' => [
                     ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
-                    ['lote_id' => $this->loteVigente->id, 'qtde' => '50.0000'],
+                    ['lote_id' => $this->loteVigente->id, 'qtde' => '120.0000'],
                 ],
             ]
         )->assertOk();
@@ -385,12 +385,15 @@ class ProducaoColetaDirigidaTest extends TestCase
         $dev->assertOk();
 
         $this->assertSame('0.0000', (string) $this->loteVencido->fresh()->qtde);
-        $this->assertSame('120.0000', (string) $this->loteVigente->fresh()->qtde);
+        $this->assertSame('50.0000', (string) $this->loteVigente->fresh()->qtde);
         $papel = collect($dev->json('data.materiais'))->firstWhere('id', $this->matPapel->id);
         $this->assertFalse($papel['pendente']);
-        $this->assertSame('100.0000', (string) $papel['qtde_requisitada']);
+        $this->assertSame('170.0000', (string) $papel['qtde_requisitada']);
         $aDevolver = collect($papel['retirada']['volumes_a_devolver'])->pluck('lote_id')->all();
-        $this->assertSame([$this->loteVencido->id], $aDevolver);
+        $this->assertEqualsCanonicalizing(
+            [$this->loteVencido->id, $this->loteVigente->id],
+            $aDevolver
+        );
 
         $devResto = $this->withHeaders($this->h())->postJson(
             "/api/v1/estoque/retiradas/{$this->op->id}/devolver",
@@ -399,6 +402,7 @@ class ProducaoColetaDirigidaTest extends TestCase
                 'motivo' => 'Não usa mais',
                 'volumes' => [
                     ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
+                    ['lote_id' => $this->loteVigente->id, 'qtde' => '70.0000'],
                 ],
             ]
         );
@@ -470,7 +474,7 @@ class ProducaoColetaDirigidaTest extends TestCase
         $req->assertOk();
 
         $this->assertSame('0.0000', (string) $this->loteVencido->fresh()->qtde);
-        $this->assertSame('70.0000', (string) $this->loteVigente->fresh()->qtde);
+        $this->assertSame('0.0000', (string) $this->loteVigente->fresh()->qtde);
         $this->assertSame('80.0000', (string) $this->loteSemValidade->fresh()->qtde);
     }
 
@@ -485,7 +489,7 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->assertSame('80.0000', $res->json('data.qtde'));
         $this->assertCount(1, $res->json('data.volumes'));
         $this->assertSame($this->loteVencido->id, (int) $res->json('data.volumes.0.lote_id'));
-        $this->assertSame('80.0000', $res->json('data.volumes.0.qtde_retirar'));
+        $this->assertSame('100.0000', $res->json('data.volumes.0.qtde_retirar'));
     }
 
     public function test_sku_sem_lote_rejeita_volumes(): void
@@ -530,7 +534,7 @@ class ProducaoColetaDirigidaTest extends TestCase
                         'qtde' => '150.0000',
                         'volumes' => [
                             ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
-                            ['lote_id' => $this->loteVigente->id, 'qtde' => '50.0000'],
+                            ['lote_id' => $this->loteVigente->id, 'qtde' => '120.0000'],
                         ],
                     ],
                     ['material_id' => $this->matTubete->id],
@@ -570,10 +574,10 @@ class ProducaoColetaDirigidaTest extends TestCase
             "/api/v1/ordens-producao/{$this->op->id}/requisitar",
             [
                 'material_id' => $this->matPapel->id,
-                'qtde' => '20.0000',
+                'qtde' => '80.0000',
                 'complementar' => true,
                 'volumes' => [
-                    ['lote_id' => $this->loteVigente->id, 'qtde' => '20.0000'],
+                    ['lote_id' => $this->loteSemValidade->id, 'qtde' => '80.0000'],
                 ],
             ]
         );
@@ -595,7 +599,7 @@ class ProducaoColetaDirigidaTest extends TestCase
                         'qtde' => '150.0000',
                         'volumes' => [
                             ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
-                            ['lote_id' => $this->loteVigente->id, 'qtde' => '50.0000'],
+                            ['lote_id' => $this->loteVigente->id, 'qtde' => '120.0000'],
                         ],
                     ],
                     ['material_id' => $this->matTubete->id],
@@ -608,7 +612,7 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->assertCount(2, $ficha->json('data.ficha_retirada.linhas'));
         $this->assertCount(2, $ficha->json('data.ficha_retirada.ciclos'));
         $papel = collect($ficha->json('data.ficha_retirada.linhas'))->firstWhere('material_id', $this->matPapel->id);
-        $this->assertSame('150.0000', $papel['requisitado']);
+        $this->assertSame('220.0000', $papel['requisitado']);
         $this->assertFalse($papel['pendente']);
         $this->assertSame('MOV-', substr((string) $ficha->json('data.ficha_retirada.ciclos.0.movimento_codigo'), 0, 4));
 
@@ -635,10 +639,10 @@ class ProducaoColetaDirigidaTest extends TestCase
                 'linhas' => [
                     [
                         'material_id' => $this->matPapel->id,
-                        'qtde' => '20.0000',
+                        'qtde' => '80.0000',
                         'complementar' => true,
                         'volumes' => [
-                            ['lote_id' => $this->loteVigente->id, 'qtde' => '20.0000'],
+                            ['lote_id' => $this->loteSemValidade->id, 'qtde' => '80.0000'],
                         ],
                     ],
                 ],
@@ -648,7 +652,7 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->assertCount(3, $repo->json('data.ficha_retirada.ciclos'));
         $this->assertTrue($repo->json('data.ficha_retirada.ciclos.2.complementar'));
         $this->assertSame(
-            '170.0000',
+            '300.0000',
             collect($repo->json('data.ficha_retirada.linhas'))->firstWhere('material_id', $this->matPapel->id)['requisitado']
         );
     }
@@ -910,5 +914,76 @@ class ProducaoColetaDirigidaTest extends TestCase
             "/api/v1/ordens-producao/{$this->op->id}/escolha",
             ['material_id' => $this->matTubete->id, 'produto_id' => $this->mp->id],
         )->assertStatus(422);
+    }
+
+    public function test_fracao_de_bobina_e_recusada(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $fail = $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/requisitar",
+            [
+                'material_id' => $this->matPapel->id,
+                'qtde' => '50.0000',
+                'volumes' => [
+                    ['lote_id' => $this->loteVigente->id, 'qtde' => '50.0000'],
+                ],
+            ]
+        );
+        $fail->assertStatus(422);
+        $this->assertSame('120.0000', (string) $this->loteVigente->fresh()->qtde);
+        $this->assertSame('300.0000', (string) EstoqueSaldo::query()
+            ->where('produto_id', $this->mp->id)
+            ->value('qtde'));
+    }
+
+    public function test_metragem_pede_bobinas_inteiras_de_mil_metros(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        foreach ([$this->loteVencido, $this->loteVigente, $this->loteSemValidade] as $lote) {
+            $lote->qtde = '0.0000';
+            $lote->save();
+        }
+        EstoqueSaldo::query()->where('produto_id', $this->mp->id)->update(['qtde' => '1050.0000']);
+
+        $item = PedidoItem::query()->findOrFail($this->op->pedido_item_id);
+        $item->especificacao = ['largura_cm' => '5.5'];
+        $item->save();
+        $this->matPapel->qtde_planejada = '192.5000';
+        $this->matPapel->save();
+
+        $ids = [];
+        foreach (['2026-01-01', '2026-02-01', '2026-03-01', '2026-04-01', '2026-05-01'] as $i => $entrada) {
+            $ids[] = $this->lote(
+                'LOT-MIL-'.$i,
+                '210.0000',
+                $entrada,
+                '2027-01-01',
+                $this->endereco('P02-C01-L0'.$i, 2, 1, $i + 1),
+                '210',
+                '1000',
+            )->id;
+        }
+
+        $show = $this->withHeaders($this->h())->getJson("/api/v1/ordens-producao/{$this->op->id}");
+        $show->assertOk();
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $volumes = collect($papel['retirada']['volumes']);
+        $this->assertCount(4, $volumes);
+        $this->assertSame(array_slice($ids, 0, 4), $volumes->pluck('lote_id')->all());
+        $this->assertTrue($volumes->every(fn ($v) => $v['qtde_retirar'] === '210.0000'));
+
+        $req = $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/requisitar",
+            ['material_id' => $this->matPapel->id]
+        );
+        $req->assertOk();
+        $this->assertSame('840.0000', (string) collect($req->json('data.materiais'))
+            ->firstWhere('id', $this->matPapel->id)['qtde_requisitada']);
+        $this->assertSame('210.0000', (string) EstoqueLote::query()->findOrFail($ids[4])->qtde);
+        $this->assertSame('210.0000', (string) EstoqueSaldo::query()
+            ->where('produto_id', $this->mp->id)
+            ->value('qtde'));
     }
 }

@@ -484,6 +484,21 @@ class OrdemProducaoService
         }
 
         $volumes = $volumesIn;
+        if ($this->coleta->baixaVolumeInteiro($produto)) {
+            if ($volumes !== []) {
+                $this->coleta->assertVolumesInteiros($empresa, $produto, $volumes);
+                $qtde = $this->coleta->somarVolumes($volumes);
+            } else {
+                $plano = $this->coleta->planejarBobinaInteira($empresa, $op, $produto, $qtde);
+                if (! $plano['cobre'] || $plano['volumes'] === []) {
+                    throw ValidationException::withMessages([
+                        'qtde' => ['Não há bobinas suficientes para cobrir a metragem. A baixa é do volume inteiro.'],
+                    ]);
+                }
+                $volumes = $plano['volumes'];
+                $qtde = $plano['qtde'];
+            }
+        }
         $volumesMotivo = isset($data['volumes_motivo']) ? trim((string) $data['volumes_motivo']) : '';
         $produtoLinhaId = $matPendente ? (int) $matPendente->produto_id : $produtoId;
         if ($volumes !== [] && $produtoLinhaId === (int) $produto->id) {
@@ -641,7 +656,7 @@ class OrdemProducaoService
         }
 
         $pendentes = OrdemProducaoMaterial::query()
-            ->with('produto:id,codigo')
+            ->with('produto:id,codigo,controla_lote,grupo_id,unidade_interna')
             ->where('ordem_producao_id', $op->id)
             ->whereNull('saida_movimento_id')
             ->where('qtde_planejada', '>', 0)
@@ -660,7 +675,7 @@ class OrdemProducaoService
             ]);
         }
 
-        $this->assertSaldoSuficienteParaPendentes($empresa, $pendentes);
+        $this->assertSaldoSuficienteParaPendentes($empresa, $op, $pendentes);
 
         foreach ($pendentes as $mat) {
             $this->requisitarMaterial($empresa, $op->fresh(), [
@@ -675,7 +690,7 @@ class OrdemProducaoService
     /**
      * @param  \Illuminate\Support\Collection<int, OrdemProducaoMaterial>  $pendentes
      */
-    private function assertSaldoSuficienteParaPendentes(Empresa $empresa, $pendentes): void
+    private function assertSaldoSuficienteParaPendentes(Empresa $empresa, OrdemProducao $op, $pendentes): void
     {
         $produtoIds = $pendentes->pluck('produto_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
         $saldos = EstoqueSaldo::query()
@@ -685,17 +700,33 @@ class OrdemProducaoService
             ->keyBy('produto_id');
 
         // Soma necessidade por SKU (várias linhas do mesmo produto).
+        // Bobina: a saída é a soma dos volumes inteiros, não o m² planejado.
         $necessidadePorSku = [];
-        foreach ($pendentes as $mat) {
-            $pid = (int) $mat->produto_id;
-            $necessidadePorSku[$pid] = isset($necessidadePorSku[$pid])
-                ? bcadd($necessidadePorSku[$pid], (string) $mat->qtde_planejada, PadraoDecimal::SCALE_QTY)
-                : PadraoDecimal::roundHalfUp((string) $mat->qtde_planejada, PadraoDecimal::SCALE_QTY);
-        }
-
         $faltas = [];
         foreach ($pendentes as $mat) {
             $pid = (int) $mat->produto_id;
+            $linha = PadraoDecimal::roundHalfUp((string) $mat->qtde_planejada, PadraoDecimal::SCALE_QTY);
+            $produto = $mat->produto;
+            if ($produto && $this->coleta->baixaVolumeInteiro($produto)) {
+                $plano = $this->coleta->planejarBobinaInteira($empresa, $op, $produto, $linha);
+                if (! $plano['cobre']) {
+                    $codigo = $produto->codigo ?? (string) $pid;
+                    $faltas[$pid] = "{$codigo}: não há bobinas inteiras suficientes para a metragem";
+
+                    continue;
+                }
+                $linha = $plano['qtde'];
+            }
+            $necessidadePorSku[$pid] = isset($necessidadePorSku[$pid])
+                ? bcadd($necessidadePorSku[$pid], $linha, PadraoDecimal::SCALE_QTY)
+                : $linha;
+        }
+
+        foreach ($pendentes as $mat) {
+            $pid = (int) $mat->produto_id;
+            if (isset($faltas[$pid]) || ! isset($necessidadePorSku[$pid])) {
+                continue;
+            }
             $disponivel = $saldos->get($pid)
                 ? PadraoDecimal::roundHalfUp((string) $saldos->get($pid)->qtde, PadraoDecimal::SCALE_QTY)
                 : PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);

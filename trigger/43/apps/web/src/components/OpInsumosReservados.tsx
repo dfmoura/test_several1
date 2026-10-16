@@ -67,14 +67,27 @@ function qtdeUnidadeInicial(m: OrdemProducaoMaterial): string {
 
 function divergeDoSugerido(atual: VolumeLinha[], inicial: VolumeLinha[]): boolean {
   if (atual.length !== inicial.length) return true;
-  const norm = (rows: VolumeLinha[]) => [...rows].sort((a, b) => a.lote_id - b.lote_id);
-  const a = norm(atual);
-  const b = norm(inicial);
-  return a.some(
-    (row, i) =>
-      row.lote_id !== b[i].lote_id ||
-      Math.abs(parseQtdeDigitada(row.qtde) - parseQtdeDigitada(b[i].qtde)) > 1e-4,
+  const ids = (rows: VolumeLinha[]) => rows.map((row) => row.lote_id).sort((a, b) => a - b);
+  const a = ids(atual);
+  const b = ids(inicial);
+  return a.some((id, i) => id !== b[i]);
+}
+
+/** Prefixo FEFO da sugestão. A quantidade não entra: bobina sai o volume inteiro. */
+function prefixoDaSugestao(atual: VolumeLinha[], m: OrdemProducaoMaterial): boolean {
+  const sugeridos = (m.retirada?.volumes ?? [])
+    .filter((v) => v.lote_id && parseQtdeDigitada(v.qtde_retirar) > 0)
+    .slice()
+    .sort(
+      (a, b) =>
+        (a.ordem_politica ?? 99) - (b.ordem_politica ?? 99) ||
+        (a.lote_id ?? 0) - (b.lote_id ?? 0),
+    );
+  if (atual.length === 0 || atual.length > sugeridos.length) return false;
+  const prefixo = new Set(
+    sugeridos.slice(0, atual.length).map((v) => v.lote_id).filter((id): id is number => id != null),
   );
+  return prefixo.size === atual.length && atual.every((v) => prefixo.has(v.lote_id));
 }
 
 function picksDe(materiais: OrdemProducaoMaterial[] | undefined) {
@@ -173,7 +186,7 @@ function BalancoPapel({
     <p
       className="op-insumo-balanco"
       aria-live="polite"
-      title="Metro linear da etiqueta. A área escolhida abate os dois."
+      title="Precisa é a metragem da ordem. Escolhido é a bobina inteira: metro do rolo e área do volume."
     >
       <span>
         <em>Precisa</em>
@@ -457,6 +470,19 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
   const volDo = (m: OrdemProducaoMaterial, loteId: number) =>
     conhecidos[loteId] ?? volumesParaEscolha(m).find((v) => v.lote_id === loteId);
 
+  const qtdeEfetiva = (m: OrdemProducaoMaterial, loteId: number, qtde: string) => {
+    if (!insumoComMetragem(m)) return qtde;
+    const vol = volDo(m, loteId);
+    const total = vol ? qtdeVolumeTotal(vol) : 0;
+    return total > 0 ? String(total) : qtde;
+  };
+
+  const volumesEfetivos = (m: OrdemProducaoMaterial, linhas: VolumeLinha[]) =>
+    linhas.map((v) => ({
+      lote_id: v.lote_id,
+      qtde: parseQtdeDigitada(qtdeEfetiva(m, v.lote_id, v.qtde)).toFixed(4),
+    }));
+
   const juntarCatalogo = (base: OpRetiradaVolume[], extra: OpRetiradaVolume[]) => {
     const seen = new Set<number>();
     const out: OpRetiradaVolume[] = [];
@@ -656,15 +682,13 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
           setErr(`Em ${opKitNome(m)}, escolha volumes de um só produto.`);
           return;
         }
-        const soma = escolhidos.reduce((acc, v) => acc + parseQtdeDigitada(v.qtde), 0);
+        const vols = volumesEfetivos(m, escolhidos);
+        const soma = vols.reduce((acc, v) => acc + parseQtdeDigitada(v.qtde), 0);
         fila.push({
           material_id: m.id,
           qtde: soma.toFixed(4),
           produto_id: [...produtosDaLinha][0],
-          volumes: escolhidos.map((v) => ({
-            lote_id: v.lote_id,
-            qtde: parseQtdeDigitada(v.qtde).toFixed(4),
-          })),
+          volumes: vols,
         });
         algumaAjuste = true;
         continue;
@@ -684,15 +708,13 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
           setErr(`Em ${opKitNome(m)}, escolha volumes do item selecionado.`);
           return;
         }
-        const soma = escolhidos.reduce((acc, v) => acc + parseQtdeDigitada(v.qtde), 0);
+        const vols = volumesEfetivos(m, escolhidos);
+        const soma = vols.reduce((acc, v) => acc + parseQtdeDigitada(v.qtde), 0);
         fila.push({
           material_id: m.id,
           qtde: soma.toFixed(4),
           produto_id: opcaoEscolhida.produto_id,
-          volumes: escolhidos.map((v) => ({
-            lote_id: v.lote_id,
-            qtde: parseQtdeDigitada(v.qtde).toFixed(4),
-          })),
+          volumes: vols,
         });
         continue;
       }
@@ -717,20 +739,19 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
           setErr(`Em ${opKitNome(m)}, escolha volumes de um só produto.`);
           return;
         }
+        const prefixo = prefixoDaSugestao(escolhidos, m);
         const motivo = (motivos[m.id] ?? '').trim();
-        if (motivo.length < 3) {
+        if (!prefixo && motivo.length < 3) {
           setErr(`Informe o motivo da troca em ${opKitNome(m)}.`);
           return;
         }
-        const soma = escolhidos.reduce((acc, v) => acc + parseQtdeDigitada(v.qtde), 0);
+        const vols = volumesEfetivos(m, escolhidos);
+        const soma = vols.reduce((acc, v) => acc + parseQtdeDigitada(v.qtde), 0);
         fila.push({
           material_id: m.id,
           qtde: soma.toFixed(4),
-          volumes: escolhidos.map((v) => ({
-            lote_id: v.lote_id,
-            qtde: parseQtdeDigitada(v.qtde).toFixed(4),
-          })),
-          volumes_motivo: motivo,
+          volumes: vols,
+          ...(prefixo ? {} : { volumes_motivo: motivo }),
         });
         algumaAjuste = true;
         continue;
@@ -915,7 +936,6 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                     (estado === 'falta_pegar' || (podeTrocar && saldoOpcao > 0)),
                 );
                 const escolhidos = volumes[m.id] ?? [];
-                const diverge = porVolume && divergeDoSugerido(escolhidos, volumesIniciais(m));
                 const baixados =
                   m.retirada?.volumes_a_devolver?.length
                     ? m.retirada.volumes_a_devolver
@@ -1016,7 +1036,7 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                               }))
                             : escolhidos.map((linha) => ({
                                 vol: volDo(m, linha.lote_id),
-                                qtde: linha.qtde,
+                                qtde: qtdeEfetiva(m, linha.lote_id, linha.qtde),
                               }))
                         }
                       />
@@ -1048,8 +1068,9 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                           linhas={escolhidos.map((linha) => {
                             const vol = volDo(m, linha.lote_id);
                             const max = vol ? qtdeVolumeTotal(vol) : 0;
+                            const qtdeMostrada = qtdeEfetiva(m, linha.lote_id, linha.qtde);
                             const leitura = vol
-                              ? formatLeituraBobina(vol, linha.qtde, larguraMmDoMaterial(m))
+                              ? formatLeituraBobina(vol, qtdeMostrada, larguraMmDoMaterial(m))
                               : null;
                             const medidaVol = vol ? formatVolumeDimensao(vol) : null;
                             return {
@@ -1067,7 +1088,9 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                                 m2: metragem ? leitura?.m2 ?? '—' : null,
                                 metros: metragem ? leitura?.metros ?? '—' : null,
                                 qtdeLabel,
-                                qtde: (
+                                qtde: metragem ? (
+                                  String(parseQtdeDigitada(qtdeMostrada))
+                                ) : (
                                   <input
                                     inputMode="decimal"
                                     disabled={!podeEditar || busy}
@@ -1288,7 +1311,7 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                       />
                     ) : null}
 
-                    {podeEditar && diverge ? (
+                    {podeEditar && escolhidos.length > 0 && !prefixoDaSugestao(escolhidos, m) ? (
                       <div className="form-group" style={{ maxWidth: 480, marginTop: '0.35rem' }}>
                         <label>Motivo da troca</label>
                         <input

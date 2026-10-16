@@ -126,6 +126,266 @@ class ProducaoColetaService
     }
 
     /**
+     * Papel e filme saem a bobina inteira (ADR cadastro de insumo). Tinta e SKU sem lote não entram.
+     */
+    public function baixaVolumeInteiro(Produto $produto): bool
+    {
+        if (! $produto->controla_lote) {
+            return false;
+        }
+        $produto->loadMissing('grupoCatalogo:id,codigo');
+        $candidatos = [
+            strtoupper(trim((string) $produto->codigo)),
+            strtoupper(trim((string) ($produto->grupoCatalogo->codigo ?? ''))),
+        ];
+        foreach (self::GRUPOS_BOBINA as $grupo) {
+            foreach ($candidatos as $codigo) {
+                if ($codigo === $grupo || str_starts_with($codigo, $grupo.'-')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * FEFO de bobinas inteiras até cobrir o metro linear da ordem.
+     * Sem a pista do pedido, cobre pela quantidade oficial, sem fatiar o rolo.
+     *
+     * @return array{aplica: bool, cobre: bool, qtde: string, volumes: list<array{lote_id: int, qtde: string}>}
+     */
+    public function planejarBobinaInteira(
+        Empresa $empresa,
+        OrdemProducao $op,
+        Produto $produto,
+        string $qtdeNecessidade,
+    ): array {
+        $qtdeNecessidade = PadraoDecimal::roundHalfUp($qtdeNecessidade, PadraoDecimal::SCALE_QTY);
+        $vazio = [
+            'aplica' => false,
+            'cobre' => true,
+            'qtde' => $qtdeNecessidade,
+            'volumes' => [],
+        ];
+        if (! $this->baixaVolumeInteiro($produto) || bccomp($qtdeNecessidade, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            return $vazio;
+        }
+
+        $op->loadMissing('pedidoItem:id,especificacao');
+        $pista = OrdemProducaoService::larguraMmEspecificacao($op->pedidoItem?->especificacao);
+        $metrosAlvo = $this->metrosNecessarios($produto, $qtdeNecessidade, $pista);
+        $lotes = $this->lotesFefo($empresa, $produto);
+        if ($metrosAlvo !== null) {
+            foreach ($lotes as $lote) {
+                if ($this->metrosDoVolume($lote, $produto) === null) {
+                    $metrosAlvo = null;
+                    break;
+                }
+            }
+        }
+
+        $volumes = [];
+        $qtde = '0';
+        $metros = '0';
+        $cobre = false;
+        foreach ($lotes as $lote) {
+            if ($cobre) {
+                break;
+            }
+            $disp = PadraoDecimal::roundHalfUp((string) $lote->qtde, PadraoDecimal::SCALE_QTY);
+            if (bccomp($disp, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                continue;
+            }
+            $volumes[] = ['lote_id' => (int) $lote->id, 'qtde' => $disp];
+            $qtde = PadraoDecimal::roundHalfUp(
+                bcadd($qtde, $disp, PadraoDecimal::SCALE_QTY + 4),
+                PadraoDecimal::SCALE_QTY
+            );
+            if ($metrosAlvo !== null) {
+                $metros = bcadd($metros, (string) $this->metrosDoVolume($lote, $produto), 6);
+                $cobre = bccomp($metros, $metrosAlvo, 4) >= 0;
+            } else {
+                $cobre = bccomp($qtde, $qtdeNecessidade, PadraoDecimal::SCALE_QTY) >= 0;
+            }
+        }
+
+        return [
+            'aplica' => true,
+            'cobre' => $cobre && $volumes !== [],
+            'qtde' => $qtde,
+            'volumes' => $volumes,
+        ];
+    }
+
+    /**
+     * @param  list<array{lote_id?: int, qtde?: string}>  $volumes
+     */
+    public function assertVolumesInteiros(Empresa $empresa, Produto $produto, array $volumes): void
+    {
+        foreach (array_values($volumes) as $idx => $row) {
+            if (! is_array($row)) {
+                throw ValidationException::withMessages([
+                    "volumes.{$idx}" => ['Volume inválido.'],
+                ]);
+            }
+            $loteId = (int) ($row['lote_id'] ?? 0);
+            $qtde = PadraoDecimal::roundHalfUp((string) ($row['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY);
+            $lote = EstoqueLote::query()
+                ->where('empresa_id', $empresa->id)
+                ->where('produto_id', $produto->id)
+                ->where('id', $loteId)
+                ->first();
+            if (! $lote) {
+                throw ValidationException::withMessages([
+                    "volumes.{$idx}.lote_id" => ['Volume não pertence a este produto.'],
+                ]);
+            }
+            $disp = PadraoDecimal::roundHalfUp((string) $lote->qtde, PadraoDecimal::SCALE_QTY);
+            if (bccomp($qtde, $disp, PadraoDecimal::SCALE_QTY) !== 0) {
+                throw ValidationException::withMessages([
+                    "volumes.{$idx}.qtde" => [
+                        'A bobina sai inteira. A quantidade tem de ser o volume todo; o que sobrar volta depois ao estoque.',
+                    ],
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param  list<array{lote_id?: int, qtde?: string}>  $volumes
+     */
+    public function somarVolumes(array $volumes): string
+    {
+        $soma = '0';
+        foreach ($volumes as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $soma = bcadd(
+                $soma,
+                PadraoDecimal::roundHalfUp((string) ($row['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY),
+                PadraoDecimal::SCALE_QTY
+            );
+        }
+
+        return PadraoDecimal::roundHalfUp($soma, PadraoDecimal::SCALE_QTY);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function previewBobinaInteira(
+        Empresa $empresa,
+        OrdemProducao $op,
+        Produto $produto,
+        string $qtde,
+    ): array {
+        $plano = $this->planejarBobinaInteira($empresa, $op, $produto, $qtde);
+        $ids = [];
+        foreach ($plano['volumes'] as $aloc) {
+            $ids[(int) $aloc['lote_id']] = (string) $aloc['qtde'];
+        }
+        $lotes = $this->lotesFefo($empresa, $produto);
+        $porId = $lotes->keyBy('id');
+        $volumes = [];
+        $ordem = 1;
+        foreach ($plano['volumes'] as $aloc) {
+            $lote = $porId->get((int) $aloc['lote_id']);
+            if (! $lote) {
+                continue;
+            }
+            $volumes[] = $this->identificarProduto(
+                $this->volumeToOut($lote, (string) $aloc['qtde'], true, 'FEFO', $ordem),
+                $produto,
+            );
+            $ordem++;
+        }
+        $candidatos = [];
+        foreach ($lotes as $lote) {
+            if (isset($ids[(int) $lote->id])) {
+                continue;
+            }
+            $candidatos[] = $this->identificarProduto(
+                $this->volumeToOut($lote, '0', false, 'DISPONIVEL', null),
+                $produto,
+            );
+        }
+        $alocado = $plano['qtde'];
+        $faltante = $plano['cobre']
+            ? PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY)
+            : PadraoDecimal::roundHalfUp(
+                bccomp($alocado, $qtde, PadraoDecimal::SCALE_QTY) < 0
+                    ? bcsub($qtde, $alocado, PadraoDecimal::SCALE_QTY + 4)
+                    : '0',
+                PadraoDecimal::SCALE_QTY
+            );
+
+        return [
+            'controla_lote' => true,
+            'politica' => 'FEFO_FIFO',
+            'qtde' => $qtde,
+            'unidade' => $produto->unidade_interna ?? 'UN',
+            'suficiente' => $plano['cobre'],
+            'qtde_faltante' => $faltante,
+            'volumes' => $this->ordenarCaminhada($volumes),
+            'candidatos' => $this->ordenarCaminhada($candidatos),
+        ];
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, EstoqueLote>
+     */
+    private function lotesFefo(Empresa $empresa, Produto $produto)
+    {
+        return EstoqueLote::query()
+            ->with('endereco:id,codigo')
+            ->where('empresa_id', $empresa->id)
+            ->where('produto_id', $produto->id)
+            ->where('qtde', '>', 0)
+            ->orderByRaw('data_validade IS NULL')
+            ->orderBy('data_validade')
+            ->orderBy('data_entrada')
+            ->orderBy('id')
+            ->get();
+    }
+
+    /** Metro linear da ordem. null = cobrir pela quantidade oficial. */
+    private function metrosNecessarios(Produto $produto, string $qtde, ?string $larguraMm): ?string
+    {
+        $un = strtoupper(str_replace('²', '2', (string) ($produto->unidade_interna ?? '')));
+        if (in_array($un, ['M', 'MT', 'ML'], true)) {
+            return $qtde;
+        }
+        if (! in_array($un, ['M2', 'MIL'], true)) {
+            return null;
+        }
+        if ($larguraMm === null || $larguraMm === '' || bccomp($larguraMm, '0', 4) <= 0) {
+            return null;
+        }
+
+        return bcdiv(bcmul($qtde, '1000', 8), $larguraMm, 6);
+    }
+
+    /** Comprimento do rolo. null quando a geometria não fecha. */
+    private function metrosDoVolume(EstoqueLote $lote, Produto $produto): ?string
+    {
+        if ($lote->comprimento_m !== null && bccomp((string) $lote->comprimento_m, '0', 4) > 0) {
+            return bcadd((string) $lote->comprimento_m, '0', 6);
+        }
+        $un = strtoupper(str_replace('²', '2', (string) ($lote->unidade ?: $produto->unidade_interna)));
+        $qtde = (string) $lote->qtde;
+        if (in_array($un, ['M', 'MT', 'ML'], true)) {
+            return bccomp($qtde, '0', 4) > 0 ? bcadd($qtde, '0', 6) : null;
+        }
+        if ($lote->largura_mm !== null && bccomp((string) $lote->largura_mm, '0', 4) > 0 && bccomp($qtde, '0', 4) > 0) {
+            return bcdiv(bcmul($qtde, '1000', 8), (string) $lote->largura_mm, 6);
+        }
+
+        return null;
+    }
+
+    /**
      * Volumes já baixados nesta OP para o SKU (inclui complementar).
      *
      * @return list<array<string, mixed>>
@@ -244,7 +504,9 @@ class ProducaoColetaService
             );
 
         $out = $pendente || ($qtde !== null && $qtde !== '')
-            ? $this->preview($empresa, $produto, $qtdeAlvo)
+            ? ($this->baixaVolumeInteiro($produto)
+                ? $this->previewBobinaInteira($empresa, $op, $produto, $qtdeAlvo)
+                : $this->preview($empresa, $produto, $qtdeAlvo))
             : [
                 'controla_lote' => (bool) $produto->controla_lote,
                 'politica' => $produto->controla_lote ? 'FEFO_FIFO' : 'QTD',
