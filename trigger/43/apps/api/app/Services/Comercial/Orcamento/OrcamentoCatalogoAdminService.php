@@ -10,6 +10,7 @@ use App\Models\OrcCatalogoMaquina;
 use App\Models\OrcCatalogoPapel;
 use App\Models\OrcCatalogoParametro;
 use App\Models\OrcCatalogoTipoTroca;
+use App\Models\Produto;
 use App\Services\Audit\AuditLogger;
 use App\Support\CatalogoOrcEmpresa;
 use App\Support\PadraoDecimal;
@@ -24,6 +25,14 @@ use Illuminate\Validation\ValidationException;
  */
 class OrcamentoCatalogoAdminService
 {
+    /** @var list<string> */
+    private const COEFICIENTES_ACABAMENTO = [
+        'VERNIZ',
+        'COLD STAMP +VERNIZ',
+        'COLD STAMP + COLA',
+        'REBOBINAÇÃO',
+    ];
+
     public function __construct(private readonly AuditLogger $audit) {}
 
     /**
@@ -50,8 +59,8 @@ class OrcamentoCatalogoAdminService
                 ->exists();
 
         return [
-            'papeis' => $this->scoped(OrcCatalogoPapel::query())->count(),
-            'acabamentos' => $this->scoped(OrcCatalogoAcabamento::query())->count(),
+            'papeis' => $this->scoped($this->skuPapelQuery())->count(),
+            'acabamentos' => $this->scoped($this->skuAcabamentoQuery())->count(),
             'tipos_troca' => $this->scoped(OrcCatalogoTipoTroca::query())->count(),
             'maquinas' => $this->scoped(OrcCatalogoMaquina::query())->count(),
             'parametros' => Schema::hasTable('orc_catalogo_parametros')
@@ -299,12 +308,109 @@ class OrcamentoCatalogoAdminService
     /** @return list<array<string, mixed>> */
     public function listPapeis(bool $incluirInativos = true): array
     {
-        $q = $this->scoped(OrcCatalogoPapel::query())->with('grupo:id,codigo,nome')->orderBy('ordem')->orderBy('nome');
+        $empresaId = $this->empresaId();
+        if ($empresaId !== null) {
+            $this->garantirPapeisSku($empresaId);
+        }
+        $q = $this->scoped($this->skuPapelQuery())
+            ->with('produto.grupoCatalogo:id,codigo,nome')
+            ->orderBy('nome');
         if (! $incluirInativos) {
-            $q->where('ativo', true);
+            $q->whereHas('produto', fn ($p) => $p->where('situacao', 'ATIVO'));
         }
 
-        return $q->get()->map(fn (OrcCatalogoPapel $p) => $this->papelOut($p))->all();
+        return $q->get()
+            ->sortBy(fn (OrcCatalogoPapel $p) => (string) ($p->produto?->codigo ?? $p->nome))
+            ->values()
+            ->map(fn (OrcCatalogoPapel $p) => $this->papelOut($p))
+            ->all();
+    }
+
+    /**
+     * Uma linha por SKU ativo de MP-PAP e MP-FLM.
+     * Copia o R$/m² só quando o nome casa com exatamente uma tarifa antiga.
+     */
+    public function garantirPapeisSku(int $empresaId): void
+    {
+        if (! Schema::hasColumn('orc_catalogo_papeis', 'produto_id')) {
+            return;
+        }
+        $cat = OrcamentoCatalogo::load(null, $empresaId);
+        $nomes = array_keys($cat->papel);
+        $matcher = app(OrcamentoInsumoEstoque::class);
+        $produtos = Produto::query()
+            ->where('empresa_id', $empresaId)
+            ->where('situacao', 'ATIVO')
+            ->where('familia', 'MP')
+            ->whereHas('grupoCatalogo', fn ($g) => $g->whereIn('codigo', OrcamentoInsumoEstoque::GRUPOS_PAPEL))
+            ->get();
+        foreach ($produtos as $produto) {
+            $existe = OrcCatalogoPapel::query()
+                ->where('empresa_id', $empresaId)
+                ->where('produto_id', $produto->id)
+                ->exists();
+            if ($existe) {
+                continue;
+            }
+            $desc = trim((string) ($produto->descricao_comercial ?: $produto->descricao_fiscal));
+            $tarifa = $matcher->tarifaPapelUnica($desc, $nomes);
+            OrcCatalogoPapel::query()->create([
+                'empresa_id' => $empresaId,
+                'produto_id' => $produto->id,
+                'nome' => $this->nomeLivreSku($empresaId, OrcCatalogoPapel::query(), (string) $produto->codigo, (int) $produto->id),
+                'grupo_id' => $produto->grupo_id,
+                'preco_m2' => $tarifa !== null ? (float) ($cat->papel[$tarifa] ?? 0) : null,
+                'ativo' => true,
+                'ordem' => 0,
+            ]);
+        }
+    }
+
+    /**
+     * Uma linha por SKU ativo de MP-LAM e MP-CLD.
+     * Laminação copia preço e perda quando o casamento é único.
+     * Cold fica sem preço até alguém informar: verniz e cola prontos continuam no coeficiente.
+     */
+    public function garantirAcabamentosSku(int $empresaId): void
+    {
+        if (! Schema::hasColumn('orc_catalogo_acabamentos', 'produto_id')) {
+            return;
+        }
+        $cat = OrcamentoCatalogo::load(null, $empresaId);
+        $nomes = array_keys($cat->acabamentos);
+        $matcher = app(OrcamentoInsumoEstoque::class);
+        $produtos = Produto::query()
+            ->where('empresa_id', $empresaId)
+            ->where('situacao', 'ATIVO')
+            ->where('familia', 'MP')
+            ->whereHas('grupoCatalogo', fn ($g) => $g->whereIn('codigo', OrcamentoInsumoEstoque::GRUPOS_ACABAMENTO))
+            ->with('grupoCatalogo:id,codigo')
+            ->get();
+        foreach ($produtos as $produto) {
+            $existe = OrcCatalogoAcabamento::query()
+                ->where('empresa_id', $empresaId)
+                ->where('produto_id', $produto->id)
+                ->exists();
+            if ($existe) {
+                continue;
+            }
+            $grupo = (string) ($produto->grupoCatalogo?->codigo ?? '');
+            $desc = trim((string) ($produto->descricao_comercial ?: $produto->descricao_fiscal));
+            $tarifa = $grupo === 'MP-CLD'
+                ? null
+                : $matcher->tarifaAcabamentoBaseUnica($grupo, $desc, $nomes);
+            OrcCatalogoAcabamento::query()->create([
+                'empresa_id' => $empresaId,
+                'produto_id' => $produto->id,
+                'nome' => $this->nomeLivreSku($empresaId, OrcCatalogoAcabamento::query(), (string) $produto->codigo, (int) $produto->id),
+                'grupo_id' => $produto->grupo_id,
+                'preco_m2' => $tarifa !== null ? (float) ($cat->acabamentos[$tarifa] ?? 0) : null,
+                'preco_cola_m2' => null,
+                'perda_m2' => $tarifa !== null ? (float) ($cat->perdaAcabamento[$tarifa] ?? 0) : 0,
+                'ativo' => true,
+                'ordem' => 0,
+            ]);
+        }
     }
 
     /** @param  array<string, mixed>  $data */
@@ -331,7 +437,7 @@ class OrcamentoCatalogoAdminService
     public function updatePapel(OrcCatalogoPapel $papel, array $data): array
     {
         $de = $this->papelOut($papel);
-        if (array_key_exists('nome', $data)) {
+        if (array_key_exists('nome', $data) && ! $papel->produto_id) {
             $nome = OrcamentoCatalogo::norm((string) $data['nome']);
             if (
                 $this->scoped(OrcCatalogoPapel::query())
@@ -347,7 +453,7 @@ class OrcamentoCatalogoAdminService
             $papel->grupo_id = $this->grupoMp($data['grupo_id'] !== null && $data['grupo_id'] !== '' ? (int) $data['grupo_id'] : null);
         }
         if (array_key_exists('preco_m2', $data)) {
-            $papel->preco_m2 = (float) $data['preco_m2'];
+            $papel->preco_m2 = $this->precoOuNulo($data['preco_m2']);
         }
         if (array_key_exists('ativo', $data)) {
             $papel->ativo = (bool) $data['ativo'];
@@ -362,15 +468,37 @@ class OrcamentoCatalogoAdminService
         return $para;
     }
 
-    /** @return list<array<string, mixed>> */
+    /**
+     * @return array{filmes: list<array<string, mixed>>, coeficientes: list<array<string, mixed>>}
+     */
     public function listAcabamentos(bool $incluirInativos = true): array
     {
-        $q = $this->scoped(OrcCatalogoAcabamento::query())->with('grupo:id,codigo,nome')->orderBy('ordem')->orderBy('nome');
-        if (! $incluirInativos) {
-            $q->where('ativo', true);
+        $empresaId = $this->empresaId();
+        if ($empresaId !== null) {
+            $this->garantirAcabamentosSku($empresaId);
         }
+        $filmes = $this->scoped($this->skuAcabamentoQuery())
+            ->with('produto.grupoCatalogo:id,codigo,nome')
+            ->orderBy('nome')
+            ->get()
+            ->sortBy(fn (OrcCatalogoAcabamento $a) => (string) ($a->produto?->codigo ?? $a->nome))
+            ->values()
+            ->map(fn (OrcCatalogoAcabamento $a) => $this->acabamentoOut($a))
+            ->all();
 
-        return $q->get()->map(fn (OrcCatalogoAcabamento $a) => $this->acabamentoOut($a))->all();
+        $coeficientes = $this->scoped(OrcCatalogoAcabamento::query())
+            ->whereNull('produto_id')
+            ->whereIn('nome', self::COEFICIENTES_ACABAMENTO)
+            ->orderBy('ordem')
+            ->orderBy('nome')
+            ->get()
+            ->map(fn (OrcCatalogoAcabamento $a) => $this->acabamentoOut($a))
+            ->all();
+
+        return [
+            'filmes' => $filmes,
+            'coeficientes' => $coeficientes,
+        ];
     }
 
     /** @param  array<string, mixed>  $data */
@@ -398,7 +526,7 @@ class OrcamentoCatalogoAdminService
     public function updateAcabamento(OrcCatalogoAcabamento $acabamento, array $data): array
     {
         $de = $this->acabamentoOut($acabamento);
-        if (array_key_exists('nome', $data)) {
+        if (array_key_exists('nome', $data) && ! $acabamento->produto_id) {
             $nome = OrcamentoCatalogo::norm((string) $data['nome']);
             if (
                 $this->scoped(OrcCatalogoAcabamento::query())
@@ -414,7 +542,10 @@ class OrcamentoCatalogoAdminService
             $acabamento->grupo_id = $this->grupoMp($data['grupo_id'] !== null && $data['grupo_id'] !== '' ? (int) $data['grupo_id'] : null);
         }
         if (array_key_exists('preco_m2', $data)) {
-            $acabamento->preco_m2 = (float) $data['preco_m2'];
+            $acabamento->preco_m2 = $this->precoOuNulo($data['preco_m2']);
+        }
+        if (array_key_exists('preco_cola_m2', $data)) {
+            $acabamento->preco_cola_m2 = $this->precoOuNulo($data['preco_cola_m2']);
         }
         if (array_key_exists('perda_m2', $data)) {
             $acabamento->perda_m2 = (float) $data['perda_m2'];
@@ -862,15 +993,20 @@ class OrcamentoCatalogoAdminService
     /** @return array<string, mixed> */
     private function papelOut(OrcCatalogoPapel $p): array
     {
-        $p->loadMissing('grupo:id,codigo,nome');
+        $p->loadMissing('produto.grupoCatalogo:id,codigo,nome');
+        $produto = $p->produto;
+        $descricao = trim((string) ($produto?->descricao_comercial ?: $produto?->descricao_fiscal ?: ''));
 
         return [
             'id' => $p->id,
-            'nome' => $p->nome,
-            'grupo_id' => $p->grupo_id ? (int) $p->grupo_id : null,
-            'grupo' => $this->grupoOut($p->grupo),
-            'preco_m2' => (float) $p->preco_m2,
-            'ativo' => (bool) $p->ativo,
+            'produto_id' => $p->produto_id ? (int) $p->produto_id : null,
+            'codigo' => $produto?->codigo ?? $p->nome,
+            'descricao' => $descricao !== '' ? $descricao : $p->nome,
+            'nome' => $descricao !== '' ? $descricao : $p->nome,
+            'grupo_id' => $produto?->grupo_id ? (int) $produto->grupo_id : ($p->grupo_id ? (int) $p->grupo_id : null),
+            'grupo' => $this->grupoOut($produto?->grupoCatalogo ?? $p->grupo),
+            'preco_m2' => $p->preco_m2 === null ? null : (float) $p->preco_m2,
+            'ativo' => $produto ? $produto->situacao === 'ATIVO' : (bool) $p->ativo,
             'ordem' => (int) $p->ordem,
             'updated_at' => $p->updated_at?->toISOString(),
         ];
@@ -879,17 +1015,26 @@ class OrcamentoCatalogoAdminService
     /** @return array<string, mixed> */
     private function acabamentoOut(OrcCatalogoAcabamento $a): array
     {
-        $a->loadMissing('grupo:id,codigo,nome');
+        $a->loadMissing('produto.grupoCatalogo:id,codigo,nome');
+        $produto = $a->produto;
+        $grupo = $produto?->grupoCatalogo;
+        $descricao = trim((string) ($produto?->descricao_comercial ?: $produto?->descricao_fiscal ?: ''));
+        $ehCold = ($grupo?->codigo ?? '') === 'MP-CLD';
 
         return [
             'id' => $a->id,
-            'nome' => $a->nome,
-            'grupo_id' => $a->grupo_id ? (int) $a->grupo_id : null,
-            'grupo' => $this->grupoOut($a->grupo),
-            'preco_m2' => (float) $a->preco_m2,
+            'produto_id' => $a->produto_id ? (int) $a->produto_id : null,
+            'codigo' => $produto?->codigo,
+            'descricao' => $descricao !== '' ? $descricao : $a->nome,
+            'nome' => $descricao !== '' ? $descricao : $a->nome,
+            'grupo_id' => $produto?->grupo_id ? (int) $produto->grupo_id : ($a->grupo_id ? (int) $a->grupo_id : null),
+            'grupo' => $this->grupoOut($grupo),
+            'preco_m2' => $a->preco_m2 === null ? null : (float) $a->preco_m2,
+            'preco_cola_m2' => $a->preco_cola_m2 === null ? null : (float) $a->preco_cola_m2,
             'perda_m2' => (float) $a->perda_m2,
-            'ativo' => (bool) $a->ativo,
+            'ativo' => $produto ? $produto->situacao === 'ATIVO' : (bool) $a->ativo,
             'ordem' => (int) $a->ordem,
+            'eh_cold' => $ehCold,
             'eh_rebobinacao' => $a->nome === 'REBOBINAÇÃO',
             'updated_at' => $a->updated_at?->toISOString(),
         ];
@@ -941,6 +1086,46 @@ class OrcamentoCatalogoAdminService
             'bens_vinculados' => $bens,
             'updated_at' => $m->updated_at?->toISOString(),
         ];
+    }
+
+    private function skuPapelQuery(): Builder
+    {
+        $q = OrcCatalogoPapel::query();
+        if (Schema::hasColumn('orc_catalogo_papeis', 'produto_id')) {
+            $q->whereNotNull('produto_id');
+        }
+
+        return $q;
+    }
+
+    private function skuAcabamentoQuery(): Builder
+    {
+        $q = OrcCatalogoAcabamento::query();
+        if (Schema::hasColumn('orc_catalogo_acabamentos', 'produto_id')) {
+            $q->whereNotNull('produto_id');
+        }
+
+        return $q;
+    }
+
+    private function precoOuNulo(mixed $valor): ?float
+    {
+        if ($valor === null || $valor === '') {
+            return null;
+        }
+
+        return (float) $valor;
+    }
+
+    private function nomeLivreSku(int $empresaId, Builder $query, string $codigo, int $produtoId): string
+    {
+        $nome = OrcamentoCatalogo::norm($codigo);
+        $ocupado = (clone $query)
+            ->where('empresa_id', $empresaId)
+            ->where('nome', $nome)
+            ->exists();
+
+        return $ocupado ? $nome.' #'.$produtoId : $nome;
     }
 
     private function empresaId(): ?int

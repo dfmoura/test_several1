@@ -62,6 +62,19 @@ final class OrcamentoCatalogo
     /** @var list<string>|null */
     private ?array $maquinasAtivasUi = null;
 
+    /**
+     * Preço R$/m² do SKU. null = linha existe e ainda não tem preço.
+     * Ausência da chave = sem linha (orçamento legado casa pelo nome).
+     *
+     * @var array<int, float|null>
+     */
+    public array $papelPorProduto = [];
+
+    /**
+     * @var array<int, array{preco: float|null, cola: float|null, perda: float, grupo: string}>
+     */
+    public array $acabamentoPorProduto = [];
+
     /** @param array<string, float> $papel */
     public function __construct(
         public array $papel = [],
@@ -275,11 +288,18 @@ final class OrcamentoCatalogo
             }
 
             $papeisQ = CatalogoOrcEmpresa::apply(OrcCatalogoPapel::query(), $empresaId, true);
-            if ($papeisQ->exists()) {
+            $temSku = Schema::hasColumn('orc_catalogo_papeis', 'produto_id');
+            $nomesPapel = $temSku
+                ? $papeisQ->clone()->whereNull('produto_id')->orderBy('ordem')->orderBy('nome')->get()
+                : $papeisQ->clone()->orderBy('ordem')->orderBy('nome')->get();
+            if ($nomesPapel->isNotEmpty()) {
                 $papel = [];
                 /** @var list<string> $papeisAtivos */
                 $papeisAtivos = [];
-                foreach ($papeisQ->clone()->orderBy('ordem')->orderBy('nome')->get() as $row) {
+                foreach ($nomesPapel as $row) {
+                    if ($row->preco_m2 === null) {
+                        continue;
+                    }
                     $nome = self::norm($row->nome);
                     $papel[$nome] = (float) $row->preco_m2;
                     if ($row->ativo) {
@@ -289,14 +309,29 @@ final class OrcamentoCatalogo
                 $cat->papel = $papel;
                 $cat->papeisAtivosUi = $papeisAtivos;
             }
+            if ($temSku) {
+                $cat->papelPorProduto = [];
+                foreach ($papeisQ->clone()->whereNotNull('produto_id')->get() as $row) {
+                    $cat->papelPorProduto[(int) $row->produto_id] = $row->preco_m2 === null
+                        ? null
+                        : (float) $row->preco_m2;
+                }
+            }
 
             $acabQ = CatalogoOrcEmpresa::apply(OrcCatalogoAcabamento::query(), $empresaId, true);
-            if ($acabQ->exists()) {
+            $temSkuAcab = Schema::hasColumn('orc_catalogo_acabamentos', 'produto_id');
+            $nomesAcab = $temSkuAcab
+                ? $acabQ->clone()->whereNull('produto_id')->with('produto.grupoCatalogo:id,codigo')->orderBy('ordem')->orderBy('nome')->get()
+                : $acabQ->clone()->orderBy('ordem')->orderBy('nome')->get();
+            if ($nomesAcab->isNotEmpty()) {
                 $acab = [];
                 $perda = [];
                 /** @var list<string> $acabAtivos */
                 $acabAtivos = [];
-                foreach ($acabQ->clone()->orderBy('ordem')->orderBy('nome')->get() as $row) {
+                foreach ($nomesAcab as $row) {
+                    if ($row->preco_m2 === null) {
+                        continue;
+                    }
                     $nome = self::norm($row->nome);
                     $acab[$nome] = (float) $row->preco_m2;
                     $perda[$nome] = (float) $row->perda_m2;
@@ -307,6 +342,18 @@ final class OrcamentoCatalogo
                 $cat->acabamentos = $acab;
                 $cat->perdaAcabamento = $perda;
                 $cat->acabamentosAtivosUi = $acabAtivos;
+            }
+            if ($temSkuAcab) {
+                $cat->acabamentoPorProduto = [];
+                $skuAcab = $acabQ->clone()->whereNotNull('produto_id')->with('produto.grupoCatalogo:id,codigo')->get();
+                foreach ($skuAcab as $row) {
+                    $cat->acabamentoPorProduto[(int) $row->produto_id] = [
+                        'preco' => $row->preco_m2 === null ? null : (float) $row->preco_m2,
+                        'cola' => $row->preco_cola_m2 === null ? null : (float) $row->preco_cola_m2,
+                        'perda' => (float) $row->perda_m2,
+                        'grupo' => (string) ($row->produto?->grupoCatalogo?->codigo ?? ''),
+                    ];
+                }
             }
 
             $trocaQ = CatalogoOrcEmpresa::apply(OrcCatalogoTipoTroca::query(), $empresaId, true);
@@ -373,6 +420,8 @@ final class OrcamentoCatalogo
         $cat->horaMaquina = $this->horaMaquina;
         $cat->papeisAtivosUi = $this->papeisAtivosUi;
         $cat->acabamentosAtivosUi = $this->acabamentosAtivosUi;
+        $cat->papelPorProduto = $this->papelPorProduto;
+        $cat->acabamentoPorProduto = $this->acabamentoPorProduto;
         $cat->tiposTrocaAtivosUi = $this->tiposTrocaAtivosUi;
         $cat->maquinasAtivasUi = $this->maquinasAtivasUi;
 
@@ -484,10 +533,11 @@ final class OrcamentoCatalogo
         }
 
         $papelChave = $this->nomePapelEfetivo($input);
+        $papelId = (int) ($input['papel_produto_id'] ?? 0);
         $papel = $papelChave;
 
         return [
-            'preco_papel' => $papel !== '' ? $this->precoPapel($papel) : null,
+            'preco_papel' => ($papelId > 0 || $papel !== '') ? $this->precoPapelEfetivo($input) : null,
             'papel' => $papel !== '' ? $papel : null,
             'taxa_hora_maquina' => $taxa > 0 ? $taxa : null,
             'maquina' => $maquina !== '' ? $maquina : null,
@@ -517,6 +567,27 @@ final class OrcamentoCatalogo
     }
 
     /**
+     * SKU com preço no catálogo vence o nome. Sem preço na linha, o cálculo para.
+     * Sem linha de SKU, o nome legado continua valendo.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function precoPapelEfetivo(array $input): float
+    {
+        $id = (int) ($input['papel_produto_id'] ?? 0);
+        if ($id > 0 && array_key_exists($id, $this->papelPorProduto)) {
+            $preco = $this->papelPorProduto[$id];
+            if ($preco === null) {
+                throw new \InvalidArgumentException('Este papel ainda não tem preço no catálogo ORC.');
+            }
+
+            return $preco;
+        }
+
+        return $this->precoPapel($this->nomePapelEfetivo($input));
+    }
+
+    /**
      * Tarifa do catálogo. Com SKU, o texto humano fica em `papel` e o preço nesta chave.
      *
      * @param  array<string, mixed>  $input
@@ -540,6 +611,29 @@ final class OrcamentoCatalogo
      */
     public function precoAcabamentoEfetivo(array $input): float
     {
+        $id = (int) ($input['acabamento_produto_id'] ?? 0);
+        if ($id > 0 && array_key_exists($id, $this->acabamentoPorProduto)) {
+            $row = $this->acabamentoPorProduto[$id];
+            $comp = self::norm((string) ($input['acabamento_complemento'] ?? ''));
+            if ($row['grupo'] === 'MP-CLD') {
+                if ($comp === 'COLA' && $row['cola'] !== null) {
+                    return (float) $row['cola'];
+                }
+                if ($comp === 'VERNIZ' && $row['preco'] !== null) {
+                    return (float) $row['preco'];
+                }
+            } elseif ($row['preco'] === null) {
+                throw new \InvalidArgumentException('Este acabamento ainda não tem preço no catálogo ORC.');
+            } else {
+                $preco = (float) $row['preco'];
+                if ($comp === 'VERNIZ') {
+                    $preco += (float) $this->lookup($this->acabamentos, 'VERNIZ');
+                }
+
+                return $preco;
+            }
+        }
+
         $display = self::norm((string) ($input['acabamento'] ?? ''));
         $tarifaPre = self::norm((string) ($input['acabamento_tarifa'] ?? ''));
         $novo = $tarifaPre !== '' || (int) ($input['acabamento_produto_id'] ?? 0) > 0;
@@ -568,6 +662,18 @@ final class OrcamentoCatalogo
      */
     public function perdaAcabEfetiva(array $input): float
     {
+        $id = (int) ($input['acabamento_produto_id'] ?? 0);
+        if ($id > 0 && array_key_exists($id, $this->acabamentoPorProduto)) {
+            $row = $this->acabamentoPorProduto[$id];
+            $comp = self::norm((string) ($input['acabamento_complemento'] ?? ''));
+            $usaSku = $row['grupo'] !== 'MP-CLD'
+                ? $row['preco'] !== null
+                : ($comp === 'COLA' && $row['cola'] !== null) || ($comp === 'VERNIZ' && $row['preco'] !== null);
+            if ($usaSku) {
+                return (float) $row['perda'];
+            }
+        }
+
         $tarifaPre = trim((string) ($input['acabamento_tarifa'] ?? ''));
         $novo = $tarifaPre !== '' || (int) ($input['acabamento_produto_id'] ?? 0) > 0;
         if (! $novo) {

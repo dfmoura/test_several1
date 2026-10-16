@@ -244,7 +244,7 @@ final class OrcamentoMotor
         $qtdeCaixas = 0;
 
         $taxa = $cat->taxaHoraMaquina((string) $inp['maquina'], $inp['cores']);
-        $precoPapel = $cat->precoPapel($cat->nomePapelEfetivo($inp));
+        $precoPapel = $cat->precoPapelEfetivo($inp);
         $valorPapel = ($m2 + $perdaAcerto + $perdaTroca + $perdaBobinaM2) * $precoPapel;
         $valorMaquina = $taxa * $horaMaq;
         if ($trocaPretoInteiro) {

@@ -11,6 +11,7 @@ class OrcCatalogoPapel extends Model
 
     protected $fillable = [
         'empresa_id',
+        'produto_id',
         'nome',
         'grupo_id',
         'preco_m2',
@@ -30,5 +31,10 @@ class OrcCatalogoPapel extends Model
     public function grupo(): BelongsTo
     {
         return $this->belongsTo(ProdutoGrupo::class, 'grupo_id');
+    }
+
+    public function produto(): BelongsTo
+    {
+        return $this->belongsTo(Produto::class, 'produto_id');
     }
 }

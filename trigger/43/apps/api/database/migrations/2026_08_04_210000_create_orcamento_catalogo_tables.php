@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('orc_catalogo_papeis', function (Blueprint $table) {
             $table->id();
             $table->string('nome', 160)->unique();
-            $table->decimal('preco_m2', 12, 4);
+            $table->decimal('preco_m2', 12, 4)->nullable();
             $table->boolean('ativo')->default(true);
             $table->unsignedSmallInteger('ordem')->default(0);
             $table->timestamps();
@@ -24,7 +24,7 @@ return new class extends Migration
         Schema::create('orc_catalogo_acabamentos', function (Blueprint $table) {
             $table->id();
             $table->string('nome', 160)->unique();
-            $table->decimal('preco_m2', 12, 4);
+            $table->decimal('preco_m2', 12, 4)->nullable();
             $table->decimal('perda_m2', 12, 4)->default(0);
             $table->boolean('ativo')->default(true);
             $table->unsignedSmallInteger('ordem')->default(0);

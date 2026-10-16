@@ -21,23 +21,29 @@ type TabId =
 
 type PapelRow = {
   id: number;
+  produto_id?: number | null;
+  codigo?: string | null;
+  descricao?: string;
   nome: string;
-  grupo_id?: number | null;
   grupo?: { id: number; codigo: string; nome: string } | null;
-  preco_m2: number;
+  preco_m2: number | null;
   ativo: boolean;
   ordem: number;
 };
 
 type AcabamentoRow = {
   id: number;
+  produto_id?: number | null;
+  codigo?: string | null;
+  descricao?: string;
   nome: string;
-  grupo_id?: number | null;
   grupo?: { id: number; codigo: string; nome: string } | null;
-  preco_m2: number;
+  preco_m2: number | null;
+  preco_cola_m2?: number | null;
   perda_m2: number;
   ativo: boolean;
   ordem: number;
+  eh_cold?: boolean;
   eh_rebobinacao?: boolean;
 };
 
@@ -92,8 +98,8 @@ type TintaMatrizPayload = {
 type PerdaTrocaPayload = Record<string, number>;
 
 const TABS: Array<{ id: TabId; label: string; hint: string }> = [
-  { id: 'papeis', label: 'Papel', hint: 'R$/m². O orçamento escolhe o SKU em estoque (MP-PAP e MP-FLM) e casa esta tarifa pelo nome' },
-  { id: 'acabamentos', label: 'Acabamento', hint: 'R$/m² + perda. O orçamento escolhe MP-LAM ou MP-CLD e soma verniz ou cola' },
+  { id: 'papeis', label: 'Papel', hint: 'R$/m² de cada papel e filme ativo (MP-PAP, MP-FLM). Sem preço, o orçamento não calcula esse SKU.' },
+  { id: 'acabamentos', label: 'Acabamento', hint: 'R$/m² de cada laminação e cold (MP-LAM, MP-CLD). Verniz soma o coeficiente. Cold vazio usa o preço pronto.' },
   {
     id: 'trocas',
     label: 'Tipo troca produto',
@@ -131,7 +137,7 @@ const TABS: Array<{ id: TabId; label: string; hint: string }> = [
   },
 ];
 
-const TAB_SEM_NOVO: TabId[] = ['matriz', 'maquinas', 'parametros', 'tinta', 'perdas', 'embalagem'];
+const TAB_SEM_NOVO: TabId[] = ['papeis', 'acabamentos', 'matriz', 'maquinas', 'parametros', 'tinta', 'perdas', 'embalagem'];
 
 const GRUPO_POR_TAB: Partial<Record<TabId, string[]>> = {
   parametros: ['motor'],
@@ -171,6 +177,7 @@ export function OrcamentoCatalogoPage() {
   const [resumo, setResumo] = useState<OrcCatalogoResumo | null>(null);
   const [papeis, setPapeis] = useState<PapelRow[]>([]);
   const [acabamentos, setAcabamentos] = useState<AcabamentoRow[]>([]);
+  const [coeficientes, setCoeficientes] = useState<AcabamentoRow[]>([]);
   const [trocas, setTrocas] = useState<TipoTrocaRow[]>([]);
   const [maquinas, setMaquinas] = useState<MaquinaRow[]>([]);
   const [parametros, setParametros] = useState<ParametroRow[]>([]);
@@ -190,7 +197,7 @@ export function OrcamentoCatalogoPage() {
       const [r, p, a, t, m, params, est, at, grupos] = await Promise.all([
         api.get<{ data: OrcCatalogoResumo }>('/orcamento-catalogo/resumo'),
         api.get<{ data: PapelRow[] }>('/orcamento-catalogo/papeis'),
-        api.get<{ data: AcabamentoRow[] }>('/orcamento-catalogo/acabamentos'),
+        api.get<{ data: { filmes: AcabamentoRow[]; coeficientes: AcabamentoRow[] } }>('/orcamento-catalogo/acabamentos'),
         api.get<{ data: TipoTrocaRow[] }>('/orcamento-catalogo/tipos-troca'),
         api.get<{ data: MaquinaRow[] }>('/orcamento-catalogo/maquinas'),
         api.get<{ data: ParametroRow[] }>('/orcamento-catalogo/parametros'),
@@ -200,7 +207,8 @@ export function OrcamentoCatalogoPage() {
       ]);
       setResumo(r.data);
       setPapeis(p.data);
-      setAcabamentos(a.data);
+      setAcabamentos(a.data.filmes ?? []);
+      setCoeficientes(a.data.coeficientes ?? []);
       setGruposMp(grupos.data ?? []);
       setTrocas(t.data);
       setMaquinas(m.data);
@@ -391,7 +399,6 @@ export function OrcamentoCatalogoPage() {
           {tab === 'papeis' ? (
             <PapeisTable
               rows={papeis}
-              gruposMp={gruposMp}
               onSaved={async (msg) => {
                 setMessage(msg);
                 await load();
@@ -402,7 +409,7 @@ export function OrcamentoCatalogoPage() {
           {tab === 'acabamentos' ? (
             <AcabamentosTable
               rows={acabamentos}
-              gruposMp={gruposMp}
+              coeficientes={coeficientes}
               onSaved={async (msg) => {
                 setMessage(msg);
                 await load();
@@ -484,8 +491,9 @@ export function OrcamentoCatalogoPage() {
 }
 
 const PAPEL_SORT = {
-  nome: (row: PapelRow) => row.nome,
-  preco_m2: (row: PapelRow) => Number(row.preco_m2),
+  codigo: (row: PapelRow) => row.codigo ?? '',
+  nome: (row: PapelRow) => row.descricao || row.nome,
+  preco_m2: (row: PapelRow) => (row.preco_m2 == null ? -1 : Number(row.preco_m2)),
   status: (row: PapelRow) => (row.ativo ? 'ATIVO' : 'INATIVO'),
 };
 
@@ -1022,12 +1030,10 @@ function GrupoMpSelect({
 
 function PapeisTable({
   rows,
-  gruposMp,
   onSaved,
   onError,
 }: {
   rows: PapelRow[];
-  gruposMp: ProdutoGrupo[];
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
@@ -1037,15 +1043,18 @@ function PapeisTable({
     <div className="card">
       <div className="table-wrap">
         {rows.length === 0 ? (
-          <div className="empty-state">Nenhum papel cadastrado. Use “Completar itens ausentes”.</div>
+          <div className="empty-state">Nenhum papel ou filme ativo (MP-PAP, MP-FLM) nesta empresa.</div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                  Nome
+                <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Código
                 </SortableTh>
-                <th>Grupo MP</th>
+                <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Descrição
+                </SortableTh>
+                <th>Grupo</th>
                 <SortableTh column="preco_m2" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   R$/m²
                 </SortableTh>
@@ -1057,7 +1066,7 @@ function PapeisTable({
             </thead>
             <tbody>
               {sorted.map((row) => (
-                <PapelEditRow key={row.id} row={row} gruposMp={gruposMp} onSaved={onSaved} onError={onError} />
+                <PapelEditRow key={row.id} row={row} onSaved={onSaved} onError={onError} />
               ))}
             </tbody>
           </table>
@@ -1069,25 +1078,27 @@ function PapeisTable({
 
 function PapelEditRow({
   row,
-  gruposMp,
   onSaved,
   onError,
 }: {
   row: PapelRow;
-  gruposMp: ProdutoGrupo[];
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
-  const [preco, setPreco] = useState(String(row.preco_m2));
+  const [preco, setPreco] = useState(row.preco_m2 == null ? '' : String(row.preco_m2));
   const [saving, setSaving] = useState(false);
-  useEffect(() => setPreco(String(row.preco_m2)), [row.preco_m2]);
+  useEffect(() => setPreco(row.preco_m2 == null ? '' : String(row.preco_m2)), [row.preco_m2]);
+  const informado = preco.trim() === '' ? null : num(preco);
+  const dirty = informado !== row.preco_m2 && !(Number.isNaN(informado) && preco.trim() !== '');
 
-  const save = async (patch: Partial<{ preco_m2: number; ativo: boolean; grupo_id: number | null }>) => {
+  const save = async () => {
     setSaving(true);
     onError('');
     try {
-      await api.put(`/orcamento-catalogo/papeis/${row.id}`, patch);
-      await onSaved(`Papel “${row.nome}” atualizado.`);
+      await api.put(`/orcamento-catalogo/papeis/${row.id}`, {
+        preco_m2: preco.trim() === '' ? null : num(preco),
+      });
+      await onSaved(`Papel “${row.codigo ?? row.nome}” atualizado.`);
     } catch (e) {
       onError(fieldErrors(e));
     } finally {
@@ -1098,16 +1109,10 @@ function PapelEditRow({
   return (
     <tr className={row.ativo ? undefined : 'row-inactive'}>
       <td>
-        <strong>{row.nome}</strong>
+        <strong>{row.codigo}</strong>
       </td>
-      <td>
-        <GrupoMpSelect
-          value={row.grupo_id ?? null}
-          grupos={gruposMp}
-          disabled={saving}
-          onChange={(grupoId) => void save({ grupo_id: grupoId })}
-        />
-      </td>
+      <td>{row.descricao || row.nome}</td>
+      <td>{row.grupo ? `${row.grupo.codigo}` : '—'}</td>
       <td>
         <input
           type="number"
@@ -1115,129 +1120,151 @@ function PapelEditRow({
           min="0"
           className="input-compact"
           value={preco}
+          placeholder="Sem preço"
           disabled={saving}
           onChange={(e) => setPreco(e.target.value)}
         />
       </td>
       <td>
-        <StatusPill status={row.ativo ? 'ATIVO' : 'INATIVO'} />
+        <StatusPill status={row.preco_m2 == null ? 'SEM PREÇO' : row.ativo ? 'ATIVO' : 'INATIVO'} />
       </td>
       <td>
-        <div className="btn-row">
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            disabled={saving || num(preco) === row.preco_m2 || Number.isNaN(num(preco))}
-            onClick={() => void save({ preco_m2: num(preco) })}
-          >
-            Salvar
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            disabled={saving}
-            onClick={() => void save({ ativo: !row.ativo })}
-          >
-            {row.ativo ? 'Inativar' : 'Reativar'}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          disabled={saving || !dirty || (preco.trim() !== '' && Number.isNaN(num(preco)))}
+          onClick={() => void save()}
+        >
+          Salvar
+        </button>
       </td>
     </tr>
   );
 }
 
 const ACABAMENTO_SORT = {
-  nome: (row: AcabamentoRow) => row.nome,
-  preco_m2: (row: AcabamentoRow) => Number(row.preco_m2),
+  codigo: (row: AcabamentoRow) => row.codigo ?? '',
+  nome: (row: AcabamentoRow) => row.descricao || row.nome,
+  preco_m2: (row: AcabamentoRow) => (row.preco_m2 == null ? -1 : Number(row.preco_m2)),
   perda_m2: (row: AcabamentoRow) => Number(row.perda_m2),
   status: (row: AcabamentoRow) => (row.ativo ? 'ATIVO' : 'INATIVO'),
 };
 
 function AcabamentosTable({
   rows,
-  gruposMp,
+  coeficientes,
   onSaved,
   onError,
 }: {
   rows: AcabamentoRow[];
-  gruposMp: ProdutoGrupo[];
+  coeficientes: AcabamentoRow[];
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, ACABAMENTO_SORT);
 
   return (
-    <div className="card">
-      <div className="table-wrap">
-        {rows.length === 0 ? (
-          <div className="empty-state">Nenhum acabamento cadastrado.</div>
-        ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                  Nome
-                </SortableTh>
-                <th>Grupo MP</th>
-                <SortableTh column="preco_m2" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                  R$/m²
-                </SortableTh>
-                <SortableTh column="perda_m2" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                  Perda m²
-                </SortableTh>
-                <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                  Status
-                </SortableTh>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((row) => (
-                <AcabamentoEditRow
-                  key={row.id}
-                  row={row}
-                  gruposMp={gruposMp}
-                  onSaved={onSaved}
-                  onError={onError}
-                />
-              ))}
-            </tbody>
-          </table>
-        )}
+    <>
+      <div className="card">
+        <div className="table-wrap">
+          {rows.length === 0 ? (
+            <div className="empty-state">Nenhuma laminação ou cold ativo (MP-LAM, MP-CLD) nesta empresa.</div>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Código
+                  </SortableTh>
+                  <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Descrição
+                  </SortableTh>
+                  <th>Grupo</th>
+                  <SortableTh column="preco_m2" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    R$/m²
+                  </SortableTh>
+                  <th>Com cola</th>
+                  <SortableTh column="perda_m2" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Perda m²
+                  </SortableTh>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((row) => (
+                  <AcabamentoEditRow key={row.id} row={row} modo="filme" onSaved={onSaved} onError={onError} />
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
-    </div>
+      {coeficientes.length > 0 ? (
+        <div className="card">
+          <div className="table-wrap">
+            <p className="field-note">
+              Coeficientes do motor. Verniz soma na laminação. Cold sem preço próprio usa o preço pronto. Rebobinação não aparece no orçamento.
+            </p>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Coeficiente</th>
+                  <th>R$/m²</th>
+                  <th>Perda m²</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {coeficientes.map((row) => (
+                  <AcabamentoEditRow key={row.id} row={row} modo="coeficiente" onSaved={onSaved} onError={onError} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 
 function AcabamentoEditRow({
   row,
-  gruposMp,
+  modo,
   onSaved,
   onError,
 }: {
   row: AcabamentoRow;
-  gruposMp: ProdutoGrupo[];
+  modo: 'filme' | 'coeficiente';
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
-  const [preco, setPreco] = useState(String(row.preco_m2));
+  const [preco, setPreco] = useState(row.preco_m2 == null ? '' : String(row.preco_m2));
+  const [cola, setCola] = useState(row.preco_cola_m2 == null ? '' : String(row.preco_cola_m2));
   const [perda, setPerda] = useState(String(row.perda_m2));
   const [saving, setSaving] = useState(false);
   useEffect(() => {
-    setPreco(String(row.preco_m2));
+    setPreco(row.preco_m2 == null ? '' : String(row.preco_m2));
+    setCola(row.preco_cola_m2 == null ? '' : String(row.preco_cola_m2));
     setPerda(String(row.perda_m2));
-  }, [row.preco_m2, row.perda_m2]);
+  }, [row.preco_m2, row.preco_cola_m2, row.perda_m2]);
 
-  const dirty = num(preco) !== row.preco_m2 || num(perda) !== row.perda_m2;
+  const precoValor = preco.trim() === '' ? null : num(preco);
+  const colaValor = cola.trim() === '' ? null : num(cola);
+  const dirty =
+    precoValor !== row.preco_m2 ||
+    (modo === 'filme' && row.eh_cold && colaValor !== (row.preco_cola_m2 ?? null)) ||
+    num(perda) !== row.perda_m2;
 
-  const save = async (
-    patch: Partial<{ preco_m2: number; perda_m2: number; ativo: boolean; grupo_id: number | null }>,
-  ) => {
+  const save = async (patch?: { ativo: boolean }) => {
     setSaving(true);
     onError('');
     try {
-      await api.put(`/orcamento-catalogo/acabamentos/${row.id}`, patch);
-      await onSaved(`Acabamento “${row.nome}” atualizado.`);
+      await api.put(`/orcamento-catalogo/acabamentos/${row.id}`, patch ?? {
+        preco_m2: preco.trim() === '' ? null : num(preco),
+        preco_cola_m2: row.eh_cold ? (cola.trim() === '' ? null : num(cola)) : null,
+        perda_m2: num(perda),
+      });
+      await onSaved(`Acabamento “${row.codigo || row.nome}” atualizado.`);
     } catch (e) {
       onError(fieldErrors(e));
     } finally {
@@ -1247,26 +1274,24 @@ function AcabamentoEditRow({
 
   return (
     <tr className={row.ativo ? undefined : 'row-inactive'}>
-      <td>
-        <strong>{row.nome}</strong>
-        {row.eh_rebobinacao ? (
-          <span className="field-note" style={{ display: 'block' }}>
-            Uso interno de rebobinação — não aparece no orçamento
-          </span>
-        ) : null}
-      </td>
-      <td>
-        {row.eh_rebobinacao ? (
-          '—'
-        ) : (
-          <GrupoMpSelect
-            value={row.grupo_id ?? null}
-            grupos={gruposMp}
-            disabled={saving}
-            onChange={(grupoId) => void save({ grupo_id: grupoId })}
-          />
-        )}
-      </td>
+      {modo === 'filme' ? (
+        <>
+          <td>
+            <strong>{row.codigo}</strong>
+          </td>
+          <td>{row.descricao || row.nome}</td>
+          <td>{row.grupo?.codigo ?? '—'}</td>
+        </>
+      ) : (
+        <td>
+          <strong>{row.nome}</strong>
+          {row.eh_rebobinacao ? (
+            <span className="field-note" style={{ display: 'block' }}>
+              Uso interno de rebobinação — não aparece no orçamento
+            </span>
+          ) : null}
+        </td>
+      )}
       <td>
         <input
           type="number"
@@ -1274,10 +1299,29 @@ function AcabamentoEditRow({
           min="0"
           className="input-compact"
           value={preco}
+          placeholder={row.eh_cold ? 'Preço pronto' : 'Sem preço'}
           disabled={saving}
           onChange={(e) => setPreco(e.target.value)}
         />
       </td>
+      {modo === 'filme' ? (
+        <td>
+          {row.eh_cold ? (
+            <input
+              type="number"
+              step="0.0001"
+              min="0"
+              className="input-compact"
+              value={cola}
+              placeholder="Preço pronto"
+              disabled={saving}
+              onChange={(e) => setCola(e.target.value)}
+            />
+          ) : (
+            '—'
+          )}
+        </td>
+      ) : null}
       <td>
         <input
           type="number"
@@ -1290,26 +1334,31 @@ function AcabamentoEditRow({
         />
       </td>
       <td>
-        <StatusPill status={row.ativo ? 'ATIVO' : 'INATIVO'} />
-      </td>
-      <td>
         <div className="btn-row">
           <button
             type="button"
             className="btn btn-primary btn-sm"
-            disabled={saving || !dirty || Number.isNaN(num(preco)) || Number.isNaN(num(perda))}
-            onClick={() => void save({ preco_m2: num(preco), perda_m2: num(perda) })}
+            disabled={
+              saving ||
+              !dirty ||
+              (preco.trim() !== '' && Number.isNaN(num(preco))) ||
+              (row.eh_cold && cola.trim() !== '' && Number.isNaN(num(cola))) ||
+              Number.isNaN(num(perda))
+            }
+            onClick={() => void save()}
           >
             Salvar
           </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            disabled={saving}
-            onClick={() => void save({ ativo: !row.ativo })}
-          >
-            {row.ativo ? 'Inativar' : 'Reativar'}
-          </button>
+          {modo === 'coeficiente' ? (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={saving}
+              onClick={() => void save({ ativo: !row.ativo })}
+            >
+              {row.ativo ? 'Inativar' : 'Reativar'}
+            </button>
+          ) : null}
         </div>
       </td>
     </tr>

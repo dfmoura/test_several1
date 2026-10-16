@@ -117,22 +117,38 @@ final class OrcamentoInsumoEstoque
      */
     public function aplicar(Empresa $empresa, array $data, array $idsJaGravados = []): array
     {
+        $admin = app(OrcamentoCatalogoAdminService::class);
+        if ((int) ($data['papel_produto_id'] ?? 0) > 0) {
+            $admin->garantirPapeisSku($empresa->id);
+        }
+        if ((int) ($data['acabamento_produto_id'] ?? 0) > 0) {
+            $admin->garantirAcabamentosSku($empresa->id);
+        }
         $cat = OrcamentoCatalogo::load(null, $empresa->id);
 
         $papelId = (int) ($data['papel_produto_id'] ?? 0);
         if ($papelId > 0) {
             $produto = $this->exigirProduto($empresa, $papelId, 'papel', $idsJaGravados);
             $desc = $this->descricao($produto);
-            $tarifa = $this->casarPapel($desc, array_keys($cat->papel));
-            if ($tarifa === null) {
-                throw ValidationException::withMessages([
-                    'papel' => ['Este papel não casa com nenhuma tarifa do catálogo ORC. Ajuste o nome do produto ou a tarifa.'],
-                ]);
-            }
             $data['papel'] = $desc;
-            $data['papel_tarifa'] = $tarifa;
             $data['papel_produto_id'] = (int) $produto->id;
             $data['papel_produto_codigo'] = (string) $produto->codigo;
+            if (array_key_exists((int) $produto->id, $cat->papelPorProduto)) {
+                if ($cat->papelPorProduto[(int) $produto->id] === null) {
+                    throw ValidationException::withMessages([
+                        'papel' => ['Este papel ainda não tem preço no catálogo ORC. Informe o R$/m² na aba Papel.'],
+                    ]);
+                }
+                $data['papel_tarifa'] = null;
+            } else {
+                $tarifa = $this->casarPapel($desc, array_keys($cat->papel));
+                if ($tarifa === null) {
+                    throw ValidationException::withMessages([
+                        'papel' => ['Este papel não casa com nenhuma tarifa do catálogo ORC. Ajuste o nome do produto ou a tarifa.'],
+                    ]);
+                }
+                $data['papel_tarifa'] = $tarifa;
+            }
         }
 
         $acabId = (int) ($data['acabamento_produto_id'] ?? 0);
@@ -207,6 +223,12 @@ final class OrcamentoInsumoEstoque
         $produto = $this->exigirProduto($empresa, $acabId, 'acabamento', $idsJaGravados);
         $desc = $this->descricao($produto);
         $grupo = (string) ($produto->grupoCatalogo?->codigo ?? '');
+        $sku = $cat->acabamentoPorProduto[(int) $produto->id] ?? null;
+        if (is_array($sku) && $sku['grupo'] !== 'MP-CLD' && $sku['preco'] === null) {
+            throw ValidationException::withMessages([
+                'acabamento' => ['Este acabamento ainda não tem preço no catálogo ORC. Informe o R$/m² na aba Acabamento.'],
+            ]);
+        }
         $combinado = $comp !== ''
             ? $this->casarAcabamentoCombinado($grupo, $desc, $comp, $nomes)
             : null;
@@ -338,6 +360,70 @@ final class OrcamentoInsumoEstoque
             ->pluck('produto_id')
             ->map(fn ($id) => (int) $id)
             ->all();
+    }
+
+    /**
+     * Uma tarifa só quando o nome do SKU casa por completo com exatamente uma linha.
+     * Dois casamentos (BOPP BRILHO e BOPP BRILHO BXT) não escolhem preço sozinhos.
+     *
+     * @param  list<string>  $nomes
+     */
+    public function tarifaPapelUnica(string $descricao, array $nomes): ?string
+    {
+        $hay = $this->tokens($descricao);
+        $hits = [];
+        foreach ($nomes as $nome) {
+            $tokens = $this->tokens($nome);
+            if (count($tokens) < 2) {
+                continue;
+            }
+            $ok = true;
+            foreach ($tokens as $t) {
+                if (! in_array($t, $hay, true)) {
+                    $ok = false;
+                    break;
+                }
+            }
+            if ($ok) {
+                $hits[] = $nome;
+            }
+        }
+
+        return count($hits) === 1 ? $hits[0] : null;
+    }
+
+    /**
+     * @param  list<string>  $nomes
+     */
+    public function tarifaAcabamentoBaseUnica(string $grupo, string $descricao, array $nomes): ?string
+    {
+        $pool = [];
+        foreach ($this->nomesFamilia($grupo, $nomes) as $nome) {
+            $f = $this->fold($nome);
+            if (str_contains($f, 'VERNIZ') || str_contains($f, 'COLA')) {
+                continue;
+            }
+            $pool[] = $nome;
+        }
+        $hay = $this->tokens($descricao);
+        $hits = [];
+        foreach ($pool as $nome) {
+            $miss = false;
+            foreach ($this->tokens($nome) as $t) {
+                if (in_array($t, ['STAMP', 'LAMINACAO', 'COLD'], true)) {
+                    continue;
+                }
+                if (! in_array($t, $hay, true)) {
+                    $miss = true;
+                    break;
+                }
+            }
+            if (! $miss) {
+                $hits[] = $nome;
+            }
+        }
+
+        return count($hits) === 1 ? $hits[0] : null;
     }
 
     /**

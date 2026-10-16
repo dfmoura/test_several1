@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Empresa;
 use App\Models\EstoqueSaldo;
+use App\Models\OrcCatalogoPapel;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\Produto;
@@ -153,6 +154,41 @@ class OrcamentoInsumoEstoqueTest extends TestCase
             'acabamento_produto_id' => $produto->id,
             'acabamento_complemento' => 'COLA',
         ]);
+    }
+
+    public function test_papel_ambiguo_nao_herda_familia_e_preco_do_sku_vence(): void
+    {
+        $empresa = Empresa::query()->create([
+            'codigo' => 'EMP-INS6',
+            'razao_social' => 'Insumo 6',
+            'cnpj' => '00000000000604',
+            'situacao' => 'ATIVA',
+        ]);
+        $filme = $this->grupo('MP-FLM', 'Filmes', 'MP');
+        $produto = $this->produto($empresa, 'MP-FLM-001', 'MP', $filme->id, 'BOPP BRILHO AUTOADESIVO COLACRIL BXT');
+        $this->saldo($empresa, $produto, '10');
+
+        try {
+            app(OrcamentoInsumoEstoque::class)->aplicar($empresa, [
+                'papel_produto_id' => $produto->id,
+            ]);
+            $this->fail('Papel ambíguo deveria exigir R$/m².');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertStringContainsString('ainda não tem preço', $e->errors()['papel'][0]);
+        }
+
+        $row = OrcCatalogoPapel::query()->where('empresa_id', $empresa->id)->where('produto_id', $produto->id)->first();
+        $this->assertNotNull($row);
+        $this->assertNull($row->preco_m2);
+
+        $row->preco_m2 = 4.2;
+        $row->save();
+
+        $out = app(OrcamentoInsumoEstoque::class)->aplicar($empresa, [
+            'papel_produto_id' => $produto->id,
+        ]);
+        $cat = OrcamentoCatalogo::load(null, $empresa->id);
+        $this->assertEqualsWithDelta(4.2, $cat->precoPapelEfetivo($out), 0.0001);
     }
 
     public function test_polegada_do_tubete(): void

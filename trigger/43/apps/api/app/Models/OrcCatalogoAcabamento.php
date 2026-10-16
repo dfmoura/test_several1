@@ -11,9 +11,11 @@ class OrcCatalogoAcabamento extends Model
 
     protected $fillable = [
         'empresa_id',
+        'produto_id',
         'nome',
         'grupo_id',
         'preco_m2',
+        'preco_cola_m2',
         'perda_m2',
         'ativo',
         'ordem',
@@ -23,6 +25,7 @@ class OrcCatalogoAcabamento extends Model
     {
         return [
             'preco_m2' => 'decimal:4',
+            'preco_cola_m2' => 'decimal:4',
             'perda_m2' => 'decimal:4',
             'ativo' => 'boolean',
             'ordem' => 'integer',
@@ -32,5 +35,10 @@ class OrcCatalogoAcabamento extends Model
     public function grupo(): BelongsTo
     {
         return $this->belongsTo(ProdutoGrupo::class, 'grupo_id');
+    }
+
+    public function produto(): BelongsTo
+    {
+        return $this->belongsTo(Produto::class, 'produto_id');
     }
 }

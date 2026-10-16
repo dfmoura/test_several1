@@ -119,22 +119,20 @@ class OrcamentoCatalogoTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.fonte', 'database');
 
-        $list = $this->asAdmin()->getJson('/api/v1/orcamento-catalogo/papeis')->assertOk();
-        $id = $list->json('data.0.id');
-        $this->assertNotNull($id);
+        $this->asAdmin()->getJson('/api/v1/orcamento-catalogo/papeis')->assertOk();
 
-        $this->asAdmin()
-            ->putJson("/api/v1/orcamento-catalogo/papeis/{$id}", ['preco_m2' => 8.5])
-            ->assertOk()
-            ->assertJsonPath('data.preco_m2', 8.5);
-
-        $this->asAdmin()
+        $criado = $this->asAdmin()
             ->postJson('/api/v1/orcamento-catalogo/papeis', [
                 'nome' => 'PAPEL TESTE NOVO',
                 'preco_m2' => 1.25,
             ])
             ->assertCreated()
             ->assertJsonPath('data.nome', 'PAPEL TESTE NOVO');
+
+        $this->asAdmin()
+            ->putJson('/api/v1/orcamento-catalogo/papeis/'.$criado->json('data.id'), ['preco_m2' => 8.5])
+            ->assertOk()
+            ->assertJsonPath('data.preco_m2', 8.5);
 
         $this->asAdmin()
             ->putJson('/api/v1/orcamento-catalogo/tipos-troca/1', ['tempo_min' => 10])
