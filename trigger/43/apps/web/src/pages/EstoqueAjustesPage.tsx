@@ -35,6 +35,11 @@ import {
 import { leituraUnidadeComercial } from '../lib/leituraUnidadeComercial';
 import { areaM2Volume } from '../lib/nfeExactDimensoes';
 import { formatApiFieldErrors } from '../lib/usuarios';
+import {
+  codigoVolumeCanonico,
+  proximoCodigoVolume,
+  reservarCodigoVolume,
+} from '../lib/volumeCodigoSequencia';
 
 /** Normaliza un. para comparar M2 (aceita M² / m²). */
 function normUnidadeAjuste(u: string | null | undefined): string {
@@ -70,7 +75,20 @@ type VolumeBaixaLinha = {
   qtde: string;
   largura_mm: string | null;
   comprimento_m: string | null;
+  data_entrada: string;
+  data_validade: string;
 };
+
+function volumeEmBranco(v: VolumeLinha): boolean {
+  return (
+    !v.codigo.trim() &&
+    !v.qtde.trim() &&
+    !v.largura_mm.trim() &&
+    !v.comprimento_m.trim() &&
+    !v.data_entrada &&
+    !v.data_validade
+  );
+}
 
 type ModoContagem = 'manual' | 'qr';
 type ModoVolume = 'entrada' | 'baixa';
@@ -356,6 +374,8 @@ export function EstoqueAjustesPage() {
   const [observacao, setObservacao] = useState('');
   const [volumes, setVolumes] = useState<VolumeLinha[]>([emptyVolume()]);
   const [baixas, setBaixas] = useState<VolumeBaixaLinha[]>([]);
+  /** Códigos já gravados ou em ajuste pendente deste SKU — a grade entra na hora de duplicar. */
+  const [codigosOcupados, setCodigosOcupados] = useState<string[]>([]);
   const [modoContagem, setModoContagem] = useState<ModoContagem>('manual');
   const [modoVolume, setModoVolume] = useState<ModoVolume>('entrada');
 
@@ -396,31 +416,49 @@ export function EstoqueAjustesPage() {
     if (!p) {
       setQtdeSistema('0.0000');
       setBaixas([]);
+      setCodigosOcupados([]);
       return;
     }
     try {
-      const [saldosRes, lotesRes] = await Promise.all([
+      const [saldosRes, lotesRes, pendentesRes] = await Promise.all([
         api.get<{ data: EstoqueSaldo[] }>(`/estoque/saldos?produto_id=${p.id}`),
         p.controla_lote
-          ? api.get<{ data: EstoqueLote[] }>(`/estoque/lotes?produto_id=${p.id}&com_qtde=1`)
+          ? api.get<{ data: EstoqueLote[] }>(`/estoque/lotes?produto_id=${p.id}`)
           : Promise.resolve({ data: [] as EstoqueLote[] }),
+        p.controla_lote
+          ? api.get<{ data: EstoqueAjuste[] }>('/estoque/ajustes?status=PENDENTE')
+          : Promise.resolve({ data: [] as EstoqueAjuste[] }),
       ]);
       const saldo = saldosRes.data.find((s) => s.produto_id === p.id);
       const sistema = clampDecimalScale(String(saldo?.qtde ?? '0'), DECIMAL_SCALE.qty) || '0.0000';
       setQtdeSistema(sistema);
+      const lotes = lotesRes.data ?? [];
       setBaixas(
-        (lotesRes.data ?? []).map((l) => ({
-          lote_id: l.id,
-          codigo: l.codigo,
-          qtde_disponivel: clampDecimalScale(String(l.qtde), DECIMAL_SCALE.qty) || '0.0000',
-          qtde: '',
-          largura_mm: l.largura_mm ?? null,
-          comprimento_m: l.comprimento_m ?? null,
-        })),
+        lotes
+          .filter((l) => parseQty(String(l.qtde)) > 0)
+          .map((l) => ({
+            lote_id: l.id,
+            codigo: l.codigo,
+            qtde_disponivel: clampDecimalScale(String(l.qtde), DECIMAL_SCALE.qty) || '0.0000',
+            qtde: '',
+            largura_mm: l.largura_mm ?? null,
+            comprimento_m: l.comprimento_m ?? null,
+            data_entrada: l.data_entrada ?? '',
+            data_validade: l.data_validade ?? '',
+          })),
       );
+      const dePendentes = (pendentesRes.data ?? [])
+        .filter((a) => a.produto_id === p.id)
+        .flatMap((a) =>
+          (a.lote_payload ?? [])
+            .filter((v) => v.volume_novo !== false && !v.lote_id && v.codigo)
+            .map((v) => v.codigo as string),
+        );
+      setCodigosOcupados([...lotes.map((l) => l.codigo), ...dePendentes]);
     } catch {
       setQtdeSistema('0.0000');
       setBaixas([]);
+      setCodigosOcupados([]);
     }
   }, []);
 
@@ -544,6 +582,60 @@ export function EstoqueAjustesPage() {
         return row;
       }),
     );
+  };
+
+  const duplicarVolume = (idx: number) => {
+    const sku = selectedProduto?.codigo?.trim() || 'SKU';
+    const prefixo = isSaldoInicial ? 'VIR' : 'AJU';
+    setError(null);
+    setVolumes((prev) => {
+      const src = prev[idx];
+      if (!src) return prev;
+      try {
+        const next = [...prev];
+        let ocupados = [
+          ...codigosOcupados,
+          ...prev.map((v) => v.codigo.trim()).filter(Boolean),
+        ];
+        let base = src.codigo.trim();
+        if (base === '') {
+          base = reservarCodigoVolume(codigoVolumeCanonico(prefixo, sku, 1), ocupados);
+          next[idx] = { ...src, codigo: base };
+          ocupados = [...ocupados, base];
+        }
+        const codigo = proximoCodigoVolume(base, ocupados);
+        next.splice(idx + 1, 0, { ...next[idx], codigo });
+        return next;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Não foi possível duplicar o volume.');
+        return prev;
+      }
+    });
+  };
+
+  const duplicarLancado = (origem: VolumeBaixaLinha) => {
+    setError(null);
+    setVolumes((prev) => {
+      try {
+        const ocupados = [
+          ...codigosOcupados,
+          ...prev.map((v) => v.codigo.trim()).filter(Boolean),
+        ];
+        const linha: VolumeLinha = {
+          codigo: proximoCodigoVolume(origem.codigo, ocupados),
+          qtde: origem.qtde_disponivel,
+          largura_mm: origem.largura_mm ?? '',
+          comprimento_m: origem.comprimento_m ?? '',
+          data_entrada: origem.data_entrada,
+          data_validade: origem.data_validade,
+        };
+        if (prev.length === 1 && volumeEmBranco(prev[0])) return [linha];
+        return [...prev, linha];
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Não foi possível duplicar o volume.');
+        return prev;
+      }
+    });
   };
 
   const patchBaixa = (loteId: number, qtde: string) => {
@@ -678,6 +770,7 @@ export function EstoqueAjustesPage() {
       setObservacao('');
       setVolumes([emptyVolume()]);
       setBaixas([]);
+      setCodigosOcupados([]);
       setModoVolume('entrada');
       setChecklist(false);
       qr.limparTudo();
@@ -874,6 +967,7 @@ export function EstoqueAjustesPage() {
                       setQtdeContada('');
                       setQtdeSistema('0.0000');
                       setBaixas([]);
+                      setCodigosOcupados([]);
                     } else {
                       void carregarContextoProduto(p);
                       if (!p.controla_lote) {
@@ -1000,9 +1094,56 @@ export function EstoqueAjustesPage() {
                             ? 'Uma bobina por linha. Informe a largura e o comprimento. A quantidade do saldo é a área em m² — 210 mm × 1.000 m = 210 m².'
                             : saldoLinear
                               ? 'Uma bobina por linha. O saldo é metro linear: a quantidade é o comprimento do rolo. A largura não entra na conta.'
-                              : 'Uma bobina por linha. A quantidade é na unidade de estoque do produto.'}
+                              : 'Uma bobina por linha. A quantidade é na unidade de estoque do produto.'}{' '}
+                          Duplicar copia a bobina e gera o próximo Código / nLote.
                         </span>
                       </div>
+                      {baixas.length > 0 && (
+                        <div className="oc-volumes-scroll" style={{ marginTop: '0.45rem' }}>
+                          <p className="muted" style={{ margin: '0 0 0.35rem' }}>
+                            Volumes já lançados. Duplicar acrescenta uma bobina nova; a origem não é debitada.
+                          </p>
+                          <table className="oc-volumes-table">
+                            <thead>
+                              <tr>
+                                <th className="col-lote">Código / nLote</th>
+                                {(mostraLxC || saldoLinear) && <th className="col-dim">L × C</th>}
+                                <th className="col-num">Qtde</th>
+                                <th className="col-acoes" />
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {baixas.map((b) => (
+                                <tr key={b.lote_id}>
+                                  <td className="col-lote">{b.codigo}</td>
+                                  {(mostraLxC || saldoLinear) && (
+                                    <td className="col-dim muted">
+                                      {b.largura_mm || b.comprimento_m
+                                        ? `${b.largura_mm ?? '—'} mm × ${b.comprimento_m ?? '—'} m`
+                                        : '—'}
+                                    </td>
+                                  )}
+                                  <td className="col-num">
+                                    {formatQty(b.qtde_disponivel)}
+                                    {nomeSaldo ? ` ${nomeSaldo}` : ''}
+                                  </td>
+                                  <td className="col-acoes">
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary btn-sm"
+                                      onClick={() => duplicarLancado(b)}
+                                      title="Copia esta bobina e gera o próximo Código / nLote"
+                                      aria-label={`Duplicar volume ${b.codigo}`}
+                                    >
+                                      Duplicar
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                       <div className="oc-volumes-scroll">
                         <table className="oc-volumes-table">
                           <thead>
@@ -1109,6 +1250,15 @@ export function EstoqueAjustesPage() {
                                   </td>
                                 )}
                                 <td className="col-acoes">
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() => duplicarVolume(idx)}
+                                    title="Copia esta bobina e gera o próximo Código / nLote"
+                                    aria-label={`Duplicar volume ${idx + 1}`}
+                                  >
+                                    Duplicar
+                                  </button>
                                   {volumes.length > 1 && (
                                     <button
                                       type="button"

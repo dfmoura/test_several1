@@ -2362,6 +2362,10 @@ button.par-geo--faltando:hover:not(:disabled) {
   text-align: right;
 }
 
+.oc-volumes-table .col-acoes .btn + .btn {
+  margin-left: 0.25rem;
+}
+
 .oc-volumes-table .col-lote input {
   width: 100%;
   min-width: 0;

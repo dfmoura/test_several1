@@ -326,4 +326,180 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors(['lote_payload']);
     }
+
+    public function test_codigo_vazio_segue_vir_e_nao_repete_o_ja_aberto(): void
+    {
+        Sanctum::actingAs($this->operador);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $primeiro = $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes', [
+                'produto_id' => $this->exact->id,
+                'motivo_codigo' => 'A03',
+                'qtde_contada' => '420.0000',
+                'checklist_confirmado' => true,
+                'lote_payload' => [
+                    ['largura_mm' => '210', 'comprimento_m' => '1000'],
+                    ['largura_mm' => '210', 'comprimento_m' => '1000'],
+                ],
+            ])
+            ->assertCreated();
+
+        $this->assertSame('VIR-MP-PAP-013-1', $primeiro->json('data.lote_payload.0.codigo'));
+        $this->assertSame('VIR-MP-PAP-013-2', $primeiro->json('data.lote_payload.1.codigo'));
+
+        Sanctum::actingAs($this->aprovador);
+        $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes/'.$primeiro->json('data.id').'/aprovar', [
+                'causa_raiz' => 'Abertura das duas primeiras bobinas.',
+            ])
+            ->assertOk();
+
+        Sanctum::actingAs($this->operador);
+        $segundo = $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes', [
+                'produto_id' => $this->exact->id,
+                'motivo_codigo' => 'A03',
+                'qtde_contada' => '630.0000',
+                'checklist_confirmado' => true,
+                'lote_payload' => [
+                    ['largura_mm' => '210', 'comprimento_m' => '1000'],
+                ],
+            ])
+            ->assertCreated();
+
+        $this->assertSame('VIR-MP-PAP-013-3', $segundo->json('data.lote_payload.0.codigo'));
+    }
+
+    public function test_mesmo_codigo_avanca_sequencia_sem_sufixo_de_recebimento(): void
+    {
+        Sanctum::actingAs($this->operador);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $aju = $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes', [
+                'produto_id' => $this->exact->id,
+                'motivo_codigo' => 'A03',
+                'qtde_contada' => '420.0000',
+                'checklist_confirmado' => true,
+                'lote_payload' => [
+                    ['codigo' => 'BOB-01', 'largura_mm' => '210', 'comprimento_m' => '1000'],
+                    ['codigo' => 'BOB-01', 'largura_mm' => '210', 'comprimento_m' => '1000'],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.lote_payload.0.codigo', 'BOB-01')
+            ->assertJsonPath('data.lote_payload.1.codigo', 'BOB-02');
+
+        Sanctum::actingAs($this->aprovador);
+        $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes/'.$aju->json('data.id').'/aprovar', [
+                'causa_raiz' => 'Duas bobinas do mesmo lançamento.',
+            ])
+            ->assertOk();
+
+        $codigos = EstoqueLote::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $this->exact->id)
+            ->orderBy('codigo')
+            ->pluck('codigo')
+            ->all();
+
+        $this->assertSame(['BOB-01', 'BOB-02'], $codigos);
+    }
+
+    public function test_ajuste_pendente_reserva_o_codigo_do_proximo(): void
+    {
+        Sanctum::actingAs($this->operador);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes', [
+                'produto_id' => $this->exact->id,
+                'motivo_codigo' => 'A03',
+                'qtde_contada' => '210.0000',
+                'checklist_confirmado' => true,
+                'lote_payload' => [
+                    ['codigo' => 'BOB-01', 'largura_mm' => '210', 'comprimento_m' => '1000'],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.lote_payload.0.codigo', 'BOB-01');
+
+        $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes', [
+                'produto_id' => $this->exact->id,
+                'motivo_codigo' => 'A03',
+                'qtde_contada' => '210.0000',
+                'checklist_confirmado' => true,
+                'lote_payload' => [
+                    ['codigo' => 'BOB-01', 'largura_mm' => '210', 'comprimento_m' => '1000'],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.lote_payload.0.codigo', 'BOB-02');
+    }
+
+    public function test_aprovacao_realoca_codigo_tomado_no_intervalo(): void
+    {
+        Sanctum::actingAs($this->operador);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $aberto = $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes', [
+                'produto_id' => $this->exact->id,
+                'motivo_codigo' => 'A03',
+                'qtde_contada' => '210.0000',
+                'checklist_confirmado' => true,
+                'lote_payload' => [
+                    ['codigo' => 'FIXO-1', 'largura_mm' => '210', 'comprimento_m' => '1000'],
+                ],
+            ])
+            ->assertCreated();
+
+        Sanctum::actingAs($this->aprovador);
+        $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes/'.$aberto->json('data.id').'/aprovar', [
+                'causa_raiz' => 'Primeira bobina já no estoque.',
+            ])
+            ->assertOk();
+
+        Sanctum::actingAs($this->operador);
+        $pendente = $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes', [
+                'produto_id' => $this->exact->id,
+                'motivo_codigo' => 'A03',
+                'qtde_contada' => '420.0000',
+                'checklist_confirmado' => true,
+                'lote_payload' => [
+                    ['codigo' => 'OUTRO-3', 'largura_mm' => '210', 'comprimento_m' => '1000'],
+                ],
+            ])
+            ->assertCreated();
+
+        $ajuste = EstoqueAjuste::query()->findOrFail($pendente->json('data.id'));
+        $payload = $ajuste->lote_payload;
+        $payload[0]['codigo'] = 'FIXO-1';
+        $ajuste->lote_payload = $payload;
+        $ajuste->save();
+
+        Sanctum::actingAs($this->aprovador);
+        $res = $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes/'.$ajuste->id.'/aprovar', [
+                'causa_raiz' => 'Código foi tomado antes da aprovação.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.ajuste.lote_payload.0.codigo', 'FIXO-2');
+
+        $this->assertStringNotContainsString('#', (string) $res->json('data.ajuste.lote_payload.0.codigo'));
+
+        $codigos = EstoqueLote::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $this->exact->id)
+            ->orderBy('codigo')
+            ->pluck('codigo')
+            ->all();
+
+        $this->assertSame(['FIXO-1', 'FIXO-2'], $codigos);
+    }
 }

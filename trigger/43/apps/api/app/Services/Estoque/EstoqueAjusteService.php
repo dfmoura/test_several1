@@ -14,6 +14,7 @@ use App\Models\Produto;
 use App\Models\User;
 use App\Services\Codigo\CodigoGenerator;
 use App\Support\PadraoDecimal;
+use App\Support\VolumeCodigoSequencia;
 use App\Support\VolumeGeometria;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -177,6 +178,11 @@ class EstoqueAjusteService
             $usaPayload,
             $contagemEvidencia
         ) {
+            if (is_array($lotePayload) && $this->payloadTemVolumeNovo($lotePayload)) {
+                $fila = $this->travarFilaVolume($empresa, $produto);
+                $lotePayload = $this->aplicarSequenciaVolumeNovo($produto, $lotePayload, null, $fila);
+            }
+
             $ano = (int) now()->year;
             $codigo = $this->codigos->nextCode($empresa->id, 'AJU-'.$ano, 5);
 
@@ -267,6 +273,11 @@ class EstoqueAjusteService
             $meta,
             $lotePayload
         ) {
+            if (is_array($lotePayload) && $this->payloadTemVolumeNovo($lotePayload)) {
+                $fila = $this->travarFilaVolume($empresa, $produto);
+                $lotePayload = $this->aplicarSequenciaVolumeNovo($produto, $lotePayload, null, $fila);
+            }
+
             $ano = (int) now()->year;
             $codigo = $this->codigos->nextCode($empresa->id, 'AJU-'.$ano, 5);
 
@@ -350,7 +361,28 @@ class EstoqueAjusteService
         }
 
         $movimento = DB::transaction(function () use ($empresa, $ajuste, $aprovador) {
+            $produto = Produto::query()->findOrFail($ajuste->produto_id);
+            $previsto = is_array($ajuste->lote_payload) ? $ajuste->lote_payload : [];
+            $fila = $this->payloadTemVolumeNovo($previsto)
+                ? $this->travarFilaVolume($empresa, $produto)
+                : null;
+
             $ajuste = EstoqueAjuste::query()->lockForUpdate()->findOrFail($ajuste->id);
+            if ($ajuste->status !== EstoqueAjuste::STATUS_PENDENTE) {
+                throw ValidationException::withMessages([
+                    'status' => ['Somente ajuste PENDENTE pode ser aprovado.'],
+                ]);
+            }
+
+            $payload = is_array($ajuste->lote_payload) && $ajuste->lote_payload !== []
+                ? $ajuste->lote_payload
+                : null;
+            if (is_array($payload) && $this->payloadTemVolumeNovo($payload)) {
+                $fila ??= $this->travarFilaVolume($empresa, $produto);
+                $payload = $this->aplicarSequenciaVolumeNovo($produto, $payload, (int) $ajuste->id, $fila);
+                $ajuste->lote_payload = $payload;
+            }
+
             $produto = Produto::query()->lockForUpdate()->findOrFail($ajuste->produto_id);
 
             $delta = (string) $ajuste->qtde_diferenca;
@@ -360,9 +392,7 @@ class EstoqueAjusteService
                 $produto,
                 $delta,
                 $loteRef,
-                is_array($ajuste->lote_payload) && $ajuste->lote_payload !== []
-                    ? $ajuste->lote_payload
-                    : null
+                $payload
             );
 
             $ano = (int) now()->year;
@@ -889,6 +919,125 @@ class EstoqueAjusteService
     }
 
     /**
+     * Pendentes do SKU, o produto e os lotes — sempre nesta ordem.
+     *
+     * @return array{lotes: list<string>, pendentes: list<array{id: int, lote_payload: mixed}>}
+     */
+    private function travarFilaVolume(Empresa $empresa, Produto $produto): array
+    {
+        $pendentes = EstoqueAjuste::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('produto_id', $produto->id)
+            ->where('status', EstoqueAjuste::STATUS_PENDENTE)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get(['id', 'lote_payload']);
+
+        Produto::query()->whereKey($produto->id)->lockForUpdate()->first();
+
+        $lotes = EstoqueLote::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('produto_id', $produto->id)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->pluck('codigo')
+            ->all();
+
+        return [
+            'lotes' => array_map(static fn ($codigo) => (string) $codigo, $lotes),
+            'pendentes' => $pendentes
+                ->map(fn (EstoqueAjuste $pendente) => [
+                    'id' => (int) $pendente->id,
+                    'lote_payload' => $pendente->lote_payload,
+                ])
+                ->all(),
+        ];
+    }
+
+    /**
+     * Volume novo: confirma o Código / nLote contra a fila já travada.
+     * Código tomado avança a sequência (sem sufixo #n do recebimento).
+     *
+     * @param  list<array<string, mixed>>  $payload
+     * @param  array{lotes: list<string>, pendentes: list<array{id: int, lote_payload: mixed}>}  $fila
+     * @return list<array<string, mixed>>
+     */
+    private function aplicarSequenciaVolumeNovo(
+        Produto $produto,
+        array $payload,
+        ?int $ignorarAjusteId,
+        array $fila
+    ): array {
+        $ocupados = $fila['lotes'];
+        foreach ($fila['pendentes'] as $pendente) {
+            if ($ignorarAjusteId !== null && (int) $pendente['id'] === $ignorarAjusteId) {
+                continue;
+            }
+            $linhas = is_array($pendente['lote_payload']) ? $pendente['lote_payload'] : [];
+            foreach ($linhas as $linha) {
+                if (! is_array($linha) || ! $this->linhaVolumeNovo($linha)) {
+                    continue;
+                }
+                $codigo = trim((string) ($linha['codigo'] ?? ''));
+                if ($codigo !== '') {
+                    $ocupados[] = $codigo;
+                }
+            }
+        }
+
+        foreach ($payload as $idx => $linha) {
+            if (! is_array($linha) || ! $this->linhaVolumeNovo($linha)) {
+                continue;
+            }
+
+            $prefixo = ($linha['origem_tipo'] ?? '') === EstoqueLote::ORIGEM_VIRADA ? 'VIR' : 'AJU';
+            $desejado = trim((string) ($linha['codigo'] ?? ''));
+            if ($desejado === '') {
+                $desejado = VolumeCodigoSequencia::canonico($prefixo, (string) $produto->codigo, $idx + 1);
+            }
+
+            try {
+                $livre = VolumeCodigoSequencia::reservar($desejado, $ocupados);
+            } catch (\RuntimeException) {
+                throw ValidationException::withMessages([
+                    "lote_payload.{$idx}.codigo" => ['Não foi possível gerar Código / nLote sequencial sem repetir.'],
+                ]);
+            }
+
+            $payload[$idx]['codigo'] = $livre;
+            $ocupados[] = $livre;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $payload
+     */
+    private function payloadTemVolumeNovo(array $payload): bool
+    {
+        foreach ($payload as $linha) {
+            if (is_array($linha) && $this->linhaVolumeNovo($linha)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $linha
+     */
+    private function linhaVolumeNovo(array $linha): bool
+    {
+        if (($linha['volume_novo'] ?? true) === false) {
+            return false;
+        }
+
+        return empty($linha['lote_id']);
+    }
+
+    /**
      * Volumes no AJU — mesma semântica do receber / EstoqueSaldoWriter:
      * - +Δ: N volumes novos (volume_novo, L×C opcional); soma = |Δ|
      * - −Δ: N linhas com lote_id + qtde a baixar; soma = |Δ| (sem FEFO quando informado)
@@ -996,7 +1145,7 @@ class EstoqueAjusteService
             }
 
             if ($codigo === '') {
-                $codigo = $prefixoCodigo.'-'.$produto->codigo.'-'.($idx + 1);
+                $codigo = VolumeCodigoSequencia::canonico($prefixoCodigo, (string) $produto->codigo, $idx + 1);
             }
 
             $entrada = $this->nullIfEmpty($linha['data_entrada'] ?? $linha['lote_data_entrada'] ?? null)
