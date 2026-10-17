@@ -15660,16 +15660,8 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   border-bottom: 1px solid var(--border);
 }
 
-.estoque-mapa-linha--volume {
-  grid-template-columns: minmax(0, 9.5rem) minmax(0, 7.5rem) minmax(0, 7.5rem) minmax(0, 1fr) max-content max-content;
-}
-
-.estoque-mapa-linha--item {
-  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) max-content minmax(0, 16rem);
-}
-
-.estoque-mapa-linha--leitura {
-  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) max-content;
+.estoque-mapa-linha--registro {
+  grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr) minmax(0, 7.5rem) max-content minmax(0, 14rem) max-content;
 }
 
 .estoque-mapa-linha--head {

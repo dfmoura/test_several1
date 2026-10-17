@@ -36,6 +36,11 @@ function densidadeClass(volumes: number): string {
   return 'estoque-mapa-celula--alta';
 }
 
+function rotuloDoLocal(codigo: string, nome?: string | null): string {
+  const livre = nome?.trim();
+  return livre ? `${codigo} · ${livre}` : codigo;
+}
+
 /**
  * Mapa de ocupação dos locais — código L00000001, sem prateleira.
  * Leitura agregada; saldo oficial continua em Saldos.
@@ -552,42 +557,47 @@ export function EstoqueMapaPage() {
                   <>
                     <h3 className="estoque-mapa-ficha-titulo">Sem volume</h3>
                     <ul className="estoque-mapa-ficha">
-                      <li
-                        className={`estoque-mapa-linha estoque-mapa-linha--item${canWrite ? '' : ' estoque-mapa-linha--leitura'} estoque-mapa-linha--head`}
-                        aria-hidden
-                      >
-                        <span>Item</span>
+                      <li className="estoque-mapa-linha estoque-mapa-linha--registro estoque-mapa-linha--head" aria-hidden>
+                        <span>Código</span>
                         <span>Descrição</span>
-                        <span>Qtde</span>
-                        {canWrite ? <span>Local</span> : null}
+                        <span>Medida</span>
+                        <span className="estoque-mapa-ficha-qtde">Qtde</span>
+                        <span>Local</span>
+                        <span />
                       </li>
-                      {selecionado.itens?.map((item) => (
-                        <li
-                          key={item.produto_id}
-                          className={`estoque-mapa-linha estoque-mapa-linha--item${canWrite ? '' : ' estoque-mapa-linha--leitura'}`}
-                        >
-                          <strong className="estoque-mapa-cel" title={item.codigo}>
-                            {item.codigo}
-                          </strong>
-                          <span className="estoque-mapa-cel estoque-mapa-cel--muted" title={item.descricao || undefined}>
-                            {item.descricao || '—'}
-                          </span>
-                          <span className="estoque-mapa-ficha-qtde">
-                            {item.qtde} {item.unidade}
-                          </span>
-                          {canWrite ? (
-                            <LocalSaldoCampo
-                              produtoId={item.produto_id}
-                              local={{
-                                id: selecionado.id,
-                                codigo: selecionado.codigo,
-                                nome: selecionado.nome,
-                              }}
-                              onSaved={(local) => void aposMarcarLocal(local)}
-                            />
-                          ) : null}
-                        </li>
-                      ))}
+                      {selecionado.itens?.map((item) => {
+                        const lugar = rotuloDoLocal(selecionado.codigo, selecionado.nome);
+                        return (
+                          <li key={item.produto_id} className="estoque-mapa-linha estoque-mapa-linha--registro">
+                            <strong className="estoque-mapa-cel" title={item.codigo}>
+                              {item.codigo}
+                            </strong>
+                            <span className="estoque-mapa-cel estoque-mapa-cel--muted" title={item.descricao || undefined}>
+                              {item.descricao || '—'}
+                            </span>
+                            <span className="estoque-mapa-cel estoque-mapa-cel--muted">—</span>
+                            <span className="estoque-mapa-ficha-qtde">
+                              {item.qtde} {item.unidade}
+                            </span>
+                            {canWrite ? (
+                              <LocalSaldoCampo
+                                produtoId={item.produto_id}
+                                local={{
+                                  id: selecionado.id,
+                                  codigo: selecionado.codigo,
+                                  nome: selecionado.nome,
+                                }}
+                                onSaved={(local) => void aposMarcarLocal(local)}
+                              />
+                            ) : (
+                              <span className="estoque-mapa-cel" title={lugar}>
+                                {lugar}
+                              </span>
+                            )}
+                            <span />
+                          </li>
+                        );
+                      })}
                     </ul>
                   </>
                 )}
@@ -600,12 +610,12 @@ export function EstoqueMapaPage() {
                   <>
                     <h3 className="estoque-mapa-ficha-titulo">Volumes</h3>
                     <ul className="estoque-mapa-ficha">
-                      <li className="estoque-mapa-linha estoque-mapa-linha--volume estoque-mapa-linha--head" aria-hidden>
-                        <span>Volume</span>
-                        <span>Medida</span>
-                        <span>SKU</span>
+                      <li className="estoque-mapa-linha estoque-mapa-linha--registro estoque-mapa-linha--head" aria-hidden>
+                        <span>Código</span>
                         <span>Descrição</span>
-                        <span>Qtde</span>
+                        <span>Medida</span>
+                        <span className="estoque-mapa-ficha-qtde">Qtde</span>
+                        <span>Local</span>
                         <span />
                       </li>
                       {volumes.map((l) => {
@@ -613,24 +623,26 @@ export function EstoqueMapaPage() {
                           l.largura_mm && l.comprimento_m
                             ? `${l.largura_mm} mm × ${l.comprimento_m} m`
                             : '—';
-                        const sku = l.produto?.codigo || '—';
-                        const descricao = l.produto?.descricao_fiscal || '';
+                        const descricao = [l.produto?.codigo, l.produto?.descricao_fiscal]
+                          .filter(Boolean)
+                          .join(' · ');
+                        const lugar = rotuloDoLocal(selecionado.codigo, selecionado.nome);
                         return (
-                          <li key={l.id} className="estoque-mapa-linha estoque-mapa-linha--volume">
+                          <li key={l.id} className="estoque-mapa-linha estoque-mapa-linha--registro">
                             <code className="estoque-mapa-cel" title={l.codigo}>
                               {l.codigo}
                             </code>
-                            <span className="estoque-mapa-cel estoque-mapa-cel--muted" title={medida === '—' ? undefined : medida}>
-                              {medida}
-                            </span>
-                            <span className="estoque-mapa-cel" title={sku === '—' ? undefined : sku}>
-                              {sku}
-                            </span>
                             <span className="estoque-mapa-cel estoque-mapa-cel--muted" title={descricao || undefined}>
                               {descricao || '—'}
                             </span>
+                            <span className="estoque-mapa-cel estoque-mapa-cel--muted" title={medida === '—' ? undefined : medida}>
+                              {medida}
+                            </span>
                             <span className="estoque-mapa-ficha-qtde">
                               {l.qtde} {l.unidade}
+                            </span>
+                            <span className="estoque-mapa-cel" title={lugar}>
+                              {lugar}
                             </span>
                             <Link
                               className="btn btn-secondary btn-sm"
