@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
@@ -59,6 +59,9 @@ export function EstoqueMapaPage() {
   const [volumes, setVolumes] = useState<EstoqueLote[]>([]);
   const [loadingVolumes, setLoadingVolumes] = useState(false);
   const [erroVolumes, setErroVolumes] = useState<string | null>(null);
+  const painelRef = useRef<HTMLDivElement>(null);
+  const inativandoRef = useRef(false);
+  inativandoRef.current = inativando;
 
   const load = useCallback(async (silencioso = false) => {
     if (!silencioso) {
@@ -102,6 +105,31 @@ export function EstoqueMapaPage() {
       return e.codigo.toLowerCase().includes(termo) || nome.includes(termo);
     });
   }, [locais, busca, soOcupados]);
+
+  const fecharLocal = useCallback(() => {
+    if (inativandoRef.current) return;
+    setSelecionado(null);
+    setVolumes([]);
+    setErroVolumes(null);
+  }, []);
+
+  useEffect(() => {
+    if (!selecionado) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || inativandoRef.current) return;
+      e.preventDefault();
+      fecharLocal();
+    };
+    window.addEventListener('keydown', onKey);
+    const foco = window.setTimeout(() => painelRef.current?.focus(), 0);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+      window.clearTimeout(foco);
+    };
+  }, [selecionado?.id, fecharLocal]);
 
   const abrirLocal = async (cell: EstoqueMapaLocal) => {
     setSelecionado(cell);
@@ -423,206 +451,211 @@ export function EstoqueMapaPage() {
           </div>
         </div>
       ) : (
-        <div className="estoque-mapa-layout">
-          <div className="estoque-mapa-lista" role="region" aria-label="Locais">
-            {visiveis.length === 0 ? (
-              <p className="muted" style={{ margin: 0 }}>
-                Nenhum local com esse filtro.
-              </p>
-            ) : (
-              visiveis.map((cell) => {
-                const ocupacao = ocupacaoLocal(cell);
-                const nDots = Math.min(ocupacao, DOTS_MAX);
-                const ativo = selecionado?.id === cell.id;
-                return (
-                  <button
-                    key={cell.id}
-                    type="button"
-                    className={`estoque-mapa-celula ${densidadeClass(ocupacao)}${
-                      ativo ? ' estoque-mapa-celula--ativa' : ''
-                    }`}
-                    onClick={() => void abrirLocal(cell)}
-                    title={`${cell.codigo}: ${cell.volumes_count} volume(s)${
-                      (cell.itens?.length ?? 0) > 0 ? `, ${cell.itens?.length} item(ns) sem volume` : ''
-                    }`}
-                    aria-pressed={ativo}
-                    aria-label={`${cell.codigo}, ${ocupacao} no local`}
-                  >
-                    <span className="estoque-mapa-celula-cod">{cell.codigo}</span>
-                    <span className="estoque-mapa-dots" aria-hidden>
-                      {ocupacao <= 0 ? (
-                        <span className="estoque-mapa-dot estoque-mapa-dot--vazio" />
-                      ) : (
-                        Array.from({ length: nDots }, (_, i) => (
-                          <span key={i} className="estoque-mapa-dot" />
-                        ))
-                      )}
-                      {ocupacao > DOTS_MAX && (
-                        <span className="estoque-mapa-mais">+{ocupacao - DOTS_MAX}</span>
-                      )}
-                    </span>
-                    <span className="estoque-mapa-celula-n">{ocupacao}</span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-
-          <aside className="estoque-mapa-detalhe card" aria-live="polite">
-            <div className="card-body">
-              {!selecionado ? (
-                <p className="muted" style={{ margin: 0 }}>
-                  Selecione um local na grade para listar os volumes guardados.
-                </p>
-              ) : (
-                <>
-                  <div className="estoque-mapa-detalhe-head">
-                    <div>
-                      <h3 style={{ margin: 0 }}>{selecionado.codigo}</h3>
-                      <p className="muted" style={{ margin: '0.2rem 0 0' }}>
-                        {selecionado.nome?.trim() ? `${selecionado.nome.trim()} · ` : ''}
-                        {selecionado.volumes_count} volume(s)
-                        {(selecionado.itens?.length ?? 0) > 0
-                          ? ` · ${selecionado.itens?.length} sem volume`
-                          : ''}
-                        {selecionado.skus_count > 0 ? ` · ${selecionado.skus_count} SKU(s)` : ''}
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.35rem' }}>
-                      {canWrite && (
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          disabled={inativando}
-                          onClick={() => void inativar(selecionado)}
-                        >
-                          {inativando ? 'Inativando…' : 'Inativar'}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          setSelecionado(null);
-                          setVolumes([]);
-                        }}
-                      >
-                        Fechar
-                      </button>
-                    </div>
-                  </div>
-
-                  {loadingVolumes && <p className="muted">Carregando volumes…</p>}
-                  {erroVolumes && <div className="alert alert-error">{erroVolumes}</div>}
-
-                  {(selecionado.itens?.length ?? 0) > 0 && (
-                    <div className="table-wrap" style={{ marginBottom: '0.75rem' }}>
-                      <table className="estoque-dense-table">
-                        <thead>
-                          <tr>
-                            <th>Item sem volume</th>
-                            <th className="num">Qtde</th>
-                            {canWrite ? <th>Local</th> : null}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selecionado.itens?.map((item) => (
-                            <tr key={item.produto_id}>
-                              <td>
-                                <div>{item.codigo}</div>
-                                {item.descricao ? (
-                                  <div className="muted" style={{ fontSize: '0.72rem' }}>
-                                    {item.descricao}
-                                  </div>
-                                ) : null}
-                              </td>
-                              <td className="num">
-                                {item.qtde} {item.unidade}
-                              </td>
-                              {canWrite ? (
-                                <td>
-                                  <LocalSaldoCampo
-                                    produtoId={item.produto_id}
-                                    local={{
-                                      id: selecionado.id,
-                                      codigo: selecionado.codigo,
-                                      nome: selecionado.nome,
-                                    }}
-                                    onSaved={(local) => void aposMarcarLocal(local)}
-                                  />
-                                </td>
-                              ) : null}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {!loadingVolumes && !erroVolumes && volumes.length === 0 && (selecionado.itens?.length ?? 0) === 0 && (
-                    <p className="muted">Local vazio. Use Guardar para amarrar um volume aqui.</p>
-                  )}
-
-                  {!loadingVolumes && volumes.length > 0 && (
-                    <div className="table-wrap">
-                      <table className="estoque-dense-table">
-                        <thead>
-                          <tr>
-                            <th>Volume</th>
-                            <th>SKU</th>
-                            <th className="num">Qtde</th>
-                            <th />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {volumes.map((l) => (
-                            <tr key={l.id}>
-                              <td>
-                                <code>{l.codigo}</code>
-                                {l.largura_mm && l.comprimento_m ? (
-                                  <div className="muted" style={{ fontSize: '0.72rem' }}>
-                                    {l.largura_mm} mm × {l.comprimento_m} m
-                                  </div>
-                                ) : null}
-                              </td>
-                              <td>
-                                {l.produto ? (
-                                  <>
-                                    <div>{l.produto.codigo}</div>
-                                    <div className="muted" style={{ fontSize: '0.72rem' }}>
-                                      {l.produto.descricao_fiscal}
-                                    </div>
-                                  </>
-                                ) : (
-                                  '—'
-                                )}
-                              </td>
-                              <td className="num">
-                                {l.qtde} {l.unidade}
-                              </td>
-                              <td>
-                                <Link
-                                  className="btn btn-secondary btn-sm"
-                                  to={`/estoque/lotes/${l.id}/etiqueta`}
-                                >
-                                  Etiqueta
-                                </Link>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  <p className="estoque-ops-line muted" style={{ marginTop: '0.75rem', marginBottom: 0 }}>
-                    <Link to="/estoque/guardar">Guardar neste / outro local</Link>
-                  </p>
-                </>
-              )}
-            </div>
-          </aside>
+        <>
+        <div className="estoque-mapa-lista" role="region" aria-label="Locais">
+          {visiveis.length === 0 ? (
+            <p className="muted estoque-mapa-vazio" style={{ margin: 0 }}>
+              Nenhum local com esse filtro.
+            </p>
+          ) : (
+            visiveis.map((cell) => {
+              const ocupacao = ocupacaoLocal(cell);
+              const nDots = Math.min(ocupacao, DOTS_MAX);
+              const ativo = selecionado?.id === cell.id;
+              return (
+                <button
+                  key={cell.id}
+                  type="button"
+                  className={`estoque-mapa-celula ${densidadeClass(ocupacao)}${
+                    ativo ? ' estoque-mapa-celula--ativa' : ''
+                  }`}
+                  onClick={() => void abrirLocal(cell)}
+                  title={`${cell.codigo}: ${cell.volumes_count} volume(s)${
+                    (cell.itens?.length ?? 0) > 0 ? `, ${cell.itens?.length} item(ns) sem volume` : ''
+                  }`}
+                  aria-pressed={ativo}
+                  aria-haspopup="dialog"
+                  aria-label={`${cell.codigo}, ${ocupacao} no local`}
+                >
+                  <span className="estoque-mapa-celula-cod">{cell.codigo}</span>
+                  <span className="estoque-mapa-dots" aria-hidden>
+                    {ocupacao <= 0 ? (
+                      <span className="estoque-mapa-dot estoque-mapa-dot--vazio" />
+                    ) : (
+                      Array.from({ length: nDots }, (_, i) => (
+                        <span key={i} className="estoque-mapa-dot" />
+                      ))
+                    )}
+                    {ocupacao > DOTS_MAX && (
+                      <span className="estoque-mapa-mais">+{ocupacao - DOTS_MAX}</span>
+                    )}
+                  </span>
+                  <span className="estoque-mapa-celula-n">{ocupacao}</span>
+                </button>
+              );
+            })
+          )}
         </div>
+
+        {selecionado && (
+          <div
+            className="faca-modal estoque-mapa-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mapa-local-title"
+          >
+            <button
+              type="button"
+              className="faca-modal-backdrop"
+              aria-label="Fechar"
+              onClick={fecharLocal}
+            />
+            <div
+              className="faca-modal-panel estoque-mapa-dialog-panel"
+              ref={painelRef}
+              tabIndex={-1}
+            >
+              <div className="faca-modal-head estoque-mapa-detalhe-head">
+                <div>
+                  <h2 id="mapa-local-title">{selecionado.codigo}</h2>
+                  <p className="faca-modal-sub">
+                    {selecionado.nome?.trim() ? `${selecionado.nome.trim()} · ` : ''}
+                    {selecionado.volumes_count} volume(s)
+                    {(selecionado.itens?.length ?? 0) > 0
+                      ? ` · ${selecionado.itens?.length} sem volume`
+                      : ''}
+                    {selecionado.skus_count > 0 ? ` · ${selecionado.skus_count} SKU(s)` : ''}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                  {canWrite && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={inativando}
+                      onClick={() => void inativar(selecionado)}
+                    >
+                      {inativando ? 'Inativando…' : 'Inativar'}
+                    </button>
+                  )}
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={fecharLocal}>
+                    Fechar
+                  </button>
+                </div>
+              </div>
+
+              <div className="estoque-mapa-dialog-body" aria-live="polite">
+                {loadingVolumes && <p className="muted">Carregando volumes…</p>}
+                {erroVolumes && <div className="alert alert-error">{erroVolumes}</div>}
+
+                {(selecionado.itens?.length ?? 0) > 0 && (
+                  <div className="table-wrap" style={{ marginBottom: '0.75rem' }}>
+                    <table className="estoque-dense-table">
+                      <thead>
+                        <tr>
+                          <th>Item sem volume</th>
+                          <th className="num">Qtde</th>
+                          {canWrite ? <th>Local</th> : null}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selecionado.itens?.map((item) => (
+                          <tr key={item.produto_id}>
+                            <td>
+                              <div>{item.codigo}</div>
+                              {item.descricao ? (
+                                <div className="muted" style={{ fontSize: '0.72rem' }}>
+                                  {item.descricao}
+                                </div>
+                              ) : null}
+                            </td>
+                            <td className="num">
+                              {item.qtde} {item.unidade}
+                            </td>
+                            {canWrite ? (
+                              <td>
+                                <LocalSaldoCampo
+                                  produtoId={item.produto_id}
+                                  local={{
+                                    id: selecionado.id,
+                                    codigo: selecionado.codigo,
+                                    nome: selecionado.nome,
+                                  }}
+                                  onSaved={(local) => void aposMarcarLocal(local)}
+                                />
+                              </td>
+                            ) : null}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {!loadingVolumes && !erroVolumes && volumes.length === 0 && (selecionado.itens?.length ?? 0) === 0 && (
+                  <p className="muted">Local vazio. Use Guardar para amarrar um volume aqui.</p>
+                )}
+
+                {!loadingVolumes && volumes.length > 0 && (
+                  <div className="table-wrap">
+                    <table className="estoque-dense-table">
+                      <thead>
+                        <tr>
+                          <th>Volume</th>
+                          <th>SKU</th>
+                          <th className="num">Qtde</th>
+                          <th />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {volumes.map((l) => (
+                          <tr key={l.id}>
+                            <td>
+                              <code>{l.codigo}</code>
+                              {l.largura_mm && l.comprimento_m ? (
+                                <div className="muted" style={{ fontSize: '0.72rem' }}>
+                                  {l.largura_mm} mm × {l.comprimento_m} m
+                                </div>
+                              ) : null}
+                            </td>
+                            <td>
+                              {l.produto ? (
+                                <>
+                                  <div>{l.produto.codigo}</div>
+                                  <div className="muted" style={{ fontSize: '0.72rem' }}>
+                                    {l.produto.descricao_fiscal}
+                                  </div>
+                                </>
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+                            <td className="num">
+                              {l.qtde} {l.unidade}
+                            </td>
+                            <td>
+                              <Link
+                                className="btn btn-secondary btn-sm"
+                                to={`/estoque/lotes/${l.id}/etiqueta`}
+                              >
+                                Etiqueta
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <p className="estoque-ops-line muted" style={{ marginTop: '0.75rem', marginBottom: 0 }}>
+                  <Link to="/estoque/guardar">Guardar neste / outro local</Link>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

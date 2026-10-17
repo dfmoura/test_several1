@@ -15441,8 +15441,24 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
 
 .estoque-mapa-lista {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(10.75rem, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 0.35rem;
+}
+
+.estoque-mapa-vazio {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1200px) {
+  .estoque-mapa-lista {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .estoque-mapa-lista {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .estoque-mapa-prateleira {
@@ -15583,10 +15599,18 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   font-variant-numeric: tabular-nums;
 }
 
-.estoque-mapa-detalhe {
-  position: sticky;
-  top: 0.75rem;
-  margin: 0;
+.estoque-mapa-dialog-panel {
+  width: min(42rem, 100%);
+}
+
+.estoque-mapa-dialog-panel:focus {
+  outline: none;
+}
+
+.estoque-mapa-dialog-body {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .estoque-mapa-detalhe-head {
