@@ -171,7 +171,8 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
           <p className="muted" style={{ marginTop: 0 }}>
             Rolos reais depois da rebobinação. A caixa é escolhida aqui, antes de faturar, com a
             quantidade que saiu. A soma dos rolos fica igual às etiquetas boas. A nota usa as
-            caixas como volumes. Esta confirmação não baixa o estoque.
+            caixas como volumes e mantém o preço do pedido. Esta confirmação não baixa o estoque:
+            a caixa sai quando a NF-e fica oficial, pelo custo médio.
           </p>
         </div>
 

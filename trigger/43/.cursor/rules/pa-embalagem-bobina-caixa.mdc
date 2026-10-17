@@ -25,7 +25,8 @@ OP CONCLUIDA (ENTRADA_PA flat em etiquetas)
              infAdProd conforme modalidade;
              FAT.nfe_qtde_modo editável até NF oficial
   → ENT: volumes default = Σ caixas
-  → SAIDA_VENDA / TIT / COM: sempre etiquetas
+  → SAIDA_VENDA: etiquetas do PA + caixa EMB-CX escolhida (custo médio), no mesmo MOV da NF oficial
+  → TIT / COM: sempre etiquetas
 ```
 
 ## Faça
@@ -36,6 +37,7 @@ OP CONCLUIDA (ENTRADA_PA flat em etiquetas)
 - Soft-aviso no FAT se PA sem embalagem; sem hard-block de faturar.
 - Modalidade NF: `ROLO` (exige embalagem) ou `ETIQUETA`; default inteligente.
 - `infAdProd` com **spec do PED** (medida · papel · cores · acabamento · modelos) + bobinas/comp.
+- Na NF-e oficial, a caixa EMB-CX escolhida sai no mesmo `SAIDA_VENDA`, na quantidade confirmada, pelo custo médio e pelo escritor único. Unidade já saída na OP como componente CAIXA não sai de novo. Sem SKU, a nota segue e avisa.
 
 ## Não faça
 

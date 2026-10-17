@@ -9,6 +9,9 @@ use App\Models\EstoqueMovimentoItem;
 use App\Models\EstoqueSaldo;
 use App\Models\Faturamento;
 use App\Models\FaturamentoItem;
+use App\Models\OrdemProducao;
+use App\Models\OrdemProducaoMaterial;
+use App\Models\PaEmbalagem;
 use App\Models\Pedido;
 use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
@@ -20,8 +23,10 @@ use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
- * Baixa PA/REV na NF-e Focus autorizada (estudo 32 SAIDA_VENDA / BL-066).
- * Stub, prévia e NFS-e não tocam saldo. Não desfaz a nota se a baixa falhar depois.
+ * Baixa PA/REV na NF-e oficial autorizada (estudo 32 SAIDA_VENDA / BL-066).
+ * No mesmo movimento, baixa a caixa EMB-CX escolhida na embalagem, pelo custo médio.
+ * A quantidade que a OP já baixou como componente CAIXA não sai de novo. Stub, prévia e NFS-e não tocam saldo.
+ * Não desfaz a nota se a baixa falhar depois. O estorno da nota devolve todas as linhas do movimento.
  */
 class EstoqueSaidaVendaService
 {
@@ -39,30 +44,10 @@ class EstoqueSaidaVendaService
      */
     public function pendenciasEmissao(Empresa $empresa, Pedido $pedido, array $itensFat): array
     {
-        $pendencias = [];
-        foreach ($this->linhasEstoque($empresa, $pedido, $itensFat) as $linha) {
-            if ($linha['produto'] === null) {
-                continue;
-            }
-            try {
-                $this->congelamento->assertProdutoLivre(
-                    $empresa,
-                    (int) $linha['produto']->id,
-                    'baixa de estoque na nota fiscal'
-                );
-            } catch (ValidationException $e) {
-                $pendencias = array_merge($pendencias, $this->mensagensValidacao($e));
-
-                continue;
-            }
-            $saldo = $this->saldoQtde($empresa, $linha['produto']);
-            if (bccomp($saldo, $linha['qtde'], PadraoDecimal::SCALE_QTY) < 0) {
-                $pendencias[] = 'Estoque insuficiente de '.$linha['produto']->codigo
-                    .' para a NF-e (disponível '.$saldo.', faturável '.$linha['qtde'].').';
-            }
-        }
-
-        return array_values(array_unique($pendencias));
+        return array_values(array_unique(array_merge(
+            $this->pendenciasSaldo($empresa, $this->linhasEstoque($empresa, $pedido, $itensFat), 'faturável'),
+            $this->pendenciasSaldo($empresa, $this->linhasCaixa($empresa, $pedido), 'caixas'),
+        )));
     }
 
     /**
@@ -78,6 +63,9 @@ class EstoqueSaidaVendaService
             if ($linha['produto'] === null) {
                 $avisos[] = 'Produto acabado/revenda sem SKU no pedido — a NF-e não baixará estoque.';
             }
+        }
+        if ($this->embalagemSemCaixaDeEstoque($empresa, $pedido)) {
+            $avisos[] = 'Embalagem confirmada sem caixa de estoque — a NF-e não baixará as caixas.';
         }
 
         return array_values(array_unique($avisos));
@@ -230,7 +218,10 @@ class EstoqueSaidaVendaService
         }
 
         $linhas = array_values(array_filter(
-            $this->linhasEstoque($empresa, $pedido, $itensFat),
+            array_merge(
+                $this->linhasEstoque($empresa, $pedido, $itensFat),
+                $this->linhasCaixa($empresa, $pedido),
+            ),
             fn (array $l) => $l['produto'] instanceof Produto
         ));
         if ($linhas === []) {
@@ -299,6 +290,171 @@ class EstoqueSaidaVendaService
                 }
             }
         });
+    }
+
+    /**
+     * @param  list<array{produto: ?Produto, qtde: string, pedido_item_id: ?int}>  $linhas
+     * @return list<string>
+     */
+    private function pendenciasSaldo(Empresa $empresa, array $linhas, string $rotulo): array
+    {
+        $pendencias = [];
+        foreach ($linhas as $linha) {
+            if ($linha['produto'] === null) {
+                continue;
+            }
+            try {
+                $this->congelamento->assertProdutoLivre(
+                    $empresa,
+                    (int) $linha['produto']->id,
+                    'baixa de estoque na nota fiscal'
+                );
+            } catch (ValidationException $e) {
+                $pendencias = array_merge($pendencias, $this->mensagensValidacao($e));
+
+                continue;
+            }
+            $saldo = $this->saldoQtde($empresa, $linha['produto']);
+            if (bccomp($saldo, $linha['qtde'], PadraoDecimal::SCALE_QTY) < 0) {
+                $pendencias[] = 'Estoque insuficiente de '.$linha['produto']->codigo
+                    .' para a NF-e (disponível '.$saldo.', '.$rotulo.' '.$linha['qtde'].').';
+            }
+        }
+
+        return $pendencias;
+    }
+
+    /**
+     * Caixas EMB-CX confirmadas na embalagem. A quantidade já saída na OP
+     * (componente CAIXA, líquida de retorno) não entra de novo — qualquer SKU.
+     * O valor da linha nasce no writer, pelo custo médio vigente.
+     *
+     * @return list<array{produto: Produto, qtde: string, pedido_item_id: ?int}>
+     */
+    private function linhasCaixa(Empresa $empresa, Pedido $pedido): array
+    {
+        $embalagens = PaEmbalagem::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('pedido_id', $pedido->id)
+            ->where('status', PaEmbalagem::STATUS_CONFIRMADA)
+            ->whereNotNull('caixa_produto_id')
+            ->where('qtde_caixas', '>', 0)
+            ->orderBy('id')
+            ->get(['id', 'ordem_producao_id', 'pedido_item_id', 'caixa_produto_id', 'qtde_caixas']);
+
+        if ($embalagens->isEmpty()) {
+            return [];
+        }
+
+        $jaPorOp = $this->caixasJaBaixadasNaProducao($empresa, $pedido);
+        /** @var array<int, array{qtde: string, pedido_item_id: ?int}> $acc */
+        $acc = [];
+        foreach ($embalagens as $emb) {
+            $qtde = PadraoDecimal::roundHalfUp((string) $emb->qtde_caixas, PadraoDecimal::SCALE_QTY);
+            $opId = (int) $emb->ordem_producao_id;
+            $ja = $jaPorOp[$opId] ?? '0.0000';
+            $abate = bccomp($ja, $qtde, PadraoDecimal::SCALE_QTY) >= 0 ? $qtde : $ja;
+            $jaPorOp[$opId] = PadraoDecimal::roundHalfUp(
+                bcsub($ja, $abate, PadraoDecimal::SCALE_QTY + 4),
+                PadraoDecimal::SCALE_QTY
+            );
+            $resta = PadraoDecimal::roundHalfUp(
+                bcsub($qtde, $abate, PadraoDecimal::SCALE_QTY + 4),
+                PadraoDecimal::SCALE_QTY
+            );
+            if (bccomp($resta, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                continue;
+            }
+            $pid = (int) $emb->caixa_produto_id;
+            if (! isset($acc[$pid])) {
+                $acc[$pid] = [
+                    'qtde' => $resta,
+                    'pedido_item_id' => $emb->pedido_item_id ? (int) $emb->pedido_item_id : null,
+                ];
+            } else {
+                $acc[$pid]['qtde'] = PadraoDecimal::roundHalfUp(
+                    bcadd($acc[$pid]['qtde'], $resta, PadraoDecimal::SCALE_QTY + 4),
+                    PadraoDecimal::SCALE_QTY
+                );
+            }
+        }
+
+        if ($acc === []) {
+            return [];
+        }
+
+        $produtos = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('id', array_keys($acc))
+            ->get()
+            ->keyBy('id');
+
+        $linhas = [];
+        foreach ($acc as $pid => $row) {
+            $produto = $produtos->get($pid);
+            if (! $produto instanceof Produto) {
+                continue;
+            }
+            $linhas[] = [
+                'produto' => $produto,
+                'qtde' => $row['qtde'],
+                'pedido_item_id' => $row['pedido_item_id'],
+            ];
+        }
+
+        return $linhas;
+    }
+
+    /**
+     * Unidades de caixa já saídas na produção deste pedido, por OP.
+     *
+     * @return array<int, string>
+     */
+    private function caixasJaBaixadasNaProducao(Empresa $empresa, Pedido $pedido): array
+    {
+        $opIds = OrdemProducao::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('pedido_id', $pedido->id)
+            ->pluck('id');
+        if ($opIds->isEmpty()) {
+            return [];
+        }
+
+        $mats = OrdemProducaoMaterial::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('ordem_producao_id', $opIds)
+            ->where('componente', 'CAIXA')
+            ->whereNotNull('saida_movimento_id')
+            ->get(['ordem_producao_id', 'qtde_requisitada', 'qtde_retorno']);
+
+        $porOp = [];
+        foreach ($mats as $mat) {
+            $liq = bcsub((string) $mat->qtde_requisitada, (string) $mat->qtde_retorno, PadraoDecimal::SCALE_QTY + 4);
+            if (bccomp($liq, '0', PadraoDecimal::SCALE_QTY) < 0) {
+                $liq = '0';
+            }
+            $liq = PadraoDecimal::roundHalfUp($liq, PadraoDecimal::SCALE_QTY);
+            $opId = (int) $mat->ordem_producao_id;
+            $porOp[$opId] = isset($porOp[$opId])
+                ? PadraoDecimal::roundHalfUp(
+                    bcadd($porOp[$opId], $liq, PadraoDecimal::SCALE_QTY + 4),
+                    PadraoDecimal::SCALE_QTY
+                )
+                : $liq;
+        }
+
+        return $porOp;
+    }
+
+    private function embalagemSemCaixaDeEstoque(Empresa $empresa, Pedido $pedido): bool
+    {
+        return PaEmbalagem::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('pedido_id', $pedido->id)
+            ->where('status', PaEmbalagem::STATUS_CONFIRMADA)
+            ->whereNull('caixa_produto_id')
+            ->where('qtde_caixas', '>', 0)
+            ->exists();
     }
 
     /**

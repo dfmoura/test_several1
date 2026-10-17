@@ -167,7 +167,7 @@ Há casos pequenos (amostra, sem rebobinar) que emitem **por etiqueta** (`UN`).
 | Camada | Sempre | Só no documento NF |
 |--------|--------|--------------------|
 | ORC / PED / FAT / TIT / COM | etiquetas | — |
-| `SAIDA_VENDA` | etiquetas | — |
+| `SAIDA_VENDA` | etiquetas do PA + caixa EMB-CX escolhida (custo médio) | — |
 | `qCom` / `uCom` | — | **RL** (default c/ embalagem) ou **UN** |
 | `infAdProd` | — | no modo RL: total UN + med/material/cores/modelo + comp; no modo UN: BOB + mesma spec + comp |
 | Volumes | caixas | intacto |
@@ -177,3 +177,11 @@ Default no faturar: `ROLO` se houver embalagem com bobinas; senão `ETIQUETA`.
 UI no FAT permite override enquanto a NF não for oficial. `ROLO` exige embalagem confirmada.
 
 **Proibido:** mudar `qtde_faturavel`/preço do FAT; inventar rolos sem `pa_embalagens`; `qCom` em CAIXA.
+
+## Emenda 2026-10-16 — caixa de estoque na NF oficial
+
+A escolha da caixa (SKU EMB-CX e quantidade) continua na OP concluída, antes de faturar. Confirmar a embalagem não move saldo e não altera o preço travado do pedido.
+
+Quando a NF-e fica oficial, o mesmo `SAIDA_VENDA` que baixa as etiquetas do produto acabado baixa também essa caixa, pelo escritor único, valorizada pelo custo médio vigente. O cancelamento oficial devolve as caixas junto com o produto acabado. A chave da nota no movimento de estoque fica única por tipo, para a saída e o estorno conviverem.
+
+Se a OP já baixou unidades como componente CAIXA, essa quantidade não sai de novo na nota — vale para qualquer SKU já requisitado naquela ordem. Embalagem antiga sem SKU de caixa não bloqueia o faturamento: a nota segue e avisa que as caixas não serão baixadas.
