@@ -15384,6 +15384,11 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   margin-bottom: 0.65rem;
 }
 
+.tabs.estoque-vista-nav {
+  margin-top: 0.15rem;
+  margin-bottom: 0;
+}
+
 .tabs.estoque-module-nav .tab {
   text-decoration: none;
   display: inline-flex;

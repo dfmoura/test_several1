@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { EstoqueConsolidadoPanel } from '../components/EstoqueConsolidadoPanel';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
 import { EstoquePosicaoPanel } from '../components/EstoquePosicaoPanel';
 import { PageHeader } from '../components/PageHeader';
@@ -7,14 +8,21 @@ import { api, type EstoqueLote, type EstoqueSaldo } from '../lib/api';
 import {
   familiasNaPosicao,
   itensPosicao,
+  linhasConsolidado,
   linhaTemStatus,
   somaValorPosicao,
 } from '../lib/estoqueUi';
 import { familiaLabel } from '../lib/format';
 import { useAuth } from '../lib/auth';
 
+type VistaSaldo = 'analitico' | 'consolidado';
+
 function loteComSaldo(lote: EstoqueLote): boolean {
   return Number(lote.qtde) > 0;
+}
+
+function vistaFromParams(params: URLSearchParams): VistaSaldo {
+  return params.get('vista') === 'consolidado' ? 'consolidado' : 'analitico';
 }
 
 export function EstoquePage() {
@@ -25,19 +33,40 @@ export function EstoquePage() {
   const [validadeFiltro, setValidadeFiltro] = useState('');
   const [familia, setFamilia] = useState(() => searchParams.get('familia') ?? '');
   const [loading, setLoading] = useState(true);
+  const vista = vistaFromParams(searchParams);
 
   useEffect(() => {
-    if (!searchParams.has('tab') && !searchParams.has('grupo')) return;
+    const vistaParam = searchParams.get('vista');
+    const vistaInvalida = vistaParam != null && vistaParam !== 'consolidado';
+    if (!searchParams.has('tab') && !searchParams.has('grupo') && !vistaInvalida) return;
     setSearchParams(
       (prev) => {
         const p = new URLSearchParams(prev);
         p.delete('tab');
         p.delete('grupo');
+        if (p.get('vista') && p.get('vista') !== 'consolidado') p.delete('vista');
         return p;
       },
       { replace: true },
     );
   }, [searchParams, setSearchParams]);
+
+  const setVista = useCallback(
+    (next: VistaSaldo) => {
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          p.delete('tab');
+          p.delete('grupo');
+          if (next === 'consolidado') p.set('vista', 'consolidado');
+          else p.delete('vista');
+          return p;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
 
   const setFamiliaUrl = useCallback(
     (fam: string) => {
@@ -85,6 +114,11 @@ export function EstoquePage() {
       .filter((item) => item.formatos.length > 0);
   }, [posicaoItens, validadeFiltro]);
 
+  const consolidadoVisivel = useMemo(
+    () => (vista === 'consolidado' ? linhasConsolidado(saldos, q, familia) : []),
+    [vista, saldos, q, familia],
+  );
+
   const familiasFiltro = useMemo(() => familiasNaPosicao(saldos), [saldos]);
 
   const volumesSemLocal = useMemo(
@@ -107,8 +141,16 @@ export function EstoquePage() {
   }, [recarregar]);
 
   const alternarValidade = (status: 'VENCIDO' | 'A_VENCER') => {
-    setValidadeFiltro((prev) => (prev === status ? '' : status));
+    if (vista !== 'analitico' || validadeFiltro !== status) {
+      setValidadeFiltro(status);
+      setVista('analitico');
+      return;
+    }
+    setValidadeFiltro('');
   };
+
+  const filtroAtivo = Boolean(q || familia || (vista === 'analitico' && validadeFiltro));
+  const listaVazia = vista === 'consolidado' ? consolidadoVisivel.length === 0 : posicaoVisivel.length === 0;
 
   return (
     <div className="estoque-posicao-page">
@@ -160,7 +202,7 @@ export function EstoquePage() {
             <button
               type="button"
               className="linkish"
-              aria-pressed={validadeFiltro === 'VENCIDO'}
+              aria-pressed={vista === 'analitico' && validadeFiltro === 'VENCIDO'}
               onClick={() => alternarValidade('VENCIDO')}
             >
               {alertas.vencidos} vencido(s)
@@ -171,7 +213,7 @@ export function EstoquePage() {
             <button
               type="button"
               className="linkish"
-              aria-pressed={validadeFiltro === 'A_VENCER'}
+              aria-pressed={vista === 'analitico' && validadeFiltro === 'A_VENCER'}
               onClick={() => alternarValidade('A_VENCER')}
             >
               {alertas.aVencer} a vencer
@@ -189,10 +231,6 @@ export function EstoquePage() {
         </div>
       )}
 
-      <p className="catalogo-tab-hint">
-        Cada item sem volume e cada volume com saldo. O local é o código do mapa.
-      </p>
-
       <div className="card estoque-filtros-card">
         <div className="card-body">
           <div className="form-grid" style={{ alignItems: 'end' }}>
@@ -201,7 +239,11 @@ export function EstoquePage() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Produto, dimensão, local…"
+                placeholder={
+                  vista === 'consolidado'
+                    ? 'Produto, quantidade, dimensão…'
+                    : 'Produto, dimensão, local…'
+                }
               />
             </div>
             <div className="form-group">
@@ -215,29 +257,60 @@ export function EstoquePage() {
                 ))}
               </select>
             </div>
-            <div className="form-group">
-              <label>Validade</label>
-              <select value={validadeFiltro} onChange={(e) => setValidadeFiltro(e.target.value)}>
-                <option value="">Todas</option>
-                <option value="VENCIDO">Vencidos</option>
-                <option value="A_VENCER">A vencer</option>
-                <option value="OK">No prazo</option>
-                <option value="SEM_VALIDADE">Sem validade</option>
-              </select>
-            </div>
+            {vista === 'analitico' && (
+              <div className="form-group">
+                <label>Validade</label>
+                <select value={validadeFiltro} onChange={(e) => setValidadeFiltro(e.target.value)}>
+                  <option value="">Todas</option>
+                  <option value="VENCIDO">Vencidos</option>
+                  <option value="A_VENCER">A vencer</option>
+                  <option value="OK">No prazo</option>
+                  <option value="SEM_VALIDADE">Sem validade</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
+      <div className="tabs estoque-vista-nav" role="tablist" aria-label="Leitura do saldo">
+        <button
+          type="button"
+          role="tab"
+          className={`tab${vista === 'analitico' ? ' active' : ''}`}
+          aria-selected={vista === 'analitico'}
+          onClick={() => setVista('analitico')}
+        >
+          Analítico
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`tab${vista === 'consolidado' ? ' active' : ''}`}
+          aria-selected={vista === 'consolidado'}
+          onClick={() => setVista('consolidado')}
+        >
+          Consolidado
+        </button>
+      </div>
+
+      <p className="catalogo-tab-hint">
+        {vista === 'consolidado'
+          ? 'Volumes iguais na mesma linha: mesma quantidade e mesma dimensão. A quantidade é a de cada volume.'
+          : 'Cada item sem volume e cada volume com saldo. O local é o código do mapa.'}
+      </p>
+
       <div className="card">
         {loading ? (
           <div className="loading">Carregando…</div>
-        ) : posicaoVisivel.length === 0 ? (
+        ) : listaVazia ? (
           <div className="empty-state">
-            {q || familia || validadeFiltro
+            {filtroAtivo
               ? 'Nenhum item nesta posição com o filtro atual.'
               : 'Sem saldo. Receba uma OC para gerar a primeira entrada.'}
           </div>
+        ) : vista === 'consolidado' ? (
+          <EstoqueConsolidadoPanel saldos={saldos} q={q} familia={familia} />
         ) : (
           <EstoquePosicaoPanel
             itens={posicaoVisivel}

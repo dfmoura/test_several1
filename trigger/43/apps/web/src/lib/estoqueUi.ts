@@ -186,6 +186,87 @@ export function coincideLinhaConsolidado(
   );
 }
 
+/** Uma linha do Consolidado: faixa do servidor, ou o saldo do SKU quando não há volume. */
+export type LinhaConsolidado<T> = {
+  key: string;
+  saldo: T;
+  qtde: string;
+  unidade: string;
+  /** Null no item sem volume (tubete, uso e consumo). */
+  volumes: number | null;
+  largura_mm: string | null;
+  comprimento_m: string | null;
+};
+
+type SaldoFaixaConsolidado = {
+  id: number;
+  produto?: ProdutoBuscaConsolidado;
+  qtde: string;
+  unidade: string;
+  volumes_por_qtde?: Array<FaixaBuscaVolume & { volumes?: number | null }> | null;
+};
+
+/**
+ * Consolidado: uma linha por produto + quantidade + dimensão (faixa `volumes_por_qtde`).
+ * A quantidade é a de cada volume. Não soma medidas diferentes e não recalcula o saldo.
+ * Item sem volume: uma linha com a quantidade do SKU e dimensão vazia.
+ */
+export function linhasConsolidado<T extends SaldoFaixaConsolidado>(
+  saldos: T[],
+  q: string,
+  familia = '',
+): Array<LinhaConsolidado<T>> {
+  const fam = familia.trim();
+  const busca = q.trim();
+  const grupos: Array<{ codigo: string; linhas: Array<LinhaConsolidado<T>> }> = [];
+
+  for (const saldo of saldos) {
+    if (!loteComSaldo(saldo.qtde)) continue;
+    if (fam && saldo.produto?.familia !== fam) continue;
+
+    const produtoBate = !busca || coincideLinhaConsolidado(saldo.produto, null, busca);
+    const faixas = (saldo.volumes_por_qtde ?? []).filter((faixa) => loteComSaldo(faixa?.qtde));
+    const linhas: Array<LinhaConsolidado<T>> = [];
+
+    if (faixas.length === 0) {
+      if (busca && !produtoBate) continue;
+      linhas.push({
+        key: `c-${saldo.id}-sku`,
+        saldo,
+        qtde: saldo.qtde,
+        unidade: saldo.unidade,
+        volumes: null,
+        largura_mm: null,
+        comprimento_m: null,
+      });
+    } else {
+      faixas.forEach((faixa, idx) => {
+        if (busca && !produtoBate && !coincideLinhaConsolidado(saldo.produto, faixa, busca)) return;
+        const largura = faixa?.largura_mm ?? null;
+        const comprimento = faixa?.comprimento_m ?? null;
+        const volumes = Number(faixa?.volumes);
+        linhas.push({
+          key: `c-${saldo.id}-${idx}|${faixa?.qtde ?? ''}|${largura ?? ''}|${comprimento ?? ''}`,
+          saldo,
+          qtde: String(faixa?.qtde ?? ''),
+          unidade: faixa?.unidade || saldo.unidade,
+          volumes: Number.isFinite(volumes) ? volumes : null,
+          largura_mm: largura,
+          comprimento_m: comprimento,
+        });
+      });
+      if (linhas.length === 0) continue;
+    }
+
+    grupos.push({ codigo: saldo.produto?.codigo ?? '', linhas });
+  }
+
+  grupos.sort((a, b) =>
+    a.codigo.localeCompare(b.codigo, 'pt-BR', { numeric: true, sensitivity: 'base' }),
+  );
+  return grupos.flatMap((grupo) => grupo.linhas);
+}
+
 /** SKU entra no Consolidado se o produto ou qualquer faixa bater no Buscar. */
 export function coincideSaldoConsolidado(
   s: {
