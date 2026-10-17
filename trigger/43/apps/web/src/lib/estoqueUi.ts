@@ -243,8 +243,16 @@ export type FormatoPosicao = {
   locais: LocalPosicao[];
 };
 
-type LotePosicao = {
+/** Volume físico (bobina) já agregado no saldo — leitura, sem segundo writer. */
+export type VolumePosicao = {
+  id?: number;
+  codigo?: string | null;
   qtde?: string | number | null;
+  unidade?: string | null;
+  data_entrada?: string | null;
+  data_validade?: string | null;
+  status?: string | null;
+  status_label?: string | null;
   largura_mm?: string | null;
   comprimento_m?: string | null;
   endereco_id?: number | null;
@@ -277,7 +285,7 @@ export type ItemPosicao = {
         volumes: number;
       }>;
     }> | null;
-    lotes?: LotePosicao[] | null;
+    lotes?: VolumePosicao[] | null;
   };
   formatos: FormatoPosicao[];
 };
@@ -301,7 +309,7 @@ function chaveDimensao(l: { largura_mm?: string | null; comprimento_m?: string |
   return `${l.largura_mm ?? ''}|${l.comprimento_m ?? ''}`;
 }
 
-function chaveLocal(lote: LotePosicao): { key: string; enderecoId: number | null; codigo: string | null } {
+function chaveLocal(lote: VolumePosicao): { key: string; enderecoId: number | null; codigo: string | null } {
   const id = lote.endereco_id ?? lote.endereco?.id ?? null;
   const codigo = lote.endereco?.codigo?.trim() || null;
   return { key: id != null ? `e-${id}` : 'sem-local', enderecoId: id, codigo };
@@ -459,6 +467,54 @@ export function itensPosicao<T extends ItemPosicao['saldo']>(
     }),
   );
   return out;
+}
+
+function rankValidade(status: string | null | undefined): number {
+  switch (status) {
+    case 'VENCIDO':
+      return 0;
+    case 'A_VENCER':
+      return 1;
+    case 'SEM_VALIDADE':
+      return 2;
+    case 'OK':
+      return 3;
+    default:
+      return 4;
+  }
+}
+
+/**
+ * Volumes com saldo da linha (produto + dimensão).
+ * Zerados ficam de fora. Ordem: vencido, a vencer, depois validade e código.
+ */
+export function volumesDaLinha<T extends VolumePosicao>(
+  saldo: { lotes?: T[] | null },
+  formato: { largura_mm?: string | null; comprimento_m?: string | null } | null,
+): T[] {
+  if (!formato) return [];
+  const rows = (saldo.lotes ?? []).filter(
+    (lote) => loteComSaldo(lote.qtde) && mesmaDimensaoVolume(lote, formato),
+  );
+  rows.sort((a, b) => {
+    const rank = rankValidade(a.status) - rankValidade(b.status);
+    if (rank !== 0) return rank;
+    const va = a.data_validade ?? '9999-99-99';
+    const vb = b.data_validade ?? '9999-99-99';
+    if (va !== vb) return va.localeCompare(vb);
+    return (a.codigo ?? '').localeCompare(b.codigo ?? '', 'pt-BR', { numeric: true });
+  });
+  return rows;
+}
+
+/** A linha entra no filtro de validade se algum volume dela está na situação. */
+export function linhaTemStatus(
+  saldo: { lotes?: VolumePosicao[] | null },
+  formato: { largura_mm?: string | null; comprimento_m?: string | null } | null,
+  status: string,
+): boolean {
+  if (!status) return true;
+  return volumesDaLinha(saldo, formato).some((volume) => volume.status === status);
 }
 
 /** Uma linha = produto + dimensão + soma. Sem dimensão (tubete etc.) = uma linha com a qtde do SKU. */
