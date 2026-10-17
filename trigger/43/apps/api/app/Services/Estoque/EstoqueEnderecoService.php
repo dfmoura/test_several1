@@ -592,7 +592,7 @@ class EstoqueEnderecoService
             }
             $cell = $this->toOut($end);
             $cell['volumes_count'] = $volumes;
-            $cell['skus_count'] = $skus;
+            $cell['skus_count'] = $skus + count($pilhas);
             $cell['itens'] = $pilhas;
             $out[] = $cell;
             if (trim((string) $end->nome) !== '') {
@@ -600,29 +600,75 @@ class EstoqueEnderecoService
             }
         }
 
+        $semLocal = $this->saldosSemLocal($empresa, $produtoId);
+
         if ($produtoId !== null && $produtoId > 0) {
-            $skusDistintos = $volumesGuardados > 0 || $volumesSemLocal > 0 ? 1 : 0;
+            $skusDistintos = $volumesGuardados > 0 || $volumesSemLocal > 0 || $semLocal !== [] || $ocupados > 0 ? 1 : 0;
         } else {
-            $skusDistintos = (int) EstoqueLote::query()
+            $idsLote = EstoqueLote::query()
                 ->where('empresa_id', $empresa->id)
                 ->whereNotNull('endereco_id')
                 ->where('qtde', '>', 0)
                 ->distinct()
-                ->count('produto_id');
+                ->pluck('produto_id');
+            $idsSaldo = EstoqueSaldo::query()
+                ->where('empresa_id', $empresa->id)
+                ->whereNotNull('endereco_id')
+                ->where('qtde', '>', 0)
+                ->whereHas('produto', fn ($q) => $q->where('controla_lote', false))
+                ->pluck('produto_id');
+            $skusDistintos = $idsLote->merge($idsSaldo)->unique()->count();
         }
 
         return [
             'locais' => $out,
             'nomeados' => $nomeados,
+            'sem_local' => $semLocal,
             'resumo' => [
                 'total_locais' => count($out),
                 'ocupados' => $ocupados,
                 'vazios' => count($out) - $ocupados,
                 'volumes_guardados' => $volumesGuardados,
                 'volumes_sem_local' => $volumesSemLocal,
+                'saldos_sem_local' => count($semLocal),
                 'skus_distintos' => $skusDistintos,
             ],
         ];
+    }
+
+    /**
+     * Caixa, tubete e demais SKUs sem volume: saldo positivo ainda sem número de local.
+     *
+     * @return list<array{produto_id: int, codigo: string, descricao: string, qtde: string, unidade: string}>
+     */
+    private function saldosSemLocal(Empresa $empresa, ?int $produtoId): array
+    {
+        $query = EstoqueSaldo::query()
+            ->with('produto:id,codigo,descricao_comercial,descricao_fiscal,controla_lote')
+            ->where('empresa_id', $empresa->id)
+            ->whereNull('endereco_id')
+            ->where('qtde', '>', 0)
+            ->whereHas('produto', fn ($q) => $q->where('controla_lote', false));
+
+        if ($produtoId !== null && $produtoId > 0) {
+            $query->where('produto_id', $produtoId);
+        }
+
+        $linhas = [];
+        foreach ($query->get() as $saldo) {
+            if ($saldo->produto?->controla_lote) {
+                continue;
+            }
+            $linhas[] = [
+                'produto_id' => (int) $saldo->produto_id,
+                'codigo' => (string) ($saldo->produto?->codigo ?? ''),
+                'descricao' => (string) ($saldo->produto?->descricao_comercial ?: $saldo->produto?->descricao_fiscal ?: ''),
+                'qtde' => (string) $saldo->qtde,
+                'unidade' => (string) $saldo->unidade,
+            ];
+        }
+
+        return $linhas;
     }
 
     /**

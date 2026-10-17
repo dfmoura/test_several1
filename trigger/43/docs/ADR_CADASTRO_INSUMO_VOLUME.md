@@ -308,6 +308,7 @@ A prateleira deixa de organizar o almoxarifado. O local é um número sequencial
 - Migração reescreve `P########` → `L########` no mesmo id, anula prateleira/coluna/vão e solta o unique da posição. Volume e saldo seguem em `endereco_id`.
 - Conjunto inicial: 72 números. Local novo é o próximo número. Inativo não é reutilizado.
 - Mapa, etiqueta e Guardar mostram o código. Nome livre continua opcional no mesmo registro.
+- No mapa, caixa e tubete com saldo e sem número aparecem para marcar o local ali. A célula passa a listar o item. Marcar não gera MOV nem muda a quantidade.
 
 Não altera: entrada, saldo, MOV, Guardar por QR, isolamento `empresa_id`.
 

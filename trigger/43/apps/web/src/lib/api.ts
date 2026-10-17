@@ -1837,7 +1837,16 @@ export type EstoqueMapaResumo = {
   vazios: number;
   volumes_guardados: number;
   volumes_sem_local: number;
+  saldos_sem_local?: number;
   skus_distintos: number;
+};
+
+export type EstoqueMapaItemSemVolume = {
+  produto_id: number;
+  codigo: string;
+  descricao: string;
+  qtde: string;
+  unidade: string;
 };
 
 export type EstoqueLote = {

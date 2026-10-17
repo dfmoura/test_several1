@@ -527,6 +527,31 @@ class EstoqueLoteTest extends TestCase
         $deNovo->assertOk();
         $this->assertSame($res->json('data.local.id'), $deNovo->json('data.local.id'));
 
+        $caixa = $this->criarProduto('EMB-CX-MAPA', 'EMB', 'EMB-CX', false, false);
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $caixa->id,
+            'qtde' => '8.0000',
+            'unidade' => 'UN',
+            'custo_medio' => '2.500000',
+        ]);
+        $antes = $this->withHeaders($headers)->getJson('/api/v1/estoque/mapa');
+        $antes->assertOk();
+        $this->assertNotNull(collect($antes->json('data.sem_local'))->firstWhere('codigo', 'EMB-CX-MAPA'));
+
+        $this->withHeaders($headers)->postJson('/api/v1/estoque/saldos/'.$caixa->id.'/local', [
+            'nome' => 'Caixas',
+        ])->assertOk();
+
+        $depois = $this->withHeaders($headers)->getJson('/api/v1/estoque/mapa');
+        $depois->assertOk();
+        $this->assertNull(collect($depois->json('data.sem_local'))->firstWhere('codigo', 'EMB-CX-MAPA'));
+        $cell = collect($depois->json('data.locais'))->first(
+            fn ($c) => collect($c['itens'] ?? [])->contains(fn ($i) => ($i['codigo'] ?? '') === 'EMB-CX-MAPA')
+        );
+        $this->assertNotNull($cell);
+        $this->assertSame('8.0000', collect($cell['itens'])->firstWhere('codigo', 'EMB-CX-MAPA')['qtde']);
+
         $papel = $this->criarProduto('MP-PAP-LOC', 'MP', 'MP-PAP', true, false);
         $this->withHeaders($headers)
             ->postJson('/api/v1/estoque/saldos/'.$papel->id.'/local', ['nome' => 'Garagem'])
