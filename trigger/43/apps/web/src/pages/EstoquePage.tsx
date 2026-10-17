@@ -114,7 +114,7 @@ export function EstoquePage() {
     <div className="estoque-posicao-page">
       <PageHeader
         title="Estoque"
-        description="Saldo por produto e dimensão. O volume abre na mesma linha."
+        description="Saldo por item e por volume. O local é o código do mapa."
       />
 
       <EstoqueModuleNav />
@@ -190,8 +190,7 @@ export function EstoquePage() {
       )}
 
       <p className="catalogo-tab-hint">
-        Uma linha: produto, dimensão, quantidade e volumes. Abra a linha para cada bobina.
-        Item sem volume marca o local aqui.
+        Cada item sem volume e cada volume com saldo. O local é o código do mapa.
       </p>
 
       <div className="card estoque-filtros-card">
@@ -242,10 +241,8 @@ export function EstoquePage() {
         ) : (
           <EstoquePosicaoPanel
             itens={posicaoVisivel}
-            podeMarcarLocal={hasPermission('estoque.escrever')}
             podeRastreio={hasPermission('producao.ler') || hasPermission('estoque.ler')}
-            expandirVolumes={Boolean(validadeFiltro)}
-            onLocalSalvo={() => void recarregar(true)}
+            situacao={validadeFiltro}
           />
         )}
       </div>

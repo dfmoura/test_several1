@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe stack local + SPA Estoque: Posição = produto · dimensão · quantidade (soma).
+# Sobe stack local + SPA Estoque: Saldos = item sem volume e cada volume na mesma tabela.
 # Uso (no host, com Docker): bash scripts/pronto-estoque-saldo-volumes.sh
 #     ou: make pronto-estoque-saldo-volumes
 set -euo pipefail
@@ -13,7 +13,7 @@ echo "ok"
 echo "== Stack up =="
 make up
 
-echo "== Rebuild SPA (Saldos: uma tabela, volume na linha) =="
+echo "== Rebuild SPA (Saldos: item e cada volume na tabela) =="
 make web-build
 
 echo "== Health =="
@@ -31,9 +31,9 @@ Pronto para testar — Estoque / Saldos
 
 Roteiro
   1. Login → Estoque → Saldos
-  2. Uma tabela só: produto, dimensão, quantidade, volumes, situação, local
-  3. Item com bobina: abra a linha para código, validade, etiqueta, guardar e rastreio
-  4. Item sem volume: a quantidade fica na linha; o local marca ali
+  2. Uma tabela: produto, volume, dimensão, quantidade, situação, local
+  3. Cada bobina já está na lista: código, validade, etiqueta, guardar e rastreio
+  4. Item sem volume: quantidade e código do local na linha. Marcar local fica no Mapa
   5. Extrato na linha abre o kardex. Movimento não é guia desta tela.
 
 Hard refresh no browser (Ctrl+Shift+R) se a SPA antiga aparecer.

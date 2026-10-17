@@ -16136,46 +16136,6 @@ table.data-table.estoque-dense-table.estoque-posicao-table td.produto {
   text-overflow: ellipsis;
 }
 
-table.data-table.estoque-dense-table.estoque-posicao-table .estoque-posicao-col-abre {
-  width: 1.6rem;
-  padding-left: 0.35rem;
-  padding-right: 0;
-}
-
-button.estoque-posicao-abre {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  display: inline-flex;
-  cursor: pointer;
-  color: var(--text-muted);
-}
-
-button.estoque-posicao-abre svg {
-  transform: rotate(-90deg);
-}
-
-button.estoque-posicao-abre.is-open {
-  color: var(--navy);
-}
-
-button.estoque-posicao-abre.is-open svg {
-  transform: none;
-}
-
-tr.estoque-posicao-linha.is-open td {
-  background: #f4f6fa;
-}
-
-tr.estoque-posicao-volume td {
-  background: #fafbfd;
-}
-
-tr.estoque-posicao-volume td.produto {
-  padding-left: 1.35rem;
-}
-
 .estoque-posicao-volume-codigo {
   font-weight: 600;
 }

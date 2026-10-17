@@ -423,7 +423,7 @@ export function EstoqueMapaPage() {
                             onSaved={(local) => void aposMarcarLocal(local)}
                           />
                         ) : (
-                          <Link to="/estoque">Marcar em Saldos</Link>
+                          <span className="muted">—</span>
                         )}
                       </td>
                     </tr>
