@@ -579,6 +579,9 @@ export function EstoqueMapaPage() {
                             <span className="estoque-mapa-ficha-qtde">
                               {item.qtde} {item.unidade}
                             </span>
+                            <span className="estoque-mapa-cel estoque-mapa-cel-local" title={lugar}>
+                              {lugar}
+                            </span>
                             {canWrite ? (
                               <LocalSaldoCampo
                                 produtoId={item.produto_id}
@@ -590,11 +593,8 @@ export function EstoqueMapaPage() {
                                 onSaved={(local) => void aposMarcarLocal(local)}
                               />
                             ) : (
-                              <span className="estoque-mapa-cel" title={lugar}>
-                                {lugar}
-                              </span>
+                              <span />
                             )}
-                            <span />
                           </li>
                         );
                       })}
@@ -641,7 +641,7 @@ export function EstoqueMapaPage() {
                             <span className="estoque-mapa-ficha-qtde">
                               {l.qtde} {l.unidade}
                             </span>
-                            <span className="estoque-mapa-cel" title={lugar}>
+                            <span className="estoque-mapa-cel estoque-mapa-cel-local" title={lugar}>
                               {lugar}
                             </span>
                             <Link
