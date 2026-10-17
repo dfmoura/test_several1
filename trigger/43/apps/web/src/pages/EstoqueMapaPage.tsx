@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
+import { IconTag } from '../components/NavIcons';
 import { LocalSaldoCampo, type LocalSaldo } from '../components/LocalSaldoCampo';
 import {
   api,
@@ -13,6 +14,8 @@ import {
   type EstoqueMapaResumo,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { formatQty } from '../lib/format';
+import { formatVolumeDimensao } from '../lib/volumeEtiquetaPrint';
 
 const LOCAIS_INICIAIS = 72;
 const DOTS_MAX = 6;
@@ -36,9 +39,48 @@ function densidadeClass(volumes: number): string {
   return 'estoque-mapa-celula--alta';
 }
 
-function rotuloDoLocal(codigo: string, nome?: string | null): string {
-  const livre = nome?.trim();
-  return livre ? `${codigo} · ${livre}` : codigo;
+type LinhaSaldoLocal = {
+  key: string;
+  codigo: string;
+  descricao: string;
+  medida: string;
+  qtde: string;
+  unidade: string;
+  etiquetaId: number | null;
+};
+
+/** Saldo do local numa lista só: item sem volume e volume, ordenados pelo código. */
+function linhasDoLocal(
+  itens: EstoqueMapaLocal['itens'],
+  volumes: EstoqueLote[],
+): LinhaSaldoLocal[] {
+  const linhas: LinhaSaldoLocal[] = (itens ?? []).map((item) => ({
+    key: `item-${item.produto_id}`,
+    codigo: item.codigo,
+    descricao: item.descricao.trim() || '—',
+    medida: '—',
+    qtde: item.qtde,
+    unidade: item.unidade,
+    etiquetaId: null,
+  }));
+
+  for (const lote of volumes) {
+    const descricao = [lote.produto?.codigo, lote.produto?.descricao_fiscal]
+      .filter(Boolean)
+      .join(' · ');
+    linhas.push({
+      key: `vol-${lote.id}`,
+      codigo: lote.codigo,
+      descricao: descricao || '—',
+      medida: formatVolumeDimensao(lote.largura_mm ?? null, lote.comprimento_m ?? null),
+      qtde: lote.qtde,
+      unidade: lote.unidade,
+      etiquetaId: lote.id,
+    });
+  }
+
+  linhas.sort((a, b) => a.codigo.localeCompare(b.codigo, 'pt-BR', { numeric: true }));
+  return linhas;
 }
 
 /**
@@ -100,6 +142,11 @@ export function EstoqueMapaPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const linhasSaldo = useMemo(
+    () => linhasDoLocal(selecionado?.itens, volumes),
+    [selecionado, volumes],
+  );
 
   const visiveis = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -553,108 +600,56 @@ export function EstoqueMapaPage() {
                 {loadingVolumes && <p className="muted">Carregando volumes…</p>}
                 {erroVolumes && <div className="alert alert-error">{erroVolumes}</div>}
 
-                {(selecionado.itens?.length ?? 0) > 0 && (
-                  <>
-                    <h3 className="estoque-mapa-ficha-titulo">Sem volume</h3>
-                    <ul className="estoque-mapa-ficha">
-                      <li className="estoque-mapa-linha estoque-mapa-linha--registro estoque-mapa-linha--head" aria-hidden>
-                        <span>Código</span>
-                        <span>Descrição</span>
-                        <span>Medida</span>
-                        <span className="estoque-mapa-ficha-qtde">Qtde</span>
-                        <span>Local</span>
-                        <span />
-                      </li>
-                      {selecionado.itens?.map((item) => {
-                        const lugar = rotuloDoLocal(selecionado.codigo, selecionado.nome);
-                        return (
-                          <li key={item.produto_id} className="estoque-mapa-linha estoque-mapa-linha--registro">
-                            <strong className="estoque-mapa-cel" title={item.codigo}>
-                              {item.codigo}
-                            </strong>
-                            <span className="estoque-mapa-cel estoque-mapa-cel--muted" title={item.descricao || undefined}>
-                              {item.descricao || '—'}
-                            </span>
-                            <span className="estoque-mapa-cel estoque-mapa-cel--muted">—</span>
-                            <span className="estoque-mapa-ficha-qtde">
-                              {item.qtde} {item.unidade}
-                            </span>
-                            <span className="estoque-mapa-cel estoque-mapa-cel-local" title={lugar}>
-                              {lugar}
-                            </span>
-                            {canWrite ? (
-                              <LocalSaldoCampo
-                                produtoId={item.produto_id}
-                                local={{
-                                  id: selecionado.id,
-                                  codigo: selecionado.codigo,
-                                  nome: selecionado.nome,
-                                }}
-                                onSaved={(local) => void aposMarcarLocal(local)}
-                              />
-                            ) : (
-                              <span />
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </>
+                {linhasSaldo.length > 0 && (
+                  <div className="table-wrap">
+                    <table className="data-table estoque-dense-table estoque-mapa-saldo">
+                      <thead>
+                        <tr>
+                          <th>Código</th>
+                          <th>Descrição</th>
+                          <th>Medida</th>
+                          <th className="num">Quantidade</th>
+                          <th className="acoes" aria-label="Ações" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {linhasSaldo.map((linha) => (
+                          <tr key={linha.key}>
+                            <td className="codigo" title={linha.codigo}>
+                              {linha.codigo}
+                            </td>
+                            <td className="desc" title={linha.descricao === '—' ? undefined : linha.descricao}>
+                              {linha.descricao}
+                            </td>
+                            <td className="dimensao" title={linha.medida === '—' ? undefined : linha.medida}>
+                              {linha.medida}
+                            </td>
+                            <td className="num">
+                              {formatQty(linha.qtde)} {linha.unidade}
+                            </td>
+                            <td className="acoes">
+                              {linha.etiquetaId != null ? (
+                                <div className="table-actions">
+                                  <Link
+                                    to={`/estoque/lotes/${linha.etiquetaId}/etiqueta`}
+                                    className="btn-icon"
+                                    title="Etiqueta do volume"
+                                    aria-label={`Etiqueta do volume ${linha.codigo}`}
+                                  >
+                                    <IconTag />
+                                  </Link>
+                                </div>
+                              ) : null}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
 
-                {!loadingVolumes && !erroVolumes && volumes.length === 0 && (selecionado.itens?.length ?? 0) === 0 && (
+                {!loadingVolumes && !erroVolumes && linhasSaldo.length === 0 && (
                   <p className="muted">Local vazio. Use Guardar para amarrar um volume aqui.</p>
-                )}
-
-                {!loadingVolumes && volumes.length > 0 && (
-                  <>
-                    <h3 className="estoque-mapa-ficha-titulo">Volumes</h3>
-                    <ul className="estoque-mapa-ficha">
-                      <li className="estoque-mapa-linha estoque-mapa-linha--registro estoque-mapa-linha--head" aria-hidden>
-                        <span>Código</span>
-                        <span>Descrição</span>
-                        <span>Medida</span>
-                        <span className="estoque-mapa-ficha-qtde">Qtde</span>
-                        <span>Local</span>
-                        <span />
-                      </li>
-                      {volumes.map((l) => {
-                        const medida =
-                          l.largura_mm && l.comprimento_m
-                            ? `${l.largura_mm} mm × ${l.comprimento_m} m`
-                            : '—';
-                        const descricao = [l.produto?.codigo, l.produto?.descricao_fiscal]
-                          .filter(Boolean)
-                          .join(' · ');
-                        const lugar = rotuloDoLocal(selecionado.codigo, selecionado.nome);
-                        return (
-                          <li key={l.id} className="estoque-mapa-linha estoque-mapa-linha--registro">
-                            <code className="estoque-mapa-cel" title={l.codigo}>
-                              {l.codigo}
-                            </code>
-                            <span className="estoque-mapa-cel estoque-mapa-cel--muted" title={descricao || undefined}>
-                              {descricao || '—'}
-                            </span>
-                            <span className="estoque-mapa-cel estoque-mapa-cel--muted" title={medida === '—' ? undefined : medida}>
-                              {medida}
-                            </span>
-                            <span className="estoque-mapa-ficha-qtde">
-                              {l.qtde} {l.unidade}
-                            </span>
-                            <span className="estoque-mapa-cel estoque-mapa-cel-local" title={lugar}>
-                              {lugar}
-                            </span>
-                            <Link
-                              className="btn btn-secondary btn-sm"
-                              to={`/estoque/lotes/${l.id}/etiqueta`}
-                            >
-                              Etiqueta
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </>
                 )}
 
                 <p className="estoque-ops-line muted" style={{ marginTop: '0.75rem', marginBottom: 0 }}>
