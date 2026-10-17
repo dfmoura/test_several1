@@ -15651,78 +15651,75 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   min-width: 0;
 }
 
-.estoque-mapa-ficha li {
+.estoque-mapa-linha {
+  display: grid;
+  align-items: center;
+  column-gap: 0.65rem;
   min-width: 0;
-  padding: 0.55rem 0;
+  padding: 0.4rem 0;
   border-bottom: 1px solid var(--border);
 }
 
-.estoque-mapa-ficha li:first-child {
+.estoque-mapa-linha--volume {
+  grid-template-columns: minmax(0, 9.5rem) minmax(0, 7.5rem) minmax(0, 7.5rem) minmax(0, 1fr) max-content max-content;
+}
+
+.estoque-mapa-linha--item {
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) max-content minmax(0, 16rem);
+}
+
+.estoque-mapa-linha--leitura {
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) max-content;
+}
+
+.estoque-mapa-linha--head {
   padding-top: 0;
+  border-bottom-color: transparent;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
-.estoque-mapa-ficha-top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.75rem;
+.estoque-mapa-cel {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.estoque-mapa-ficha-top code,
-.estoque-mapa-ficha-top strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
+.estoque-mapa-cel--muted {
+  color: var(--text-muted);
+  font-size: 0.78rem;
 }
 
 .estoque-mapa-ficha-qtde {
   font-variant-numeric: tabular-nums;
   font-weight: 650;
   white-space: nowrap;
-}
-
-.estoque-mapa-ficha-top .btn {
-  margin-left: auto;
-}
-
-.estoque-mapa-ficha-desc,
-.estoque-mapa-ficha-sku {
-  margin: 0.2rem 0 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.estoque-mapa-ficha-desc {
-  font-size: 0.72rem;
-}
-
-.estoque-mapa-ficha-sku {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  font-size: 0.82rem;
-}
-
-.estoque-mapa-ficha-sku .muted {
-  font-size: 0.72rem;
+  text-align: right;
 }
 
 .estoque-mapa-dialog .local-saldo-campo {
-  margin-top: 0.45rem;
+  min-width: 0;
+  margin: 0;
 }
 
 .estoque-mapa-dialog .local-saldo-campo .btn-row {
-  flex-direction: column;
-  align-items: stretch;
+  flex-wrap: nowrap;
+  min-width: 0;
+  gap: 0.35rem;
 }
 
 .estoque-mapa-dialog .local-saldo-input {
+  flex: 1 1 auto;
   min-width: 0;
-  width: 100%;
+  width: auto;
 }
 
 .estoque-mapa-dialog .local-saldo-campo .btn {
-  align-self: flex-start;
+  flex: 0 0 auto;
 }
 
 .estoque-mapa-detalhe-head {

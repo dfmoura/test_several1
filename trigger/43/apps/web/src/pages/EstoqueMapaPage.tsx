@@ -552,17 +552,29 @@ export function EstoqueMapaPage() {
                   <>
                     <h3 className="estoque-mapa-ficha-titulo">Sem volume</h3>
                     <ul className="estoque-mapa-ficha">
+                      <li
+                        className={`estoque-mapa-linha estoque-mapa-linha--item${canWrite ? '' : ' estoque-mapa-linha--leitura'} estoque-mapa-linha--head`}
+                        aria-hidden
+                      >
+                        <span>Item</span>
+                        <span>Descrição</span>
+                        <span>Qtde</span>
+                        {canWrite ? <span>Local</span> : null}
+                      </li>
                       {selecionado.itens?.map((item) => (
-                        <li key={item.produto_id}>
-                          <div className="estoque-mapa-ficha-top">
-                            <strong>{item.codigo}</strong>
-                            <span className="estoque-mapa-ficha-qtde">
-                              {item.qtde} {item.unidade}
-                            </span>
-                          </div>
-                          {item.descricao ? (
-                            <p className="muted estoque-mapa-ficha-desc">{item.descricao}</p>
-                          ) : null}
+                        <li
+                          key={item.produto_id}
+                          className={`estoque-mapa-linha estoque-mapa-linha--item${canWrite ? '' : ' estoque-mapa-linha--leitura'}`}
+                        >
+                          <strong className="estoque-mapa-cel" title={item.codigo}>
+                            {item.codigo}
+                          </strong>
+                          <span className="estoque-mapa-cel estoque-mapa-cel--muted" title={item.descricao || undefined}>
+                            {item.descricao || '—'}
+                          </span>
+                          <span className="estoque-mapa-ficha-qtde">
+                            {item.qtde} {item.unidade}
+                          </span>
                           {canWrite ? (
                             <LocalSaldoCampo
                               produtoId={item.produto_id}
@@ -588,10 +600,35 @@ export function EstoqueMapaPage() {
                   <>
                     <h3 className="estoque-mapa-ficha-titulo">Volumes</h3>
                     <ul className="estoque-mapa-ficha">
-                      {volumes.map((l) => (
-                        <li key={l.id}>
-                          <div className="estoque-mapa-ficha-top">
-                            <code>{l.codigo}</code>
+                      <li className="estoque-mapa-linha estoque-mapa-linha--volume estoque-mapa-linha--head" aria-hidden>
+                        <span>Volume</span>
+                        <span>Medida</span>
+                        <span>SKU</span>
+                        <span>Descrição</span>
+                        <span>Qtde</span>
+                        <span />
+                      </li>
+                      {volumes.map((l) => {
+                        const medida =
+                          l.largura_mm && l.comprimento_m
+                            ? `${l.largura_mm} mm × ${l.comprimento_m} m`
+                            : '—';
+                        const sku = l.produto?.codigo || '—';
+                        const descricao = l.produto?.descricao_fiscal || '';
+                        return (
+                          <li key={l.id} className="estoque-mapa-linha estoque-mapa-linha--volume">
+                            <code className="estoque-mapa-cel" title={l.codigo}>
+                              {l.codigo}
+                            </code>
+                            <span className="estoque-mapa-cel estoque-mapa-cel--muted" title={medida === '—' ? undefined : medida}>
+                              {medida}
+                            </span>
+                            <span className="estoque-mapa-cel" title={sku === '—' ? undefined : sku}>
+                              {sku}
+                            </span>
+                            <span className="estoque-mapa-cel estoque-mapa-cel--muted" title={descricao || undefined}>
+                              {descricao || '—'}
+                            </span>
                             <span className="estoque-mapa-ficha-qtde">
                               {l.qtde} {l.unidade}
                             </span>
@@ -601,24 +638,9 @@ export function EstoqueMapaPage() {
                             >
                               Etiqueta
                             </Link>
-                          </div>
-                          {l.largura_mm && l.comprimento_m ? (
-                            <p className="muted estoque-mapa-ficha-desc">
-                              {l.largura_mm} mm × {l.comprimento_m} m
-                            </p>
-                          ) : null}
-                          {l.produto ? (
-                            <p className="estoque-mapa-ficha-sku">
-                              <span>{l.produto.codigo}</span>
-                              {l.produto.descricao_fiscal ? (
-                                <span className="muted">{l.produto.descricao_fiscal}</span>
-                              ) : null}
-                            </p>
-                          ) : (
-                            <p className="muted estoque-mapa-ficha-desc">—</p>
-                          )}
-                        </li>
-                      ))}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </>
                 )}
