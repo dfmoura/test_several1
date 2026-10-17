@@ -527,7 +527,7 @@ export function EstoqueMapaPage() {
                     {selecionado.skus_count > 0 ? ` · ${selecionado.skus_count} SKU(s)` : ''}
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                <div className="estoque-mapa-detalhe-acoes">
                   {canWrite && (
                     <button
                       type="button"
@@ -549,47 +549,35 @@ export function EstoqueMapaPage() {
                 {erroVolumes && <div className="alert alert-error">{erroVolumes}</div>}
 
                 {(selecionado.itens?.length ?? 0) > 0 && (
-                  <div className="table-wrap" style={{ marginBottom: '0.75rem' }}>
-                    <table className="estoque-dense-table">
-                      <thead>
-                        <tr>
-                          <th>Item sem volume</th>
-                          <th className="num">Qtde</th>
-                          {canWrite ? <th>Local</th> : null}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selecionado.itens?.map((item) => (
-                          <tr key={item.produto_id}>
-                            <td>
-                              <div>{item.codigo}</div>
-                              {item.descricao ? (
-                                <div className="muted" style={{ fontSize: '0.72rem' }}>
-                                  {item.descricao}
-                                </div>
-                              ) : null}
-                            </td>
-                            <td className="num">
+                  <>
+                    <h3 className="estoque-mapa-ficha-titulo">Sem volume</h3>
+                    <ul className="estoque-mapa-ficha">
+                      {selecionado.itens?.map((item) => (
+                        <li key={item.produto_id}>
+                          <div className="estoque-mapa-ficha-top">
+                            <strong>{item.codigo}</strong>
+                            <span className="estoque-mapa-ficha-qtde">
                               {item.qtde} {item.unidade}
-                            </td>
-                            {canWrite ? (
-                              <td>
-                                <LocalSaldoCampo
-                                  produtoId={item.produto_id}
-                                  local={{
-                                    id: selecionado.id,
-                                    codigo: selecionado.codigo,
-                                    nome: selecionado.nome,
-                                  }}
-                                  onSaved={(local) => void aposMarcarLocal(local)}
-                                />
-                              </td>
-                            ) : null}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                            </span>
+                          </div>
+                          {item.descricao ? (
+                            <p className="muted estoque-mapa-ficha-desc">{item.descricao}</p>
+                          ) : null}
+                          {canWrite ? (
+                            <LocalSaldoCampo
+                              produtoId={item.produto_id}
+                              local={{
+                                id: selecionado.id,
+                                codigo: selecionado.codigo,
+                                nome: selecionado.nome,
+                              }}
+                              onSaved={(local) => void aposMarcarLocal(local)}
+                            />
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 )}
 
                 {!loadingVolumes && !erroVolumes && volumes.length === 0 && (selecionado.itens?.length ?? 0) === 0 && (
@@ -597,55 +585,42 @@ export function EstoqueMapaPage() {
                 )}
 
                 {!loadingVolumes && volumes.length > 0 && (
-                  <div className="table-wrap">
-                    <table className="estoque-dense-table">
-                      <thead>
-                        <tr>
-                          <th>Volume</th>
-                          <th>SKU</th>
-                          <th className="num">Qtde</th>
-                          <th />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {volumes.map((l) => (
-                          <tr key={l.id}>
-                            <td>
-                              <code>{l.codigo}</code>
-                              {l.largura_mm && l.comprimento_m ? (
-                                <div className="muted" style={{ fontSize: '0.72rem' }}>
-                                  {l.largura_mm} mm × {l.comprimento_m} m
-                                </div>
-                              ) : null}
-                            </td>
-                            <td>
-                              {l.produto ? (
-                                <>
-                                  <div>{l.produto.codigo}</div>
-                                  <div className="muted" style={{ fontSize: '0.72rem' }}>
-                                    {l.produto.descricao_fiscal}
-                                  </div>
-                                </>
-                              ) : (
-                                '—'
-                              )}
-                            </td>
-                            <td className="num">
+                  <>
+                    <h3 className="estoque-mapa-ficha-titulo">Volumes</h3>
+                    <ul className="estoque-mapa-ficha">
+                      {volumes.map((l) => (
+                        <li key={l.id}>
+                          <div className="estoque-mapa-ficha-top">
+                            <code>{l.codigo}</code>
+                            <span className="estoque-mapa-ficha-qtde">
                               {l.qtde} {l.unidade}
-                            </td>
-                            <td>
-                              <Link
-                                className="btn btn-secondary btn-sm"
-                                to={`/estoque/lotes/${l.id}/etiqueta`}
-                              >
-                                Etiqueta
-                              </Link>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                            </span>
+                            <Link
+                              className="btn btn-secondary btn-sm"
+                              to={`/estoque/lotes/${l.id}/etiqueta`}
+                            >
+                              Etiqueta
+                            </Link>
+                          </div>
+                          {l.largura_mm && l.comprimento_m ? (
+                            <p className="muted estoque-mapa-ficha-desc">
+                              {l.largura_mm} mm × {l.comprimento_m} m
+                            </p>
+                          ) : null}
+                          {l.produto ? (
+                            <p className="estoque-mapa-ficha-sku">
+                              <span>{l.produto.codigo}</span>
+                              {l.produto.descricao_fiscal ? (
+                                <span className="muted">{l.produto.descricao_fiscal}</span>
+                              ) : null}
+                            </p>
+                          ) : (
+                            <p className="muted estoque-mapa-ficha-desc">—</p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 )}
 
                 <p className="estoque-ops-line muted" style={{ marginTop: '0.75rem', marginBottom: 0 }}>

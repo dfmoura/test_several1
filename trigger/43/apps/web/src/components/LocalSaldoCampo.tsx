@@ -90,15 +90,15 @@ export function LocalSaldoCampo({ produtoId, local, disabled, onSaved }: Props) 
   };
 
   return (
-    <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+    <div className="local-saldo-campo" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
       <div className="btn-row" style={{ margin: 0, alignItems: 'center' }}>
         <input
+          className="local-saldo-input"
           list={listaId}
           value={texto}
           disabled={disabled || busy}
           placeholder="Garagem, em cima das estantes…"
           aria-label="Local"
-          style={{ minWidth: '12rem' }}
           onChange={(e) => setTexto(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
