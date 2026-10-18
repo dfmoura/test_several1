@@ -1117,7 +1117,9 @@ button.par-geo--faltando:hover:not(:disabled) {
 
 .tabs.tabs-parceiro,
 .tabs.tabs-pedidos,
-.tabs.tabs-orcamentos {
+.tabs.tabs-orcamentos,
+.tabs.tabs-ordens-producao,
+.tabs.tabs-ordens-compra {
   flex-wrap: wrap;
   overflow: visible;
   row-gap: 0;
@@ -1126,7 +1128,9 @@ button.par-geo--faltando:hover:not(:disabled) {
 
 .tabs.tabs-parceiro .tab,
 .tabs.tabs-pedidos .tab,
-.tabs.tabs-orcamentos .tab {
+.tabs.tabs-orcamentos .tab,
+.tabs.tabs-ordens-producao .tab,
+.tabs.tabs-ordens-compra .tab {
   padding: 0.55rem 0.85rem;
   font-size: 0.86rem;
 }

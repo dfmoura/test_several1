@@ -1,12 +1,24 @@
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type OrdemProducao } from '../lib/api';
 import { formatDate, formatDecimalBr } from '../lib/format';
-import { opStatusLabel } from '../lib/producaoUi';
+import { OP_LISTA_STATUSES, opStatusLabel } from '../lib/producaoUi';
 import { useTableSort } from '../lib/useTableSort';
+
+type StatusTab = '' | (typeof OP_LISTA_STATUSES)[number];
+
+const STATUS_TABS: { id: StatusTab; label: string }[] = [
+  { id: '', label: 'Todos' },
+  ...OP_LISTA_STATUSES.map((id) => ({ id, label: opStatusLabel(id) })),
+];
+
+function parseStatusTab(raw: string | null): StatusTab {
+  if (!raw) return '';
+  return (OP_LISTA_STATUSES as readonly string[]).includes(raw) ? (raw as StatusTab) : '';
+}
 
 const SORT = {
   codigo: (o: OrdemProducao) => o.codigo,
@@ -24,21 +36,34 @@ function activateRow(e: KeyboardEvent, go: () => void) {
   }
 }
 
+function emptyMessage(status: StatusTab, q: string): string {
+  const qTrim = q.trim();
+  if (status && !qTrim) {
+    return `Nenhuma ordem de produção com status ${opStatusLabel(status)}.`;
+  }
+  if (status || qTrim) {
+    return 'Nenhuma OP encontrada com estes filtros.';
+  }
+  return 'Nenhuma OP. Abra a partir de um pedido liberado.';
+}
+
 export function OrdensProducaoPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [ops, setOps] = useState<OrdemProducao[]>([]);
   const [q, setQ] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatusState] = useState<StatusTab>(() => parseStatusTab(searchParams.get('status')));
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(ops, SORT);
 
-  const load = async (search?: string, st?: string) => {
+  const load = useCallback(async (search?: string, st?: string) => {
     setLoading(true);
     setErro(null);
     try {
       const params = new URLSearchParams();
-      if (search) params.set('q', search);
+      const qTrim = search?.trim();
+      if (qTrim) params.set('q', qTrim);
       if (st) params.set('status', st);
       const qs = params.toString();
       const res = await api.get<{ data: OrdemProducao[] }>(
@@ -50,15 +75,43 @@ export function OrdensProducaoPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    void load();
+    const raw = searchParams.get('status');
+    if (raw && !parseStatusTab(raw)) {
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          p.delete('status');
+          return p;
+        },
+        { replace: true },
+      );
+    }
+    void load(undefined, status || undefined);
+    // Carga inicial (aba vinda da URL). Trocas de aba/busca disparam load à parte.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const setStatus = (next: StatusTab) => {
+    if (next === status) return;
+    setStatusState(next);
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        if (next) p.set('status', next);
+        else p.delete('status');
+        return p;
+      },
+      { replace: true },
+    );
+    void load(q, next || undefined);
+  };
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    void load(q, status);
+    void load(q, status || undefined);
   };
 
   return (
@@ -70,26 +123,36 @@ export function OrdensProducaoPage() {
 
       {erro ? <p className="form-error">{erro}</p> : null}
 
+      <div className="tabs tabs-ordens-producao" role="tablist" aria-label="Status da ordem de produção">
+        {STATUS_TABS.map((t) => (
+          <button
+            key={t.id || 'todos'}
+            type="button"
+            role="tab"
+            className={`tab${status === t.id ? ' active' : ''}`}
+            aria-selected={status === t.id}
+            onClick={() => setStatus(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <div className="card" style={{ marginBottom: '1rem' }}>
         <div className="card-body">
           <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
-              <label>Buscar</label>
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="OP, PED…" />
-            </div>
-            <div className="form-group" style={{ minWidth: 160 }}>
-              <label>Status</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="">Todos</option>
-                <option value="ABERTA">Aberta</option>
-                <option value="EM_ANDAMENTO">Em andamento</option>
-                <option value="CONCLUIDA">Concluída</option>
-                <option value="CANCELADA">Cancelada</option>
-              </select>
+              <label htmlFor="ordens-producao-busca">Buscar</label>
+              <input
+                id="ordens-producao-busca"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="OP, PED…"
+              />
             </div>
             <div style={{ alignSelf: 'flex-end' }}>
               <button type="submit" className="btn btn-secondary">
-                Filtrar
+                Buscar
               </button>
             </div>
           </form>
@@ -106,11 +169,7 @@ export function OrdensProducaoPage() {
           {loading ? (
             <div className="loading">Carregando…</div>
           ) : sorted.length === 0 ? (
-            <div className="empty-state">
-              {q || status
-                ? 'Nenhuma OP encontrada com estes filtros.'
-                : 'Nenhuma OP. Abra a partir de um pedido liberado.'}
-            </div>
+            <div className="empty-state">{emptyMessage(status, q)}</div>
           ) : (
             <table className="data-table">
               <thead>

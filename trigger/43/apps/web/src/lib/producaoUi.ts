@@ -47,6 +47,19 @@ const NEC_LABELS: Record<string, string> = {
   REVENDA: 'Revenda',
 };
 
+/**
+ * Abas da lista de OP (OrdemProducao::STATUSES), na ordem do pipeline.
+ * Cancelada permanece: devolver a ordem ao pedido grava este status.
+ */
+export const OP_LISTA_STATUSES = [
+  'ABERTA',
+  'EM_ANDAMENTO',
+  'CONCLUIDA',
+  'CANCELADA',
+] as const;
+
+export type OpListaStatus = (typeof OP_LISTA_STATUSES)[number];
+
 const OP_LABELS: Record<string, string> = {
   ABERTA: 'Aberta',
   EM_ANDAMENTO: 'Em andamento',

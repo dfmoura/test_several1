@@ -1,5 +1,19 @@
 /** Labels de status — Compras · Estoque · Contas a pagar (BL-033). */
 
+/**
+ * Abas da lista de OC (OrdemCompra::STATUSES), na ordem do pipeline.
+ * ABERTA na guia é «Enviada». Cancelada permanece: o cancelamento grava este status.
+ */
+export const OC_LISTA_STATUSES = [
+  'RASCUNHO',
+  'ABERTA',
+  'PARCIAL',
+  'RECEBIDA',
+  'CANCELADA',
+] as const;
+
+export type OcListaStatus = (typeof OC_LISTA_STATUSES)[number];
+
 const OC_LABELS: Record<string, string> = {
   RASCUNHO: 'Rascunho',
   ABERTA: 'Enviada',
