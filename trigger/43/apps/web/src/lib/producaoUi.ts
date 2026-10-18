@@ -14,6 +14,15 @@ export const PED_STATUSES = [
 
 export type PedStatus = (typeof PED_STATUSES)[number];
 
+/**
+ * Abas da lista de pedidos. CANCELADO fica no modelo e no rótulo
+ * (faturamento e expedição recusam esse status), mas nenhum fluxo o grava.
+ * Desfazer a ordem aberta é devolver a OP ao pedido, que volta a Liberado.
+ */
+export const PED_LISTA_STATUSES = PED_STATUSES.filter(
+  (status): status is Exclude<PedStatus, 'CANCELADO'> => status !== 'CANCELADO',
+);
+
 const PED_LABELS: Record<string, string> = {
   LIBERADO: 'Liberado',
   EM_PRODUCAO: 'Em produção',

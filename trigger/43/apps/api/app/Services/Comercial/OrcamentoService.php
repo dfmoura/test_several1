@@ -94,6 +94,12 @@ class OrcamentoService
             ->where('empresa_id', $empresa->id)
             ->orderByDesc('id');
 
+        if (($filters['status'] ?? null) === Orcamento::STATUS_CANCELADO) {
+            // Exclusão lógica grava CANCELADO e tira o ORC do livro operacional.
+            // A aba Cancelado é o histórico; Todos segue sem estes registros.
+            $q->withTrashed();
+        }
+
         if (! empty($filters['status'])) {
             $q->where('status', $filters['status']);
         }

@@ -38,6 +38,7 @@ export const STATUS_EDITAVEL = new Set(['RASCUNHO', 'CALCULADO', 'REPROVADO']);
 /**
  * Abas da lista de orçamentos: status comercial persistido, na ordem do fluxo.
  * RASCUNHO permanece em Todos (mesmo rótulo de CALCULADO). VENCIDO não entra no filtro.
+ * CANCELADO é a exclusão lógica: só aparece nesta aba (histórico), não em Todos.
  * “Aguardando pagamento” é financeiro_status sobre APROVADO — a pílula da linha distingue.
  */
 export const ORC_LISTA_STATUSES = [

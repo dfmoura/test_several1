@@ -411,6 +411,9 @@ export function OrcamentoDetailPage() {
       : null;
 
   const lockNote = (() => {
+    if (orc.status === 'CANCELADO') {
+      return 'Cancelado. Permanece no histórico, sem edição e sem novo envio.';
+    }
     if (orc.status === 'APROVADO') {
       return 'Aprovado pelo destinatário do link — pronto para seguir. Sem edição. Duplicar abre um orçamento novo em preparação, com as mesmas características.';
     }

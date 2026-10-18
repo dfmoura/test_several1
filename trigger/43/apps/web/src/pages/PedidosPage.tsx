@@ -6,19 +6,19 @@ import { StatusPill } from '../components/StatusPill';
 import { api, type Pedido } from '../lib/api';
 import { formatDate } from '../lib/format';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
-import { PED_STATUSES, pedStatusLabel, type PedStatus } from '../lib/producaoUi';
+import { PED_LISTA_STATUSES, pedStatusLabel } from '../lib/producaoUi';
 import { useTableSort } from '../lib/useTableSort';
 
-type StatusTab = '' | PedStatus;
+type StatusTab = '' | (typeof PED_LISTA_STATUSES)[number];
 
 const STATUS_TABS: { id: StatusTab; label: string }[] = [
   { id: '', label: 'Todos' },
-  ...PED_STATUSES.map((id) => ({ id, label: pedStatusLabel(id) })),
+  ...PED_LISTA_STATUSES.map((id) => ({ id, label: pedStatusLabel(id) })),
 ];
 
 function parseStatusTab(raw: string | null): StatusTab {
   if (!raw) return '';
-  return (PED_STATUSES as readonly string[]).includes(raw) ? (raw as PedStatus) : '';
+  return (PED_LISTA_STATUSES as readonly string[]).includes(raw) ? (raw as StatusTab) : '';
 }
 
 const SORT = {
@@ -78,6 +78,16 @@ export function PedidosPage() {
   }, []);
 
   useEffect(() => {
+    if (searchParams.get('status') === 'CANCELADO') {
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          p.delete('status');
+          return p;
+        },
+        { replace: true },
+      );
+    }
     void load(undefined, status || undefined);
     // Carga inicial (aba vinda da URL). Trocas de aba/busca disparam load à parte.
     // eslint-disable-next-line react-hooks/exhaustive-deps

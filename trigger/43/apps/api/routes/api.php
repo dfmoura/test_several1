@@ -397,13 +397,13 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:120,1');
         Route::get('/orcamentos', [OrcamentoController::class, 'index']);
         Route::post('/orcamentos', [OrcamentoController::class, 'store']);
-        Route::get('/orcamentos/{orcamento}', [OrcamentoController::class, 'show']);
+        Route::get('/orcamentos/{orcamento}', [OrcamentoController::class, 'show'])->withTrashed();
         Route::put('/orcamentos/{orcamento}', [OrcamentoController::class, 'update']);
         Route::delete('/orcamentos/{orcamento}', [OrcamentoController::class, 'destroy']);
         Route::post('/orcamentos/{orcamento}/duplicar', [OrcamentoController::class, 'duplicar']);
         Route::post('/orcamentos/{orcamento}/enviar-aprovacao', [OrcamentoAprovacaoController::class, 'enviar']);
         Route::get('/orcamentos/{orcamento}/destinatarios-aprovacao', [OrcamentoAprovacaoController::class, 'destinatarios']);
-        Route::get('/orcamentos/{orcamento}/proposta-comercial', [OrcamentoAprovacaoController::class, 'propostaComercial']);
+        Route::get('/orcamentos/{orcamento}/proposta-comercial', [OrcamentoAprovacaoController::class, 'propostaComercial'])->withTrashed();
 
         // BL-044 — PED / OP / OS
         Route::get('/pedidos', [PedidoController::class, 'index']);

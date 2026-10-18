@@ -230,6 +230,28 @@ class OrcamentoTest extends TestCase
         $this->assertSame(0, Orcamento::query()->count());
         $this->assertSame(1, Orcamento::withTrashed()->count());
         $this->assertSame('CANCELADO', Orcamento::withTrashed()->first()->status);
+
+        $livro = $this->withHeaders($h)->getJson('/api/v1/orcamentos');
+        $livro->assertOk();
+        $this->assertCount(0, $livro->json('data'));
+
+        $cancelados = $this->withHeaders($h)->getJson('/api/v1/orcamentos?status=CANCELADO');
+        $cancelados->assertOk();
+        $this->assertCount(1, $cancelados->json('data'));
+        $this->assertSame('CANCELADO', $cancelados->json('data.0.status'));
+        $this->assertFalse($cancelados->json('data.0.editavel'));
+        $this->assertSame($id, $cancelados->json('data.0.id'));
+
+        $showCancelado = $this->withHeaders($h)->getJson('/api/v1/orcamentos/'.$id);
+        $showCancelado->assertOk();
+        $this->assertSame('CANCELADO', $showCancelado->json('data.status'));
+        $this->assertFalse($showCancelado->json('data.editavel'));
+        $this->assertFalse($showCancelado->json('data.enviavel'));
+
+        $this->withHeaders($h)->getJson('/api/v1/orcamentos/'.$id.'/proposta-comercial')->assertOk();
+        $this->withHeaders($h)->putJson('/api/v1/orcamentos/'.$id, $updPayload)->assertNotFound();
+        $this->withHeaders($h)->deleteJson('/api/v1/orcamentos/'.$id)->assertNotFound();
+        $this->withHeaders($h)->postJson('/api/v1/orcamentos/'.$id.'/duplicar')->assertNotFound();
     }
 
     public function test_duplicar_aprovado_cria_orcamento_novo_e_preserva_o_original(): void
