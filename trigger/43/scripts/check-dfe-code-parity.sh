@@ -40,6 +40,9 @@ FILES=(
   apps/api/app/Services/Cadastros/EmpresaCertificadoA1Materializer.php
   apps/api/routes/api.php
   apps/api/config/erp.php
+  apps/api/bootstrap/app.php
+  docker-compose.yml
+  docker-compose.aws.yml
   apps/web/src/pages/ComprasNfeDestinadasPage.tsx
   apps/web/src/lib/api.ts
   apps/api/tests/Feature/DfeAmarrarXmlTest.php

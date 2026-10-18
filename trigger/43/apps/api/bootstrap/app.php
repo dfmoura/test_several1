@@ -26,13 +26,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ])
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {
         // Cobrança antecipada: alerta ops quando cortesia acaba sem meio ASAAS.
-        $schedule->command('plataforma:avisar-cortesia-billing')->dailyAt('08:00');
+        $schedule->command('plataforma:avisar-cortesia-billing')->dailyAt('08:00')->withoutOverlapping(10);
         // Cofre A1: lista EMPs com certificado a vencer / vencido (valido_ate).
-        $schedule->command('plataforma:avisar-certificado-a1')->dailyAt('08:05');
-        // Caixa DF-e: delta NSU (fora do pico) — BL-093.
-        $schedule->command('dfe:sync-delta')->dailyAt('06:15');
+        $schedule->command('plataforma:avisar-certificado-a1')->dailyAt('08:05')->withoutOverlapping(10);
+        // Caixa DF-e: delta NSU (fora do pico) — BL-093. Quem dispara é o container scheduler.
+        $schedule->command('dfe:sync-delta')->dailyAt('06:15')->withoutOverlapping(10);
         // Transportador já no cofre — fora do GET da lista. Sem SEFAZ.
-        $schedule->command('dfe:hidratar-transporte')->dailyAt('06:20');
+        $schedule->command('dfe:hidratar-transporte')->dailyAt('06:20')->withoutOverlapping(10);
     })
     ->withMiddleware(function (Middleware $middleware) {
         // Auth por Bearer token (Sanctum personal access) — sem cookie/CSRF SPA.

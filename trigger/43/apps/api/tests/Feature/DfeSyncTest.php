@@ -7,6 +7,7 @@ use App\Models\Empresa;
 use App\Models\EmpresaCertificadoA1;
 use App\Models\User;
 use App\Services\Cadastros\EmpresaCertificadoCrypto;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
@@ -17,6 +18,23 @@ class DfeSyncTest extends TestCase
     use RefreshDatabase;
 
     private string $senha = 'SenhaA1-Dfe!';
+
+    public function test_agenda_diaria_dispara_delta_dfe_sem_sobrepor(): void
+    {
+        $eventos = collect(app(Schedule::class)->events());
+
+        $delta = $eventos->first(fn ($evento) => str_contains((string) $evento->command, 'dfe:sync-delta'));
+        $transporte = $eventos->first(fn ($evento) => str_contains((string) $evento->command, 'dfe:hidratar-transporte'));
+
+        $this->assertNotNull($delta);
+        $this->assertNotNull($transporte);
+        $this->assertSame('15 6 * * *', $delta->expression);
+        $this->assertSame('20 6 * * *', $transporte->expression);
+        $this->assertTrue($delta->withoutOverlapping);
+        $this->assertTrue($transporte->withoutOverlapping);
+        $this->assertSame(10, $delta->expiresAt);
+        $this->assertSame(10, $transporte->expiresAt);
+    }
 
     public function test_local_recusa_enfileirar_sync(): void
     {

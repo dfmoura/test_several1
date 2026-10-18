@@ -175,7 +175,8 @@ Norma do ensaio: [`ADR_ENSAIO_ASAAS_FLEXORC.md`](ADR_ENSAIO_ASAAS_FLEXORC.md).
 ## O que NÃO muda entre estágios
 
 - Mesmo `docker-compose.yml` + overlay aws  
-- Mesmos containers: mysql · app · queue · web  
+- Mesmos containers: mysql · app · queue · scheduler · web  
+- `scheduler` roda `schedule:work` (delta DF-e 06:15 no fuso da app). O `queue` só executa o job. Em `local` o delta não chama o fisco.  
 - Domínio de negócio (OC → MOV → TIT, ORC, etc.)  
 - Relatórios “livres” fora do host (vibe coding) — não reintroduzir DomPDF no monólito  
 
@@ -190,6 +191,7 @@ Infra mínima abaixo. Aceite completo (multi-empresa + key user): [`MODELO_INSTA
 - [ ] ORC + link público em `https://flexoerp001.triggerti.com/p/{token}` + smoke envio (e-mail/Zap)  
 - [ ] A1 da EMP piloto ainda apto (mesma `APP_KEY`)  
 - [ ] OC → receber → TIT (e BX se perfil financeiro)  
+- [ ] Containers `queue` e `scheduler` no ar (`schedule:work`; em local o delta DF-e não chama o fisco)  
 - [ ] MySQL **não** responde em IP público:3306  
 - [ ] Troca/isolamento EMP (se N empresas) — ver modelo §7.B  
 

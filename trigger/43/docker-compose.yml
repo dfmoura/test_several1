@@ -161,6 +161,42 @@ services:
     # Worker pronto para jobs futuros (Focus, e-mail, etc.). Hoje ocioso — ok.
     mem_limit: 384m
 
+  # Agenda Laravel (06:15 DF-e, 06:20 transporte, alertas 08:00/08:05).
+  # O queue só executa job já enfileirado — sem este processo a agenda não corre.
+  # Em ERP_STAGE=local o delta DF-e recusa SEFAZ (ADR_CAIXA_DFE_NFE_DESTINADAS).
+  scheduler:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: erp43_scheduler
+    working_dir: /var/www/html
+    volumes:
+      - ./apps/api:/var/www/html
+      - ./branding:/var/www/branding:ro
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-erp.ini:ro
+      - ./docker/php/openssl.cnf:/usr/local/etc/ssl/openssl-erp.cnf:ro
+      - ./docker/php/entrypoint.sh:/usr/local/bin/erp-entrypoint:ro
+    environment:
+      <<: *app_env
+      SEED_ON_BOOT: "false"
+    command:
+      [
+        "php",
+        "-d",
+        "memory_limit=192M",
+        "artisan",
+        "schedule:work",
+      ]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      app:
+        condition: service_started
+      queue:
+        condition: service_started
+    restart: unless-stopped
+    mem_limit: 256m
+
   web:
     image: 43-web
     build:

@@ -82,6 +82,8 @@ Aceite dual via API de implantação (`F5_DFE_CX`) **somente** após a fatia D e
 
 Piloto: **uma EMP**, homolog primeiro; validar amarrar + `receber()` + espelho iguais ao fluxo manual; só então job periódico e produção.
 
+O job periódico só dispara com o container `scheduler` (`schedule:work`). O container `queue` executa o lote já enfileirado. Sem o `scheduler`, a 06:15 não corre. Em `local` o comando `dfe:sync-delta` continua recusado; a caixa local atualiza por `dfe:importar-xml-pasta`.
+
 ---
 
 ## Emenda — go-live em rampa (produção)

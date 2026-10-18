@@ -14,7 +14,7 @@ Objetivo: colocar a caixa em produção **sem estragar** estoque, fila ou o AN (
 - [ ] `ERP_STAGE` alinhado ao AN desejado (`production` para notas reais; homolog = integração, lista costuma vazia)
 - [ ] **Não** misturar URL/`tpAmb` de outro ambiente
 - [ ] A1 da EMP piloto **apto**; `APP_KEY` preservada se dados cifrados já existem
-- [ ] Containers `app` + **`queue`** saudáveis; `failed_jobs` limpo se residual
+- [ ] Containers `app` + **`queue`** + **`scheduler`** saudáveis; `failed_jobs` limpo se residual
 - [ ] Gate `F5_DFE_CX` aceito **só** na EMP piloto (pré-reqs `F0_A1` · `F5_COMPRAS` · `F5_NFE_ENT`)
 - [ ] Plano B lembrado: upload XML na OC
 
