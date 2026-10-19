@@ -285,9 +285,34 @@ class RevendaOrcAteFaturamentoTest extends TestCase
         $prevCedo->assertOk();
         $this->assertFalse($prevCedo->json('data.apto'));
 
+        $caixa = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'EMB-CX-REV',
+            'familia' => 'EMB',
+            'descricao_fiscal' => 'CAIXA PAPELAO',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'atributos' => ['peso_kg' => '0.180'],
+        ]);
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $caixa->id,
+            'qtde' => '20.0000',
+            'unidade' => 'UN',
+            'custo_medio' => '1.000000',
+        ]);
+
         Sanctum::actingAs($this->producao);
+        $this->withHeaders($h)->postJson("/api/v1/pedidos/{$pedido->id}/separar-revenda", [
+            'pedido_item_id' => $itemId,
+        ])->assertStatus(422);
+
         $sep = $this->withHeaders($h)->postJson("/api/v1/pedidos/{$pedido->id}/separar-revenda", [
             'pedido_item_id' => $itemId,
+            'caixa_produto_id' => $caixa->id,
+            'qtde_caixas' => 2,
         ]);
         $sep->assertOk();
         $this->assertSame(Pedido::STATUS_PRODUZIDO, $sep->json('data.status'));
@@ -301,6 +326,8 @@ class RevendaOrcAteFaturamentoTest extends TestCase
         $prev = $this->withHeaders($h)->getJson("/api/v1/pedidos/{$pedido->id}/faturamento-preview");
         $prev->assertOk();
         $this->assertTrue($prev->json('data.apto'));
+        $this->assertSame(2, $prev->json('data.volumes.quantidade'));
+        $this->assertSame('CAIXA', $prev->json('data.volumes.especie'));
         $this->assertSame('NFE', $prev->json('data.fiscal.documentos.0.tipo'));
         $this->assertTrue($prev->json('data.fiscal.precisa_nfe'));
         $this->assertFalse($prev->json('data.fiscal.precisa_nfse'));

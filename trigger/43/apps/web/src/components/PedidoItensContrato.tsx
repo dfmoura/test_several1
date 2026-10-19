@@ -198,7 +198,7 @@ function PedidoItemGrupo({
                 to={`/estoque/separacoes/${item.id}`}
                 className={item.status === 'PENDENTE' ? 'btn btn-primary' : 'btn btn-secondary'}
               >
-                {item.status === 'PENDENTE' ? 'Separar no estoque' : 'Ficha de separação'}
+                {item.status === 'PENDENTE' ? 'Separar no estoque' : 'Caixa e separação'}
               </Link>
             ) : null}
             {item.necessidade === 'PRODUCAO' && opAtiva ? (

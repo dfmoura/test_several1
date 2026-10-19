@@ -7,6 +7,7 @@ use App\Models\PaEmbalagem;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\Produto;
+use App\Services\Estoque\CaixaExpedicao;
 use App\Support\CaixaMedida;
 use App\Support\InsumoEscolhaRelacao;
 use App\Support\PadraoDecimal;
@@ -48,11 +49,12 @@ final class NfePesoExpedicao
     public function doPedido(Empresa $empresa, Pedido $pedido, iterable $embalagens): array
     {
         $pedido->loadMissing('itens');
-        $produtos = $this->produtos($empresa, $pedido, $embalagens);
+        $revenda = (new CaixaExpedicao())->linhas($empresa, $pedido);
+        $produtos = $this->produtos($empresa, $pedido, $embalagens, $revenda);
 
         return $this->calcular(
             $this->linhas($pedido, $produtos),
-            $this->embalagens($pedido, $embalagens, $produtos),
+            $this->embalagens($pedido, $embalagens, $produtos, $revenda),
         );
     }
 
@@ -90,9 +92,10 @@ final class NfePesoExpedicao
 
     /**
      * @param  iterable<int, PaEmbalagem>  $embalagens
+     * @param  list<array{pedido_item_id: int, produto_id: int, qtde: int}>  $revenda
      * @return Collection<int, Produto>
      */
-    private function produtos(Empresa $empresa, Pedido $pedido, iterable $embalagens): Collection
+    private function produtos(Empresa $empresa, Pedido $pedido, iterable $embalagens, array $revenda = []): Collection
     {
         $ids = [];
         foreach ($pedido->itens as $item) {
@@ -110,6 +113,11 @@ final class NfePesoExpedicao
         foreach ($embalagens as $emb) {
             if ($emb instanceof PaEmbalagem && (int) $emb->caixa_produto_id > 0) {
                 $ids[] = (int) $emb->caixa_produto_id;
+            }
+        }
+        foreach ($revenda as $linha) {
+            if ((int) $linha['produto_id'] > 0) {
+                $ids[] = (int) $linha['produto_id'];
             }
         }
         if ($ids === []) {
@@ -203,9 +211,10 @@ final class NfePesoExpedicao
     /**
      * @param  iterable<int, PaEmbalagem>  $embalagens
      * @param  Collection<int, Produto>  $produtos
+     * @param  list<array{pedido_item_id: int, produto_id: int, qtde: int}>  $revenda
      * @return list<array<string, mixed>>
      */
-    private function embalagens(Pedido $pedido, iterable $embalagens, Collection $produtos): array
+    private function embalagens(Pedido $pedido, iterable $embalagens, Collection $produtos, array $revenda = []): array
     {
         $out = [];
         foreach ($embalagens as $emb) {
@@ -235,6 +244,27 @@ final class NfePesoExpedicao
                 'comprimento_mm' => $comprimento,
                 'largura_bobina_mm' => $this->larguraBobinaMm($espec),
                 'peso_caixa_kg' => $this->atributo($caixa, ProdutoAtributos::PESO_KG),
+                'caixa_comp_mm' => $medida[CaixaMedida::COMP] ?? null,
+                'caixa_larg_mm' => $medida[CaixaMedida::LARG] ?? null,
+                'caixa_alt_mm' => $medida[CaixaMedida::ALT] ?? null,
+            ];
+        }
+
+        foreach ($revenda as $linha) {
+            $caixa = $produtos->get((int) $linha['produto_id']);
+            $medida = $caixa instanceof Produto
+                ? CaixaMedida::fromAtributos(is_array($caixa->atributos) ? $caixa->atributos : null)
+                : null;
+            $out[] = [
+                'qtde_bobinas' => 0,
+                'qtde_caixas' => (int) $linha['qtde'],
+                'tubete' => '',
+                'peso_tubete_kg' => null,
+                'diametro_pol' => null,
+                'espessura_mm' => null,
+                'comprimento_mm' => null,
+                'largura_bobina_mm' => null,
+                'peso_caixa_kg' => $this->atributo($caixa instanceof Produto ? $caixa : null, ProdutoAtributos::PESO_KG),
                 'caixa_comp_mm' => $medida[CaixaMedida::COMP] ?? null,
                 'caixa_larg_mm' => $medida[CaixaMedida::LARG] ?? null,
                 'caixa_alt_mm' => $medida[CaixaMedida::ALT] ?? null,

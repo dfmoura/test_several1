@@ -265,7 +265,7 @@ Passo a passo do dinheiro e da nota **no 39**:
 2. No **commit do FAT** o ERP cria `TIT-` do saldo (`origem=FATURA`) com NAT folha 1–5.
 3. Adapter bancário emite `COB-` se forma PIX/Boleto (idempotência por FAT+parcela). Transferência/Cartão → TIT sem COB.
 4. No mesmo commit planeja `DFS-`. POST Focus **depois** do commit se hub apto. Falha fiscal **não** desfaz FAT/TIT/COB.
-5. NF-e oficial autorizada → `SAIDA_VENDA` da qtde faturada (SKU do item) e, no mesmo movimento, das caixas EMB-CX confirmadas na embalagem (custo médio; o que a OP já baixou como CAIXA não sai de novo). Stub/prévia/NFS-e não baixam.
+5. NF-e oficial autorizada → `SAIDA_VENDA` da qtde faturada (SKU do item) e, no mesmo movimento, das caixas EMB-CX confirmadas na embalagem da etiqueta e na separação da revenda (custo médio; o que a OP já baixou como CAIXA não sai de novo). Stub/prévia/NFS-e não baixam. A revenda sem caixa não fatura. Embalagem antiga de etiqueta sem SKU de caixa continua só com aviso.
 6. Cliente paga → `BX-` na carteira (ou webhook). Limite de crédito sobe na baixa (quando o motor de crédito estiver no documento).
 7. Cada BX de TIT `FATURA` (e a apropriação do sinal no faturar) gera `COM- PREVISTA` se houver vendedor no snapshot — proporcional às **etiquetas**, sem frete/matriz/faca.
 8. Expedição gera `ENT-` **depois** do FAT. Política `politica_nf_antes_expedir=SIM`: em local/teste, sem hub a prévia basta e hub apto exige NF autorizada; em homolog/produção a nota precisa estar autorizada na SEFAZ ou na SEFIN. `PROCESSANDO` bloqueia.

@@ -13,6 +13,7 @@ use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\Produto;
 use App\Models\User;
+use App\Services\Estoque\EstoqueSaidaVendaService;
 use App\Services\Financeiro\AdiantamentoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -36,6 +37,8 @@ class EstoqueSeparacaoRevendaTest extends TestCase
     private PedidoItem $item;
 
     private EstoqueLote $lote;
+
+    private Produto $caixa;
 
     protected function setUp(): void
     {
@@ -108,6 +111,25 @@ class EstoqueSeparacaoRevendaTest extends TestCase
             'custo_medio' => '2.000000',
         ]);
 
+        $this->caixa = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'EMB-CX-SEP',
+            'familia' => 'EMB',
+            'descricao_fiscal' => 'CAIXA PAPELAO 250X200X200',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'atributos' => ['comp_mm' => '250', 'larg_mm' => '200', 'alt_mm' => '200', 'peso_kg' => '0.200'],
+        ]);
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->caixa->id,
+            'qtde' => '0.0000',
+            'unidade' => 'UN',
+            'custo_medio' => '1.500000',
+        ]);
+
         $orc = Orcamento::query()->create([
             'empresa_id' => $this->empresa->id,
             'ano' => 2026,
@@ -163,6 +185,15 @@ class EstoqueSeparacaoRevendaTest extends TestCase
         return ['X-Empresa-Id' => (string) $this->empresa->id];
     }
 
+    /** @return array{caixa_produto_id: int, qtde_caixas: int} */
+    private function caixaPayload(): array
+    {
+        return [
+            'caixa_produto_id' => $this->caixa->id,
+            'qtde_caixas' => 2,
+        ];
+    }
+
     public function test_fila_e_ficha_mostram_o_volume_sem_baixar_saldo(): void
     {
         Sanctum::actingAs($this->user);
@@ -187,18 +218,25 @@ class EstoqueSeparacaoRevendaTest extends TestCase
 
         $res = $this->withHeaders($this->h())->postJson(
             '/api/v1/estoque/separacoes/'.$this->item->id.'/confirmar',
-            ['volumes' => [['lote_id' => $this->lote->id, 'qtde' => '4.0000']]],
+            array_merge(
+                ['volumes' => [['lote_id' => $this->lote->id, 'qtde' => '4.0000']]],
+                $this->caixaPayload(),
+            ),
         );
         $res->assertOk();
         $res->assertJsonPath('data.status', PedidoItem::STATUS_PRODUZIDO);
         $res->assertJsonPath('data.separacao.volumes.0.codigo', 'VOL-REV-1');
         $res->assertJsonPath('data.separacao.volumes.0.endereco', 'P02-C01-L01');
+        $res->assertJsonPath('data.separacao.caixa_produto_codigo', 'EMB-CX-SEP');
+        $res->assertJsonPath('data.separacao.qtde_caixas', 2);
         $res->assertJsonPath('data.pode_confirmar', false);
+        $res->assertJsonPath('data.pode_informar_caixa', true);
 
         $this->item->refresh();
         $this->assertSame(PedidoItem::STATUS_PRODUZIDO, $this->item->status);
         $this->lote->refresh();
         $this->assertSame('10.0000', (string) $this->lote->qtde);
+        $this->assertSame('0.0000', (string) EstoqueSaldo::query()->where('produto_id', $this->caixa->id)->value('qtde'));
         $this->assertSame(0, EstoqueMovimento::query()->count());
 
         $fila = $this->withHeaders($this->h())->getJson('/api/v1/estoque/separacoes');
@@ -224,9 +262,10 @@ class EstoqueSeparacaoRevendaTest extends TestCase
             ->assertNotFound();
 
         $this->withHeaders(['X-Empresa-Id' => (string) $outra->id])
-            ->postJson('/api/v1/estoque/separacoes/'.$this->item->id.'/confirmar', [
-                'volumes' => [['lote_id' => $this->lote->id, 'qtde' => '1.0000']],
-            ])
+            ->postJson('/api/v1/estoque/separacoes/'.$this->item->id.'/confirmar', array_merge(
+                ['volumes' => [['lote_id' => $this->lote->id, 'qtde' => '1.0000']]],
+                $this->caixaPayload(),
+            ))
             ->assertNotFound();
 
         $this->item->refresh();
@@ -272,9 +311,10 @@ class EstoqueSeparacaoRevendaTest extends TestCase
         ]);
 
         $this->withHeaders($this->h())
-            ->postJson('/api/v1/estoque/separacoes/'.$this->item->id.'/confirmar', [
-                'volumes' => [['lote_id' => $loteOutro->id, 'qtde' => '1.0000']],
-            ])
+            ->postJson('/api/v1/estoque/separacoes/'.$this->item->id.'/confirmar', array_merge(
+                ['volumes' => [['lote_id' => $loteOutro->id, 'qtde' => '1.0000']]],
+                $this->caixaPayload(),
+            ))
             ->assertStatus(422);
 
         $this->item->necessidade = PedidoItem::NEC_PRODUCAO;
@@ -332,5 +372,86 @@ class EstoqueSeparacaoRevendaTest extends TestCase
             ->assertStatus(422);
 
         $this->assertSame(0, EstoqueMovimento::query()->count());
+    }
+
+    public function test_recusa_separar_sem_caixa_e_a_nota_enxerga_a_quantidade(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->withHeaders($this->h())
+            ->postJson('/api/v1/estoque/separacoes/'.$this->item->id.'/confirmar', [
+                'volumes' => [['lote_id' => $this->lote->id, 'qtde' => '4.0000']],
+            ])
+            ->assertStatus(422);
+
+        $this->item->refresh();
+        $this->assertSame(PedidoItem::STATUS_PENDENTE, $this->item->status);
+
+        $papel = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MP-PAP-SEP',
+            'familia' => 'MP',
+            'descricao_fiscal' => 'PAPEL',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+        ]);
+        $this->withHeaders($this->h())
+            ->postJson('/api/v1/estoque/separacoes/'.$this->item->id.'/confirmar', [
+                'volumes' => [['lote_id' => $this->lote->id, 'qtde' => '4.0000']],
+                'caixa_produto_id' => $papel->id,
+                'qtde_caixas' => 1,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['caixa_produto_id']);
+
+        $ok = $this->withHeaders($this->h())->postJson(
+            '/api/v1/estoque/separacoes/'.$this->item->id.'/confirmar',
+            array_merge(
+                ['volumes' => [['lote_id' => $this->lote->id, 'qtde' => '4.0000']]],
+                $this->caixaPayload(),
+            ),
+        );
+        $ok->assertOk();
+
+        $pedido = Pedido::query()->findOrFail($this->item->pedido_id);
+        $pend = app(EstoqueSaidaVendaService::class)->pendenciasEmissao($this->empresa, $pedido, [[
+            'descricao' => 'Ribbon',
+            'familia_fiscal' => 'REV',
+            'pedido_item_id' => $this->item->id,
+            'qtde' => '4.0000',
+        ]]);
+        $this->assertNotEmpty($pend);
+        $this->assertStringContainsString('EMB-CX-SEP', implode(' ', $pend));
+
+        $troca = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'EMB-CX-SEP2',
+            'familia' => 'EMB',
+            'descricao_fiscal' => 'CAIXA MENOR',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+        ]);
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $troca->id,
+            'qtde' => '5.0000',
+            'unidade' => 'UN',
+            'custo_medio' => '1.000000',
+        ]);
+        $this->withHeaders($this->h())
+            ->postJson('/api/v1/estoque/separacoes/'.$this->item->id.'/caixa', [
+                'caixa_produto_id' => $troca->id,
+                'qtde_caixas' => 1,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.separacao.caixa_produto_codigo', 'EMB-CX-SEP2')
+            ->assertJsonPath('data.separacao.qtde_caixas', 1);
+
+        $this->assertSame(0, EstoqueMovimento::query()->count());
+        $this->assertSame('5.0000', (string) EstoqueSaldo::query()->where('produto_id', $troca->id)->value('qtde'));
     }
 }

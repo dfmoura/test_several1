@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { InsumoSkuCombobox, type InsumoSkuOpcao } from '../components/InsumoSkuCombobox';
 import { PedidoItemFichaCabecalho } from '../components/PedidoFichaSheet';
 import { SeparacaoVolumesOverlay } from '../components/SeparacaoVolumesOverlay';
 import {
@@ -43,6 +44,8 @@ export function EstoqueSeparacaoChaoPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [caixaSku, setCaixaSku] = useState<InsumoSkuOpcao | null>(null);
+  const [caixas, setCaixas] = useState('');
 
   const load = async () => {
     if (!id) return;
@@ -75,6 +78,21 @@ export function EstoqueSeparacaoChaoPage() {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    const sep = detalhe?.separacao;
+    if (!sep?.caixa_produto_id) return;
+    setCaixaSku({
+      id: sep.caixa_produto_id,
+      codigo: sep.caixa_produto_codigo ?? '',
+      descricao: sep.caixa_produto_descricao ?? '',
+      unidade: 'UN',
+      saldo: '',
+      grupo: 'EMB-CX',
+      tarifa: null,
+    });
+    setCaixas(sep.qtde_caixas ? String(sep.qtde_caixas) : '');
+  }, [detalhe?.separacao?.caixa_produto_id, detalhe?.separacao?.qtde_caixas, detalhe?.separacao?.caixa_produto_codigo]);
 
   const catalogo: OpRetiradaVolume[] = useMemo(
     () => [...(detalhe?.retirada.volumes ?? []), ...(detalhe?.retirada.candidatos ?? [])],
@@ -142,8 +160,16 @@ export function EstoqueSeparacaoChaoPage() {
     }
   };
 
+  const nCaixas = Number.parseInt(caixas, 10);
+  const caixaPronta = Boolean(caixaSku && caixaSku.id > 0 && Number.isInteger(nCaixas) && nCaixas >= 1);
+
+  const payloadCaixa = () => ({
+    caixa_produto_id: caixaSku?.id,
+    qtde_caixas: nCaixas,
+  });
+
   const confirmar = async () => {
-    if (!id || !detalhe?.pode_confirmar) return;
+    if (!id || !detalhe?.pode_confirmar || !caixaPronta) return;
     setBusy(true);
     setErr(null);
     setMsg(null);
@@ -154,12 +180,31 @@ export function EstoqueSeparacaoChaoPage() {
       }));
       const res = await api.post<{ data: EstoqueSeparacaoDetalhe }>(
         `/estoque/separacoes/${id}/confirmar`,
-        detalhe.produto?.controla_lote ? { volumes } : {},
+        detalhe.produto?.controla_lote ? { volumes, ...payloadCaixa() } : payloadCaixa(),
       );
       setDetalhe(res.data);
-      setMsg('Separação confirmada. O saldo sai na NF-e.');
+      setMsg('Separação confirmada. A caixa sai na NF-e oficial.');
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Não foi possível confirmar.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const registrarCaixa = async () => {
+    if (!id || !detalhe?.pode_informar_caixa || !caixaPronta) return;
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await api.post<{ data: EstoqueSeparacaoDetalhe }>(
+        `/estoque/separacoes/${id}/caixa`,
+        payloadCaixa(),
+      );
+      setDetalhe(res.data);
+      setMsg('Caixa registrada. Ela sai na NF-e oficial.');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Não foi possível registrar a caixa.');
     } finally {
       setBusy(false);
     }
@@ -333,6 +378,46 @@ export function EstoqueSeparacaoChaoPage() {
                     </div>
                   </div>
                 ) : null}
+
+                {detalhe.pode_confirmar || detalhe.pode_informar_caixa ? (
+                  <div style={{ marginTop: '1rem' }}>
+                    <p className="muted" style={{ marginTop: 0 }}>
+                      A caixa é escolhida aqui, antes de faturar, com a quantidade que saiu.
+                      Confirmar não baixa o estoque: a caixa sai quando a NF-e fica oficial, pelo
+                      custo médio.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                      <div className="form-group" style={{ minWidth: 280, flex: '1 1 280px' }}>
+                        <InsumoSkuCombobox
+                          slot="caixa"
+                          label="Caixa *"
+                          disabled={busy || !podeEscrever}
+                          hint="Caixa do estoque (EMB-CX) com saldo."
+                          value={caixaSku}
+                          onChange={setCaixaSku}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="rev-caixas">Caixas</label>
+                        <input
+                          id="rev-caixas"
+                          inputMode="numeric"
+                          value={caixas}
+                          disabled={busy || !podeEscrever}
+                          onChange={(e) => setCaixas(e.target.value.replace(/[^\d]/g, ''))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : detalhe.separacao?.caixa_produto_codigo ? (
+                  <p className="muted" style={{ marginBottom: 0 }}>
+                    Caixa {detalhe.separacao.caixa_produto_codigo}
+                    {detalhe.separacao.qtde_caixas
+                      ? ` · ${detalhe.separacao.qtde_caixas} ${detalhe.separacao.qtde_caixas === 1 ? 'caixa' : 'caixas'}`
+                      : ''}
+                    .
+                  </p>
+                ) : null}
               </div>
             </div>
 
@@ -343,7 +428,9 @@ export function EstoqueSeparacaoChaoPage() {
                     type="button"
                     className="btn btn-primary"
                     disabled={
-                      busy || (Boolean(detalhe.produto?.controla_lote) && marcados.length === 0)
+                      busy ||
+                      !caixaPronta ||
+                      (Boolean(detalhe.produto?.controla_lote) && marcados.length === 0)
                     }
                     onClick={() => void confirmar()}
                   >
@@ -354,6 +441,24 @@ export function EstoqueSeparacaoChaoPage() {
                 )}
                 <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>
                   Confirmar não baixa saldo — a saída oficial é a NF-e.
+                </p>
+              </div>
+            ) : detalhe.pode_informar_caixa ? (
+              <div className="btn-row">
+                {podeEscrever ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={busy || !caixaPronta}
+                    onClick={() => void registrarCaixa()}
+                  >
+                    Registrar caixa
+                  </button>
+                ) : (
+                  <p className="muted">Quem registra a caixa é quem escreve no estoque.</p>
+                )}
+                <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>
+                  A linha já foi separada. A caixa ainda pode ser escolhida até a NF-e oficial.
                 </p>
               </div>
             ) : (

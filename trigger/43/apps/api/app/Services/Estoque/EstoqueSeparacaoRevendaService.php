@@ -7,6 +7,7 @@ use App\Models\EstoqueLote;
 use App\Models\EstoqueSaldo;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
+use App\Models\Produto;
 use App\Services\Comercial\PedidoService;
 use App\Services\Producao\ProducaoColetaService;
 use App\Support\PadraoDecimal;
@@ -23,6 +24,7 @@ class EstoqueSeparacaoRevendaService
         private readonly ProducaoColetaService $coleta,
         private readonly PedidoService $pedidos,
         private readonly EstoqueVolumeService $volumes,
+        private readonly CaixaExpedicao $caixas,
     ) {}
 
     /**
@@ -100,8 +102,13 @@ class EstoqueSeparacaoRevendaService
      * @param  list<array<string, mixed>>  $volumes
      * @return array<string, mixed>
      */
-    public function confirmar(Empresa $empresa, PedidoItem $item, array $volumes): array
-    {
+    public function confirmar(
+        Empresa $empresa,
+        PedidoItem $item,
+        array $volumes,
+        int $caixaProdutoId,
+        int $qtdeCaixas,
+    ): array {
         $item = $this->itemDaEmpresa($empresa, $item);
         $pedido = $item->pedido;
         if (! $pedido instanceof Pedido || $pedido->empresa_id !== $empresa->id) {
@@ -110,7 +117,27 @@ class EstoqueSeparacaoRevendaService
 
         $marcados = $this->normalizarVolumes($empresa, $item, $volumes);
         $this->exigirVolumeQuandoHaSaldo($empresa, $item, $marcados);
-        $this->pedidos->separarRevenda($empresa, $pedido, $item, $marcados);
+        $this->pedidos->separarRevenda($empresa, $pedido, $item, $marcados, $caixaProdutoId, $qtdeCaixas);
+
+        return $this->show($empresa, $item->fresh());
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function informarCaixa(
+        Empresa $empresa,
+        PedidoItem $item,
+        int $caixaProdutoId,
+        int $qtdeCaixas,
+    ): array {
+        $item = $this->itemDaEmpresa($empresa, $item);
+        $pedido = $item->pedido;
+        if (! $pedido instanceof Pedido || $pedido->empresa_id !== $empresa->id) {
+            abort(404);
+        }
+
+        $this->pedidos->informarCaixaRevenda($empresa, $pedido, $item, $caixaProdutoId, $qtdeCaixas);
 
         return $this->show($empresa, $item->fresh());
     }
@@ -224,6 +251,10 @@ class EstoqueSeparacaoRevendaService
         $pode = $item->status === PedidoItem::STATUS_PENDENTE
             && $pedido
             && in_array($pedido->status, Pedido::STATUSES_ABRE_ORDEM, true);
+        $podeCaixa = $item->status === PedidoItem::STATUS_PRODUZIDO
+            && $pedido
+            && $pedido->status !== Pedido::STATUS_CANCELADO
+            && ! $this->caixas->notaOficial($empresa, (int) $pedido->id);
 
         return [
             'pedido_item_id' => $item->id,
@@ -239,6 +270,7 @@ class EstoqueSeparacaoRevendaService
             'unidade' => $item->unidade,
             'status' => $item->status,
             'pode_confirmar' => $pode,
+            'pode_informar_caixa' => $podeCaixa,
             'produto' => $produto ? [
                 'id' => $produto->id,
                 'codigo' => $produto->codigo,
@@ -257,25 +289,28 @@ class EstoqueSeparacaoRevendaService
      */
     private function separacaoGravada(Empresa $empresa, ?Pedido $pedido, PedidoItem $item): ?array
     {
-        $snap = is_array($pedido?->snapshot) ? $pedido->snapshot : [];
-        $porItem = is_array($snap['separacoes_revenda'] ?? null) ? $snap['separacoes_revenda'] : [];
-        $registro = $porItem[(string) $item->id] ?? null;
-        if (! is_array($registro) && is_array($snap['separacao_revenda'] ?? null)) {
-            $ultima = $snap['separacao_revenda'];
-            if ((int) ($ultima['pedido_item_id'] ?? 0) === (int) $item->id) {
-                $registro = $ultima;
-            }
+        if (! $pedido instanceof Pedido) {
+            return null;
         }
+        $registro = $this->caixas->registro($pedido, $item);
         if (! is_array($registro)) {
             return null;
         }
 
         $vols = is_array($registro['volumes'] ?? null) ? array_values($registro['volumes']) : [];
+        $caixaId = (int) ($registro['caixa_produto_id'] ?? 0);
+        $caixa = $caixaId > 0 ? $this->caixas->localizar($empresa, $caixaId) : null;
 
         return [
             'qtde' => (string) ($registro['qtde'] ?? $item->qtde_pedida),
             'em' => $registro['em'] ?? null,
             'volumes' => $this->comQrPayload($empresa, $vols),
+            'caixa_produto_id' => $caixa instanceof Produto ? $caixa->id : null,
+            'qtde_caixas' => (int) ($registro['qtde_caixas'] ?? 0) > 0 ? (int) $registro['qtde_caixas'] : null,
+            'caixa_produto_codigo' => $caixa instanceof Produto ? $caixa->codigo : null,
+            'caixa_produto_descricao' => $caixa instanceof Produto
+                ? trim((string) ($caixa->descricao_comercial ?: $caixa->descricao_fiscal))
+                : null,
         ];
     }
 

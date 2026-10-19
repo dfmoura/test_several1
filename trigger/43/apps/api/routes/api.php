@@ -341,6 +341,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/estoque/separacoes/{pedidoItem}', [EstoqueSeparacaoRevendaController::class, 'show']);
         Route::get('/estoque/separacoes/{pedidoItem}/volume', [EstoqueSeparacaoRevendaController::class, 'resolverVolume']);
         Route::post('/estoque/separacoes/{pedidoItem}/confirmar', [EstoqueSeparacaoRevendaController::class, 'confirmar']);
+        Route::post('/estoque/separacoes/{pedidoItem}/caixa', [EstoqueSeparacaoRevendaController::class, 'informarCaixa']);
         Route::get('/estoque/movimentos', [EstoqueController::class, 'movimentos']);
         Route::get('/estoque/movimentos/{estoqueMovimento}/ficha-entrada', [EstoqueVolumeController::class, 'fichaEntrada']);
         Route::get('/estoque/produtos/{produto}/extrato', [EstoqueController::class, 'extrato']);

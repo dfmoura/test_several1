@@ -34,6 +34,7 @@ class EstoqueSaidaVendaService
         private readonly EstoqueSaldoWriter $saldos,
         private readonly EstoqueCongelamento $congelamento,
         private readonly CodigoGenerator $codigos,
+        private readonly CaixaExpedicao $caixas,
     ) {}
 
     /**
@@ -325,8 +326,8 @@ class EstoqueSaidaVendaService
     }
 
     /**
-     * Caixas EMB-CX confirmadas na embalagem. A quantidade já saída na OP
-     * (componente CAIXA, líquida de retorno) não entra de novo — qualquer SKU.
+     * Caixas EMB-CX da embalagem da etiqueta e da separação da revenda.
+     * A quantidade já saída na OP (componente CAIXA, líquida de retorno) não entra de novo.
      * O valor da linha nasce no writer, pelo custo médio vigente.
      *
      * @return list<array{produto: Produto, qtde: string, pedido_item_id: ?int}>
@@ -342,7 +343,8 @@ class EstoqueSaidaVendaService
             ->orderBy('id')
             ->get(['id', 'ordem_producao_id', 'pedido_item_id', 'caixa_produto_id', 'qtde_caixas']);
 
-        if ($embalagens->isEmpty()) {
+        $revenda = $this->caixas->linhas($empresa, $pedido);
+        if ($embalagens->isEmpty() && $revenda === []) {
             return [];
         }
 
@@ -374,6 +376,22 @@ class EstoqueSaidaVendaService
             } else {
                 $acc[$pid]['qtde'] = PadraoDecimal::roundHalfUp(
                     bcadd($acc[$pid]['qtde'], $resta, PadraoDecimal::SCALE_QTY + 4),
+                    PadraoDecimal::SCALE_QTY
+                );
+            }
+        }
+
+        foreach ($revenda as $linha) {
+            $pid = (int) $linha['produto_id'];
+            $qtde = PadraoDecimal::roundHalfUp((string) $linha['qtde'], PadraoDecimal::SCALE_QTY);
+            if (! isset($acc[$pid])) {
+                $acc[$pid] = [
+                    'qtde' => $qtde,
+                    'pedido_item_id' => (int) $linha['pedido_item_id'],
+                ];
+            } else {
+                $acc[$pid]['qtde'] = PadraoDecimal::roundHalfUp(
+                    bcadd($acc[$pid]['qtde'], $qtde, PadraoDecimal::SCALE_QTY + 4),
                     PadraoDecimal::SCALE_QTY
                 );
             }

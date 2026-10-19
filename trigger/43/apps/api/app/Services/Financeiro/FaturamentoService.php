@@ -16,6 +16,7 @@ use App\Models\Titulo;
 use App\Services\Banking\BankProviderResolver;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Comercial\PrecoTravadoPedido;
+use App\Services\Estoque\CaixaExpedicao;
 use App\Services\Fiscal\EmissaoFiscalService;
 use App\Services\Fiscal\FiscalSaidaTransporte;
 use App\Services\Fiscal\NfePaQtdeModalidade;
@@ -47,6 +48,7 @@ class FaturamentoService
         private readonly PaEmbalagemService $embalagem,
         private readonly FiscalSaidaTransporte $transporte,
         private readonly NfePaQtdeModalidade $nfeQtde,
+        private readonly CaixaExpedicao $caixas,
     ) {}
 
     /**
@@ -777,6 +779,10 @@ class FaturamentoService
             $transpPreview = $this->transporte->previewOut($emp, $pedido);
             if ($transpPreview['aviso'] ?? null) {
                 $avisos[] = $transpPreview['aviso'];
+            }
+            $bloqueios = array_merge($bloqueios, $this->caixas->bloqueios($emp, $pedido));
+            foreach ($this->caixas->avisos($emp, $pedido) as $avisoCaixa) {
+                $avisos[] = $avisoCaixa;
             }
         }
         if ($this->formaEmiteCobranca($forma) && bccomp($valorACobrar, '0', PadraoDecimal::SCALE_MONEY) > 0) {

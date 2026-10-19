@@ -96,6 +96,8 @@ class PedidoController extends Controller
 
         $data = $request->validate([
             'pedido_item_id' => ['required', 'integer'],
+            'caixa_produto_id' => ['required', 'integer', 'min:1'],
+            'qtde_caixas' => ['required', 'integer', 'min:1', 'max:9999'],
         ]);
 
         $item = PedidoItem::query()
@@ -104,7 +106,14 @@ class PedidoController extends Controller
             ->firstOrFail();
 
         return response()->json([
-            'data' => $this->pedidos->separarRevenda($this->empresa(), $pedido, $item),
+            'data' => $this->pedidos->separarRevenda(
+                $this->empresa(),
+                $pedido,
+                $item,
+                [],
+                (int) $data['caixa_produto_id'],
+                (int) $data['qtde_caixas'],
+            ),
         ]);
     }
 

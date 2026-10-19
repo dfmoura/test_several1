@@ -12,6 +12,7 @@ use App\Models\PaEmbalagemCaixa;
 use App\Models\Pedido;
 use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
+use App\Services\Estoque\CaixaExpedicao;
 use App\Services\Fiscal\NfePesoExpedicao;
 use App\Services\Fiscal\NfeVolumeNumeracao;
 use App\Support\CaixaMedida;
@@ -110,7 +111,7 @@ class PaEmbalagemService
                 'qtde_caixas' => ['Informe quantas caixas saíram.'],
             ]);
         }
-        $caixaProduto = $this->caixaInformada($empresa, $data['caixa_produto_id'] ?? null);
+        $caixaProduto = (new CaixaExpedicao())->opcional($empresa, $data['caixa_produto_id'] ?? null);
         $medidaCaixa = $caixaProduto !== null
             ? CaixaMedida::rotulo(is_array($caixaProduto->atributos) ? $caixaProduto->atributos : null)
             : null;
@@ -433,14 +434,18 @@ class PaEmbalagemService
     public function volumesTransportePedido(Empresa $empresa, Pedido $pedido): array
     {
         $confirmadas = $this->confirmadasDoPedido($empresa, $pedido);
-        $caixas = (int) $confirmadas->sum('qtde_caixas');
+        $caixasRev = 0;
+        foreach ((new CaixaExpedicao())->linhas($empresa, $pedido) as $linha) {
+            $caixasRev += (int) $linha['qtde'];
+        }
+        $caixas = (int) $confirmadas->sum('qtde_caixas') + $caixasRev;
         $peso = (new NfePesoExpedicao())->doPedido($empresa, $pedido, $confirmadas);
 
         return [
             'quantidade' => $caixas >= 1 ? $caixas : null,
             'especie' => $caixas >= 1 ? 'CAIXA' : null,
             'marca' => $this->marcaVolume($empresa),
-            'numeracao' => $this->numeracaoVolumes($confirmadas, $caixas),
+            'numeracao' => $this->numeracaoVolumes($confirmadas, $caixas, $caixasRev),
             'peso_liquido' => $peso['peso_liquido'],
             'peso_bruto' => $peso['peso_bruto'],
         ];
@@ -457,9 +462,12 @@ class PaEmbalagemService
     }
 
     /**
+     * Faixa CX da etiqueta quando ela cobre todas as caixas.
+     * Revenda no mesmo pedido soma quantidade e a numeração vira 1–N, sem fingir código de bobina.
+     *
      * @param  \Illuminate\Support\Collection<int, PaEmbalagem>  $confirmadas
      */
-    private function numeracaoVolumes($confirmadas, int $caixas): string
+    private function numeracaoVolumes($confirmadas, int $caixas, int $caixasRev = 0): string
     {
         $sequencias = [];
         foreach ($confirmadas as $e) {
@@ -467,6 +475,13 @@ class PaEmbalagemService
             foreach ($e->caixas as $c) {
                 $sequencias[] = (int) $c->sequencia;
             }
+        }
+        $unicas = array_values(array_unique(array_filter(
+            $sequencias,
+            fn (int $n) => $n >= 1
+        )));
+        if ($caixasRev > 0 || count($unicas) !== $caixas) {
+            return NfeVolumeNumeracao::nVol([], $caixas);
         }
 
         return NfeVolumeNumeracao::nVol($sequencias, $caixas);
@@ -713,44 +728,6 @@ class PaEmbalagemService
         $cap = (int) ($faixa['rolos_por_caixa'] ?? 0);
 
         return $cap > 0 ? $cap : null;
-    }
-
-    private function caixaInformada(Empresa $empresa, mixed $id): ?Produto
-    {
-        if ($id === null || $id === '' || (int) $id < 1) {
-            return null;
-        }
-
-        $produto = Produto::query()
-            ->where('empresa_id', $empresa->id)
-            ->whereKey((int) $id)
-            ->where('situacao', 'ATIVO')
-            ->with('grupoCatalogo:id,codigo')
-            ->first();
-        if ($produto === null || ! $this->ehCaixaDeEstoque($produto)) {
-            throw ValidationException::withMessages([
-                'caixa_produto_id' => ['Escolha uma caixa ativa desta empresa.'],
-            ]);
-        }
-
-        return $produto;
-    }
-
-    private function ehCaixaDeEstoque(Produto $produto): bool
-    {
-        if ($produto->familia !== 'EMB') {
-            return false;
-        }
-        $grupo = (string) ($produto->grupoCatalogo?->codigo ?? '');
-        if ($grupo === 'EMB-CX') {
-            return true;
-        }
-        $hay = mb_strtoupper(
-            $produto->codigo.' '.$produto->descricao_fiscal.' '.$produto->descricao_comercial,
-            'UTF-8',
-        );
-
-        return str_starts_with((string) $produto->codigo, 'EMB-CX') || str_contains($hay, 'CAIXA');
     }
 
     /**

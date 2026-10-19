@@ -62,6 +62,7 @@ QR = leitura (scan marca; humano confirma) — mesmo contrato de `ADR_PRODUCAO_C
 - N=1 só-REV: zero chrome de fábrica (sem faca/escada de artes).  
 - PED: CTA **Separar no estoque** / **Ficha de separação** → `/estoque/separacoes/:pedidoItem`; sem OP/OS.  
 - Chão: Estoque · **A separar** — cabeçalho da ficha do item (valores) e formulário de faixa do orçamento para acrescentar ou remover volumes já conhecidos (e ler QR). Sem busca no estoque. Sem debitar.
+- Na mesma confirmação: SKU `EMB-CX` ativo da EMP e quantidade de caixas (≥ 1). Sem os dois, a separação não confirma e o faturamento não abre. Linha já separada ainda pode registrar a caixa até a NF-e oficial. A baixa da caixa é o mesmo `SAIDA_VENDA` da nota, pelo custo médio. Volumes da NF somam essa quantidade com as caixas da etiqueta. Sem OP, sem bobina e sem herdar a caixa do PA.
 
 ## Proibido
 
@@ -81,3 +82,7 @@ QR = leitura (scan marca; humano confirma) — mesmo contrato de `ADR_PRODUCAO_C
 - `EstoqueSeparacaoRevendaService` · `GET/POST /estoque/separacoes…` · `GET …/volume` (QR)  
 - `POST /pedidos/{pedido}/separar-revenda` (legado / atalho sem volumes na UI)  
 - Testes: `OrcamentoRevendaPrecificadorTest` · `RevendaOrcAteFaturamentoTest` · `EstoqueSeparacaoRevendaTest`
+
+## Emenda 2026-10-19 — caixa antes de faturar
+
+A revenda sai em caixa, como a etiqueta. A escolha (SKU `EMB-CX` + quantidade) nasce em **A separar**, no snapshot `separacoes_revenda`, e trava o faturamento enquanto faltar. Não reutiliza `pa_embalagens` nem bobina. Confirmar não move saldo. A NF-e oficial baixa a caixa no mesmo `SAIDA_VENDA`. Volumes da nota somam etiqueta e revenda. Embalagem de etiqueta sem SKU, já confirmada, segue só com aviso.

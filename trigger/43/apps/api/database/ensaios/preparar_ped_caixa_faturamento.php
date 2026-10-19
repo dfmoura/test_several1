@@ -127,6 +127,11 @@ $espec = [
 ];
 
 if ($ped === null) {
+    $orc = Orcamento::query()
+        ->where('empresa_id', $emp->id)
+        ->where('codigo', 'ORC-2026-CXFAT')
+        ->first();
+    if ($orc === null) {
     $numero = 99110;
     while (Orcamento::query()->where('empresa_id', $emp->id)->where('ano', 2026)->where('numero', $numero)->exists()) {
         $numero++;
@@ -163,6 +168,7 @@ if ($ped === null) {
         'tolerancia_qtd_pct' => 20,
         'observacao' => 'Ensaio: escolher a caixa antes de faturar.',
     ]);
+    }
     $ped = Pedido::query()->create([
         'empresa_id' => $emp->id,
         'codigo' => $codigoPed,

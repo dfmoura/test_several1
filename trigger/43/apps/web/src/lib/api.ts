@@ -3599,6 +3599,7 @@ export type EstoqueSeparacaoDetalhe = {
   unidade: string;
   status: string;
   pode_confirmar: boolean;
+  pode_informar_caixa: boolean;
   produto: {
     id: number;
     codigo: string;
@@ -3612,6 +3613,10 @@ export type EstoqueSeparacaoDetalhe = {
     qtde: string;
     em: string | null;
     volumes: EstoqueSeparacaoVolumeMarcado[];
+    caixa_produto_id: number | null;
+    qtde_caixas: number | null;
+    caixa_produto_codigo: string | null;
+    caixa_produto_descricao: string | null;
   } | null;
 };
 

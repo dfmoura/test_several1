@@ -56,6 +56,8 @@ class EstoqueSeparacaoRevendaController extends Controller
             'volumes' => ['nullable', 'array'],
             'volumes.*.lote_id' => ['required', 'integer'],
             'volumes.*.qtde' => array_merge(['required'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
+            'caixa_produto_id' => ['required', 'integer', 'min:1'],
+            'qtde_caixas' => ['required', 'integer', 'min:1', 'max:9999'],
         ]);
 
         return response()->json([
@@ -63,6 +65,27 @@ class EstoqueSeparacaoRevendaController extends Controller
                 $this->empresa(),
                 $pedidoItem,
                 is_array($data['volumes'] ?? null) ? $data['volumes'] : [],
+                (int) $data['caixa_produto_id'],
+                (int) $data['qtde_caixas'],
+            ),
+        ]);
+    }
+
+    public function informarCaixa(Request $request, PedidoItem $pedidoItem): JsonResponse
+    {
+        $this->authorizeEscrever($request);
+
+        $data = $request->validate([
+            'caixa_produto_id' => ['required', 'integer', 'min:1'],
+            'qtde_caixas' => ['required', 'integer', 'min:1', 'max:9999'],
+        ]);
+
+        return response()->json([
+            'data' => $this->service->informarCaixa(
+                $this->empresa(),
+                $pedidoItem,
+                (int) $data['caixa_produto_id'],
+                (int) $data['qtde_caixas'],
             ),
         ]);
     }

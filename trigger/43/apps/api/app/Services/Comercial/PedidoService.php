@@ -9,6 +9,7 @@ use App\Models\PedidoItem;
 use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Calendario\DiasUteisService;
+use App\Services\Estoque\CaixaExpedicao;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Support\CatalogoServicoSaida;
 use App\Support\FacasComposicao;
@@ -27,6 +28,7 @@ class PedidoService
         private readonly CodigoGenerator $codigos,
         private readonly DiasUteisService $diasUteis,
         private readonly OrcamentoContatoFicha $contatoFicha,
+        private readonly CaixaExpedicao $caixas,
     ) {}
 
     /**
@@ -136,7 +138,9 @@ class PedidoService
         Empresa $empresa,
         Pedido $pedido,
         PedidoItem $item,
-        array $volumesMarcados = [],
+        array $volumesMarcados,
+        int $caixaProdutoId,
+        int $qtdeCaixas,
     ): array
     {
         if ($pedido->empresa_id !== $empresa->id || $item->pedido_id !== $pedido->id) {
@@ -161,7 +165,9 @@ class PedidoService
             ]);
         }
 
-        return DB::transaction(function () use ($pedido, $item, $volumesMarcados) {
+        $caixa = $this->caixaDaRevenda($empresa, $caixaProdutoId, $qtdeCaixas);
+
+        return DB::transaction(function () use ($pedido, $item, $volumesMarcados, $caixa, $qtdeCaixas) {
             $qtde = PadraoDecimal::roundHalfUp((string) $item->qtde_pedida, PadraoDecimal::SCALE_QTY);
             if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
                 throw ValidationException::withMessages([
@@ -188,6 +194,8 @@ class PedidoService
                 'qtde' => $qtde,
                 'em' => now()->toIso8601String(),
                 'volumes' => array_values($volumesMarcados),
+                'caixa_produto_id' => $caixa->id,
+                'qtde_caixas' => $qtdeCaixas,
             ];
             $snap['separacao_revenda'] = $registro;
             $porItem = is_array($snap['separacoes_revenda'] ?? null) ? $snap['separacoes_revenda'] : [];
@@ -206,6 +214,89 @@ class PedidoService
                 'entrega',
             ]));
         });
+    }
+
+    /**
+     * Completa ou troca a caixa de uma revenda já separada, enquanto a NF não é oficial.
+     * Não mexe em volume, status nem saldo.
+     *
+     * @return array<string, mixed>
+     */
+    public function informarCaixaRevenda(
+        Empresa $empresa,
+        Pedido $pedido,
+        PedidoItem $item,
+        int $caixaProdutoId,
+        int $qtdeCaixas,
+    ): array {
+        if ($pedido->empresa_id !== $empresa->id || $item->pedido_id !== $pedido->id) {
+            abort(404);
+        }
+        if ($pedido->status === Pedido::STATUS_CANCELADO) {
+            throw ValidationException::withMessages([
+                'pedido' => ['Pedido cancelado não recebe caixa.'],
+            ]);
+        }
+        if ($item->necessidade !== PedidoItem::NEC_REVENDA) {
+            throw ValidationException::withMessages([
+                'pedido_item_id' => ['Só item de revenda leva caixa nesta separação.'],
+            ]);
+        }
+        if ($item->status !== PedidoItem::STATUS_PRODUZIDO) {
+            throw ValidationException::withMessages([
+                'pedido_item_id' => ['Confirme a separação com a caixa antes de alterar.'],
+            ]);
+        }
+        if ($this->caixas->notaOficial($empresa, (int) $pedido->id)) {
+            throw ValidationException::withMessages([
+                'caixa_produto_id' => ['NF já autorizada — a caixa não pode ser alterada.'],
+            ]);
+        }
+
+        $caixa = $this->caixaDaRevenda($empresa, $caixaProdutoId, $qtdeCaixas);
+
+        return DB::transaction(function () use ($pedido, $item, $caixa, $qtdeCaixas) {
+            $pedido->refresh();
+            $snap = is_array($pedido->snapshot) ? $pedido->snapshot : [];
+            $registro = $this->caixas->registro($pedido, $item) ?? [
+                'pedido_item_id' => $item->id,
+                'qtde' => PadraoDecimal::roundHalfUp((string) $item->qtde_pedida, PadraoDecimal::SCALE_QTY),
+                'em' => now()->toIso8601String(),
+                'volumes' => [],
+            ];
+            $registro['caixa_produto_id'] = $caixa->id;
+            $registro['qtde_caixas'] = $qtdeCaixas;
+            $porItem = is_array($snap['separacoes_revenda'] ?? null) ? $snap['separacoes_revenda'] : [];
+            $porItem[(string) $item->id] = $registro;
+            $snap['separacoes_revenda'] = $porItem;
+            if (is_array($snap['separacao_revenda'] ?? null)
+                && (int) ($snap['separacao_revenda']['pedido_item_id'] ?? 0) === (int) $item->id) {
+                $snap['separacao_revenda'] = $registro;
+            }
+            $pedido->snapshot = $snap;
+            $pedido->save();
+
+            return $this->show($pedido->fresh([
+                'itens.produtoPa',
+                'parceiro',
+                'orcamento',
+                'ordensProducao',
+                'ordensServico',
+                'faturamento',
+                'entrega',
+            ]));
+        });
+    }
+
+    private function caixaDaRevenda(Empresa $empresa, int $caixaProdutoId, int $qtdeCaixas): Produto
+    {
+        if ($qtdeCaixas < 1 || $qtdeCaixas > 9999) {
+            throw ValidationException::withMessages([
+                'qtde_caixas' => ['Informe quantas caixas saíram.'],
+            ]);
+        }
+
+        return $this->caixas->exigir($empresa, $caixaProdutoId);
     }
 
     /**
