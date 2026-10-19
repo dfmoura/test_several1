@@ -855,7 +855,7 @@ class EmissaoFiscalSaidaTest extends TestCase
         );
     }
 
-    public function test_peso_da_nota_usa_m2_travado_e_gramatura_do_papel(): void
+    public function test_peso_da_nota_usa_m2_travado_e_160_gramas(): void
     {
         $ped = $this->criarPedidoProduzido([
             'especificacao' => [
@@ -870,7 +870,7 @@ class EmissaoFiscalSaidaTest extends TestCase
         $ped->snapshot = $snap;
         $ped->save();
 
-        Produto::query()->create([
+        $papel = Produto::query()->create([
             'empresa_id' => $this->empresa->id,
             'codigo' => 'MP-PAP-NFE',
             'familia' => 'MP',
@@ -883,14 +883,119 @@ class EmissaoFiscalSaidaTest extends TestCase
             'situacao' => 'ATIVO',
             'atributos' => ['gramatura_g_m2' => '80'],
         ]);
+        $item = $ped->itens->first();
+        $espec = is_array($item->especificacao) ? $item->especificacao : [];
+        $espec['papel_produto_id'] = $papel->id;
+        $item->especificacao = $espec;
+        $item->save();
+
+        $prev = $this->withHeaders($this->h())->getJson("/api/v1/pedidos/{$ped->id}/faturamento-preview");
+        $prev->assertOk()
+            ->assertJsonPath('data.volumes.peso_liquido', '8.000')
+            ->assertJsonPath('data.volumes.peso_bruto', '8.000');
 
         $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
         $ok->assertCreated();
 
         $vol = $ok->json('data.documentos_fiscais.0.previa.volumes.0');
-        $this->assertSame('4.000', $vol['peso_liquido'] ?? null);
-        $this->assertSame('4.000', $vol['peso_bruto'] ?? null);
+        $this->assertSame('8.000', $vol['peso_liquido'] ?? null);
+        $this->assertSame('8.000', $vol['peso_bruto'] ?? null);
         $this->assertSame('RLP', $vol['marca'] ?? null);
         $this->assertArrayNotHasKey('codigo_antt', $vol);
+
+        $fat = Faturamento::query()->firstOrFail();
+        $fat->load(['itens', 'pedido', 'titulos']);
+        $itens = app(FocusPayloadBuilder::class)->itensFiscaisParaPayload($fat->itens);
+        $xml = app(NfeXmlBuilder::class)->montar(
+            $this->empresa,
+            $this->parceiro,
+            $fat,
+            $itens,
+            ['serie' => 1, 'numero' => 1],
+            2,
+        )['xml'];
+        $this->assertStringContainsString('<pesoL>8.000</pesoL>', $xml);
+        $this->assertStringContainsString('<pesoB>8.000</pesoB>', $xml);
+    }
+
+    public function test_peso_bruto_soma_tubete_e_caixa_cadastrados(): void
+    {
+        $tubete = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'EMB-TUB-NFE',
+            'familia' => 'EMB',
+            'grupo' => 'EMB-TUB',
+            'descricao_fiscal' => 'TUBETE 3 POLEGADAS',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'ncm' => '48229000',
+            'situacao' => 'ATIVO',
+            'atributos' => ['peso_kg' => '0.050', 'diametro_pol' => '3"'],
+        ]);
+        $caixa = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'EMB-CX-NFE',
+            'familia' => 'EMB',
+            'grupo' => 'EMB-CX',
+            'descricao_fiscal' => 'CAIXA TESTE',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'ncm' => '48191000',
+            'situacao' => 'ATIVO',
+            'atributos' => [
+                'peso_kg' => '0.200',
+                'comp_mm' => '250',
+                'larg_mm' => '200',
+                'alt_mm' => '200',
+            ],
+        ]);
+
+        $ped = $this->criarPedidoProduzido([
+            'especificacao' => [
+                'medida' => '100X50',
+                'papel' => 'Couchê',
+                'tubete' => '3"',
+                'tubete_produto_id' => $tubete->id,
+                'faixa' => ['m2' => '50'],
+            ],
+        ]);
+        $item = $ped->itens->first();
+        $op = \App\Models\OrdemProducao::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'OP-2026-NFE-PESO',
+            'pedido_id' => $ped->id,
+            'pedido_item_id' => $item->id,
+            'status' => \App\Models\OrdemProducao::STATUS_CONCLUIDA,
+            'qtde_planejada' => '10000.0000',
+            'qtde_boa' => '10000.0000',
+            'qtde_refugo' => '0.0000',
+            'concluida_em' => now(),
+        ]);
+        \App\Models\PaEmbalagem::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'EMB-NFE-PESO',
+            'pedido_id' => $ped->id,
+            'pedido_item_id' => $item->id,
+            'ordem_producao_id' => $op->id,
+            'status' => \App\Models\PaEmbalagem::STATUS_CONFIRMADA,
+            'qtde_etiquetas' => '10000.0000',
+            'qtde_bobinas' => 10,
+            'qtde_caixas' => 3,
+            'etiq_por_rolo' => 1000,
+            'rolos_por_caixa' => 4,
+            'tubete' => '3"',
+            'caixa_produto_id' => $caixa->id,
+            'origem' => \App\Models\PaEmbalagem::ORIGEM_MANUAL,
+            'confirmada_em' => now(),
+        ]);
+
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $ok->assertCreated();
+
+        $vol = $ok->json('data.documentos_fiscais.0.previa.volumes.0');
+        $this->assertSame('8.000', $vol['peso_liquido'] ?? null);
+        $this->assertSame('9.100', $vol['peso_bruto'] ?? null);
     }
 }

@@ -306,18 +306,22 @@ export function OrcamentoDetailPage() {
     }
   };
 
-  const handleExcluir = async () => {
+  const handleCancelar = async () => {
     if (!orc || !canWrite || !isOrcEditavel(orc.status)) return;
-    if (!window.confirm(`Excluir logicamente ${orc.codigo}? Cancela o rascunho (sem delete físico).`)) {
+    if (
+      !window.confirm(
+        `Cancelar ${orc.codigo}? O registro permanece no histórico com status Cancelado.`,
+      )
+    ) {
       return;
     }
     setPending(true);
     setErro(null);
     try {
       await api.delete(`/orcamentos/${orc.id}`);
-      navigate('/orcamentos');
+      navigate('/orcamentos?status=CANCELADO');
     } catch (e) {
-      setErro(e instanceof ApiError ? e.message : 'Falha ao excluir');
+      setErro(e instanceof ApiError ? e.message : 'Falha ao cancelar.');
     } finally {
       setPending(false);
     }
@@ -427,7 +431,7 @@ export function OrcamentoDetailPage() {
         : 'Enviado para aprovação — não edita nem exclui. Use “Copiar link” para lembrete.';
     }
     if (editavel) {
-      return 'Em preparação: pode editar, excluir ou enviar o link a um contato autorizado do cadastro.';
+      return 'Em preparação: pode editar, cancelar ou enviar o link a um contato autorizado do cadastro.';
     }
     return 'Snapshot travado neste status.';
   })();
@@ -444,7 +448,10 @@ export function OrcamentoDetailPage() {
         }
         actions={
           <div className="btn-row">
-            <Link to="/orcamentos" className="btn btn-secondary">
+            <Link
+              to={orc.status === 'CANCELADO' ? '/orcamentos?status=CANCELADO' : '/orcamentos'}
+              className="btn btn-secondary"
+            >
               Lista
             </Link>
             <a
@@ -491,9 +498,9 @@ export function OrcamentoDetailPage() {
                   type="button"
                   className="btn btn-secondary"
                   disabled={pending}
-                  onClick={() => void handleExcluir()}
+                  onClick={() => void handleCancelar()}
                 >
-                  Excluir
+                  Cancelar
                 </button>
               </>
             ) : null}

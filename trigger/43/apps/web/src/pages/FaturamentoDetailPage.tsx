@@ -8,7 +8,7 @@ import { api, type Faturamento, type Parceiro } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDate, formatDecimalBr, formatUnitPrice } from '../lib/format';
 import { titStatusLabel } from '../lib/comprasUi';
-import { nfStatusLabel, fatTemNfeParaEventoSefaz, nfeCanceladaSefaz, nfePodeEventoSefaz, nfseCanceladaSefin, nfsePodeCancelarSefin } from '../lib/fiscalUi';
+import { nfStatusLabel, fatTemNfeParaEventoSefaz, nfeCanceladaSefaz, nfePodeEventoSefaz, nfseCanceladaSefin, nfsePodeCancelarSefin, textoPesoNfe } from '../lib/fiscalUi';
 import { hrefFaturamentos, hrefFichaCobranca, tituloPreferidoFicha } from '../lib/cobrancaUi';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 
@@ -24,6 +24,11 @@ function fatStatusLabel(status: string): string {
 
 function nfLabel(status: string, simulada?: boolean): string {
   return nfStatusLabel(status, simulada);
+}
+
+function pesoNaNota(fat: Faturamento): string | null {
+  const vol = (fat.documentos_fiscais ?? []).find((d) => d.tipo === 'NFE')?.previa?.volumes?.[0];
+  return textoPesoNfe(vol);
 }
 
 export function FaturamentoDetailPage() {
@@ -407,6 +412,12 @@ export function FaturamentoDetailPage() {
                   Modalidade e transportador gravados no faturamento — alimentam a emissão SEFAZ.
                   Volumes vêm das caixas da embalagem PA.
                 </p>
+                {pesoNaNota(fat) ? (
+                  <p className="form-hint" style={{ marginTop: 0 }}>
+                    Peso na NF-e: {pesoNaNota(fat)}. O mesmo número vai no DANFE, em peso líquido e
+                    peso bruto.
+                  </p>
+                ) : null}
               </div>
               {fat.pode_editar_transporte && hasPermission('faturamento.escrever') ? (
                 <div className="form-grid" style={{ gap: '0.75rem' }}>

@@ -819,6 +819,7 @@ class FaturamentoService
             'transporte' => $emp
                 ? $this->transporte->previewOut($emp, $pedido)
                 : null,
+            'volumes' => $emp ? $this->volumesPreview($emp, $pedido) : null,
             'snapshot' => [
                 'condicao_pagamento' => $condicao,
                 'forma_pagamento' => $forma,
@@ -830,6 +831,26 @@ class FaturamentoService
                 'qtde_pedida' => $pedido->itens->first()?->qtde_pedida,
                 'qtde_faturavel' => $pedido->itens->first()?->qtde_faturavel,
             ],
+        ];
+    }
+
+    /**
+     * Peso que a NF-e vai levar, antes de faturar. Mesma conta do XML.
+     *
+     * @return array{quantidade: int|null, especie: string|null, peso_liquido: string|null, peso_bruto: string|null}|null
+     */
+    private function volumesPreview(Empresa $empresa, Pedido $pedido): ?array
+    {
+        $vol = $this->embalagem->volumesTransportePedido($empresa, $pedido);
+        if (($vol['peso_liquido'] ?? null) === null && ($vol['quantidade'] ?? null) === null) {
+            return null;
+        }
+
+        return [
+            'quantidade' => $vol['quantidade'],
+            'especie' => $vol['especie'],
+            'peso_liquido' => $vol['peso_liquido'],
+            'peso_bruto' => $vol['peso_bruto'],
         ];
     }
 

@@ -73,6 +73,8 @@ class ProdutoValidationRules
             'atributos.largura_mm' => PadraoDecimal::rules(PadraoDecimal::SCALE_DIM),
             'atributos.comprimento_m' => PadraoDecimal::rules(PadraoDecimal::SCALE_DIM),
             'atributos.gramatura_g_m2' => PadraoDecimal::rules(PadraoDecimal::SCALE_GRAMATURA),
+            'atributos.'.ProdutoAtributos::GRAMATURA_EXPEDICAO => PadraoDecimal::rules(PadraoDecimal::SCALE_GRAMATURA),
+            'atributos.'.ProdutoAtributos::PESO_KG => PadraoDecimal::rules(PadraoDecimal::SCALE_WEIGHT),
             'atributos.comp_mm' => PadraoDecimal::rules(PadraoDecimal::SCALE_DIM),
             'atributos.larg_mm' => PadraoDecimal::rules(PadraoDecimal::SCALE_DIM),
             'atributos.alt_mm' => PadraoDecimal::rules(PadraoDecimal::SCALE_DIM),

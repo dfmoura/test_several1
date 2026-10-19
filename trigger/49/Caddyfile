@@ -1,0 +1,11 @@
+# Profile https, só na VM de publicação, com DOMAIN definido.
+# Não usar nesta máquina de desenvolvimento: 80 e 443 já estão ocupadas.
+{$DOMAIN} {
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+	reverse_proxy api:8097
+}

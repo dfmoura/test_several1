@@ -12,6 +12,7 @@ use App\Models\PaEmbalagemCaixa;
 use App\Models\Pedido;
 use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
+use App\Services\Fiscal\NfePesoExpedicao;
 use App\Services\Fiscal\NfeVolumeNumeracao;
 use App\Support\CaixaMedida;
 use App\Support\PadraoDecimal;
@@ -417,8 +418,8 @@ class PaEmbalagemService
     /**
      * Volume da NF-e. Quantidade/espécie só com caixa confirmada.
      * Marca = nome do emitente. Numeração = faixa CX (nVol, até 60).
-     * Peso (kg, 3 casas) só com dado real: KG na OP, ou m²/m × gramatura_g_m2 do SKU.
-     * Sem a gramatura no cadastro do papel, o peso fica vazio — não se inventa kg, placa, ANTT nem tara.
+     * Peso (kg, 3 casas) = área travada × 160 g/m², mais tubete e caixa.
+     * Sem m² (e sem peso de revenda), o peso fica vazio. Sem placa nem ANTT.
      *
      * @return array{
      *     quantidade: ?int,
@@ -433,15 +434,15 @@ class PaEmbalagemService
     {
         $confirmadas = $this->confirmadasDoPedido($empresa, $pedido);
         $caixas = (int) $confirmadas->sum('qtde_caixas');
-        $peso = $this->pesoKgPapel($empresa, $pedido);
+        $peso = (new NfePesoExpedicao())->doPedido($empresa, $pedido, $confirmadas);
 
         return [
             'quantidade' => $caixas >= 1 ? $caixas : null,
             'especie' => $caixas >= 1 ? 'CAIXA' : null,
             'marca' => $this->marcaVolume($empresa),
             'numeracao' => $this->numeracaoVolumes($confirmadas, $caixas),
-            'peso_liquido' => $peso,
-            'peso_bruto' => $peso,
+            'peso_liquido' => $peso['peso_liquido'],
+            'peso_bruto' => $peso['peso_bruto'],
         ];
     }
 
@@ -469,241 +470,6 @@ class PaEmbalagemService
         }
 
         return NfeVolumeNumeracao::nVol($sequencias, $caixas);
-    }
-
-    /**
-     * Quilos do papel: KG direto, ou m² × gramatura do SKU. Bruto = líquido
-     * porque a tara da caixa não é medida.
-     */
-    private function pesoKgPapel(Empresa $empresa, Pedido $pedido): ?string
-    {
-        $ops = OrdemProducao::query()
-            ->where('empresa_id', $empresa->id)
-            ->where('pedido_id', $pedido->id)
-            ->with('materiais.produto')
-            ->get();
-
-        $kg = '0';
-        $achou = false;
-        foreach ($ops as $op) {
-            foreach ($op->materiais as $mat) {
-                $parcela = $this->kgDoMaterial($mat);
-                if ($parcela === null) {
-                    continue;
-                }
-                $kg = bcadd($kg, $parcela, 6);
-                $achou = true;
-            }
-        }
-        if ($achou && bccomp($kg, '0', 6) > 0) {
-            return $this->formatarKg($kg);
-        }
-
-        return $this->pesoKgDaAreaTravada($empresa, $pedido);
-    }
-
-    /**
-     * Quando a OP não fecha quilos, usa a área comercial travada (m² da faixa)
-     * vezes a gramatura do único papel identificado no pedido.
-     */
-    private function pesoKgDaAreaTravada(Empresa $empresa, Pedido $pedido): ?string
-    {
-        $pedido->loadMissing('itens');
-        $porNome = $this->gramaturaPorNomeDePapel($empresa);
-        $linhas = [];
-        foreach ($pedido->itens as $item) {
-            $espec = is_array($item->especificacao) ? $item->especificacao : [];
-            $papel = trim((string) ($espec['papel'] ?? ''));
-            $faixaItem = is_array($espec['faixa'] ?? null) ? $espec['faixa'] : [];
-            $m2 = $this->decimalPositivo($faixaItem['m2'] ?? null);
-            if ($m2 === null && $papel === '') {
-                continue;
-            }
-            $linhas[] = [
-                'm2' => $m2,
-                'g' => $this->gramaturaDoNome($porNome, $papel),
-            ];
-        }
-        if ($linhas === []) {
-            return null;
-        }
-
-        $todasComArea = true;
-        foreach ($linhas as $linha) {
-            if ($linha['m2'] === null) {
-                $todasComArea = false;
-                break;
-            }
-        }
-        if ($todasComArea) {
-            $kg = '0';
-            foreach ($linhas as $linha) {
-                if ($linha['g'] === null) {
-                    return null;
-                }
-                $kg = bcadd($kg, bcdiv(bcmul($linha['m2'], $linha['g'], 8), '1000', 8), 6);
-            }
-
-            return $this->formatarKg($kg);
-        }
-
-        $gramaturas = [];
-        foreach ($linhas as $linha) {
-            if ($linha['g'] === null) {
-                return null;
-            }
-            $gramaturas[$linha['g']] = true;
-        }
-        if (count($gramaturas) !== 1) {
-            return null;
-        }
-        $snap = is_array($pedido->snapshot) ? $pedido->snapshot : [];
-        $faixa = is_array($snap['faixa'] ?? null) ? $snap['faixa'] : [];
-        $m2Pedido = $this->decimalPositivo($faixa['m2'] ?? null);
-        if ($m2Pedido === null) {
-            return null;
-        }
-        $g = (string) array_key_first($gramaturas);
-
-        return $this->formatarKg(bcdiv(bcmul($m2Pedido, $g, 8), '1000', 8));
-    }
-
-    /**
-     * @return array<string, string|null> nome normalizado => g/m², ou null se dois SKUs divergem
-     */
-    private function gramaturaPorNomeDePapel(Empresa $empresa): array
-    {
-        $map = [];
-        $produtos = Produto::query()->where('empresa_id', $empresa->id)->get();
-        foreach ($produtos as $produto) {
-            $g = $this->gramaturaGm2($produto);
-            if ($g === null) {
-                continue;
-            }
-            foreach ([$produto->descricao_fiscal, $produto->descricao_comercial] as $nome) {
-                $key = $this->normalizarNomePapel((string) $nome);
-                if ($key === '') {
-                    continue;
-                }
-                if (! array_key_exists($key, $map)) {
-                    $map[$key] = $g;
-                } elseif ($map[$key] !== null && bccomp((string) $map[$key], $g, 4) !== 0) {
-                    $map[$key] = null;
-                }
-            }
-        }
-
-        return $map;
-    }
-
-    /**
-     * @param  array<string, string|null>  $porNome
-     */
-    private function gramaturaDoNome(array $porNome, string $papel): ?string
-    {
-        $key = $this->normalizarNomePapel($papel);
-        if ($key === '' || ! array_key_exists($key, $porNome)) {
-            return null;
-        }
-        $g = $porNome[$key];
-
-        return is_string($g) && $g !== '' ? $g : null;
-    }
-
-    private function normalizarNomePapel(string $nome): string
-    {
-        $nome = mb_strtolower(trim($nome));
-        if ($nome === '') {
-            return '';
-        }
-        $nome = strtr($nome, [
-            'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a',
-            'é' => 'e', 'ê' => 'e',
-            'í' => 'i',
-            'ó' => 'o', 'ô' => 'o', 'õ' => 'o',
-            'ú' => 'u',
-            'ç' => 'c',
-        ]);
-        $nome = preg_replace('/\s+/u', ' ', $nome) ?? $nome;
-
-        return $nome;
-    }
-
-    private function decimalPositivo(mixed $raw): ?string
-    {
-        if (is_int($raw) || is_float($raw)) {
-            if ($raw <= 0) {
-                return null;
-            }
-            $raw = rtrim(rtrim(sprintf('%.6F', $raw), '0'), '.');
-        }
-        if (! is_string($raw) || trim($raw) === '') {
-            return null;
-        }
-        try {
-            $n = PadraoDecimal::parse(trim($raw));
-        } catch (\InvalidArgumentException) {
-            return null;
-        }
-        if ($n === null || bccomp($n, '0', 6) <= 0) {
-            return null;
-        }
-
-        return $n;
-    }
-
-    private function formatarKg(string $kg): ?string
-    {
-        if (bccomp($kg, '0', 6) <= 0) {
-            return null;
-        }
-        $fmt = PadraoDecimal::roundHalfUp($kg, 3);
-
-        return bccomp($fmt, '0', 3) > 0 ? $fmt : null;
-    }
-
-    private function kgDoMaterial(\App\Models\OrdemProducaoMaterial $mat): ?string
-    {
-        $qtde = (string) $mat->qtde_consumida;
-        if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
-            $qtde = (string) $mat->qtde_planejada;
-        }
-        if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
-            return null;
-        }
-        $un = strtoupper(trim((string) $mat->unidade));
-        if ($un === 'KG') {
-            return $qtde;
-        }
-        $gramatura = $this->gramaturaGm2($mat->produto);
-        if ($gramatura === null) {
-            return null;
-        }
-        if ($un === 'M2') {
-            return bcdiv(bcmul($qtde, $gramatura, 8), '1000', 8);
-        }
-        if ($un === 'M') {
-            $largura = $mat->produto?->atributos['largura_mm'] ?? null;
-            if (! is_numeric($largura) || (float) $largura <= 0) {
-                return null;
-            }
-            $larguraM = bcdiv((string) $largura, '1000', 8);
-            $m2 = bcmul($qtde, $larguraM, 8);
-
-            return bcdiv(bcmul($m2, $gramatura, 8), '1000', 8);
-        }
-
-        return null;
-    }
-
-    private function gramaturaGm2(?Produto $produto): ?string
-    {
-        $raw = $produto?->atributos['gramatura_g_m2'] ?? null;
-        if (! is_numeric($raw) || (float) $raw <= 0) {
-            return null;
-        }
-
-        return PadraoDecimal::roundHalfUp((string) $raw, 4);
     }
 
     /**

@@ -1,0 +1,830 @@
+================================================================================
+PROMPT DE CONSTRUÇÃO
+Observatório Social Brasil — Plataforma PNCP multitenant
+Arquivo de instrução para o agente que vai implementar o sistema novo.
+Não é um rascunho de opções. As decisões abaixo já estão tomadas.
+================================================================================
+
+Papel
+-----
+Você é o engenheiro responsável por construir, do zero, a evolução do
+Observatório de Licitações. Atua como especialista de software, dados,
+arquitetura e UX ao mesmo tempo. Quando houver dois caminhos, segue o
+caminho já decidido neste arquivo. Não reabre decisão fechada. Não copia
+o sistema anterior inteiro. Não aumenta infra “por precaução”.
+
+
+O que construir
+---------------
+Um único sistema web, novo, focado exclusivamente na API do PNCP
+(Portal Nacional de Contratações Públicas) e nas APIs oficiais que a
+sustentam.
+
+O produto faz três coisas, nesta ordem de importância:
+
+  1. Coleta cadenciada e automática, de madrugada.
+  2. Tratamento com integridade (upsert, checkpoint, sem corromper dado).
+  3. Apresentação: visão macro para a direção nacional e visão micro
+     para cada filial, na cidade em que ela atua.
+
+Público:
+
+  - Direção do Observatório Social Brasil (plano master).
+  - Filiais municipais do Observatório (planos inferiores independentes).
+
+A primeira filial real a entrar é a de Uberlândia. O sistema nasce
+nacional: Uberlândia é o primeiro tenant, não um hardcode.
+
+
+Onde construir e o que não tocar
+--------------------------------
+Implementar o sistema novo nesta pasta:
+
+  /home/dfmoura/Documents/test_several1/trigger/49
+
+O sistema anterior é somente referência de leitura:
+
+  /home/dfmoura/Documents/test_several1/trigger/23
+
+Não alterar, não commitar e não fazer deploy em cima da pasta 23.
+A pasta 23 continua sendo o sistema de Uberlândia em produção
+(https://licitacoes.osbrasiluberlandia.org/). Este projeto é outro
+produto. Não migrar o banco SQLite de lá. Pode reler o código para
+copiar um padrão que já funcionou (retry, upsert, checkpoint, sessão,
+Compose e o profile HTTPS do Caddy).
+
+A construção inteira acontece na máquina local. A nuvem só entra
+depois que essa versão local for aceita. Ver a seção
+“Local primeiro, AWS depois”.
+
+
+O que o sistema 23 ensinou — aplicar, não repetir
+-------------------------------------------------
+O que manter como padrão, porque já foi provado em produção:
+
+  - Cliente HTTP com timeout, Retry-After, backoff exponencial com jitter
+    e retry em 429/502/503/504. Ver app/compras/client.py.
+  - Coleta por código de UASG, não por um único CNPJ de prefeitura.
+    Secretarias e autarquias publicam com CNPJs diferentes do CNPJ matriz.
+    Filtrar só “o CNPJ da prefeitura” perde contratação.
+  - Upsert pela chave natural oficial (numeroControlePNCP, codigoUasg,
+    idCompraItem). Re-sincronizar atualiza; não duplica; não apaga campo
+    interno da filial.
+  - Checkpoint de paginação de itens. A API federal estoura timeout em
+    página grande. Janela de itens de no máximo 90 dias, página que encolhe,
+    retomada do cursor. Ver app/compras/orquestrador.py e
+    app/compras_pncp.py.
+  - Dois domínios de modalidade no mesmo registro. Nunca tratar um como
+    o outro:
+      modalidadeIdPncp     = catálogo PNCP (1–14)
+      codigoModalidade     = domínio Compras.gov, usado em filtro e coleta
+      modalidadeNome       = rótulo oficial a exibir
+    Exemplo real: modalidadeIdPncp=8, codigoModalidade=6, nome=Dispensa.
+  - Agendador dentro da aplicação, fuso America/Sao_Paulo, config
+    persistida, uma execução por vez na mesma faixa, retomada depois de
+    restart. Ver app/agendamento.py.
+  - Auth de verdade no backend: cookie de sessão, senha com hash, uma
+    sessão ativa por conta, idle de 30 minutos, teto de contas recusado
+    pela API (não só escondido na tela). Ver app/auth/.
+  - O mesmo jeito de publicar: uma VM, Docker Compose, git pull,
+    app na porta do host em HTTP e Caddy só no profile `https`
+    quando houver domínio. Ver docker-compose.yml e
+    detalhes/05-deploy-aws-free.md. Isso é o roteiro da nuvem,
+    não o primeiro passo da construção.
+  - Cadeia com ordem: enriquecimento externo só depois do núcleo PNCP
+    daquela execução ter terminado com sucesso.
+
+Erros e limites do 23 — este sistema nasce para não repeti-los:
+
+  1. Uma cidade só, cravada em código e ambiente
+     (COMPRAS_IBGE_MUNICIPIO=3170206, UF=MG, lista fixa de UASGs,
+     classificação “de Uberlândia” no enriquecimento de CNPJ).
+  2. Duas fontes no mesmo produto (PNCP e CSV do Power BI da PMU),
+     mais portal antigo, IA de preço e observadores. O coração de dados
+     ficou dividido. Power BI não entra neste produto.
+  3. A rotina da madrugada reprocessa a faixa inteira de anos
+     (ano inicial → ano corrente) todo dia. Isso estoura a janela da
+     madrugada, toma 429 e deixa checkpoint pendente. A rotina diária
+     tem de ser incremental. Carga histórica é outro job, com checkpoint,
+     e não a rotina de toda noite.
+  4. Contratos e atas oficiais do PNCP não foram coletados. O que existe
+     de contrato no 23 veio do CSV do Power BI. Aqui contratos e atas
+     são etapa obrigatória do PNCP.
+  5. Status de job morava em memória. Restart no meio da coleta perdia
+     o painel e, em parte, a trava. Aqui o estado da fila é tabela.
+  6. Várias fases engoliam exceção e a cadeia seguia como se o núcleo
+     tivesse dado certo (órgão, resultado, fornecedor, catálogo).
+     Falha de etapa obrigatória interrompe as etapas que dependem dela
+     e fica registrada. Etapa opcional pode falhar sem fingir sucesso
+     da obrigatória.
+  7. SQLite num processo só (web + coleta + escrita longa) sem WAL
+     explícito, com migração manual por PRAGMA em database.py monolítico.
+     Com várias filiais lendo de dia e um coletor gravando de madrugada,
+     isso não escala nem dentro de uma VM. Ver decisão de banco abaixo.
+  8. Um lock global e uma thread. Com N filiais, uma cidade grande
+     monopoliza a madrugada. A fila tem de ser justa entre filiais e
+     serializada por API externa (o limite é da API federal, não da filial).
+  9. Enriquecimento de CNPJ concorrendo com a coleta PNCP no mesmo
+     horário e na mesma execução longa. As faixas não se encavalam.
+ 10. Frontend, regra e SQL crescendo no mesmo arquivo. Módulos pequenos,
+     teste de isolamento antes de tela nova.
+
+
+Decisões de arquitetura já tomadas
+-----------------------------------
+Não propor alternativa para estes pontos.
+
+1. Tenancy: um banco, um schema, coluna de filial nas tabelas
+   operacionais, mais Row Level Security no Postgres como segunda barreira.
+   Não usar banco por filial. Não usar schema por filial.
+   Motivo: uma VM, um backup, uma migração. Isolamento continua obrigatório
+   na aplicação (nenhuma query operacional sem contexto de filial) e no
+   banco (policy).
+
+2. Banco: PostgreSQL 16 em container, no mesmo Docker Compose da
+   aplicação. Na máquina local e, depois, na mesma VM de produção.
+   Não é RDS. Não é segundo servidor.
+   SQLite fica proibido neste produto, inclusive no desenvolvimento.
+   Motivo: o 23 já sofreu com escritor único durante coleta longa;
+   o produto novo tem leitura de dashboard (master e várias filiais)
+   no mesmo horário em que o worker grava. O mesmo Compose evita
+   um banco “de mentira” local e outro banco na nuvem.
+
+3. Tudo roda em Docker, comandado por um único docker-compose.yml.
+   Não há segundo jeito de subir o sistema. É proibido o atalho que
+   o 23 ainda oferece (setup.sh, run.sh, .venv, pip no sistema,
+   uvicorn no host). Python, dependência, migração, teste, backup
+   e restore acontecem dentro de container, via docker compose.
+   Quem desenvolve não precisa de Python instalado na máquina além
+   do que a imagem já traz.
+
+   Processos, no mesmo Compose, nada além disto:
+     api     — FastAPI, só atende HTTP
+     worker  — único processo que fala com API externa e grava coleta
+     db      — Postgres
+     caddy   — só no profile `https`, como no 23; fora do sobe-local
+   Não criar Redis, RabbitMQ, Celery, MinIO, Kubernetes, fila gerenciada,
+   segundo nó, load balancer, NAT Gateway.
+
+   Portas no host desta máquina — decisão fechada depois de ler os
+   docker-compose.yml de trigger/1 a trigger/48. A única porta publicada
+   por este projeto, no uso local, é 8097. Ela não está em nenhum
+   desses Compose. Está ocupada, e portanto proibida, entre outras:
+   80, 443, 3000, 5173, 5432–5437, 5444, 8000, 8080, 8090, 8091, 8095,
+   8096 (sistema 23), 8034, 8039, 8043, 8048, 8141–8145, 15432, 16432
+   e as faixas 18xxx/19xxx dos projetos de NF-e e NFS-e.
+   Postgres escuta 5432 só na rede interna do Compose, sem mapeamento
+   para o host. Worker sem ports. Profile https não sobe aqui: 80 e 443
+   já pertencem a outros projetos nesta máquina.
+   Se, na hora de subir, 8097 estiver ocupada por algo fora desses
+   arquivos, o compose não troca sozinho para 8096, 5432, 8000, 80 ou
+   443. Para e registra o conflito. A porta substituta, se precisar,
+   sai só da faixa 8098–8099, também livre nesses Compose, e o README
+   é atualizado no mesmo passo.
+
+4. Fila de coleta: tabelas no Postgres (job, etapa, cursor, tentativa).
+   O worker consulta a fila. Restart continua de onde parou.
+   Não há status de job só em memória.
+
+5. Stack de aplicação, toda ela dentro da imagem Docker:
+     Python 3.12, FastAPI, SQLAlchemy 2.x (Declarative), Alembic,
+     Pydantic v2, httpx, pytest, bcrypt ou argon2.
+   Frontend: HTML/CSS/JS estático servido pela própria API, no mesmo
+   estilo sóbrio do 23 (app/static/), sem SPA e sem framework de UI.
+   Um Compose só, usado local e na nuvem. O domínio existe apenas
+   na publicação. Separação lógica: o browser só chama a API;
+   o browser não contém regra de tenancy nem SQL.
+
+6. Migração de schema: somente Alembic. Proibido create_all com
+   ALTER espalhado como mecanismo de evolução.
+
+7. Dois momentos, o mesmo artefato:
+     Agora: versão local, na pasta 49, até ser aceita.
+     Depois: uma instância Amazon Lightsail, no mesmo padrão do 23
+     (git pull + docker compose; HTTPS só com profile e DNS).
+   Tamanho dessa instância, quando for criada: 4 GB RAM / 2 vCPU,
+   disco suficiente para Postgres + backup (mínimo 80 GB).
+   Não começar em plano de 1–2 GB: Postgres + API + worker + coleta
+   noturna não cabem com folga, e o 23 já operou no limite de memória.
+   Crescer depois é aumentar o plano da mesma instância (vertical),
+   só com evidência (fila da madrugada não termina, ou RAM sustentada
+   acima de 80%). Não abrir segundo servidor antes disso.
+   Não criar a instância, não abrir conta e não apontar DNS enquanto
+   a versão local não tiver sido aceita.
+
+8. Fuso de negócio: America/Sao_Paulo. Relógio de log e de agendamento
+   nesse fuso. Persistência de instante em timestamptz (UTC).
+   Não gravar datetime ingênuo. O 23 exibia horário 3 horas adiantado
+   por causa disso.
+
+
+Modelo multitenant — conceito fechado
+--------------------------------------
+O modelo é de dois planos. Não é uma árvore de N níveis. Não inventar
+regional, estado ou franquia no meio.
+
+Plano MASTER (direção nacional do Observatório Social Brasil)
+  - Não é uma filial e não tem cidade.
+  - Não entra na cota de 5 acessos de filial nenhuma.
+  - Seus usuários enxergam todas as filiais: lista, indicadores
+    consolidados e detalhe de uma filial escolhida (drill-down).
+  - Gere o cadastro de filiais (cria, suspende, reativa).
+  - Vê a fila global de coleta e a saúde das APIs.
+  - Não “atua como” uma filial sem trocar o contexto de forma explícita
+    e auditada. A tela macro é o lugar padrão do master.
+
+Plano FILIAL (entidade independente)
+  - Uma filial = uma organização local do Observatório, identificada
+    pelo CNPJ da própria filial (o CNPJ de cadastro da OSC).
+  - Exemplo real da primeira filial, já conhecido, não inventar outro:
+      Nome: Observatório Social do Brasil — Uberlândia
+      CNPJ: 23.497.346/0001-42
+      Cidade de atuação: Uberlândia / MG
+      Código IBGE: 3170206
+  - O CNPJ da filial NÃO é o CNPJ da prefeitura e NÃO é filtro de coleta.
+    Ele identifica quem usa o sistema.
+  - A cidade de atuação (município IBGE + UF) define o território.
+  - Dentro desse território, a filial adere a UASGs. Só UASG aderida e
+    ativa entra na coleta e nas telas daquela filial.
+  - Usuários da filial veem somente os dados do escopo dela.
+    Não existe seletor de cidade para usuário de filial.
+  - Usuários, sessões e anotações de uma filial são invisíveis para as
+    outras filiais. O master vê usuários de todas, porque administra
+    a plataforma; a filial não vê usuários de outra filial.
+
+Do CNPJ da filial até as UASGs (fluxo de cadastro, uma vez por filial):
+
+  1. Master cria a filial com CNPJ, nome e município IBGE + UF.
+     O CNPJ é validado por dígito e, quando a faixa de CNPJ já existir,
+     conferido na cache CNPJ (ver faixas). Não bloquear o cadastro se a
+     API de CNPJ estiver fora; registrar pendência de conferência.
+  2. O sistema localiza, no módulo 05 do Compras.gov, as UASGs com
+     aquele codigoMunicipioIbge e UF. Isso é o catálogo do território,
+     não a lista já aderida.
+  3. O gestor da filial (ou o master, no onboarding) marca quais UASGs
+     entram no acompanhamento. UASG inativa no Compras.gov não é coletada.
+  4. A coleta da filial percorre somente essas UASGs.
+  5. Inclusão ou retirada de UASG muda o escopo e entra na próxima
+     janela de carga (não dispara coleta imediata em horário comercial,
+     salvo ação explícita de “enfileirar agora” feita por master ou
+     gestor).
+
+Seed inicial de UASGs de Uberlândia (adesão inicial, nomes do 23;
+conferir no módulo 05 na primeira sincronização e não tratar a lista
+como verdade eterna):
+
+  926922  PMU
+  926287  DMAE
+  926038  FUTEL
+  931351  ARESAN
+  930403  FERUB
+  929315  EMAM
+  929301  IPREMU
+  925010  Câmara Municipal
+
+UASG de outro município nunca é aderida por esta filial.
+
+
+Acessos
+--------
+Filial: no máximo 5 contas ativas no total. O gestor conta dentro das 5.
+
+  Papéis da filial:
+    filial_gestor    — no máximo 1 por filial. Escopo da própria filial,
+                       usuários da filial (até o teto), leitura de todas
+                       as telas de análise, status da coleta da filial,
+                       disparo manual da cadeia da própria filial.
+    filial_analista  — o restante, até completar 5. Somente leitura e
+                       filtros da própria cidade. Não gerencia usuário,
+                       não dispara coleta, não altera UASG aderida.
+
+Master (cota própria, separada; padrão inicial 8 contas ativas,
+constante única fácil de alterar):
+
+    master_admin     — no máximo 2. Tudo do plano master, inclusive
+                       criar filial e usuário master.
+    master_analista  — o restante da cota master. Lê o consolidado e
+                       o detalhe de qualquer filial. Não cria filial,
+                       não cria usuário, não dispara coleta.
+
+Regras de sessão (herdadas do que já funcionou no 23):
+
+  - Login usuário + senha. Sem OAuth, sem Cognito, sem e-mail.
+  - Hash de senha. Cookie HttpOnly. Secure atrás de HTTPS.
+  - Uma sessão ativa por conta. Segundo login recebe 409 com ação
+    “encerrar a sessão anterior e entrar”.
+  - Idle de 30 minutos. Validade absoluta de 7 dias.
+  - Teto estourado: a API recusa com mensagem clara. Desativar conta
+    libera vaga. Não apagar histórico de auditoria da conta.
+  - Bootstrap: se não existir usuário, o primeiro master_admin nasce
+    por variável de ambiente, uma vez.
+
+Autorização é sempre no backend. Esconder botão não é segurança.
+Toda rota operacional exige contexto. Teste automático prova que a
+filial A não lê linha da filial B nem chamando o id direto.
+
+
+Engenharia de dados — o coração do sistema
+-------------------------------------------
+Esta é a parte que não pode ser simplificada “para entregar tela”.
+A apresentação lê o que esta camada gravou. Não há atalho de a tela
+chamar a API federal.
+
+Princípios:
+
+  - Uma faixa externa por vez. O worker tem um único consumidor por
+    faixa. Filiais entram em rodízio justo (round-robin por filial
+    com trabalho pendente), mas a chamada HTTP daquela faixa é serial.
+  - Orçamento de tempo e de chamadas por noite, configurável, com
+    padrão conservador. Ao estourar o orçamento, o job fica
+    “continua amanhã” com cursor salvo. Não empurra a etapa seguinte
+    para dentro da mesma madrugada.
+  - Idempotência: repetir a mesma página não duplica linha.
+  - Carga inicial (backfill) e rotina diária são tipos de job diferentes.
+  - Dado oficial e dado interno não moram no mesmo campo.
+    Anotação da filial, se existir no futuro, fica em tabela à parte
+    e sobrevive a qualquer re-sync. Não criar essa anotação na v1
+    além do gancho de preservação (coluna ou tabela vazia de propósito,
+    testada). O 23 perdia marcação quando o sync sobrescrevia a linha;
+    aqui o teste de preservação nasce junto com o upsert.
+
+Faixas (lanes), nesta ordem, sem sobreposição:
+
+  FAIXA A — Compras.gov Dados Abertos (dadosabertos.compras.gov.br)
+    Núcleo PNCP da contratação. Roda na madrugada.
+    É a única faixa que a v1 precisa deixar verde para chamar o
+    sistema de “útil”.
+
+  FAIXA B — API de consulta do PNCP (pncp.gov.br)
+    Contratos e atas. Começa somente quando a Faixa A daquela filial,
+    naquela noite, terminou sem etapa obrigatória pendente.
+    Host diferente, limite diferente, fila diferente. Não misturar
+    cliente HTTP nem cursor com a Faixa A.
+
+  FAIXA C — CNPJ público
+    Fora da v1 operacional. O desenho da fila, da cache global e do
+    gancho “só depois da Faixa B” entra na v1 como código desligado
+    (flag e testes). A execução real é a fase seguinte, quando A e B
+    já cumprem a madrugada com folga.
+    Cache global por CNPJ (14 dígitos), compartilhada entre filiais.
+    A segunda filial não consulta de novo um CNPJ que a primeira já
+    trouxe e que ainda está dentro do prazo de cache.
+
+  FAIXA D — CEP
+    Ainda depois da C. Só para CEP que a cache de CNPJ gravou e que
+    ainda não está normalizado. Também global, também desligada na
+    execução até a C estar estável. Não chama CEP no meio da coleta
+    de contratação.
+
+Horário: diário, padrão 02:10 America/Sao_Paulo, editável pelo
+master_admin. A folga até o uso da manhã é o orçamento. Backup do
+banco roda depois da janela de coleta (padrão 05:10), nunca no meio
+dela.
+
+Cadeia noturna de uma filial (ordem rígida):
+
+  A1  Dimensão órgão + UASG (módulo 05), restrita ao município da filial.
+      Não varrer o Brasil. Frequência: no onboarding, quando o escopo
+      muda, e no máximo 1 vez por semana na rotina. Nas outras noites
+      a etapa é pulada com motivo registrado.
+  A2  Contratações (módulo 07, Lei 14.133), por UASG aderida.
+  A3  Itens dessas contratações, com checkpoint de página.
+  A4  Resultados de item, somente onde a contratação ou o item indica
+      resultado, ou onde o registro mudou desde a última coleta.
+  --- barreira: se A2, A3 ou A4 obrigatórios ficaram incompletos,
+      B não começa para essa filial nesta noite. A1, por ser dimensão
+      auxiliar, registra erro e segue, como já era seguro no 23,
+      desde que as UASGs aderidas já existam localmente.
+  B1  Contratos PNCP por CNPJ de órgão ligado às UASGs aderidas,
+      vinculados pelo numeroControlePncpCompra quando existir.
+  B2  Atas de registro de preço do PNCP, mesmo critério de órgão e
+      janela.
+  --- barreira: C não começa se B obrigatório desta filial falhou.
+      Na v1, C e D nem são despachadas (flag off).
+  C   (fase posterior) CNPJ dos fornecedores ainda sem cache válida,
+      com teto global de consultas por noite.
+  D   (fase posterior) CEP ainda sem cache, teto menor ainda.
+
+Rotina diária versus carga inicial:
+
+  Rotina diária (todo dia, todas as filiais ativas, rodízio):
+    - Janela móvel curta de publicação/atualização (padrão: últimos
+      7 dias, constante).
+    - Mais a fila de contratações ainda abertas (situação não
+      encerrada / sem resultado final), para refresh, com teto de
+      registros por filial por noite.
+    - Não rebaixar anos inteiros.
+
+  Carga inicial (uma filial por vez, disparada no onboarding e
+    retomável):
+    - Backfill a partir de um ano inicial configurável
+      (Uberlândia: 2023, primeiro ano relevante da Lei 14.133 no
+      uso já observado; confirmar na primeira execução e registrar).
+    - Mesmas etapas A e B, com cursor persistido por
+      (filial, uasg, tipo, janela, página).
+    - Enquanto a carga inicial de uma filial não termina, a rotina
+      diária dessa filial espera. As outras filiais seguem o rodízio.
+    - A carga inicial também respeita a madrugada e o orçamento.
+      Se não acabar, continua na noite seguinte do cursor. Não
+      transformar isso em loop diurno.
+
+Contratos e atas — fonte decidida:
+
+  https://pncp.gov.br/api/consulta/v1/contratos
+  https://pncp.gov.br/api/consulta/v1/atas
+
+  Parâmetros já usados com sucesso no estudo do 23 para contratos:
+  dataInicial, dataFinal (AAAAMMDD), cnpjOrgao, pagina, tamanhoPagina.
+  O CNPJ aqui é o CNPJ do órgão público (unidade), nunca o CNPJ da
+  filial do Observatório.
+  Guardar numeroControlePNCP do contrato/ata como chave única global
+  e numeroControlePncpCompra como vínculo com a contratação, quando
+  a API enviar. Vínculo ausente não impede gravar o contrato; fica
+  “não vinculado” e a próxima coleta tenta de novo.
+
+Catálogo CATMAT/CATSER (módulos 01 e 02):
+
+  Cache global, sob demanda, só de códigos que já apareceram em item
+  coletado e ainda não estão na cache. Teto por noite. Não baixar o
+  catálogo nacional inteiro. Falha de catálogo não reprova a noite
+  da Faixa A.
+
+Fornecedor (módulo 10 do Compras.gov):
+
+  Não entra na cadeia da v1. O resultado do PNCP já traz NI e nome.
+  O enriquecimento cadastral completo é a Faixa C (CNPJ público),
+  na fase posterior. Não recolocar o módulo 10 “porque existia no 23”.
+
+Cliente HTTP da Faixa A — partir do que o 23 já aferiu, como padrão:
+
+  page size de contratações 500; itens começa em 100 e pode cair até 25;
+  janela de itens ≤ 90 dias; timeout de leitura 180s; retries 5 na
+  maior parte dos módulos; na listagem de itens, 2 tentativas e em
+  seguida partir a janela ou reduzir a página; delay mínimo entre
+  chamadas; respeitar Retry-After; User-Agent identificável do
+  Observatório (não fingir browser sem necessidade; se a API exigir
+  o padrão que já passou em produção, manter o que funcionou).
+  Constante em configuração, não número mágico espalhado.
+
+CNPJ e CEP, quando forem ligados (não implementar a chamada na
+primeira entrega funcional; deixar o contrato pronto):
+
+  Ordem de CNPJ já provada no 23, um de cada vez, só se o anterior
+  falhar de forma transitória:
+    BrasilAPI → Minha Receita → CNPJá Open → publica.cnpj.ws
+  Cache com prazo (o 23 usava dias de validade; manter esse conceito,
+  padrão 30 dias, constante).
+  CEP: uma fonte primária (BrasilAPI CEP) e uma reserva (ViaCEP).
+  Nunca as duas em paralelo para o mesmo CEP.
+  Classificação “fornecedor do município da filial” usa o IBGE da
+  filial dona da análise, não o IBGE de Uberlândia fixo.
+  A cache em si é global e neutra; a classificação é por filial.
+
+
+Modelo de dados (mínimo que a v1 materializa)
+----------------------------------------------
+Nomes em português, snake_case, chave natural única onde a API tiver
+identificador estável. tenant_id (filial) nas tabelas operacionais.
+Tabelas globais sem tenant_id, listadas abaixo.
+
+Globais (compartilhadas, sem dado de uma filial):
+  filial
+  usuario, sessao, auditoria_acesso
+  orgao_publico, uasg                         — espelho do módulo 05
+  catalogo_item                               — CATMAT/CATSER
+  cnpj_cache, cep_cache                       — vazias na execução até a fase C/D
+  coleta_job, coleta_etapa, coleta_cursor
+
+Por filial (tenant_id obrigatório + RLS):
+  filial_uasg                                 — adesão (ativa ou não)
+  contratacao, contratacao_item, resultado_item
+  contrato_pncp, ata_pncp
+  vinculo interno futuro (tabela de anotação, pode nascer vazia)
+
+Regras de chave:
+  contratacao.numero_controle_pncp           único
+  contratacao_item.(numero_controle_pncp, numero_item) único
+  resultado pela chave estável que a API der (id do resultado ou
+    combinação compra+item+fornecedor+data resultado); se a API repetir
+    linha idêntica, upsert, não insert
+  contrato_pncp.numero_controle_pncp         único
+  ata_pncp.numero_controle_pncp              único
+  uasg.codigo_uasg                           único global
+  cnpj_cache.cnpj                            único global (só dígitos)
+
+Uma contratação vista por duas filiais (caso raro de UASG aderida por
+engano em dois territórios) não se duplica na tabela global de órgão.
+A adesão é que é por filial. Contratação, item, resultado, contrato e
+ata guardam a UASG e, por ela, só aparecem para a filial que aderiu
+àquela UASG. Se no futuro duas filiais aderirem a mesma UASG, as duas
+leem a mesma linha oficial; nenhuma “possui” o dado público. Anotação
+interna, se um dia existir, aí sim é por filial.
+
+Não modelar Power BI, licitação de portal municipal, proposta aberta
+de IA, token de IA, observador de planilha.
+
+
+Apresentação
+------------
+Interface limpa, densa o bastante para análise e calma o bastante para
+voluntário de OSC. Tipografia e cor sóbrias. Estado vazio explica o
+que falta (ex.: “nenhuma UASG aderida — a coleta ainda não tem escopo”).
+Não há dashboard decorativo sem número que a coleta sustente.
+
+Depois do login, o plano decide a navegação. Usuário de filial não vê
+menu master. Master não cai na tela de uma cidade por acidente.
+
+Filial (micro, uma cidade):
+
+  Painel
+    Totais da própria cidade no período: contratações, valor estimado,
+    valor homologado, contratos, atas, UASGs com movimento.
+    Situação da última coleta da filial (ok, parcial, erro, continua
+    amanhã) em uma linha, sem log técnico para o analista.
+  Contratações
+    Filtros: período, UASG, modalidade (pelo nome oficial e pelo
+    codigoModalidade), situação, texto no objeto, fornecedor.
+    Abre o detalhe com itens e resultados.
+  Contratos e atas
+    Filtros equivalentes. Mostra vínculo com a contratação quando houver
+    e o estado “não vinculado” quando não houver.
+  Escopo (só gestor)
+    UASGs do município, aderidas ou não, com status oficial.
+  Coleta (só gestor)
+    Última execução, etapa, cursor, botão de enfileirar.
+    Não expõe log cru de 400 linhas; expõe resumo e, sob demanda,
+    as últimas mensagens.
+  Usuários (só gestor)
+    Até 5, com vagas restantes visíveis.
+
+Master (macro):
+
+  Consolidado
+    Uma linha por filial ativa: cidade, UASGs aderidas, contratações
+    no período, valor homologado, contratos, última coleta (ok/parcial).
+    Totais gerais no topo. Sem misturar filial suspensa no total,
+    mas listá-la à parte como suspensa.
+  Filial
+    O mesmo detalhe que a filial vê, com o nome da cidade sempre
+    visível no topo, para ninguém analisar a cidade errada.
+  Filiais
+    Cadastro: CNPJ, nome, município, UF, IBGE, situação.
+  Fila
+    Jobs da noite, por faixa e por filial, com cursor e motivo de
+    pausa. Só master_admin enfileira ou cancela.
+  Usuários master
+    Cota própria.
+
+Período padrão das telas: ano corrente, com atalho para 12 meses e
+para intervalo livre. Filtro fica na URL ou é reaplicável, para o
+usuário conseguir voltar. Número de dinheiro em real, data em
+dd/mm/aaaa na tela, ordenação estável.
+
+Acessibilidade mínima: contraste, foco visível, botão com texto
+(não só ícone), tabela que não depende de cor única para indicar erro.
+
+
+Segurança e isolamento — critérios que o teste tem de falhar se quebrar
+-------------------------------------------------------------------------
+  - Requisição sem sessão não lê dado.
+  - filial_analista não chama rota de coleta, de usuário nem de adesão.
+  - filial_gestor da filial A, com id de contratação da filial B,
+    recebe 404 (não 403 com corpo da outra). Não revelar existência.
+  - master_analista lê consolidado e detalhe; não cria filial.
+  - SQL de listagem operacional sem tenant, fora do plano master,
+    não existe no código de repositório. O repositório da filial
+    recebe o id da filial pelo contexto da sessão, nunca pelo query
+    string livre de um analista.
+  - RLS ligada nas tabelas por filial. A aplicação usa um papel de
+    banco que está sujeito à policy. Teste de integração abre uma
+    transação com o id da filial A e prova que um select sem filtro
+    adicional não devolve linha da B.
+  - Segredo só em ambiente (.env não commitado). Não há chave de IA
+    neste produto.
+  - Auditoria mínima: login, falha de login, criação de usuário,
+    criação e suspensão de filial, disparo manual de coleta.
+    Sem senha no log.
+
+
+Local primeiro, AWS depois
+--------------------------
+O ciclo é o mesmo do sistema 23: trabalhar local até ficar bom e só
+então publicar numa VM. Não há ambiente de nuvem “em paralelo” durante
+a construção. Quem for implementar não abre instância, não pede
+crédito e não configura DNS.
+
+Versão local (obrigatória agora)
+  Docker e Docker Compose são a única forma de construir, subir,
+  testar e operar. Sem profile https:
+
+    docker compose up --build -d
+    docker compose ps
+    docker compose logs -f
+    docker compose down
+
+  Serviços nesse modo: api, worker e db. O Caddy não sobe.
+  Comandos avulsos também são compose, não shell da máquina:
+
+    docker compose run --rm api pytest
+    docker compose exec db pg_dump ...
+
+  Alembic roda no start do container da api. Não há migração
+  manual fora do Docker.
+  Única publicação no host: "8097:8097" no serviço api.
+  Acesso:
+    http://localhost:8097/
+    na mesma rede: http://IP-DA-MAQUINA:8097/
+  db e worker não têm chave ports. Teste que sobe um Postgres
+  efêmero também não publica porta no host.
+  O volume do Postgres local não é o dado da futura produção e não
+  é o licitacoes.db do 23.
+  Cookie de sessão em HTTP local: AUTH_COOKIE_SECURE=0 neste modo.
+  Em HTTPS, auto, como no 23.
+  Health: GET /api/health verifica API e banco. O Compose usa isso.
+  Backup local: pg_dump executado no container do Postgres
+  (script que chama docker compose, nunca um cliente de banco
+  instalado no host), retenção de 7 dias, restaurável na mesma
+  máquina. Não depende de cron da AWS para existir.
+  Testes: pytest dentro do container da api, com banco efêmero
+  também em container. Nunca o volume de desenvolvimento. Nunca
+  pytest instalado na máquina.
+  README curto, só com comandos docker compose: como subir, como
+  parar, como ver log, como rodar teste, como fazer backup e
+  restore, como o worker retoma depois de restart.
+
+Publicação na AWS (só quando a versão local for aceita)
+  Mesmo roteiro operacional do 23, documentado em
+  detalhes/05-deploy-aws-free.md e no docker-compose.yml de lá.
+  Destino: uma instância Lightsail (tamanho na decisão 7), não RDS,
+  não segundo servidor, não o servidor que já hospeda o sistema 23.
+  Os dois produtos permanecem separados: outro diretório, outro
+  volume, outra instância, outro domínio quando houver.
+  Nesta VM nova, 80 e 443 estão livres porque nada mais roda nela.
+  É o único lugar em que o profile https pode publicá-las.
+  Não abrir 8096. Não publicar o Postgres. A contingência HTTP,
+  se precisar antes do DNS, usa 8097 nessa instância — não na
+  máquina de desenvolvimento e não no servidor do sistema 23.
+
+  Passos, nesta ordem, e só mediante pedido explícito de publicar:
+    1. Instância com Docker e Docker Compose.
+    2. Firewall: na contingência, a porta do app; no endereço de
+       trabalho, TCP 80 e 443.
+    3. git clone / git pull do código deste projeto.
+    4. docker compose up --build -d  (ainda sem HTTPS, para checar
+       /api/health no IP).
+    5. Com DNS A do domínio apontando para o IP da instância:
+       docker compose --profile https up -d --build
+       Caddy obtém o certificado Let's Encrypt, redireciona HTTP
+       para HTTPS e faz proxy para a API. Nada mais escuta 80/443.
+    6. Backup na VM: pg_dump às 05:10 America/Sao_Paulo, retenção
+       7 dias, só se a coleta da noite não estiver em execução;
+       se estiver, adia 30 minutos, uma vez, e registra.
+    7. Snapshot semanal da instância, além do dump. O snapshot não
+       substitui o dump; o dump não substitui o snapshot.
+
+  Atualização depois do go-live: git pull e recreate de api e worker.
+  Alembic roda no start da api, uma vez, antes de aceitar tráfego.
+  Backup imediatamente antes de migrar.
+  O domínio definitivo o informa a direção; não inventar hostname
+  e não reutilizar licitacoes.osbrasiluberlandia.org, que permanece
+  com o sistema 23.
+
+  O README deixa esses passos escritos desde a versão local, em
+  seção separada (“Publicar na AWS”), para o dia do deploy não
+  depender de memória. Escrever a seção não autoriza executar o
+  deploy. Sem tutorial genérico de AWS além desse roteiro.
+
+
+Ordem de construção — uma fatia por vez
+----------------------------------------
+Não começar pela tela. Não ligar CNPJ/CEP na primeira fatia.
+Cada fatia termina com teste verde antes da próxima.
+
+  1. Esqueleto local só com Docker: Dockerfile, docker-compose.yml
+     sem profile https (api, worker, db) na porta 8097, health,
+     Alembic no start do container, README só com comandos compose,
+     teste de sobe-e-responde via docker compose. Caddy fica só
+     declarado no profile https, sem ser exigido para a fatia fechar.
+     Não criar setup.sh, run.sh nem .venv.
+  2. Identidade: filial, usuário, sessão, tetos, papéis, RLS,
+     testes de isolamento e de cota (5 na filial, cota master separada).
+  3. Escopo: município, sincronização de UASG/órgão do município,
+     adesão. Teste com HTTP mockado, sem chamar a API real no pytest.
+  4. Faixa A: fila, cursor, rotina incremental e carga inicial,
+     contratações, itens com checkpoint, resultados, upsert,
+     preservação de campo interno. Teste do “não começa B se A
+     obrigatório falhou”.
+  5. Faixa B: contratos e atas, vínculo quando houver chave,
+     mesma regra de barreira.
+  6. Telas da filial (micro) lendo só a API própria.
+  7. Telas do master (macro + drill-down + fila).
+  8. Agendamento 02:10, rodízio, orçamento, retomada após restart.
+     Teste de relógio injetado (não dormir de verdade no pytest).
+  9. Backup e restore locais, health de verdade e, no README, a seção
+     “Publicar na AWS” (roteiro pronto, deploy não executado).
+ 10. Gancho das Faixas C e D: tabelas de cache, contrato da fila,
+     flags desligadas, testes de “não dispara enquanto a flag está
+     off” e de “não dispara se B falhou”. Sem cliente HTTP ativo
+     ainda, ou com cliente presente e não chamado pelo scheduler.
+     A implementação da chamada CNPJ/CEP é uma fase explícita
+     posterior, com o mesmo padrão de teto, cache e fallback.
+     Não antecipar.
+
+Uberlândia entra como migração de dados de demonstração só por seed
+de filial + UASGs (o bloco acima), não por cópia do licitacoes.db.
+
+
+Fora de escopo — recusar mesmo se parecer pequeno
+--------------------------------------------------
+  - Power BI, CSV da prefeitura, portal weblicitacoes, scraper.
+  - Análise de preço por IA, tokens, provedores de IA.
+  - Vereadores, redes sociais, diário oficial.
+  - Módulo 10 do Compras.gov e pesquisa de preço (módulo 03) na v1.
+  - PGC/PCA em massa.
+  - SSO, 2FA, recuperação de senha por e-mail, convite por e-mail.
+  - Aplicativo móvel, notificações, exportação contábil.
+  - Multi-idioma.
+  - Subir, testar ou migrar fora do Docker (venv, pip no host,
+    uvicorn direto, Postgres instalado na máquina, script de backup
+    que não passe por docker compose).
+  - Publicar no host qualquer porta além de 8097 no uso local.
+    Em especial 8096, 5432, 8000, 80 e 443 nesta máquina.
+  - Qualquer componente de infra além de api, worker, Postgres e,
+    só na publicação, o Caddy do profile https.
+  - Criar instância, DNS, certificado ou deploy na AWS antes de a
+    versão local ser aceita.
+  - Publicar no mesmo servidor, domínio ou banco do sistema 23.
+  - Reescrever o sistema 23 para “aproveitar” o deploy dele.
+
+
+Critérios de aceite da v1 (versão local)
+-----------------------------------------
+  - Sobe na máquina somente com docker compose up --build -d, sem
+    profile https, em http://localhost:8097/ , e /api/health inclui
+    banco. Não existe caminho por venv ou uvicorn no host.
+  - pytest, migração e pg_dump rodam via docker compose.
+  - A única porta de host publicada no compose local é 8097.
+    db e worker não publicam porta. 8096, 5432, 8000, 80 e 443
+    não aparecem em ports.
+  - O profile https existe no Compose e não é necessário para o
+    uso local.
+  - O README tem a seção de publicação na AWS e ninguém precisa ter
+    executado essa seção para a v1 ser aceita.
+  - Sem login, não há dado.
+  - Filial Uberlândia existe por seed, com as UASGs iniciais aderidas
+    depois da sincronização do município (teste mockado cobre a regra;
+    a chamada real fica para a operação, não para o pytest).
+  - Usuário de outra filial, criado no teste, não vê contratação,
+    contrato, ata, usuário nem UASG aderida de Uberlândia.
+  - A sexta conta ativa da filial é recusada.
+  - A conta master não consome as 5 vagas da filial.
+  - Job diário não pede o ano inteiro: pede a janela configurada e a
+    fila de abertas, e isso está coberto por teste.
+  - Itens interrompidos gravam cursor e a execução seguinte retoma
+    a página, sem duplicar item.
+  - Falha obrigatória da Faixa A impede a Faixa B daquela filial
+    naquela noite e fica visível na fila do master.
+  - Contrato gravado sem numeroControlePncpCompra aparece como não
+    vinculado e não quebra a tela.
+  - Modalidade é exibida pelo nome oficial; filtro usa codigoModalidade;
+    teste impede trocar os dois códigos.
+  - Restart do worker não perde job: a linha continua e o processo
+    retoma.
+  - Flag de CNPJ/CEP desligada: nenhuma chamada a esses hosts,
+    verificável por teste.
+  - README descreve subir e parar local, backup, restore, o horário
+    das faixas e o roteiro de publicação (sem tê-lo executado).
+
+Critérios da publicação (só no dia em que pedirem o deploy)
+-----------------------------------------------------------
+  - A v1 local já foi aceita.
+  - Instância Lightsail nova, separada da do sistema 23.
+  - git clone + compose sobe, e /api/health responde.
+  - Com DNS apontando para essa instância, o profile https entrega
+    o domínio em HTTPS e o HTTP redireciona.
+  - Volume do Postgres sobrevive a recreate de api e worker.
+  - Backup por pg_dump restaurável, mais snapshot da instância.
+
+
+Disciplina do agente que for implementar
+-----------------------------------------
+  - Ler este arquivo por inteiro antes de criar arquivo.
+  - Consultar o 23 só para copiar um mecanismo citado aqui
+    (retry, checkpoint, sessão, Compose, profile https do Caddy).
+    Não trazer módulo não citado. Não copiar setup.sh nem run.sh:
+    neste produto não há execução fora do Docker.
+  - Cada comando operacional do README é docker ou docker compose.
+    Se um passo não couber nisso, o passo está errado.
+  - Não criar recurso na AWS durante as fatias locais. A seção de
+    publicação no README é documentação, não um deploy.
+  - Uma fatia da ordem de construção por ciclo. Teste verde antes
+    de abrir a fatia seguinte.
+  - Não adicionar dependência sem uso direto nesta fatia.
+  - Não criar microserviço, fila externa nem banco por filial
+    “para ficar pronto para o futuro”.
+  - Comentário no código só onde a regra não é óbvia (barreira entre
+    faixas, dois códigos de modalidade, CNPJ da filial ≠ CNPJ do órgão).
+  - Se um fato da API federal divergir do que este prompt diz,
+    prevalece a resposta real da API, registrada no README de coleta,
+    sem alargar o escopo.
+================================================================================

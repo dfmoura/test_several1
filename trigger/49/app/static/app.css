@@ -1,0 +1,274 @@
+/* Identidade do Observatório Social Brasil.
+   Verde da marca, barra escura, Source Serif 4 e IBM Plex Sans.
+   Sem o logo de uma cidade: o produto é nacional. */
+:root {
+  --ink: #0d1f2a;
+  --paper: #f4f1e8;
+  --surface: #ffffff;
+  --surface-sunk: #faf8f2;
+  --brand: #91c649;
+  --accent: #6e9e28;
+  --accent-ink: #4d7019;
+  --accent-soft: #eef6e4;
+  --accent-line: #c9e0a8;
+  --steel: #35617f;
+  --danger: #9a3b2f;
+  --ok: #6e9e28;
+  --line: #ded7c6;
+  --line-soft: #e9e3d6;
+  --text: #1c2b33;
+  --text-soft: #566571;
+  --side-bg: #0c2529;
+  --side-bg-2: #0e2d31;
+  --side-text: #cfe0dd;
+  --side-muted: #7fa39d;
+  --radius: 10px;
+  --radius-sm: 7px;
+  --shadow: 0 1px 2px rgba(13, 31, 42, 0.06), 0 8px 24px -18px rgba(13, 31, 42, 0.28);
+  --font-ui: "IBM Plex Sans", system-ui, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, serif;
+}
+
+* { box-sizing: border-box; }
+:focus-visible { outline: 3px solid rgba(110, 158, 40, 0.45); outline-offset: 2px; }
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text);
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(1200px 600px at 88% -8%, rgba(145, 198, 73, 0.09), transparent 60%),
+    radial-gradient(900px 500px at -6% 108%, rgba(53, 97, 127, 0.07), transparent 60%);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: var(--font-serif); font-weight: 600; color: var(--ink); }
+.pula { position: absolute; left: -999px; }
+.pula:focus { left: 0.5rem; top: 0.5rem; background: var(--surface); padding: 0.4rem; z-index: 5; }
+
+.auth-gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 18px;
+  background:
+    radial-gradient(900px 480px at 85% -10%, rgba(145, 198, 73, 0.14), transparent 55%),
+    radial-gradient(700px 420px at 0% 110%, rgba(53, 97, 127, 0.1), transparent 55%),
+    linear-gradient(165deg, #0c2529 0%, #123b3a 48%, #0d1f2a 100%);
+}
+.auth-gate[hidden], #app-shell[hidden] { display: none !important; }
+.auth-card {
+  width: min(420px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28px 26px 22px;
+}
+.auth-brand { margin-bottom: 16px; }
+.brand-eyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.auth-card .brand-eyebrow { color: var(--accent-ink); }
+.auth-card .brand-title { margin: 4px 0 0; font-size: 32px; line-height: 1.1; }
+.auth-card .brand-sub, .auth-lead { margin: 8px 0 0; color: var(--text-soft); font-size: 14px; }
+.auth-takeover {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.auth-takeover[hidden] { display: none !important; }
+
+.app-shell { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+.sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  background: linear-gradient(180deg, var(--side-bg-2), var(--side-bg));
+  color: var(--side-text);
+  display: flex;
+  flex-direction: column;
+  padding: 22px 16px 14px;
+}
+.sidebar .brand { padding: 0 6px 16px; }
+.sidebar .brand-eyebrow { color: var(--side-muted); }
+.sidebar .brand-title {
+  margin: 4px 0 0;
+  font-size: 26px;
+  line-height: 1.05;
+  color: #fff;
+}
+.sidebar .brand-sub { margin: 6px 0 0; font-size: 12px; color: var(--side-muted); }
+.nav { display: flex; flex-direction: column; gap: 2px; overflow: auto; }
+.nav-btn {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--side-text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.nav-btn:hover { background: rgba(255, 255, 255, 0.05); }
+.nav-btn.active, .nav-btn[aria-current="page"] {
+  background: rgba(145, 198, 73, 0.14);
+  color: #fff;
+}
+.nav-btn.active::before, .nav-btn[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--brand);
+}
+.sidebar-foot {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.content { min-width: 0; display: flex; flex-direction: column; }
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  background: rgba(244, 241, 232, 0.9);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-title { margin: 0; font-size: 21px; }
+.topbar-sub { margin: 2px 0 0; font-size: 12.5px; color: var(--text-soft); }
+main { padding: 18px 28px 40px; }
+main h2 { margin: 0 0 8px; font-size: 26px; }
+
+.cartoes, .acoes { display: flex; flex-wrap: wrap; gap: 12px; }
+.cartao {
+  background: var(--surface-sunk);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  min-width: 9.5rem;
+}
+.cartao span { display: block; color: var(--text-soft); font-size: 12px; }
+.cartao strong {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  color: var(--ink);
+}
+.periodo { margin: 0 0 10px; color: var(--text-soft); }
+
+table, .data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  font-size: 13.5px;
+}
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+th {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  background: var(--surface-sunk);
+}
+.vazio {
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+.erro { color: var(--danger); font-weight: 650; }
+.status { font-weight: 650; }
+.status.ok { color: var(--ok); }
+.status.erro, .status.parcial, .status.continua_amanha { color: var(--danger); }
+
+form {
+  display: grid;
+  gap: 12px;
+  max-width: 460px;
+  margin: 14px 0;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.auth-card form { margin: 14px 0 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+label { display: grid; gap: 4px; font-size: 13px; color: var(--text-soft); }
+input, select {
+  font: inherit;
+  color: var(--text);
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+button, .nav-btn { font-family: var(--font-ui); }
+main button, form button, .acoes button, .auth-card button {
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+form button[type="submit"], .acoes button, .auth-card form button {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+}
+form button[type="submit"]:hover, .acoes button:hover, .auth-card form button:hover {
+  background: var(--accent-ink);
+}
+
+form.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+  max-width: none;
+}
+form.filtros label { flex: 1 1 150px; }
+.abas { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 16px; }
+main .abas .aba {
+  background: var(--surface);
+  color: var(--accent-ink);
+  border: 1px solid var(--line);
+}
+main .abas .aba.active {
+  background: #e7f3d4;
+  border-color: var(--brand);
+}
+
+@media (max-width: 860px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; }
+  .nav { flex-direction: row; overflow-x: auto; }
+  .nav-btn { width: auto; white-space: nowrap; }
+  .sidebar-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  main, .topbar { padding-left: 16px; padding-right: 16px; }
+}

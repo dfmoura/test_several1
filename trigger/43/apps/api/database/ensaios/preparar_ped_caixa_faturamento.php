@@ -112,6 +112,8 @@ foreach ([$caixa, $pa] as $produto) {
 
 $espec = [
     'medida' => '100X50',
+    'largura_cm' => 10,
+    'puxada_cm' => 5,
     'papel' => 'Couchê Brilho',
     'cores' => 4,
     'acabamento' => 'Verniz UV',
@@ -187,6 +189,7 @@ if ($ped === null) {
                 'valor_total' => '1750.00',
                 'rolos' => 5,
                 'qtde_caixas' => 0,
+                'm2' => '25',
             ],
         ],
     ]);
@@ -205,7 +208,12 @@ if ($ped === null) {
         'valor_total' => '1750.00',
         'status' => PedidoItem::STATUS_PRODUZIDO,
         'produto_pa_id' => $pa->id,
-        'especificacao' => $espec,
+        'especificacao' => array_merge($espec, [
+            'faixa' => [
+                'quantidade' => 5000,
+                'm2' => '25',
+            ],
+        ]),
     ]);
 }
 

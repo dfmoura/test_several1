@@ -25,13 +25,13 @@ volumes = PaEmbalagem.caixas · ENT só ecoa
 - Defaults: `RETIRAR`→9 · `ENTREGA_PROPRIA`→0 sem PAR · `ENTREGA_TERCEIROS`→ snapshot ORC ou 0/1 + PAR obrigatório na emissão.
 - Pré-preencher FAT com `mod_frete` / `transportador_id` do snapshot quando presentes.
 - Transportador = PAR `papel_transportadora` (mesmo da OC/Caixa DF-e).
-- Volumes só de embalagem PA (`quantidade` + `CAIXA`). Sem inventar peso/marca.
+- Volumes: caixas da embalagem PA (`quantidade` + `CAIXA`). Peso em kg no `vol`: líquido = m² travado × 160 g/m² (ou `gramatura_expedicao_g_m2`); bruto soma tubete e caixa. Revenda só com `peso_kg` do SKU.
 
 ## Não faça
 
 - Preencher NF a partir do ENT.
 - Hardcodar `modalidade_frete = 9` com modo própria/terceiros.
-- Inventar peso/CUB/CT-e nesta fatia.
+- Inventar CUB/CT-e, placa ou ANTT. Usar gramatura de estoque ou consumo da OP como peso da nota.
 - Misturar `VOL:` de MP com volumes de PA.
 - Ignorar a escolha comercial do ORC sem override explícito no faturar.
 

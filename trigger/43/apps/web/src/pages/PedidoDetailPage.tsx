@@ -24,7 +24,7 @@ import {
 } from '../lib/pedidoConfirmacao';
 import { descontoAplicadoNoTotal } from '../lib/orcamentoForm';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
-import { nfStatusLabel } from '../lib/fiscalUi';
+import { nfStatusLabel, textoPesoNfe } from '../lib/fiscalUi';
 import { hrefFaturamento } from '../lib/cobrancaUi';
 import { pedStatusLabel } from '../lib/producaoUi';
 
@@ -588,6 +588,14 @@ export function PedidoDetailPage() {
                             Frete na nota: {preview.transporte.mod_frete_label ?? '—'}
                           </p>
                         )}
+                        {(() => {
+                          const peso = textoPesoNfe(preview.volumes);
+                          return peso ? (
+                            <p className="form-hint" style={{ marginBottom: 0 }}>
+                              Peso na NF-e: {peso}
+                            </p>
+                          ) : null;
+                        })()}
                       </div>
                     ) : null}
                     {preview.fiscal ? (

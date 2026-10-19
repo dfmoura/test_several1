@@ -1,0 +1,136 @@
+name: observatorio-pncp
+
+services:
+  api:
+    build: .
+    expose:
+      - "8097"
+    ports:
+      - "8097:8097"
+    environment:
+      TZ: America/Sao_Paulo
+      APP_PORT: "8097"
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-0}
+      BOOTSTRAP_USUARIO: ${BOOTSTRAP_USUARIO:-}
+      BOOTSTRAP_SENHA: ${BOOTSTRAP_SENHA:-}
+      FAIXA_C_HABILITADA: ${FAIXA_C_HABILITADA:-0}
+      FAIXA_D_HABILITADA: ${FAIXA_D_HABILITADA:-0}
+      DATABASE_URL: postgresql+psycopg://osb_app:${APP_DB_PASSWORD:-osb_local_app}@db:5432/osb
+      MIGRATION_DATABASE_URL: postgresql+psycopg://osb_migracao:${MIGRATION_DB_PASSWORD:-osb_local_mig}@db:5432/osb
+      TEST_DATABASE_URL: postgresql+psycopg://osb_app:${APP_DB_PASSWORD:-osb_local_app}@db_test:5432/osb_test
+      TEST_MIGRATION_DATABASE_URL: postgresql+psycopg://osb_migracao:${MIGRATION_DB_PASSWORD:-osb_local_mig}@db_test:5432/osb_test
+    volumes:
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+      - ./tests:/app/tests
+      - ./docker-compose.yml:/app/docker-compose.yml:ro
+      - ./:/repo:ro
+      - ./alembic.ini:/app/alembic.ini:ro
+      - ./pytest.ini:/app/pytest.ini:ro
+      - ./entrypoint.sh:/app/entrypoint.sh:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      db_test:
+        condition: service_healthy
+        required: false
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8097/api/health', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 25s
+
+  worker:
+    build: .
+    command: ["worker"]
+    environment:
+      TZ: America/Sao_Paulo
+      FAIXA_C_HABILITADA: ${FAIXA_C_HABILITADA:-0}
+      FAIXA_D_HABILITADA: ${FAIXA_D_HABILITADA:-0}
+      DATABASE_URL: postgresql+psycopg://osb_app:${APP_DB_PASSWORD:-osb_local_app}@db:5432/osb
+    volumes:
+      - ./app:/app/app
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16
+    entrypoint: ["sh", "/backup/wrap.sh"]
+    command: ["postgres"]
+    environment:
+      TZ: America/Sao_Paulo
+      PGTZ: America/Sao_Paulo
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-osb_local}
+      POSTGRES_DB: osb
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-osb_local_app}
+      MIGRATION_DB_PASSWORD: ${MIGRATION_DB_PASSWORD:-osb_local_mig}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - ./db/backup:/backup:ro
+      - backups:/var/backups/osb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d osb"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  # Postgres efêmero do pytest. Sem volume nomeado e sem porta no host.
+  # Sobe só com: docker compose --profile test run --rm api pytest
+  db_test:
+    profiles: ["test"]
+    image: postgres:16
+    environment:
+      TZ: America/Sao_Paulo
+      PGTZ: America/Sao_Paulo
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-osb_local}
+      POSTGRES_DB: osb_test
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-osb_local_app}
+      MIGRATION_DB_PASSWORD: ${MIGRATION_DB_PASSWORD:-osb_local_mig}
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    tmpfs:
+      - /var/lib/postgresql/data:uid=999,gid=999,mode=0700
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d osb_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: "no"
+
+  # Publicação com domínio. Não entra no uso local desta máquina.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  backups:
+  caddy_data:
+  caddy_config:

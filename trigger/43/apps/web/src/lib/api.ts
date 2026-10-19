@@ -3117,6 +3117,13 @@ export type FaturamentoPreview = {
     transportador_nome_snapshot?: string | null;
     do_orcamento?: boolean;
   } | null;
+  /** Peso e caixas que a NF-e vai levar. Null sem m² e sem caixa. */
+  volumes?: {
+    quantidade?: number | null;
+    especie?: string | null;
+    peso_liquido?: string | null;
+    peso_bruto?: string | null;
+  } | null;
 };
 
 export type Faturamento = {

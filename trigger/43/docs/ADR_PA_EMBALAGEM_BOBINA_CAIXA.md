@@ -131,7 +131,7 @@ tubete / caixa_medida / saida_etiqueta ← snapshot
 
 Não entra no `concluir`. Não move saldo.
 
-**Depois (outro ADR):** gate de implantação se virar hub; peso/CUB; quarentena de PA por caixa.
+**Peso do volume** na NF-e: `ADR_NFE_TRANSPORTE_SAIDA` (líquido pela área travada, bruto com tubete e caixa). CUB e quarentena de PA por caixa continuam fora.
 
 ## Rastreio
 

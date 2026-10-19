@@ -1,6 +1,7 @@
 /** Rótulos fiscais de saída (NF-e / NFS-e) — espelham o servidor. */
 
 import type { DocumentoFiscalSaida, Faturamento } from './api';
+import { formatDecimalBr } from './format';
 
 export function nfStatusLabel(status: string | null | undefined, simulada?: boolean): string {
   if (simulada && status === 'AUTORIZADA') return 'Autorizada (teste)';
@@ -79,4 +80,25 @@ export function nfsePodeCancelarSefin(doc: DocumentoFiscalSaida | null | undefin
 
 export function nfseCanceladaSefin(doc: DocumentoFiscalSaida | null | undefined): boolean {
   return Boolean(doc && doc.tipo === 'NFSE' && doc.status === 'CANCELADO' && doc.chave);
+}
+
+/** Linha de peso do volume da NF-e, em kg. Null quando a nota não leva peso. */
+export function textoPesoNfe(
+  vol?: {
+    quantidade?: string | number | null;
+    especie?: string | null;
+    peso_liquido?: string | null;
+    peso_bruto?: string | null;
+  } | null,
+): string | null {
+  const liquido = (vol?.peso_liquido ?? '').trim();
+  if (liquido === '') return null;
+  const partes = [`líquido ${formatDecimalBr(liquido, 3)} kg`];
+  const bruto = (vol?.peso_bruto ?? '').trim();
+  if (bruto !== '') partes.push(`bruto ${formatDecimalBr(bruto, 3)} kg`);
+  const qtde = vol?.quantidade;
+  if (qtde != null && String(qtde).trim() !== '') {
+    partes.push(`${qtde} ${vol?.especie ?? 'volume(s)'}`);
+  }
+  return partes.join(' · ');
 }

@@ -1,0 +1,8 @@
+---
+alwaysApply: true
+---
+
+Por filial (tenant_id obrigatório + RLS):
+  filial_uasg                                 — adesão (ativa ou não)
+  contratacao, contratacao_item, resultado_item
+  contrato_pn

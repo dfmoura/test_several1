@@ -11,6 +11,16 @@ namespace App\Support;
  */
 final class ProdutoAtributos
 {
+    /**
+     * Gramatura do conjunto que viaja (frente + adesivo + liner), g/m².
+     * Não entra no formulário: a NF usa 160 g/m² quando este atributo falta.
+     * A gramatura de estoque (`gramatura_g_m2`) continua a ponte KG↔m².
+     */
+    public const GRAMATURA_EXPEDICAO = 'gramatura_expedicao_g_m2';
+
+    /** Quilo de uma peça (tubete, caixa ou unidade de revenda). Fora do formulário. */
+    public const PESO_KG = 'peso_kg';
+
     /** Campos editáveis na ficha comercial (omitidos no payload = limpos). */
     public const FORM_KEYS = [
         'largura_mm',

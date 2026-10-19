@@ -1,7 +1,7 @@
 # ADR — Transporte e volumes na NF-e de saída (FAT → Focus)
 
 **Status:** Aceito  
-**Data:** 2026-09-18 · emenda 2026-09-22 (herança CIF/FOB + transportadora do ORC)  
+**Data:** 2026-09-18 · emenda 2026-09-22 (herança CIF/FOB + transportadora do ORC) · emenda 2026-10-19 (peso líquido e bruto)  
 **Contexto 43:** emissão Focus  
 **Relacionada:** `ADR_EMISSAO_NFE_NFSE.md` · `ADR_ORC_FRETE_ESTIMADO.md` · `ADR_ENTREGA_EXPEDICAO.md` · `ADR_PA_EMBALAGEM_BOBINA_CAIXA.md` · `ADR_OC_RASCUNHO_ENVIO.md` (espelho CIF/FOB + PAR)
 
@@ -41,8 +41,25 @@ A condição comercial (CIF/FOB + transportadora) **nasce no ORC** quando o modo
 
 ### Volumes
 
-Fonte única: `PaEmbalagem.qtde_caixas` → Focus `volumes[].quantidade` + `especie: CAIXA`.  
-**Não** inventar `marca` / `nVol` / `pesoB` / `pesoL` / CUB nesta fatia.
+Fonte da quantidade: `PaEmbalagem.qtde_caixas` → `volumes[].quantidade` + `especie: CAIXA`.  
+Marca = nome fantasia do emitente. Numeração = faixa das caixas (`nVol`, até 60).  
+**Não** inventar placa, ANTT nem CUB.
+
+### Peso (kg, 3 casas) — emenda 2026-10-19
+
+Um único `vol` na NF-e. `pesoL` e `pesoB` saem no XML e na Focus. Sem peso na descrição do item.
+
+| Parcela | Conta |
+|---------|--------|
+| Líquido da etiqueta | m² travado da faixa × gramatura de expedição / 1000. Default **160 g/m²** (0,16 kg/m²), o conjunto que viaja. |
+| Override | `atributos.gramatura_expedicao_g_m2` do papel, quando existir. |
+| Revenda | quantidade × `atributos.peso_kg` do SKU. Unidade KG: a quantidade já é o quilo. Sem peso no SKU, a parcela não entra. |
+| Serviço | não pesa. |
+| Bruto | líquido + (bobinas × peso do tubete) + (caixas × peso da caixa). |
+
+A gramatura de estoque (`gramatura_g_m2`) e o consumo da OP ficam fora. Perda de acerto não viaja.
+
+Tubete e caixa: `atributos.peso_kg` da peça vence. Sem ele, a caixa usa a área do papelão (550 g/m² de chapa) e o tubete a casca (750 kg/m³; parede 2 mm em 1" e 1 1/2", 3 mm em 3"). Comprimento do SKU abaixo de 20 mm não tem unidade confiável e cede à largura da bobina (`largura_cm` × colunas de rebobinação). Sem líquido, a nota não publica peso — tara sozinha não vira `pesoL`.
 
 ### Fronteiras
 
@@ -54,11 +71,11 @@ Fonte única: `PaEmbalagem.qtde_caixas` → Focus `volumes[].quantidade` + `espe
 
 1. Preencher transportador/peso a partir do ENT para montar a emissão.  
 2. Hardcodar `modalidade_frete = 9` quando o modo já é própria/terceiros.  
-3. Inventar peso/CUB.  
+3. Inventar CUB, placa ou ANTT. Usar gramatura de estoque ou consumo da OP como peso da nota. Recalcular m² na emissão.  
 4. Misturar `estoque_lotes` / `VOL:` de MP com volumes de PA.  
 5. Alterar R1–R20 ou somar frete no FAT por causa deste ADR.
 
 ## Rastreio
 
-- `FiscalSaidaTransporte` · `FocusPayloadBuilder` · `FaturamentoService` · migration `mod_frete`/`transportador_id` em `faturamentos`
-- Testes: `EmissaoFiscalSaidaTest` (payload transporte/volumes)
+- `FiscalSaidaTransporte` · `NfePesoExpedicao` · `FocusPayloadBuilder` · `NfeXmlBuilder` · `FaturamentoService`
+- Testes: `EmissaoFiscalSaidaTest` (transporte, volumes, peso) · `NfePesoExpedicaoTest`
