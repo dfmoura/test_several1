@@ -492,6 +492,28 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->assertSame('100.0000', $res->json('data.volumes.0.qtde_retirar'));
     }
 
+    public function test_tubete_rejeita_quantidade_fracionada_e_aceita_inteira(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $fail = $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/requisitar",
+            ['material_id' => $this->matTubete->id, 'qtde' => '3.3333']
+        );
+        $fail->assertStatus(422);
+        $this->assertStringContainsString('inteira', (string) $fail->json('message').json_encode($fail->json('errors')));
+        $this->assertSame(0, bccomp((string) $this->matTubete->fresh()->qtde_requisitada, '0', 4));
+        $this->assertSame('50.0000', (string) EstoqueSaldo::query()->where('produto_id', $this->emb->id)->value('qtde'));
+
+        $ok = $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/requisitar",
+            ['material_id' => $this->matTubete->id, 'qtde' => '4']
+        );
+        $ok->assertOk();
+        $this->assertSame('4.0000', (string) $this->matTubete->fresh()->qtde_requisitada);
+        $this->assertSame('46.0000', (string) EstoqueSaldo::query()->where('produto_id', $this->emb->id)->value('qtde'));
+    }
+
     public function test_sku_sem_lote_rejeita_volumes(): void
     {
         Sanctum::actingAs($this->user);

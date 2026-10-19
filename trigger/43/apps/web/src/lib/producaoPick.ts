@@ -324,6 +324,41 @@ export function unidadeExibicao(unidade: string | null | undefined): string {
   }
 }
 
+/** Peça contada: tubete, caixa e o que o cadastro guarda em UN, PC ou CX. */
+export function unidadeContada(unidade: string | null | undefined): boolean {
+  const codigo = codigoUnidade(unidade);
+  return codigo === 'UN' || codigo === 'PC' || codigo === 'CX';
+}
+
+export function qtdeContadaInteira(n: number): boolean {
+  return Number.isFinite(n) && n > 0 && Math.abs(n - Math.round(n)) < 1e-6;
+}
+
+/**
+ * O que a tela mostra e o que a baixa aceita.
+ * Inteiro fica inteiro. Fração sobe para o próximo tubete ou caixa.
+ */
+export function qtdeContadaExibida(valor: string | number | null | undefined): string {
+  const n = typeof valor === 'number' ? valor : parseQtdeDigitada(valor);
+  if (!(n > 0)) return '';
+  if (qtdeContadaInteira(n)) return String(Math.round(n));
+  return String(Math.ceil(n - 1e-9));
+}
+
+/** Digitação: só dígitos. Vírgula ou ponto cortam a fração. */
+export function qtdeContadaDigitada(raw: string): string {
+  const t = raw.trim();
+  if (t === '') return '';
+  const parte = (t.split(/[.,]/)[0] ?? '').replace(/\D/g, '');
+  return parte.replace(/^0+(?=\d)/, '');
+}
+
+/** Saldo contado: não se retira fração nem se inventa peça. */
+export function qtdeContadaTeto(saldo: number): number {
+  if (!(saldo > 0)) return 0;
+  return Math.floor(saldo + 1e-9);
+}
+
 /**
  * Bobina cuja quantidade gravada é área.
  * MIL no SKU de volume continua área: o número não é milheiro.
@@ -392,7 +427,8 @@ export function leituraQtdeMaterial(
   }
   const area = modoRetirada(m) === 'volume' && qtdeGravadaEhArea(m.unidade);
   if (!area) {
-    return { principal: formatQtdePick(qtde, unidadeExibicao(m.unidade)), complemento: null };
+    const n = unidadeContada(m.unidade) ? Number(qtdeContadaExibida(qtde)) : qtde;
+    return { principal: formatQtdePick(n, unidadeExibicao(m.unidade)), complemento: null };
   }
   return {
     principal: `${formatQtdePick(qtde, 'm²')} de área`,

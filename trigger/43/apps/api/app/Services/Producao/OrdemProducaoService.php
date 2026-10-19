@@ -18,6 +18,7 @@ use App\Services\Estoque\EstoqueCongelamento;
 use App\Services\Estoque\EstoqueSaldoWriter;
 use App\Services\Producao\RastreioInsumosService;
 use App\Support\PadraoDecimal;
+use App\Support\UnidadesMedida;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -499,6 +500,7 @@ class OrdemProducaoService
                 $qtde = $plano['qtde'];
             }
         }
+        $this->assertQuantidadeInteira($produto, $qtde);
         $volumesMotivo = isset($data['volumes_motivo']) ? trim((string) $data['volumes_motivo']) : '';
         $produtoLinhaId = $matPendente ? (int) $matPendente->produto_id : $produtoId;
         if ($volumes !== [] && $produtoLinhaId === (int) $produto->id) {
@@ -949,6 +951,10 @@ class OrdemProducaoService
                         'volumes' => ['Marque o volume que volta à prateleira.'],
                     ]);
                 }
+            }
+
+            if (! $this->quantidadeTemFracao($req)) {
+                $this->assertQuantidadeInteira($produto, $qtde);
             }
 
             if (bccomp($qtde, $req, PadraoDecimal::SCALE_QTY) > 0) {
@@ -2054,5 +2060,29 @@ class OrdemProducaoService
         }
 
         return (string) $mm;
+    }
+
+    /**
+     * UN, PC e CX saem inteiros. Papel em m² e bobina continuam com casa decimal.
+     */
+    private function assertQuantidadeInteira(Produto $produto, string $qtde): void
+    {
+        if (! UnidadesMedida::contada($produto->unidade_interna)) {
+            return;
+        }
+        if (! $this->quantidadeTemFracao($qtde)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'qtde' => ['A quantidade tem de ser inteira.'],
+        ]);
+    }
+
+    private function quantidadeTemFracao(string $qtde): bool
+    {
+        $trunc = bcadd($qtde, '0', 0);
+
+        return bccomp($qtde, $trunc, PadraoDecimal::SCALE_QTY) !== 0;
     }
 }

@@ -27,6 +27,11 @@ import {
   qtdeVolumeTotal,
   rotuloPolegada,
   rotuloProdutoVolume,
+  qtdeContadaDigitada,
+  qtdeContadaExibida,
+  qtdeContadaInteira,
+  qtdeContadaTeto,
+  unidadeContada,
   unidadeExibicao,
   volumeCabeNaLinha,
   volumesParaEscolha,
@@ -62,7 +67,9 @@ function volumesIniciais(m: OrdemProducaoMaterial): VolumeLinha[] {
 
 function qtdeUnidadeInicial(m: OrdemProducaoMaterial): string {
   const n = qtdeLinhaPick(m) || parseQtdeDigitada(m.qtde_planejada);
-  return n > 0 ? String(n) : '';
+  if (!(n > 0)) return '';
+  if (unidadeContada(m.unidade)) return qtdeContadaExibida(n);
+  return String(n);
 }
 
 function divergeDoSugerido(atual: VolumeLinha[], inicial: VolumeLinha[]): boolean {
@@ -757,6 +764,11 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
         continue;
       }
       const qtde = parseQtdeDigitada(unidades[m.id] ?? '');
+      const peca = unidadeContada(m.unidade || m.retirada?.unidade);
+      if (peca && qtde > 0 && !qtdeContadaInteira(qtde)) {
+        setErr(`A quantidade de ${opKitNome(m)} tem de ser inteira.`);
+        return;
+      }
       const planejada = qtdeLinhaPick(m);
       const produtoId =
         opKitEstado(m) === 'sem_estoque' ? (produtos[m.id] ?? 0) : (produtos[m.id] ?? m.produto?.id ?? 0);
@@ -914,15 +926,18 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                     return;
                   }
                   const prox = opcoes.find((o) => o.produto_id === id);
-                  const teto = parseQtdeDigitada(prox?.qtde_disponivel);
+                  const tetoSaldo = parseQtdeDigitada(prox?.qtde_disponivel);
                   setVolumes((prev) => ({ ...prev, [m.id]: [] }));
                   setProdutos((prev) => ({ ...prev, [m.id]: id }));
                   if (id !== atual && !m.saida_movimento_id) gravarEscolha(m.id, id);
                   setUnidades((prev) => {
                     const planejada = qtdeLinhaPick(m);
-                    const atual = parseQtdeDigitada(prev[m.id] ?? '');
-                    const base = atual > 0 ? atual : planejada;
-                    const qtde = teto > 0 && base > teto ? String(teto) : base > 0 ? String(base) : '';
+                    const pecaLinha = unidadeContada(m.unidade || m.retirada?.unidade);
+                    const atualQtde = parseQtdeDigitada(prev[m.id] ?? '');
+                    const base = atualQtde > 0 ? atualQtde : planejada;
+                    const n = pecaLinha ? Number(qtdeContadaExibida(base) || 0) : base;
+                    const teto = pecaLinha ? qtdeContadaTeto(tetoSaldo) : tetoSaldo;
+                    const qtde = teto > 0 && n > teto ? String(teto) : n > 0 ? String(n) : '';
                     return { ...prev, [m.id]: qtde };
                   });
                 };
@@ -941,6 +956,7 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                     ? m.retirada.volumes_a_devolver
                     : (m.retirada?.volumes_baixados ?? []);
                 const un = unidadeExibicao(m.unidade || m.retirada?.unidade);
+                const peca = unidadeContada(m.unidade || m.retirada?.unidade);
                 const metragem = insumoComMetragem(m);
                 const polegada = rotuloPolegada(
                   m.origem_texto ?? m.produto?.descricao_comercial ?? m.produto?.descricao_fiscal,
@@ -1291,15 +1307,15 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                                     String(parseQtdeDigitada(m.qtde_requisitada))
                                   ) : (
                                     <input
-                                      inputMode="decimal"
+                                      inputMode={peca ? 'numeric' : 'decimal'}
                                       disabled={!podeEditarQtde || busy}
                                       value={unidades[m.id] ?? ''}
                                       aria-label={qtdeLabel}
                                       onChange={(e) => {
-                                        const raw = e.target.value;
+                                        const raw = peca ? qtdeContadaDigitada(e.target.value) : e.target.value;
                                         const n = parseQtdeDigitada(raw);
-                                        const qtde =
-                                          saldoOpcao > 0 && n > saldoOpcao ? String(saldoOpcao) : raw;
+                                        const teto = peca ? qtdeContadaTeto(saldoOpcao) : saldoOpcao;
+                                        const qtde = teto > 0 && n > teto ? String(teto) : raw;
                                         setUnidades((prev) => ({ ...prev, [m.id]: qtde }));
                                       }}
                                     />
@@ -1395,7 +1411,10 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
             const material = (materiais ?? []).find((m) => m.id === overlayMaterialId);
             if (!material) return null;
             const un = unidadeExibicao(material.unidade || material.retirada?.unidade);
-            const pedidoQtde = String(qtdeLinhaPick(material) || '');
+            const pedidoN = qtdeLinhaPick(material);
+            const pedidoQtde = unidadeContada(material.unidade)
+              ? qtdeContadaExibida(pedidoN)
+              : String(pedidoN || '');
             return (
               <SeparacaoVolumesOverlay
                 titulo={opKitNome(material)}

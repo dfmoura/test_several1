@@ -12,6 +12,7 @@ use App\Services\Comercial\Orcamento\OrcamentoCatalogo;
 use App\Support\CaixaMedida;
 use App\Support\InsumoEscolhaRelacao;
 use App\Support\PadraoDecimal;
+use InvalidArgumentException;
 
 /**
  * Deriva BOM leve da OP a partir do snapshot do PED/ORC (estudo 32 PRODUCAO §2.2).
@@ -118,12 +119,13 @@ class OpBomDeriver
 
         if ($ctx['tubete'] !== '' && $ctx['rolos'] > 0) {
             $rotuloTubete = $ctx['tubete_rotulo'] !== '' ? $ctx['tubete_rotulo'] : $ctx['tubete'];
+            $qtdeTubete = $this->qtdeTubetes($ctx);
             $tubeteSku = $this->produtoDoSnapshot($empresa, $ctx['tubete_produto_id']);
             if ($ctx['tubete_produto_id'] > 0 && ! $tubeteSku) {
                 $naoCasados[] = [
                     'componente' => 'TUBETE',
                     'origem_texto' => $rotuloTubete,
-                    'qtde' => $this->qtdeSnapshot($ctx['rolos']),
+                    'qtde' => $qtdeTubete,
                     'unidade' => 'UN',
                     'motivo' => 'Tubete escolhido no orçamento não está ativo nesta empresa.',
                 ];
@@ -132,7 +134,7 @@ class OpBomDeriver
                 if ($match) {
                     $out[] = [
                         'produto_id' => (int) $match->id,
-                        'qtde' => PadraoDecimal::roundHalfUp((string) $ctx['rolos'], PadraoDecimal::SCALE_QTY),
+                        'qtde' => $qtdeTubete,
                         'unidade' => (string) ($match->unidade_interna ?: 'UN'),
                         'componente' => 'TUBETE',
                         'origem_texto' => $rotuloTubete,
@@ -143,7 +145,7 @@ class OpBomDeriver
                     $naoCasados[] = [
                         'componente' => 'TUBETE',
                         'origem_texto' => $rotuloTubete,
-                        'qtde' => $this->qtdeSnapshot($ctx['rolos']),
+                        'qtde' => $qtdeTubete,
                         'unidade' => 'UN',
                         'motivo' => 'Nenhum SKU de tubete (EMB) casado nesta empresa.',
                     ];
@@ -254,6 +256,8 @@ class OpBomDeriver
      *   acab_m2: float,
      *   metragem: float,
      *   rolos: float,
+     *   quantidade: int,
+     *   etiq_por_rolo: int,
      *   caixas: float,
      *   caixa_medida: string
      * }
@@ -295,6 +299,8 @@ class OpBomDeriver
             'acab_m2' => $m2 + $perdaAcerto + $perdaAcab,
             'metragem' => (float) ($faixa['metragem'] ?? 0),
             'rolos' => (float) ($faixa['rolos'] ?? 0),
+            'quantidade' => $this->inteiroContagem($faixa['quantidade'] ?? $item->qtde_pedida ?? null),
+            'etiq_por_rolo' => $this->inteiroContagem($espec['etiq_por_rolo'] ?? $input['etiq_por_rolo'] ?? null),
             'caixas' => (float) ($faixa['qtde_caixas'] ?? 0),
             'caixa_medida' => trim((string) ($faixa['caixa_medida'] ?? '')),
         ];
@@ -333,6 +339,67 @@ class OpBomDeriver
     private function qtdeSnapshot(float $qtde): string
     {
         return PadraoDecimal::roundHalfUp((string) $qtde, PadraoDecimal::SCALE_QTY);
+    }
+
+    /**
+     * Tubete é peça. O rolo comercial (qtd ÷ etiq/rolo) pode ser fração;
+     * a ordem leva o teto: o último rolo parcial ainda usa um tubete inteiro.
+     *
+     * @param  array{quantidade: int, etiq_por_rolo: int, rolos: float}  $ctx
+     */
+    private function qtdeTubetes(array $ctx): string
+    {
+        $q = (int) $ctx['quantidade'];
+        $etiq = (int) $ctx['etiq_por_rolo'];
+        if ($q > 0 && $etiq > 0) {
+            $n = intdiv($q, $etiq) + ($q % $etiq > 0 ? 1 : 0);
+
+            return PadraoDecimal::roundHalfUp((string) $n, PadraoDecimal::SCALE_QTY);
+        }
+
+        return $this->qtdePecasDeRolos((float) $ctx['rolos']);
+    }
+
+    /**
+     * Teto do rolo gravado, quando a quantidade e a etiqueta por rolo não estão no pedido.
+     * Folga de 1e-6 para ruído de float não criar um tubete a mais.
+     */
+    private function qtdePecasDeRolos(float $rolos): string
+    {
+        if ($rolos <= 0) {
+            return PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);
+        }
+        $base = (int) floor($rolos + 1e-6);
+        $n = ($rolos - $base) > 1e-6 ? $base + 1 : $base;
+        if ($n < 1) {
+            $n = 1;
+        }
+
+        return PadraoDecimal::roundHalfUp((string) $n, PadraoDecimal::SCALE_QTY);
+    }
+
+    private function inteiroContagem(mixed $value): int
+    {
+        if ($value === null || $value === '' || is_bool($value)) {
+            return 0;
+        }
+        try {
+            $canonical = PadraoDecimal::parse($value);
+        } catch (InvalidArgumentException) {
+            return 0;
+        }
+        if ($canonical === null || str_starts_with($canonical, '-')) {
+            return 0;
+        }
+        $trunc = bcadd($canonical, '0', 0);
+        if (bccomp($canonical, $trunc, PadraoDecimal::SCALE_QTY) !== 0) {
+            return 0;
+        }
+        if (bccomp($trunc, '0', 0) <= 0 || bccomp($trunc, (string) PHP_INT_MAX, 0) === 1) {
+            return 0;
+        }
+
+        return (int) $trunc;
     }
 
     /**

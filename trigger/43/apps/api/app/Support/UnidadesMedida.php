@@ -90,6 +90,15 @@ final class UnidadesMedida
     }
 
     /**
+     * Peça contada (tubete, caixa, ribbon). A quantidade sai inteira.
+     * PC entra só como alias de unidade que a tela já trata como peça.
+     */
+    public static function contada(?string $codigo): bool
+    {
+        return in_array(strtoupper(trim((string) $codigo)), ['UN', 'PC', 'CX'], true);
+    }
+
+    /**
      * Catálogo para API de consulta (mesmo shape dos demais selects estáticos).
      *
      * @return list<array{codigo: string, descricao: string, uso: string}>

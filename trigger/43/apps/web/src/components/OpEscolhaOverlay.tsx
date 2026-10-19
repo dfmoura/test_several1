@@ -25,8 +25,12 @@ import {
   areaM2Volume,
   larguraMmParaMetro,
   modoRetirada,
+  qtdeContadaDigitada,
+  qtdeContadaExibida,
+  qtdeContadaInteira,
   qtdeLinhaPick,
   qtdeVolumeTotal,
+  unidadeContada,
   somaAreaM2Volumes,
   localOverlayEscolha,
   volumeSugerido,
@@ -116,9 +120,14 @@ export function OpEscolhaOverlay({
   });
   const [filtro, setFiltro] = useState<VolumeFiltroEstado>(VOLUME_FILTRO_VAZIO);
   const [qr, setQr] = useState('');
-  const [qtdeUn, setQtdeUn] = useState(material.qtde_planejada ?? String(alvo || ''));
-  const [qtdeDevolver, setQtdeDevolver] = useState(
-    String(parseQtdeDigitada(material.qtde_requisitada) || ''),
+  const peca = unidadeContada(material.unidade);
+  const saiu = parseQtdeDigitada(material.qtde_requisitada);
+  const devolverInteiro = peca && qtdeContadaInteira(saiu);
+  const [qtdeUn, setQtdeUn] = useState(() =>
+    peca ? qtdeContadaExibida(material.qtde_planejada ?? alvo) : (material.qtde_planejada ?? String(alvo || '')),
+  );
+  const [qtdeDevolver, setQtdeDevolver] = useState(() =>
+    devolverInteiro ? qtdeContadaExibida(saiu) : String(saiu || ''),
   );
   const [motivo, setMotivo] = useState('');
   const [motivoDevolver, setMotivoDevolver] = useState('');
@@ -312,6 +321,9 @@ export function OpEscolhaOverlay({
     } else if (parseQtdeDigitada(qtdeUn) <= 0) {
       setErr('Informe as unidades.');
       return;
+    } else if (peca && !qtdeContadaInteira(parseQtdeDigitada(qtdeUn))) {
+      setErr('A quantidade tem de ser inteira.');
+      return;
     }
     setBusy(true);
     setErr(null);
@@ -358,6 +370,9 @@ export function OpEscolhaOverlay({
       }
     } else if (parseQtdeDigitada(qtdeDevolver) <= 0) {
       setErr('Informe a quantidade a devolver.');
+      return;
+    } else if (devolverInteiro && !qtdeContadaInteira(parseQtdeDigitada(qtdeDevolver))) {
+      setErr('A quantidade tem de ser inteira.');
       return;
     }
     setBusy(true);
@@ -547,10 +562,12 @@ export function OpEscolhaOverlay({
                   <input
                     id="op-escolha-dev-un"
                     className="op-escolha__un-input"
-                    inputMode="decimal"
+                    inputMode={devolverInteiro ? 'numeric' : 'decimal'}
                     value={qtdeDevolver}
                     disabled={busy}
-                    onChange={(e) => setQtdeDevolver(e.target.value)}
+                    onChange={(e) =>
+                      setQtdeDevolver(devolverInteiro ? qtdeContadaDigitada(e.target.value) : e.target.value)
+                    }
                   />
                   <p className="muted">
                     Já saiu{' '}
@@ -718,10 +735,10 @@ export function OpEscolhaOverlay({
                   <input
                     id="op-escolha-un"
                     className="op-escolha__un-input"
-                    inputMode="decimal"
+                    inputMode={peca ? 'numeric' : 'decimal'}
                     value={qtdeUn}
                     disabled={busy}
-                    onChange={(e) => setQtdeUn(e.target.value)}
+                    onChange={(e) => setQtdeUn(peca ? qtdeContadaDigitada(e.target.value) : e.target.value)}
                   />
                   <p className="muted">Informe o que vai levar agora.</p>
                 </>
