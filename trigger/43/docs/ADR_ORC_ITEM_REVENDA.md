@@ -46,7 +46,7 @@ QR = leitura (scan marca; humano confirma) — mesmo contrato de `ADR_PRODUCAO_C
 
 ### Regras
 
-1. SKU obrigatório, `familia=REV`, `ATIVO`, mesma EMP. MP/EMB/MUC/PA-ETQ **não** entram como revenda.  
+1. SKU obrigatório, `familia=REV`, `ATIVO`, mesma EMP, **saldo agregado > 0** na oferta nova. MP/EMB/MUC/PA-ETQ **não** entram como revenda. Item já gravado neste orçamento permanece se o saldo zerar. A quantidade não trava no saldo e não há reserva. A baixa continua só na NF-e.  
 2. Fora do motor R1–R20. Sem faca, geometria, artes, saída da bobina, guia de produção.  
 3. `valor_etiqueta` da faixa = total comercial (qtde × unitário + comissão). Sem teto de R$ 10 (isso é do serviço).  
 4. `qtde_faturavel` = `qtde_pedida`. Sem tolerância de ±20%.  
@@ -58,7 +58,7 @@ QR = leitura (scan marca; humano confirma) — mesmo contrato de `ADR_PRODUCAO_C
 ### UX
 
 - No item: **Etiqueta sob medida** | **Produto de revenda**.
-- Revenda: busca por código ou descrição (`GET /orcamentos/revenda-skus`, permissão do orçamento). Só REV ativo da empresa. O preço de tabela só sugere o unitário. Sem saldo, lote ou lista de 200 no catálogo.  
+- Revenda: busca por código ou descrição (`GET /orcamentos/revenda-skus`, permissão do orçamento). Só REV ativo da empresa **com saldo**. O id já escolhido neste orçamento continua na busca (`incluir_id`). O preço de tabela só sugere o unitário. Sem número de saldo, lote ou lista de 200 no catálogo.  
 - N=1 só-REV: zero chrome de fábrica (sem faca/escada de artes).  
 - PED: CTA **Separar no estoque** / **Ficha de separação** → `/estoque/separacoes/:pedidoItem`; sem OP/OS.  
 - Chão: Estoque · **A separar** — cabeçalho da ficha do item (valores) e formulário de faixa do orçamento para acrescentar ou remover volumes já conhecidos (e ler QR). Sem busca no estoque. Sem debitar.

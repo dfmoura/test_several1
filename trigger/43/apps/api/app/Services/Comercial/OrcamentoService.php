@@ -3,6 +3,7 @@
 namespace App\Services\Comercial;
 
 use App\Models\Empresa;
+use App\Models\EstoqueSaldo;
 use App\Models\MatrizCobrada;
 use App\Models\Orcamento;
 use App\Models\Parceiro;
@@ -27,6 +28,7 @@ use App\Support\SaidaEtiqueta;
 use App\Support\FacasComposicao;
 use App\Support\ModelosComposicao;
 use App\Support\OrcamentoItens;
+use App\Support\PadraoDecimal;
 use App\Support\TipoOperacaoSaida;
 use App\Support\UrlArtePublica;
 use Illuminate\Support\Facades\DB;
@@ -64,12 +66,20 @@ class OrcamentoService
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    public function calcularPreview(Empresa $empresa, array $data): array
+    public function calcularPreview(Empresa $empresa, array $data, ?Orcamento $existente = null): array
     {
-        $data = $this->ensurePayloadFacas($data);
+        $data = $this->ensurePayloadFacas($data, $existente);
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
         $transportador = $this->resolveTransportadorOpcional($empresa, $data);
-        $doc = $this->precificarDocumento($empresa, $parceiro, $data, null, $transportador);
+        $doc = $this->precificarDocumento(
+            $empresa,
+            $parceiro,
+            $data,
+            null,
+            $transportador,
+            $existente ? $this->idsInsumoGravados($existente) : [],
+            $existente ? $this->idsRevendaGravados($existente) : [],
+        );
 
         $out = $doc['flat_result'];
 
@@ -264,6 +274,7 @@ class OrcamentoService
             $vendedor,
             $transportador,
             $this->idsInsumoGravados($orcamento),
+            $this->idsRevendaGravados($orcamento),
         );
         $orcamento->loadMissing('itens');
         $doc['jobs'] = $this->preservarDecisoesModelos($orcamento, $doc['jobs']);
@@ -442,6 +453,7 @@ class OrcamentoService
      */
     /**
      * @param  list<int>  $idsInsumoJaGravados
+     * @param  list<int>  $idsRevendaJaGravados
      */
     private function precificarDocumento(
         Empresa $empresa,
@@ -450,6 +462,7 @@ class OrcamentoService
         ?Parceiro $vendedor = null,
         ?Parceiro $transportador = null,
         array $idsInsumoJaGravados = [],
+        array $idsRevendaJaGravados = [],
     ): array {
         $expanded = OrcamentoItens::expandPayload($data);
         $header = $expanded['header'];
@@ -459,7 +472,13 @@ class OrcamentoService
             $jobData = $jobSpec['data'];
             // Modelos/facas: ensure fica em buildMotorInput / ensurePayloadFacas (evita
             // equal-split com nome "" ser revalidado e 422 em ORCs/testes legados).
-            [$input, $bruto] = $this->precificar($empresa, $parceiro, $jobData, $idsInsumoJaGravados);
+            [$input, $bruto] = $this->precificar(
+                $empresa,
+                $parceiro,
+                $jobData,
+                $idsInsumoJaGravados,
+                $idsRevendaJaGravados,
+            );
             $result = $this->enrichResult($bruto, $jobData, $parceiro, $empresa, $transportador);
             $jobs[] = [
                 'rotulo' => $jobSpec['rotulo'],
@@ -536,10 +555,16 @@ class OrcamentoService
     /**
      * @param  array<string, mixed>  $data
      * @param  list<int>  $idsInsumoJaGravados
+     * @param  list<int>  $idsRevendaJaGravados
      * @return array{0: array<string, mixed>, 1: array<string, mixed>}
      */
-    private function precificar(Empresa $empresa, Parceiro $parceiro, array $data, array $idsInsumoJaGravados = []): array
-    {
+    private function precificar(
+        Empresa $empresa,
+        Parceiro $parceiro,
+        array $data,
+        array $idsInsumoJaGravados = [],
+        array $idsRevendaJaGravados = [],
+    ): array {
         if (TipoOperacaoSaida::isServico($data['tipo_operacao'] ?? $data['necessidade'] ?? null)) {
             $input = $this->buildServicoInput($data, $parceiro);
 
@@ -547,7 +572,7 @@ class OrcamentoService
         }
 
         if (PedidoItem::isRevenda($data['necessidade'] ?? null)) {
-            $input = $this->buildRevendaInput($empresa, $data, $parceiro);
+            $input = $this->buildRevendaInput($empresa, $data, $parceiro, $idsRevendaJaGravados);
 
             return [$input, $this->revendaPrecificador->calcular($input)];
         }
@@ -599,11 +624,12 @@ class OrcamentoService
 
     /**
      * @param  array<string, mixed>  $data
+     * @param  list<int>  $idsJaGravados
      * @return array<string, mixed>
      */
-    private function buildRevendaInput(Empresa $empresa, array $data, Parceiro $parceiro): array
+    private function buildRevendaInput(Empresa $empresa, array $data, Parceiro $parceiro, array $idsJaGravados = []): array
     {
-        $produto = $this->resolverProdutoRevenda($empresa, (int) ($data['produto_id'] ?? 0));
+        $produto = $this->resolverProdutoRevenda($empresa, (int) ($data['produto_id'] ?? 0), $idsJaGravados);
         $desc = trim((string) ($data['descricao_comercial'] ?? ''));
         if ($desc === '') {
             $desc = trim((string) ($produto->descricao_comercial ?: $produto->descricao_fiscal));
@@ -631,7 +657,10 @@ class OrcamentoService
         ];
     }
 
-    private function resolverProdutoRevenda(Empresa $empresa, int $produtoId): Produto
+    /**
+     * @param  list<int>  $idsJaGravados  SKU já neste orçamento: pode permanecer com saldo zerado
+     */
+    private function resolverProdutoRevenda(Empresa $empresa, int $produtoId, array $idsJaGravados = []): Produto
     {
         if ($produtoId < 1) {
             throw ValidationException::withMessages([
@@ -659,6 +688,13 @@ class OrcamentoService
         if (strtoupper((string) $produto->situacao) !== 'ATIVO') {
             throw ValidationException::withMessages([
                 'produto_id' => ['Produto de revenda inativo.'],
+            ]);
+        }
+
+        $jaGravado = in_array((int) $produto->id, $idsJaGravados, true);
+        if (! $jaGravado && ! $this->revendaTemSaldo($empresa, (int) $produto->id)) {
+            throw ValidationException::withMessages([
+                'produto_id' => ['Este produto de revenda não tem saldo disponível.'],
             ]);
         }
 
@@ -705,17 +741,30 @@ class OrcamentoService
     }
 
     /**
-     * Busca curta de SKU REV ativo da EMP. O id escolhido é validado no precificador.
+     * Busca curta de SKU REV ativo da EMP com saldo. Sem número, lote ou local.
+     * O id já escolhido neste orçamento permanece na lista se o saldo zerar.
      *
      * @return list<array<string, mixed>>
      */
-    public function buscarRevenda(Empresa $empresa, ?string $q): array
+    public function buscarRevenda(Empresa $empresa, ?string $q, ?int $incluirId = null): array
     {
         $termo = trim((string) $q);
+        $comSaldo = $this->idsRevendaComSaldo($empresa);
+        $incluirId = $incluirId !== null && $incluirId > 0 ? $incluirId : null;
         $query = Produto::query()
             ->where('empresa_id', $empresa->id)
             ->where('familia', 'REV')
             ->where('situacao', 'ATIVO')
+            ->where(function ($builder) use ($comSaldo, $incluirId) {
+                if ($comSaldo === []) {
+                    $builder->whereRaw('1 = 0');
+                } else {
+                    $builder->whereIn('id', $comSaldo);
+                }
+                if ($incluirId !== null) {
+                    $builder->orWhere('id', $incluirId);
+                }
+            })
             ->orderBy('codigo');
         if ($termo !== '') {
             $query->where(function ($builder) use ($termo) {
@@ -775,6 +824,64 @@ class OrcamentoService
         }
 
         return array_values($ids);
+    }
+
+    /**
+     * SKUs de revenda já gravados neste orçamento.
+     *
+     * @return list<int>
+     */
+    private function idsRevendaGravados(Orcamento $orcamento): array
+    {
+        $orcamento->loadMissing('itens');
+        $snaps = [is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : []];
+        foreach ($orcamento->itens as $item) {
+            $snap = $item->input_snapshot;
+            if (is_array($snap)) {
+                $snaps[] = $snap;
+            }
+        }
+
+        $ids = [];
+        foreach ($snaps as $snap) {
+            if (! PedidoItem::isRevenda($snap['necessidade'] ?? null)) {
+                continue;
+            }
+            $id = (int) ($snap['produto_id'] ?? 0);
+            if ($id > 0) {
+                $ids[$id] = $id;
+            }
+        }
+
+        return array_values($ids);
+    }
+
+    private function revendaTemSaldo(Empresa $empresa, int $produtoId): bool
+    {
+        $saldo = EstoqueSaldo::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('produto_id', $produtoId)
+            ->sum('qtde');
+
+        return bccomp(
+            PadraoDecimal::roundHalfUp((string) $saldo, PadraoDecimal::SCALE_QTY),
+            '0',
+            PadraoDecimal::SCALE_QTY,
+        ) > 0;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function idsRevendaComSaldo(Empresa $empresa): array
+    {
+        return EstoqueSaldo::query()
+            ->where('empresa_id', $empresa->id)
+            ->groupBy('produto_id')
+            ->havingRaw('SUM(qtde) > 0')
+            ->pluck('produto_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 
     /**

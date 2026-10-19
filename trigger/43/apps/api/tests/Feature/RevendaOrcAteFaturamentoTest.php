@@ -6,6 +6,7 @@ use App\Models\DocumentoFiscalSaida;
 use App\Models\Empresa;
 use App\Models\EmpresaContaFinanceira;
 use App\Models\EstoqueMovimento;
+use App\Models\EstoqueSaldo;
 use App\Models\Faturamento;
 use App\Models\NaturezaGerencial;
 use App\Models\Orcamento;
@@ -146,6 +147,14 @@ class RevendaOrcAteFaturamentoTest extends TestCase
             'fator_conversao' => '1',
             'preco_tabela' => '37.500000',
             'situacao' => 'ATIVO',
+            'custo_medio' => '12.000000',
+        ]);
+
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->sku->id,
+            'qtde' => '10.0000',
+            'unidade' => 'UN',
             'custo_medio' => '12.000000',
         ]);
 
@@ -361,15 +370,97 @@ class RevendaOrcAteFaturamentoTest extends TestCase
             'fator_conversao' => '1',
             'situacao' => 'INATIVO',
         ]);
+        Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'REV-RIB-000',
+            'familia' => 'REV',
+            'descricao_fiscal' => 'RIBBON SEM SALDO',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+        ]);
 
         $res = $this->withHeaders($this->h())->getJson('/api/v1/orcamentos/revenda-skus?q=RIB');
         $res->assertOk();
         $codigos = collect($res->json('data'))->pluck('codigo')->all();
         $this->assertSame(['REV-RIB-001'], $codigos);
         $this->assertSame('37.500000', $res->json('data.0.preco_tabela'));
+        $this->assertArrayNotHasKey('saldo', $res->json('data.0'));
 
         $catalogo = $this->withHeaders($this->h())->getJson('/api/v1/orcamentos/catalogo');
         $catalogo->assertOk();
         $this->assertArrayNotHasKey('produtos_revenda', $catalogo->json('data'));
+    }
+
+    public function test_orcamento_novo_recusa_revenda_sem_saldo(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        EstoqueSaldo::query()->where('produto_id', $this->sku->id)->update(['qtde' => '0']);
+
+        $this->withHeaders($this->h())
+            ->postJson('/api/v1/orcamentos/calcular', $this->payloadRevenda())
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['produto_id']);
+
+        $this->withHeaders($this->h())
+            ->postJson('/api/v1/orcamentos', $this->payloadRevenda())
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['produto_id']);
+    }
+
+    public function test_reedicao_mantem_revenda_ja_gravada_sem_saldo(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = $this->h();
+        $orcId = (int) $this->withHeaders($h)
+            ->postJson('/api/v1/orcamentos', $this->payloadRevenda())
+            ->assertCreated()
+            ->json('data.id');
+
+        EstoqueSaldo::query()->where('produto_id', $this->sku->id)->update(['qtde' => '0']);
+
+        $this->withHeaders($h)
+            ->getJson('/api/v1/orcamentos/revenda-skus?q=RIB')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $lista = $this->withHeaders($h)
+            ->getJson('/api/v1/orcamentos/revenda-skus?q=RIB&incluir_id='.$this->sku->id);
+        $lista->assertOk();
+        $this->assertSame(['REV-RIB-001'], collect($lista->json('data'))->pluck('codigo')->all());
+
+        $this->withHeaders($h)
+            ->postJson('/api/v1/orcamentos/calcular', $this->payloadRevenda())
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['produto_id']);
+
+        $payload = $this->payloadRevenda();
+        $payload['orcamento_id'] = $orcId;
+        $this->withHeaders($h)
+            ->postJson('/api/v1/orcamentos/calcular', $payload)
+            ->assertOk();
+
+        $payload['validade_dias'] = 9;
+        $this->withHeaders($h)
+            ->putJson("/api/v1/orcamentos/{$orcId}", $payload)
+            ->assertOk();
+
+        $outro = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'REV-RIB-002',
+            'familia' => 'REV',
+            'descricao_fiscal' => 'RIBBON SEM SALDO',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+        ]);
+        $troca = $this->payloadRevenda();
+        $troca['produto_id'] = $outro->id;
+        $this->withHeaders($h)
+            ->putJson("/api/v1/orcamentos/{$orcId}", $troca)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['produto_id']);
     }
 }

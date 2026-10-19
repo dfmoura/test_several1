@@ -15,16 +15,18 @@ type Props = {
   disabled?: boolean;
 };
 
-async function buscar(q: string): Promise<RevendaSkuOpcao[]> {
+async function buscar(q: string, incluirId: number | null): Promise<RevendaSkuOpcao[]> {
   const qs = new URLSearchParams();
   if (q.trim()) qs.set('q', q.trim());
+  if (incluirId && incluirId > 0) qs.set('incluir_id', String(incluirId));
   const suffix = qs.toString() ? `?${qs}` : '';
   const res = await api.get<{ data: RevendaSkuOpcao[] }>(`/orcamentos/revenda-skus${suffix}`);
   return res.data ?? [];
 }
 
 /**
- * Busca de SKU REV ativo da empresa. Não usa o cadastro geral de produtos.
+ * Busca de SKU REV ativo da empresa, com saldo. Não usa o cadastro geral de produtos.
+ * O item já escolhido permanece na lista se o saldo zerar.
  */
 export function RevendaSkuCombobox({ value, onChange, disabled = false }: Props) {
   const listId = useId();
@@ -39,10 +41,12 @@ export function RevendaSkuCombobox({ value, onChange, disabled = false }: Props)
 
   const displayValue = open ? query : value ? `${value.codigo} — ${value.descricao}` : '';
 
+  const incluirId = value && value.id > 0 ? value.id : null;
+
   const runSearch = useCallback(async (q: string) => {
     setLoading(true);
     try {
-      const rows = await buscar(q);
+      const rows = await buscar(q, incluirId);
       setOptions(rows);
       setHighlight(0);
     } catch {
@@ -50,7 +54,7 @@ export function RevendaSkuCombobox({ value, onChange, disabled = false }: Props)
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [incluirId]);
 
   useEffect(() => {
     return () => {
@@ -140,7 +144,7 @@ export function RevendaSkuCombobox({ value, onChange, disabled = false }: Props)
         <ul id={listId} role="listbox" className="fiscal-combo-list">
           {loading ? <li className="fiscal-combo-empty">Buscando…</li> : null}
           {!loading && options.length === 0 ? (
-            <li className="fiscal-combo-empty">Nenhum SKU de revenda ativo.</li>
+            <li className="fiscal-combo-empty">Nenhum produto de revenda com saldo.</li>
           ) : null}
           {!loading
             ? options.map((opt, idx) => (
@@ -162,7 +166,7 @@ export function RevendaSkuCombobox({ value, onChange, disabled = false }: Props)
         </ul>
       ) : null}
       <p className="form-hint" style={{ marginBottom: 0 }}>
-        Família REV, ativa, desta empresa. O preço de tabela só sugere o unitário.
+        Família REV, ativa, desta empresa, com saldo. O preço de tabela só sugere o unitário.
       </p>
     </div>
   );

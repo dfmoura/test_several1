@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Empresa;
 use App\Models\Orcamento;
 use App\Services\Comercial\OrcamentoService;
 use App\Support\OrcamentoValidationRules;
@@ -28,12 +29,17 @@ class OrcamentoController extends Controller
         if (! $empresa instanceof \App\Models\Empresa) {
             abort(400, 'Empresa não selecionada.');
         }
-        $q = $request->validate([
+        $filtros = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-        ])['q'] ?? null;
+            'incluir_id' => ['nullable', 'integer', 'min:1'],
+        ]);
 
         return response()->json([
-            'data' => $this->orcamentoService->buscarRevenda($empresa, $q),
+            'data' => $this->orcamentoService->buscarRevenda(
+                $empresa,
+                $filtros['q'] ?? null,
+                isset($filtros['incluir_id']) ? (int) $filtros['incluir_id'] : null,
+            ),
         ]);
     }
 
@@ -99,7 +105,12 @@ class OrcamentoController extends Controller
         $this->authorizeWrite($request);
 
         $data = $this->validatedCalculo($request);
-        $result = $this->orcamentoService->calcularPreview(app('empresa'), $data);
+        $empresa = app('empresa');
+        $result = $this->orcamentoService->calcularPreview(
+            $empresa,
+            $data,
+            $this->orcamentoDaEmpresa($empresa, (int) $request->input('orcamento_id', 0)),
+        );
 
         return response()->json(['data' => $result]);
     }
@@ -164,6 +175,22 @@ class OrcamentoController extends Controller
         if ($orcamento->empresa_id !== app('empresa')->id) {
             abort(404);
         }
+    }
+
+    /**
+     * Reedição: o cálculo enxerga o SKU já gravado mesmo com saldo zerado.
+     * Id de outra empresa não entra. Não grava nada.
+     */
+    private function orcamentoDaEmpresa(Empresa $empresa, int $id): ?Orcamento
+    {
+        if ($id < 1) {
+            return null;
+        }
+
+        return Orcamento::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereKey($id)
+            ->first();
     }
 
     /**

@@ -826,6 +826,12 @@ export function OrcamentoFormPage() {
     return null;
   };
 
+  const payloadCalculo = (rows: OrcForm[], labels?: (string | null)[]) => {
+    const body = payloadFromFormDocumento(rows, labels);
+    if (!isNew && id && /^\d+$/.test(id)) body.orcamento_id = Number(id);
+    return body;
+  };
+
   const handleCalcular = async () => {
     const v = validateClient();
     if (v) {
@@ -837,7 +843,7 @@ export function OrcamentoFormPage() {
     try {
       const res = await api.post<{ data: OrcamentoResult }>(
         '/orcamentos/calcular',
-        payloadFromFormDocumento(itens, rotulos),
+        payloadCalculo(itens, rotulos),
       );
       setCalculo(res.data);
     } catch (e) {
@@ -872,7 +878,7 @@ export function OrcamentoFormPage() {
     try {
       const res = await api.post<{ data: OrcamentoResult }>(
         '/orcamentos/calcular',
-        payloadFromFormDocumento(nextItens, rotulos),
+        payloadCalculo(nextItens, rotulos),
       );
       setCalculo(res.data);
     } catch (e) {
@@ -910,7 +916,7 @@ export function OrcamentoFormPage() {
     try {
       const res = await api.post<{ data: OrcamentoResult }>(
         '/orcamentos/calcular',
-        payloadFromFormDocumento(nextItens, rotulos),
+        payloadCalculo(nextItens, rotulos),
       );
       setCalculo(res.data);
     } catch (e) {
@@ -1460,7 +1466,7 @@ export function OrcamentoFormPage() {
                 </span>
               </h3>
               <p className="form-hint" style={{ marginTop: 0 }}>
-                SKU já cadastrado (família REV). Preço comercial — sem motor de etiqueta, sem
+                SKU de revenda com saldo nesta empresa. Preço comercial — sem motor de etiqueta, sem
                 ordem de produção.
               </p>
                 <div className="form-grid">
