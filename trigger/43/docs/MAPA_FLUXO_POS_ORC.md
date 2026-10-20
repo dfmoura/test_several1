@@ -26,7 +26,8 @@ O motor operacional **já existe** (PED → OP/OS → MOV → FAT → ENT). Nest
 ORC (enviado → APROVADO)
   ├─ exige sinal → AGUARDA_ADIANTAMENTO → BX/PIX → LIBERADO
   └─ crédito/política OK → LIBERADO
-       → PED- (1:1 ORC; snapshot travado; 1 item fase 1 · N itens quando `ADR_ORC_ITENS` fase 3)
+       → PED- (1:1 ORC; snapshot travado; 1 item fase 1 · N itens quando `ADR_ORC_ITENS` fase 3;
+               linhagem Novo/Repetição ecoada do ORC — `ADR_ORC_LINHAGEM_COMERCIAL`)
             ├─ PRODUCAO → OP- (kit → Estoque · A buscar → SAIDA_PRODUCAO
             │                 → fechar na OP: etiquetas boas / refugo / ENTRADA_PA ±tol
             │                 → rolos reais e caixas alocadas)

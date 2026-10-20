@@ -39,6 +39,7 @@ import {
   statusOrcPill,
   type OrcOverrides,
 } from '../lib/orcamentoForm';
+import { linhagemLabel } from '../lib/orcamentoLinhagem';
 import { tipoOperacaoFromSnap, tipoServicoLabel } from '../lib/operacoesSaida';
 import { entregaComercialTexto } from '../lib/orcamentoFrete';
 import { especFromSnapshot } from '../lib/orcamentoGuiaProducao';
@@ -783,6 +784,9 @@ export function OrcamentoDetailPage() {
               <span className="orc-detail-status-label">Status</span>
               <div className="orc-detail-status-pills">
                 <StatusPill status={statusOrcPill(orc.status, orc.financeiro_status)} />
+                {linhagemLabel(orc.linhagem) ? (
+                  <StatusPill status={linhagemLabel(orc.linhagem)!} />
+                ) : null}
                 {produtoFlexorc.financeiro && orc.financeiro_status === 'LIBERADO' ? (
                   <StatusPill status="Liberado" />
                 ) : produtoFlexorc.financeiro &&
@@ -795,6 +799,16 @@ export function OrcamentoDetailPage() {
           </div>
 
           <div className="orc-detail-meta">
+            {orc.origem_orcamento?.codigo ? (
+              <div>
+                <span>Origem</span>
+                <strong>
+                  <Link to={`/orcamentos/${orc.origem_orcamento.id}`}>
+                    {orc.origem_orcamento.codigo}
+                  </Link>
+                </strong>
+              </div>
+            ) : null}
             {orc.vendedor ? (
               <div>
                 <span>Vendedor</span>

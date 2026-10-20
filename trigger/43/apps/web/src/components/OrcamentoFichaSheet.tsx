@@ -26,6 +26,7 @@ import { ModeloTintasPorModelo } from './ModeloTintasTags';
 import { tintasDeComposicao } from '../lib/modeloTintas';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
+import { linhagemLabel, linhagemRefCliente } from '../lib/orcamentoLinhagem';
 import { Fragment } from 'react';
 
 /**
@@ -719,6 +720,14 @@ export function OrcamentoFichaSheet({
             {statusOrcLabel(orc.status, orc.financeiro_status)}
           </span>
           <span className="ficha-chip ficha-chip-papel">v{orc.versao}</span>
+          {linhagemLabel(orc.linhagem) ? (
+            <span className="ficha-chip ficha-chip-muted">{linhagemLabel(orc.linhagem)}</span>
+          ) : null}
+          {orc.origem_orcamento?.codigo ? (
+            <span className="ficha-chip ficha-chip-muted">
+              {linhagemRefCliente(orc.origem_orcamento.codigo)}
+            </span>
+          ) : null}
           {multi ? (
             <span className="ficha-chip ficha-chip-muted">{itens.length} itens</span>
           ) : null}

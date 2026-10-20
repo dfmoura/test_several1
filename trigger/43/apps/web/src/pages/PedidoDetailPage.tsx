@@ -26,6 +26,7 @@ import { descontoAplicadoNoTotal } from '../lib/orcamentoForm';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { nfStatusLabel, textoPesoNfe } from '../lib/fiscalUi';
 import { hrefFaturamento } from '../lib/cobrancaUi';
+import { linhagemLabel } from '../lib/orcamentoLinhagem';
 import { pedStatusLabel } from '../lib/producaoUi';
 
 const MOD_FRETE_CIF = '0';
@@ -285,6 +286,9 @@ export function PedidoDetailPage() {
                   <span className="orc-detail-status-label">Status</span>
                   <div className="orc-detail-status-pills">
                     <StatusPill status={pedStatusLabel(pedido.status)} />
+                    {linhagemLabel(pedido.orcamento?.linhagem) ? (
+                      <StatusPill status={linhagemLabel(pedido.orcamento?.linhagem)!} />
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -316,13 +320,23 @@ export function PedidoDetailPage() {
                 ) : null}
                 {pedido.orcamento?.codigo ? (
                   <div>
-                    <span>Origem</span>
+                    <span>Orçamento</span>
                     <strong>
                       {pedido.orcamento.id ? (
                         <Link to={`/orcamentos/${pedido.orcamento.id}`}>{pedido.orcamento.codigo}</Link>
                       ) : (
                         pedido.orcamento.codigo
                       )}
+                    </strong>
+                  </div>
+                ) : null}
+                {pedido.orcamento?.origem_orcamento?.codigo ? (
+                  <div>
+                    <span>Origem comercial</span>
+                    <strong>
+                      <Link to={`/orcamentos/${pedido.orcamento.origem_orcamento.id}`}>
+                        {pedido.orcamento.origem_orcamento.codigo}
+                      </Link>
                     </strong>
                   </div>
                 ) : null}

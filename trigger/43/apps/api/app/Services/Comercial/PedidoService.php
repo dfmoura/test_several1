@@ -109,6 +109,11 @@ class PedidoService
                 'snapshot' => [
                     'orcamento_codigo' => $orcamento->codigo,
                     'orcamento_versao' => $orcamento->versao,
+                    'orcamento_linhagem' => $orcamento->linhagem ?: Orcamento::LINHAGEM_NOVO,
+                    'orcamento_origem_id' => $orcamento->origem_orcamento_id,
+                    'orcamento_origem_codigo' => $orcamento->origem_orcamento_id
+                        ? (Orcamento::query()->whereKey($orcamento->origem_orcamento_id)->value('codigo'))
+                        : null,
                     'input' => $input,
                     'faixa' => $faixa,
                 ],
@@ -315,7 +320,8 @@ class PedidoService
             ->with([
                 'parceiro:id,codigo,razao_social',
                 'vendedor:id,codigo,razao_social',
-                'orcamento:id,codigo,parceiro_id',
+                'orcamento:id,codigo,parceiro_id,linhagem,origem_orcamento_id,status,financeiro_status',
+                'orcamento.origem:id,codigo',
                 'orcamento.linkAprovacao',
                 'orcamento.parceiro:id,whatsapp,email,telefone,contato_nome,contato_funcao',
                 'orcamento.parceiro.contatos',
@@ -356,7 +362,8 @@ class PedidoService
             'empresa:id,codigo,razao_social,nome_fantasia,cnpj,email,telefone,logradouro,numero,complemento,bairro,municipio,uf,cep',
             'parceiro:id,codigo,razao_social,nome_fantasia,cnpj_cpf,email,telefone,whatsapp,logradouro,numero,complemento,bairro,municipio,uf,cep',
             'vendedor:id,codigo,razao_social,nome_fantasia',
-            'orcamento:id,codigo,parceiro_id,status,financeiro_status,tolerancia_qtd_pct,vendedor_parceiro_id',
+            'orcamento:id,codigo,parceiro_id,status,financeiro_status,tolerancia_qtd_pct,vendedor_parceiro_id,linhagem,origem_orcamento_id',
+            'orcamento.origem:id,codigo',
             'itens.produtoPa:id,codigo,descricao_fiscal',
             'ordensProducao.materiais',
             'ordensServico',
@@ -397,6 +404,15 @@ class PedidoService
                 'codigo' => $p->orcamento->codigo,
                 'status' => $p->orcamento->status ?? null,
                 'financeiro_status' => $p->orcamento->financeiro_status ?? null,
+                'linhagem' => $p->orcamento->linhagem ?: Orcamento::LINHAGEM_NOVO,
+                'origem_orcamento' => $p->orcamento->origem_orcamento_id
+                    ? [
+                        'id' => (int) $p->orcamento->origem_orcamento_id,
+                        'codigo' => $p->orcamento->relationLoaded('origem') && $p->orcamento->origem
+                            ? $p->orcamento->origem->codigo
+                            : (string) (Orcamento::query()->whereKey($p->orcamento->origem_orcamento_id)->value('codigo') ?? ''),
+                    ]
+                    : null,
             ] : null,
             'contato_cliente' => $p->relationLoaded('orcamento') && $p->orcamento
                 ? $this->contatoFicha->resolver($p->orcamento)

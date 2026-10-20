@@ -6,6 +6,7 @@ import { StatusPill } from '../components/StatusPill';
 import { api, type Pedido } from '../lib/api';
 import { formatDate } from '../lib/format';
 import { appendPeriodo, currentMonthRange, hasPeriodo } from '../lib/periodo';
+import { linhagemLabelLista } from '../lib/orcamentoLinhagem';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { PED_LISTA_STATUSES, pedStatusLabel } from '../lib/producaoUi';
 import { useTableSort } from '../lib/useTableSort';
@@ -264,7 +265,12 @@ export function PedidosPage() {
                         )}
                       </td>
                       <td>
-                        <StatusPill status={pedStatusLabel(p.status)} />
+                        <div className="orc-detail-status-pills">
+                          <StatusPill status={pedStatusLabel(p.status)} />
+                          {linhagemLabelLista(p.orcamento?.linhagem) ? (
+                            <StatusPill status={linhagemLabelLista(p.orcamento?.linhagem)!} />
+                          ) : null}
+                        </div>
                       </td>
                       <td>{p.prazo_entrega_dias != null ? prazoEntregaCompleto(p) : '—'}</td>
                       <td>{formatDate(p.created_at)}</td>

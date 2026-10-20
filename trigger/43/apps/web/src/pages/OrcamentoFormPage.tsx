@@ -166,7 +166,7 @@ export function OrcamentoFormPage() {
   const { id } = useParams();
   const location = useLocation();
   const isNew = location.pathname.endsWith('/novo') || id === 'novo';
-  const copiadoDe = (() => {
+  const copiadoDeState = (() => {
     const state = location.state as { copiadoDe?: unknown } | null;
     return typeof state?.copiadoDe === 'string' && state.copiadoDe.trim() !== ''
       ? state.copiadoDe.trim()
@@ -176,6 +176,12 @@ export function OrcamentoFormPage() {
   const { hasPermission } = useAuth();
   const canWrite = hasPermission('orcamento.escrever');
 
+  const [linhagemAviso, setLinhagemAviso] = useState<{
+    codigo: string;
+    linhagem: string | null;
+  } | null>(
+    copiadoDeState ? { codigo: copiadoDeState, linhagem: 'REPETICAO' } : null,
+  );
   const [catalog, setCatalog] = useState<OrcCatalogo | null>(null);
   const [parceiroSel, setParceiroSel] = useState<Parceiro | null>(null);
   const [vendedorSel, setVendedorSel] = useState<ParceiroVinculo | null>(null);
@@ -250,6 +256,14 @@ export function OrcamentoFormPage() {
           setCalculo(
             calculoComItensDoOrcamento(orc.data.result_snapshot, orc.data.itens),
           );
+          if (orc.data.origem_orcamento?.codigo) {
+            setLinhagemAviso({
+              codigo: orc.data.origem_orcamento.codigo,
+              linhagem: orc.data.linhagem ?? 'REPETICAO',
+            });
+          } else if (!cancelled) {
+            setLinhagemAviso(null);
+          }
 
           if (nextForm.parceiro_id !== '') {
             try {
@@ -987,9 +1001,15 @@ export function OrcamentoFormPage() {
 
       {erro ? <p className="form-error">{erro}</p> : null}
 
-      {copiadoDe ? (
+      {linhagemAviso ? (
         <p className="orc-copia-aviso">
-          Em preparação, copiado de {copiadoDe}. O orçamento aprovado não foi alterado.
+          Em preparação, copiado de {linhagemAviso.codigo}
+          {linhagemAviso.linhagem === 'REPETICAO_ALTERADA'
+            ? ' (repetição com alteração)'
+            : linhagemAviso.linhagem === 'REPETICAO'
+              ? ' (repetição)'
+              : ''}
+          . O orçamento aprovado não foi alterado.
         </p>
       ) : null}
 

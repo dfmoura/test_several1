@@ -311,6 +311,9 @@ class OrcamentoTest extends TestCase
         $this->assertTrue($dup->json('data.editavel'));
         $this->assertSame($codigo, $dup->json('data.copiado_de.codigo'));
         $this->assertSame($id, $dup->json('data.copiado_de.id'));
+        $this->assertSame(Orcamento::LINHAGEM_REPETICAO, $dup->json('data.linhagem'));
+        $this->assertSame($id, $dup->json('data.origem_orcamento.id'));
+        $this->assertSame($codigo, $dup->json('data.origem_orcamento.codigo'));
         $this->assertSame($this->parceiro->id, $dup->json('data.parceiro_id'));
         $this->assertSame('Repetir com o mesmo desenho', $dup->json('data.observacao'));
         $this->assertSame($payload['medida'], $dup->json('data.input_snapshot.medida'));
@@ -343,6 +346,49 @@ class OrcamentoTest extends TestCase
                 ->where('para->novo_id', $novoId)
                 ->exists()
         );
+    }
+
+    public function test_create_nasce_linhagem_novo(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $this->payload());
+        $create->assertCreated();
+        $this->assertSame(Orcamento::LINHAGEM_NOVO, $create->json('data.linhagem'));
+        $this->assertNull($create->json('data.origem_orcamento'));
+    }
+
+    public function test_duplicar_editar_spec_vira_repeticao_alterada_e_prazo_nao(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $this->payload());
+        $create->assertCreated();
+        $id = (int) $create->json('data.id');
+        $orc = Orcamento::query()->findOrFail($id);
+        $orc->status = Orcamento::STATUS_APROVADO;
+        $orc->save();
+
+        $dup = $this->withHeaders($h)->postJson('/api/v1/orcamentos/'.$id.'/duplicar');
+        $dup->assertCreated();
+        $novoId = (int) $dup->json('data.id');
+        $this->assertSame(Orcamento::LINHAGEM_REPETICAO, $dup->json('data.linhagem'));
+
+        $payloadPrazo = $this->payload();
+        $payloadPrazo['prazo_entrega_dias'] = 30;
+        $payloadPrazo['observacao'] = 'Só prazo e obs';
+        $soPrazo = $this->withHeaders($h)->putJson('/api/v1/orcamentos/'.$novoId, $payloadPrazo);
+        $soPrazo->assertOk();
+        $this->assertSame(Orcamento::LINHAGEM_REPETICAO, $soPrazo->json('data.linhagem'));
+
+        $payloadSpec = $this->payload();
+        $payloadSpec['cores'] = ((int) ($payloadSpec['cores'] ?? 1)) + 1;
+        $comSpec = $this->withHeaders($h)->putJson('/api/v1/orcamentos/'.$novoId, $payloadSpec);
+        $comSpec->assertOk();
+        $this->assertSame(Orcamento::LINHAGEM_REPETICAO_ALTERADA, $comSpec->json('data.linhagem'));
+        $this->assertSame($id, $comSpec->json('data.origem_orcamento.id'));
     }
 
     public function test_duplicar_recusa_status_que_nao_e_aprovado_e_consulta(): void

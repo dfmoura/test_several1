@@ -1055,7 +1055,7 @@ class OrcamentoAprovacaoService
         $input = is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : [];
         $result = is_array($orcamento->result_snapshot) ? $orcamento->result_snapshot : [];
         $empresa = $orcamento->empresa;
-        $orcamento->loadMissing(['itens', 'parceiro']);
+        $orcamento->loadMissing(['itens', 'parceiro', 'origem:id,codigo']);
         $itensPersistidos = $orcamento->itens->sortBy('ordem')->values();
         $multiItem = $itensPersistidos->count() > 1;
         $facas = is_array($input['facas'] ?? null) ? $input['facas'] : [];
@@ -1080,10 +1080,13 @@ class OrcamentoAprovacaoService
         $contatoFicha = $this->contatoFicha->resolver($orcamento);
         $destinoNome = $contatoFicha['nome'] ?? null;
         $destinoFuncao = $contatoFicha['funcao'] ?? null;
+        // Cliente: só código de referência — sem jargão de linhagem (ADR_ORC_LINHAGEM_COMERCIAL).
+        $origemRef = $orcamento->origem?->codigo;
 
         $dto = [
             'codigo' => $orcamento->codigo,
             'versao' => $orcamento->versao,
+            'origem_ref' => $origemRef,
             'status' => $orcamento->status,
             'vencido' => $somenteLeitura ? false : $vencido,
             'disponivel' => $somenteLeitura

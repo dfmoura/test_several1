@@ -2643,6 +2643,9 @@ export type Orcamento = {
   numero: number;
   codigo: string;
   versao: number;
+  /** ADR_ORC_LINHAGEM_COMERCIAL — NOVO | REPETICAO | REPETICAO_ALTERADA. */
+  linhagem?: 'NOVO' | 'REPETICAO' | 'REPETICAO_ALTERADA' | null;
+  origem_orcamento?: { id: number; codigo: string } | null;
   parceiro_id: number;
   vendedor_parceiro_id?: number | null;
   cliente_nome: string;
@@ -2785,6 +2788,9 @@ export type Pedido = {
     codigo: string;
     status?: string | null;
     financeiro_status?: string | null;
+    /** Eco da linhagem do ORC — ADR_ORC_LINHAGEM_COMERCIAL. */
+    linhagem?: 'NOVO' | 'REPETICAO' | 'REPETICAO_ALTERADA' | null;
+    origem_orcamento?: { id: number; codigo: string } | null;
   } | null;
   /** Pessoa do cliente (nome + função). Mesma regra da ficha do ORC. Sem telefone ou e-mail. */
   contato_cliente?: { nome: string; funcao: string | null } | null;
@@ -3858,6 +3864,8 @@ export type OrcamentoPropostaPublica = {
   status_exibicao?: string | null;
   codigo: string;
   versao: number;
+  /** Ref. comercial leve (código do ORC origem) — ADR_ORC_LINHAGEM_COMERCIAL. */
+  origem_ref?: string | null;
   status: string;
   vencido: boolean;
   disponivel: boolean;

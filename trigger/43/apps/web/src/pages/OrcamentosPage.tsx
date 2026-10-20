@@ -13,6 +13,7 @@ import {
   statusOrcPill,
   type OrcListaStatus,
 } from '../lib/orcamentoForm';
+import { linhagemLabelLista } from '../lib/orcamentoLinhagem';
 import { tipoOperacaoFromSnap, tipoOperacaoLabel } from '../lib/operacoesSaida';
 import { appendPeriodo, currentMonthRange, hasPeriodo } from '../lib/periodo';
 import { useTableSort } from '../lib/useTableSort';
@@ -280,7 +281,12 @@ export function OrcamentosPage() {
                           ) : null}
                         </td>
                         <td className="status">
-                          <StatusPill status={statusOrcPill(o.status, o.financeiro_status)} />
+                          <div className="orc-detail-status-pills">
+                            <StatusPill status={statusOrcPill(o.status, o.financeiro_status)} />
+                            {linhagemLabelLista(o.linhagem) ? (
+                              <StatusPill status={linhagemLabelLista(o.linhagem)!} />
+                            ) : null}
+                          </div>
                         </td>
                         <td>{formatDateTime(o.updated_at)}</td>
                         <td

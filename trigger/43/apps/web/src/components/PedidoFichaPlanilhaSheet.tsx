@@ -29,6 +29,7 @@ import {
 } from '../lib/pedidoFichaPlanilha';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import { tipoServicoLabel } from '../lib/operacoesSaida';
+import { linhagemLabel, linhagemRefCliente } from '../lib/orcamentoLinhagem';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { pedStatusLabel } from '../lib/producaoUi';
 import {
@@ -385,6 +386,10 @@ export function PedidoFichaPlanilhaSheet({
     .join(' · ');
   const entregaOps = freteTextoDoPedido(p);
   const orcCodigo = p.orcamento?.codigo ?? dash(snap.orcamento_codigo);
+  const linhagemChip = linhagemLabel(p.orcamento?.linhagem ?? snap.orcamento_linhagem);
+  const origemRefChip = linhagemRefCliente(
+    p.orcamento?.origem_orcamento?.codigo ?? snap.orcamento_origem_codigo ?? undefined,
+  );
 
   return (
     <article
@@ -413,6 +418,12 @@ export function PedidoFichaPlanilhaSheet({
           <span className={`ficha-chip ${pedChipClass(p.status)}`.trim()}>
             {pedStatusLabel(p.status)}
           </span>
+          {linhagemChip ? (
+            <span className="ficha-chip ficha-chip-muted">{linhagemChip}</span>
+          ) : null}
+          {origemRefChip ? (
+            <span className="ficha-chip ficha-chip-muted">{origemRefChip}</span>
+          ) : null}
           {p.prazo_entrega_dias != null ? (
             <span className="ficha-chip ficha-chip-muted">{prazoEntregaCompleto(p)}</span>
           ) : null}

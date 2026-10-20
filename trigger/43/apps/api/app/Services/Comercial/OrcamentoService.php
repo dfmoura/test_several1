@@ -29,6 +29,7 @@ use App\Support\FacasComposicao;
 use App\Support\ListPeriodo;
 use App\Support\ModelosComposicao;
 use App\Support\OrcamentoItens;
+use App\Support\OrcamentoLinhagem;
 use App\Support\PadraoDecimal;
 use App\Support\OrcamentoValidationRules;
 use App\Support\TipoOperacaoSaida;
@@ -99,6 +100,7 @@ class OrcamentoService
                 'parceiro:id,codigo,razao_social,nome_fantasia,is_prospect,whatsapp,email,telefone,contato_nome,contato_funcao',
                 'parceiro.contatos',
                 'vendedor:id,codigo,razao_social,nome_fantasia,comissao_percentual,papel_vendedor',
+                'origem:id,codigo',
                 'itens:id,orcamento_id,ordem,input_snapshot',
                 'linkAprovacao',
                 ...Orcamento::userStampWith(),
@@ -148,6 +150,7 @@ class OrcamentoService
         $orcamento->loadMissing([
             'parceiro:id,codigo,razao_social,nome_fantasia,is_prospect',
             'vendedor:id,codigo,razao_social,nome_fantasia,comissao_percentual,papel_vendedor',
+            'origem:id,codigo',
             'linkAprovacao',
             'pedido:id,codigo,status,orcamento_id',
             'itens',
@@ -187,6 +190,8 @@ class OrcamentoService
                 'numero' => $numero,
                 'codigo' => $codigo,
                 'versao' => 1,
+                'linhagem' => Orcamento::LINHAGEM_NOVO,
+                'origem_orcamento_id' => null,
                 'parceiro_id' => $parceiro->id,
                 'vendedor_parceiro_id' => $vendedor?->id,
                 'cliente_nome' => $parceiro->razao_social,
@@ -251,26 +256,36 @@ class OrcamentoService
         }
         $criado = $this->create($empresa, $payload);
 
+        $novo = Orcamento::query()->findOrFail((int) $criado['id']);
+        $novo->fill([
+            'linhagem' => Orcamento::LINHAGEM_REPETICAO,
+            'origem_orcamento_id' => $origem->id,
+        ]);
+        $novo->save();
+
         $this->audit->log('DUPLICAR', 'Orcamento', $origem->id, null, [
             'origem_id' => $origem->id,
             'origem_codigo' => $origem->codigo,
-            'novo_id' => $criado['id'],
-            'novo_codigo' => $criado['codigo'],
+            'novo_id' => $novo->id,
+            'novo_codigo' => $novo->codigo,
+            'linhagem' => $novo->linhagem,
         ]);
-        $this->audit->log('DUPLICAR', 'Orcamento', (int) $criado['id'], [
+        $this->audit->log('DUPLICAR', 'Orcamento', (int) $novo->id, [
             'origem_id' => $origem->id,
             'origem_codigo' => $origem->codigo,
         ], [
-            'codigo' => $criado['codigo'],
-            'status' => $criado['status'],
+            'codigo' => $novo->codigo,
+            'status' => $novo->status,
+            'linhagem' => $novo->linhagem,
         ]);
 
-        $criado['copiado_de'] = [
+        $out = $this->show($novo->fresh(['parceiro', 'vendedor', 'origem', 'itens']));
+        $out['copiado_de'] = [
             'id' => $origem->id,
             'codigo' => $origem->codigo,
         ];
 
-        return $criado;
+        return $out;
     }
 
     /**
@@ -350,14 +365,17 @@ class OrcamentoService
 
             OrcamentoItens::syncJobs($orcamento, $doc['jobs']);
 
+            $this->reavaliarLinhagemAposEdicao($orcamento);
+
             $this->audit->log('ATUALIZAR', 'Orcamento', $orcamento->id, $before, [
                 'versao' => $orcamento->versao,
                 'status' => $orcamento->status,
                 'parceiro_id' => $orcamento->parceiro_id,
+                'linhagem' => $orcamento->linhagem,
             ]);
         });
 
-        return $this->show($orcamento->fresh(['parceiro', 'vendedor']));
+        return $this->show($orcamento->fresh(['parceiro', 'vendedor', 'origem']));
     }
 
     public function destroy(Orcamento $orcamento): void
@@ -1308,6 +1326,15 @@ class OrcamentoService
             'numero' => $o->numero,
             'codigo' => $o->codigo,
             'versao' => $o->versao,
+            'linhagem' => $o->linhagem ?: Orcamento::LINHAGEM_NOVO,
+            'origem_orcamento' => $o->origem_orcamento_id
+                ? [
+                    'id' => (int) $o->origem_orcamento_id,
+                    'codigo' => $o->relationLoaded('origem') && $o->origem
+                        ? $o->origem->codigo
+                        : (string) (Orcamento::query()->whereKey($o->origem_orcamento_id)->value('codigo') ?? ''),
+                ]
+                : null,
             'parceiro_id' => $o->parceiro_id,
             'vendedor_parceiro_id' => $o->vendedor_parceiro_id,
             'cliente_nome' => $o->cliente_nome,
@@ -1441,6 +1468,36 @@ class OrcamentoService
         $base = rtrim((string) config('erp.orcamento_public_base_url', config('app.url')), '/');
 
         return $base.'/p/'.$token;
+    }
+
+    /**
+     * Latch REPETICAO → REPETICAO_ALTERADA quando o fingerprint comercial diverge da origem.
+     * Observação/prazo/frete/gordura sozinhos não disparam (ADR_ORC_LINHAGEM_COMERCIAL).
+     */
+    private function reavaliarLinhagemAposEdicao(Orcamento $orcamento): void
+    {
+        if ($orcamento->linhagem !== Orcamento::LINHAGEM_REPETICAO) {
+            return;
+        }
+        if (! $orcamento->origem_orcamento_id) {
+            return;
+        }
+
+        $origem = Orcamento::query()
+            ->where('empresa_id', $orcamento->empresa_id)
+            ->find($orcamento->origem_orcamento_id);
+        if (! $origem) {
+            return;
+        }
+
+        $orcamento->unsetRelation('itens');
+        $orcamento->load('itens');
+        $origem->loadMissing('itens');
+
+        if (! OrcamentoLinhagem::mesmoFingerprint($orcamento, $origem)) {
+            $orcamento->linhagem = Orcamento::LINHAGEM_REPETICAO_ALTERADA;
+            $orcamento->save();
+        }
     }
 
     /**

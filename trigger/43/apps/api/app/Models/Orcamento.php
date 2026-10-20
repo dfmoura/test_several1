@@ -34,6 +34,20 @@ class Orcamento extends Model
 
     public const CANAL_LINK = 'LINK';
 
+    /** Linhagem comercial — ADR_ORC_LINHAGEM_COMERCIAL. */
+    public const LINHAGEM_NOVO = 'NOVO';
+
+    public const LINHAGEM_REPETICAO = 'REPETICAO';
+
+    public const LINHAGEM_REPETICAO_ALTERADA = 'REPETICAO_ALTERADA';
+
+    /** @var list<string> */
+    public const LINHAGENS = [
+        self::LINHAGEM_NOVO,
+        self::LINHAGEM_REPETICAO,
+        self::LINHAGEM_REPETICAO_ALTERADA,
+    ];
+
     /** @var list<string> */
     public const STATUSES = [
         self::STATUS_RASCUNHO,
@@ -83,6 +97,8 @@ class Orcamento extends Model
         'numero',
         'codigo',
         'versao',
+        'linhagem',
+        'origem_orcamento_id',
         'parceiro_id',
         'vendedor_parceiro_id',
         'cliente_nome',
@@ -160,6 +176,12 @@ class Orcamento extends Model
     public function pedido(): HasOne
     {
         return $this->hasOne(Pedido::class);
+    }
+
+    /** ORC aprovado do qual este nasceu via duplicar (nullable). */
+    public function origem(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'origem_orcamento_id');
     }
 
     /** Jobs / posições (ADR_ORC_ITENS). Fase 1: tipicamente 1. */

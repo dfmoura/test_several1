@@ -10,6 +10,10 @@ import type { ModeloComposicaoForm } from './orcamentoForm';
 export type PedidoSnap = {
   orcamento_codigo?: string;
   orcamento_versao?: number;
+  /** Eco da linhagem do ORC no criar PED — ADR_ORC_LINHAGEM_COMERCIAL. */
+  orcamento_linhagem?: string;
+  orcamento_origem_id?: number | null;
+  orcamento_origem_codigo?: string | null;
   input?: Record<string, unknown>;
   faixa?: Record<string, unknown>;
   readequacao?: Record<string, unknown>;

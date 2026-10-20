@@ -14,6 +14,7 @@ import {
   textoToleranciaQuantidade,
 } from '../lib/orcamentoDisposicoesComerciais';
 import { formatCurrency, formatDateTime } from '../lib/format';
+import { linhagemRefCliente } from '../lib/orcamentoLinhagem';
 import { isPropostaMultiItem, propostaSomenteRevenda } from '../lib/orcamentoPropostaItens';
 import { prazoUtilLabel } from '../lib/prazoEntrega';
 
@@ -74,6 +75,7 @@ export function OrcamentoPropostaView({
   const somenteRevenda = propostaSomenteRevenda(proposta);
   const documentoMeta = [
     `v${proposta.versao}`,
+    linhagemRefCliente(proposta.origem_ref),
     proposta.expira_em ? `válida até ${formatDateTime(proposta.expira_em)}` : null,
   ]
     .filter(Boolean)
