@@ -410,6 +410,44 @@ class OrcamentoTest extends TestCase
         $this->assertSame(Orcamento::STATUS_APROVADO, Orcamento::query()->findOrFail($id)->status);
     }
 
+    public function test_duplicar_recusa_aprovado_sem_caracteristicas_comerciais(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        // Stub tipo ensaio PED: APROVADO com snapshot mínimo (sem SKU/faixas).
+        $stub = Orcamento::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'ano' => 2026,
+            'numero' => 99199,
+            'codigo' => 'ORC-2026-STUB',
+            'versao' => 1,
+            'parceiro_id' => $this->parceiro->id,
+            'cliente_nome' => $this->parceiro->razao_social,
+            'status' => Orcamento::STATUS_APROVADO,
+            'input_snapshot' => [
+                'necessidade' => 'REVENDA',
+                'modo_entrega' => 'RETIRAR',
+                'forma_pagamento' => 'PIX',
+                'condicao_pagamento' => '28 DDL',
+            ],
+            'result_snapshot' => [],
+            'prazo_entrega_dias' => 5,
+            'validade_dias' => 7,
+            'tolerancia_qtd_pct' => 0,
+        ]);
+
+        $dup = $this->withHeaders($h)->postJson('/api/v1/orcamentos/'.$stub->id.'/duplicar');
+        $dup->assertStatus(422);
+        $dup->assertJsonPath(
+            'errors.orcamento.0',
+            'Este orçamento aprovado não tem características comerciais completas para copiar. O aprovado permanece intacto.',
+        );
+        $this->assertArrayHasKey('produto_id', $dup->json('errors'));
+        $this->assertSame(1, Orcamento::query()->count());
+        $this->assertSame(Orcamento::STATUS_APROVADO, $stub->fresh()->status);
+    }
+
     public function test_bloqueia_edicao_apos_enviado(): void
     {
         Sanctum::actingAs($this->comercial);

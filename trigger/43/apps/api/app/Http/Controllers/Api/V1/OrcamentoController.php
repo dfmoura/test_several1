@@ -9,7 +9,6 @@ use App\Services\Comercial\OrcamentoService;
 use App\Support\OrcamentoValidationRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class OrcamentoController extends Controller
 {
@@ -198,9 +197,6 @@ class OrcamentoController extends Controller
      */
     private function validatedCalculo(Request $request): array
     {
-        $validator = Validator::make($request->all(), OrcamentoValidationRules::calcularRules());
-        $validator->after(static fn ($v) => OrcamentoValidationRules::after($v));
-
-        return $validator->validate();
+        return OrcamentoValidationRules::validateCalculo($request->all());
     }
 }

@@ -6,22 +6,27 @@ use App\Models\Orcamento;
 use App\Models\PedidoItem;
 use App\Support\FacaPosicao;
 use App\Support\SaidaEtiqueta;
+use Illuminate\Support\Facades\Validator as ValidatorFacade;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 final class OrcamentoValidationRules
 {
     /**
+     * Regras de cálculo/criação. Aceita payload explícito (ex.: duplicar)
+     * para não depender do request HTTP.
+     *
+     * @param  array<string, mixed>|null  $raw
      * @return array<string, mixed>
      */
-    public static function calcularRules(): array
+    public static function calcularRules(?array $raw = null): array
     {
-        $raw = request()->all();
+        $raw ??= request()->all();
         if (isset($raw['itens']) && is_array($raw['itens'])) {
             return self::multiItemRules($raw);
         }
 
-        $tipo = TipoOperacaoSaida::fromInput(request('tipo_operacao') ?? request('necessidade'));
+        $tipo = TipoOperacaoSaida::fromInput($raw['tipo_operacao'] ?? $raw['necessidade'] ?? null);
         if ($tipo === TipoOperacaoSaida::CESSAO_BEM) {
             return [
                 'tipo_operacao' => ['required', 'string'],
@@ -36,6 +41,20 @@ final class OrcamentoValidationRules
         }
 
         return self::industrializacaoRules();
+    }
+
+    /**
+     * Mesmo contrato do POST /orcamentos e /calcular — usado também no duplicar.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function validateCalculo(array $data): array
+    {
+        $validator = ValidatorFacade::make($data, self::calcularRules($data));
+        $validator->after(static fn (Validator $v) => self::after($v));
+
+        return $validator->validate();
     }
 
     /**

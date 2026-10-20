@@ -29,6 +29,7 @@ use App\Support\FacasComposicao;
 use App\Support\ModelosComposicao;
 use App\Support\OrcamentoItens;
 use App\Support\PadraoDecimal;
+use App\Support\OrcamentoValidationRules;
 use App\Support\TipoOperacaoSaida;
 use App\Support\UrlArtePublica;
 use Illuminate\Support\Facades\DB;
@@ -230,6 +231,16 @@ class OrcamentoService
 
         $origem->loadMissing('itens');
         $payload = $this->payloadComercialParaDuplicar($origem);
+        // Mesmo contrato do create — stub/ensaio incompleto vira 422 claro, não 500.
+        try {
+            $payload = OrcamentoValidationRules::validateCalculo($payload);
+        } catch (ValidationException $e) {
+            throw ValidationException::withMessages(array_merge([
+                'orcamento' => [
+                    'Este orçamento aprovado não tem características comerciais completas para copiar. O aprovado permanece intacto.',
+                ],
+            ], $e->errors()));
+        }
         $criado = $this->create($empresa, $payload);
 
         $this->audit->log('DUPLICAR', 'Orcamento', $origem->id, null, [

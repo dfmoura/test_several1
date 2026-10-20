@@ -139,6 +139,36 @@ if ($fat !== null) {
     exit(0);
 }
 
+// Snapshot comercial completo — Duplicar / create exigem SKU + faixas (ADR_ORC_ITEM_REVENDA).
+$orcInput = [
+    'necessidade' => PedidoItem::NEC_REVENDA,
+    'produto_id' => $rev->id,
+    'produto_codigo' => $rev->codigo,
+    'produto_descricao' => 'Ribbon ensaio caixa',
+    'descricao_comercial' => 'Ribbon ensaio caixa',
+    'unidade' => 'UN',
+    'faixas' => [
+        ['quantidade' => 4, 'valor_unitario' => 37.5, 'comissao_pct' => 0],
+    ],
+    'condicao_pagamento' => '28 DDL',
+    'forma_pagamento' => 'PIX',
+    'modo_entrega' => 'RETIRAR',
+];
+$orcResult = [
+    'necessidade' => PedidoItem::NEC_REVENDA,
+    'faixas' => [
+        [
+            'quantidade' => 4,
+            'valor_unitario' => 37.5,
+            'valor_total' => 150.0,
+            'comissao_pct' => 0,
+        ],
+    ],
+    'chave_matriz' => null,
+    'cobra_matriz' => false,
+    'valor_matriz' => 0,
+];
+
 if ($ped === null) {
     $numero = 99120;
     while (Orcamento::query()->where('empresa_id', $emp->id)->where('ano', 2026)->where('numero', $numero)->exists()) {
@@ -156,13 +186,9 @@ if ($ped === null) {
         'financeiro_status' => AdiantamentoService::FIN_LIBERADO,
         'cobra_matriz' => false,
         'valor_matriz' => '0.00',
-        'input_snapshot' => [
-            'condicao_pagamento' => '28 DDL',
-            'forma_pagamento' => 'PIX',
-            'modo_entrega' => 'RETIRAR',
-            'necessidade' => 'REVENDA',
-        ],
-        'result_snapshot' => [],
+        'valor_primeira_faixa' => '150.0000',
+        'input_snapshot' => $orcInput,
+        'result_snapshot' => $orcResult,
         'prazo_entrega_dias' => 5,
         'validade_dias' => 7,
         'tolerancia_qtd_pct' => 0,
@@ -183,9 +209,23 @@ if ($ped === null) {
                 'condicao_pagamento' => '28 DDL',
                 'forma_pagamento' => 'PIX',
                 'modo_entrega' => 'RETIRAR',
+                'necessidade' => PedidoItem::NEC_REVENDA,
+                'produto_id' => $rev->id,
             ],
         ],
     ]);
+} else {
+    // Reexecução: corrige stub antigo sem SKU/faixas (Duplicar 422 / UX).
+    $orc = Orcamento::query()->find($ped->orcamento_id);
+    if ($orc !== null) {
+        $snap = is_array($orc->input_snapshot) ? $orc->input_snapshot : [];
+        if (empty($snap['produto_id']) || empty($snap['faixas'])) {
+            $orc->input_snapshot = array_merge($snap, $orcInput);
+            $orc->result_snapshot = $orcResult;
+            $orc->valor_primeira_faixa = '150.0000';
+            $orc->save();
+        }
+    }
 }
 
 $snap = is_array($ped->snapshot) ? $ped->snapshot : [];
