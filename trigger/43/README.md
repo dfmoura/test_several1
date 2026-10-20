@@ -37,8 +37,6 @@ make up
 
 
 
-
-
 - App: http://localhost:8043  
 - Login (sem cadastro público): http://localhost:8043/login  
   Uma sessão por usuário; até 6 pessoas conectadas; 30 min sem uso encerra o acesso. 
