@@ -5,6 +5,7 @@ import { api, type OrdemProducao, type Pedido } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { voltarDaFicha } from '../lib/fichaNav';
 import { brandDocumentTitle } from '../lib/brand';
+import { podeVerFichaMateriais } from '../lib/opFichaMateriais';
 
 export function OrdemProducaoFichaMateriaisPage() {
   const { id } = useParams<{ id: string }>();
@@ -61,13 +62,17 @@ export function OrdemProducaoFichaMateriaisPage() {
     };
   }, []);
 
+  const liberada = podeVerFichaMateriais(ordem);
+
   useEffect(() => {
     if (!ordem) return;
-    document.title = `Materiais ${ordem.codigo} · ${ordem.parceiro?.razao_social ?? 'Ordem'}`;
+    document.title = liberada
+      ? `Materiais ${ordem.codigo} · ${ordem.parceiro?.razao_social ?? 'Ordem'}`
+      : `Materiais · aguarda saída · ${ordem.codigo}`;
     return () => {
       document.title = brandDocumentTitle();
     };
-  }, [ordem]);
+  }, [ordem, liberada]);
 
   return (
     <div className="ficha-page">
@@ -83,13 +88,15 @@ export function OrdemProducaoFichaMateriaisPage() {
             Voltar à ordem
           </button>
           <span className="ficha-toolbar-hint">
-            Materiais · retirada · A4 paisagem · sem preço · Imprimir ou Salvar como PDF
+            {liberada
+              ? 'Materiais · retirada física · A4 paisagem · após saída lógica'
+              : 'Disponível depois de confirmar a saída em Estoque · A buscar'}
           </span>
         </div>
         <button
           type="button"
           className="btn btn-primary"
-          disabled={!ordem}
+          disabled={!ordem || !liberada}
           onClick={() => window.print()}
         >
           Imprimir ficha
@@ -99,7 +106,14 @@ export function OrdemProducaoFichaMateriaisPage() {
       {loading && <div className="loading ficha-loading">Carregando ficha…</div>}
       {error && !loading && <div className="alert alert-error ficha-error">{error}</div>}
 
-      {ordem && !loading && (
+      {ordem && !loading && !liberada && (
+        <div className="alert alert-error ficha-error">
+          Confirme a saída dos materiais em Estoque · A buscar antes de imprimir a
+          retirada física. A ficha só lista o que já saiu no sistema.
+        </div>
+      )}
+
+      {ordem && !loading && liberada && (
         <OrdemProducaoFichaMateriaisSheet
           ordem={ordem}
           pedido={pedido}

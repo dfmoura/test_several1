@@ -9,14 +9,15 @@ import type { OrdemProducao, Pedido } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatDecimalBr } from '../lib/format';
 import { formatEnderecoParceiro } from '../lib/pedidoConfirmacao';
-import { bobinaDaOrdem, insumosDoKit } from '../lib/opFichaMateriais';
+import { bobinaDaOrdem, insumosComSaidaLogica } from '../lib/opFichaMateriais';
 import { textoMaquinaFlexo } from '../lib/opFichaFlexo';
 import { formatDateTimeBr, opChipClass, specOperacional } from '../lib/producaoFicha';
 import { opStatusLabel } from '../lib/producaoUi';
 
 /**
  * Ficha de materiais da OP — A4 paisagem.
- * Satélite da ficha flexo retrato. Bobina mãe + kit. Sem preço, sem local/volume.
+ * Satélite da ficha flexo retrato. Guia da saída física após SAIDA_PRODUCAO.
+ * Bobina mãe + só insumos já baixados. Sem preço, sem local/volume.
  */
 export type OrdemProducaoFichaMateriaisSheetProps = {
   ordem: OrdemProducao;
@@ -54,7 +55,7 @@ export function OrdemProducaoFichaMateriaisSheet({
   const spec = pedido && item ? specOperacional(pedido, item) : {};
   const maquina = textoMaquinaFlexo(spec);
   const bobina = bobinaDaOrdem(o, pedido);
-  const insumos = insumosDoKit(o);
+  const insumos = insumosComSaidaLogica(o);
   const pedCodigo = o.pedido?.codigo ?? pedido?.codigo ?? '—';
   const parceiro = pedido?.parceiro ?? o.parceiro ?? null;
   const cliente = identidadeParteComercial(parceiro, parceiro?.razao_social ?? '—');
@@ -82,7 +83,9 @@ export function OrdemProducaoFichaMateriaisSheet({
           <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} className="ficha-logo" />
           <div>
             <strong className="ficha-org">{empresaNome}</strong>
-            <span className="ficha-doc-label">Materiais · retirada · uso interno</span>
+            <span className="ficha-doc-label">
+              Materiais · retirada física · pós saída lógica
+            </span>
           </div>
         </div>
         <div className="ficha-masthead-id">
@@ -161,12 +164,12 @@ export function OrdemProducaoFichaMateriaisSheet({
         )}
       </FichaSection>
 
-      <FichaSection title="Demais insumos do kit">
+      <FichaSection title="Insumos com saída confirmada">
         <p className="op-materiais-hint">
-          Todo o kit da ordem. Confirmar saída continua em Estoque · A buscar.
+          Só o que já saiu no sistema (SAIDA_PRODUCAO). Marque Levado na retirada física.
         </p>
         {insumos.length === 0 ? (
-          <p className="ficha-empty">Esta ordem ainda não tem kit.</p>
+          <p className="ficha-empty">Nenhum insumo com saída confirmada nesta ordem.</p>
         ) : (
           <table className="ficha-table op-materiais-table op-materiais-table--kit">
             <thead>

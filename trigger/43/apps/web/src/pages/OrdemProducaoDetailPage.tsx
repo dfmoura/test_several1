@@ -10,6 +10,7 @@ import { api, type OrdemProducao, type Pedido } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
+import { podeVerFichaMateriais } from '../lib/opFichaMateriais';
 import { opStatusLabel } from '../lib/producaoUi';
 
 export function OrdemProducaoDetailPage() {
@@ -105,15 +106,17 @@ export function OrdemProducaoDetailPage() {
             >
               Imprimir lista
             </a>
-            <a
-              href={`/ordens-producao/${op.id}/ficha-materiais`}
-              className="btn btn-secondary btn-sm"
-              onClick={(e) =>
-                onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha-materiais`)
-              }
-            >
-              Materiais · retirada
-            </a>
+            {podeVerFichaMateriais(op) ? (
+              <a
+                href={`/ordens-producao/${op.id}/ficha-materiais`}
+                className="btn btn-secondary btn-sm"
+                onClick={(e) =>
+                  onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha-materiais`)
+                }
+              >
+                Materiais · retirada
+              </a>
+            ) : null}
           </>
         ) : null}
       </div>
