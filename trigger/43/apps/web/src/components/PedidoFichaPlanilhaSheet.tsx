@@ -426,7 +426,11 @@ export function PedidoFichaPlanilhaSheet({
         <p className="ficha-party-meta">{clienteMeta || '—'}</p>
       </section>
 
-      <div className="ficha-kv-strip ped-planilha-kv">
+      <div
+        className={`ficha-kv-strip ped-planilha-kv ${
+          entregaOps ? 'ped-planilha-kv--3' : 'ped-planilha-kv--2'
+        }`}
+      >
         <FichaKv
           label="Orçamento"
           value={

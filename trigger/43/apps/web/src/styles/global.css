@@ -10084,8 +10084,24 @@ tr.row-inactive td {
   font-size: 7.25pt;
 }
 
-.ficha-sheet-ped-planilha .ped-planilha-kv {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+/* Orçamento abraça o código; Vendedor/Entrega usam o resto (sem faixa vazia). */
+.ficha-sheet-ped-planilha .ped-planilha-kv--2 {
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-kv--3 {
+  grid-template-columns: max-content minmax(0, 1.15fr) minmax(0, 1.45fr);
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-kv .ficha-kv-value {
+  white-space: nowrap;
+}
+
+/* Entrega muito longa: wrap só na impressão — não truncar dado comercial. */
+@media print {
+  .ficha-sheet-ped-planilha .ped-planilha-kv--3 .ficha-kv:last-child .ficha-kv-value {
+    white-space: normal;
+  }
 }
 
 .ficha-sheet-ped-planilha .ped-planilha-hint {
