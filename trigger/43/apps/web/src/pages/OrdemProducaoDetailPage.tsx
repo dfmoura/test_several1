@@ -97,13 +97,24 @@ export function OrdemProducaoDetailPage() {
           </Link>
         ) : null}
         {op ? (
-          <a
-            href={`/ordens-producao/${op.id}/ficha`}
-            className="btn btn-secondary btn-sm"
-            onClick={(e) => onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha`)}
-          >
-            Imprimir lista
-          </a>
+          <>
+            <a
+              href={`/ordens-producao/${op.id}/ficha`}
+              className="btn btn-secondary btn-sm"
+              onClick={(e) => onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha`)}
+            >
+              Imprimir lista
+            </a>
+            <a
+              href={`/ordens-producao/${op.id}/ficha-materiais`}
+              className="btn btn-secondary btn-sm"
+              onClick={(e) =>
+                onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha-materiais`)
+              }
+            >
+              Materiais · retirada
+            </a>
+          </>
         ) : null}
       </div>
 

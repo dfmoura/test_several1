@@ -10207,6 +10207,71 @@ tr.row-inactive td {
   font-weight: 700;
 }
 
+/* OP materiais · retirada — A4 paisagem. Satélite da ficha flexo retrato. */
+.ficha-sheet.ficha-sheet-op-materiais {
+  width: 297mm;
+  max-width: 297mm;
+  padding: 6mm 7mm 5mm;
+  font-size: 7.25pt;
+}
+
+.ficha-sheet-op-materiais .op-materiais-kv {
+  margin-bottom: 1.5mm;
+}
+
+.ficha-sheet-op-materiais .op-materiais-hint {
+  margin: 0 0 1.2mm;
+  font-size: 5.75pt;
+  color: var(--text-muted, #5a6570);
+  letter-spacing: 0.02em;
+}
+
+.ficha-sheet-op-materiais .op-materiais-table {
+  width: 100%;
+  table-layout: auto;
+  font-size: 7pt;
+}
+
+.ficha-sheet-op-materiais .op-materiais-table th {
+  font-size: 5.75pt;
+  padding: 0.6mm 0.8mm;
+  white-space: nowrap;
+  line-height: 1.15;
+  vertical-align: bottom;
+}
+
+.ficha-sheet-op-materiais .op-materiais-table td {
+  padding: 0.7mm 0.8mm;
+  vertical-align: middle;
+  line-height: 1.25;
+}
+
+.ficha-sheet-op-materiais .op-materiais-table .ficha-td-num {
+  white-space: nowrap;
+}
+
+.ficha-sheet-op-materiais .op-materiais-check {
+  width: 6mm;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.ficha-sheet-op-materiais .op-materiais-table--kit {
+  max-width: 240mm;
+}
+
+.ficha-sheet-op-materiais .op-materiais-kit--falta_pegar td:nth-child(2) {
+  box-shadow: inset 2.4pt 0 0 #1d4ed8;
+}
+
+.ficha-sheet-op-materiais .op-materiais-kit--sem_estoque td:nth-child(2) {
+  box-shadow: inset 2.4pt 0 0 #b42318;
+}
+
+.ficha-sheet-op-materiais .ficha-autoria {
+  margin-top: 2mm;
+}
+
 .ped-ficha-item-head {
   display: flex;
   flex-wrap: wrap;
@@ -11456,6 +11521,12 @@ tr.row-inactive td {
   margin: 6mm;
 }
 
+/* A4 paisagem — materiais · retirada da OP (satélite; não altera ficha flexo). */
+@page ficha-op-materiais-a4 {
+  size: A4 landscape;
+  margin: 6mm;
+}
+
 @media print {
   body.ficha-print-mode {
     background: #fff !important;
@@ -11530,6 +11601,13 @@ tr.row-inactive td {
 
   body.ficha-print-mode .ficha-sheet.ficha-sheet-ped-planilha {
     page: ficha-ped-planilha-a4;
+    width: auto;
+    max-width: none;
+    padding: 0;
+  }
+
+  body.ficha-print-mode .ficha-sheet.ficha-sheet-op-materiais {
+    page: ficha-op-materiais-a4;
     width: auto;
     max-width: none;
     padding: 0;
@@ -11619,6 +11697,11 @@ tr.row-inactive td {
 
   body.ficha-print-mode .ficha-sheet-ped-planilha .ficha-section,
   body.ficha-print-mode .ficha-sheet-ped-planilha .ficha-table {
+    break-inside: auto;
+  }
+
+  body.ficha-print-mode .ficha-sheet-op-materiais .ficha-section,
+  body.ficha-print-mode .ficha-sheet-op-materiais .ficha-table {
     break-inside: auto;
   }
 
