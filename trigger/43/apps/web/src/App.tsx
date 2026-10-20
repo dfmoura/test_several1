@@ -81,6 +81,7 @@ import { EstoqueSeparacaoFichaPage } from './pages/EstoqueSeparacaoFichaPage';
 import { PedidosPage } from './pages/PedidosPage';
 import { PedidoDetailPage } from './pages/PedidoDetailPage';
 import { PedidoFichaPage } from './pages/PedidoFichaPage';
+import { PedidoFichaPlanilhaPage } from './pages/PedidoFichaPlanilhaPage';
 import { OrdensProducaoPage } from './pages/OrdensProducaoPage';
 import { OrdemProducaoDetailPage } from './pages/OrdemProducaoDetailPage';
 import { ProducaoApontamentosPage } from './pages/ProducaoApontamentosPage';
@@ -907,6 +908,17 @@ export default function App() {
           <ProtectedRoute>
             <PermissionRoute permission="producao.ler">
               <PedidoFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/pedidos/:id/ficha-planilha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="producao.ler">
+              <PedidoFichaPlanilhaPage />
             </PermissionRoute>
           </ProtectedRoute>
         }

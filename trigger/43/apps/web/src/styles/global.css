@@ -10076,6 +10076,88 @@ tr.row-inactive td {
   font-weight: 700;
 }
 
+/* PED planilha — A4 paisagem. Escopo só em .ficha-sheet-ped-planilha. */
+.ficha-sheet.ficha-sheet-ped-planilha {
+  width: 297mm;
+  max-width: 297mm;
+  padding: 6mm 7mm 5mm;
+  font-size: 7.25pt;
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-kv {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-hint {
+  margin: 0 0 1.2mm;
+  font-size: 5.75pt;
+  color: var(--text-muted, #5a6570);
+  letter-spacing: 0.02em;
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-table {
+  width: 100%;
+  table-layout: auto;
+  font-size: 6.5pt;
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-table th {
+  font-size: 5.5pt;
+  padding: 0.55mm 0.7mm;
+  white-space: nowrap;
+  line-height: 1.15;
+  vertical-align: bottom;
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-table td {
+  padding: 0.5mm 0.7mm;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-table .ficha-td-num {
+  white-space: nowrap;
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-obs {
+  max-width: 28mm;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-fechamento {
+  width: 90mm;
+  max-width: 100%;
+  margin: 2.4mm 0 0 auto;
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-fechamento p {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 3mm;
+  margin: 0;
+  padding: 0.55mm 0;
+  border-bottom: 0.35pt solid var(--border);
+  font-size: 7.25pt;
+}
+
+.ficha-sheet-ped-planilha .ped-ficha-fechamento-nota {
+  margin-left: 1.2mm;
+  font-size: 5.75pt;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-muted, #5a6570);
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-fechamento .ped-ficha-total-pedido {
+  margin: 0;
+  padding-top: 1mm;
+  border-bottom: 0;
+  font-weight: 700;
+}
+
 .ped-ficha-item-head {
   display: flex;
   flex-wrap: wrap;
@@ -11319,6 +11401,12 @@ tr.row-inactive td {
   margin: 8mm;
 }
 
+/* A4 paisagem — ficha planilha do PED (satélite; não altera ficha-ped-a4). */
+@page ficha-ped-planilha-a4 {
+  size: A4 landscape;
+  margin: 6mm;
+}
+
 @media print {
   body.ficha-print-mode {
     background: #fff !important;
@@ -11386,6 +11474,13 @@ tr.row-inactive td {
 
   body.ficha-print-mode .ficha-sheet.ficha-sheet-ped {
     page: ficha-ped-a4;
+    width: auto;
+    max-width: none;
+    padding: 0;
+  }
+
+  body.ficha-print-mode .ficha-sheet.ficha-sheet-ped-planilha {
+    page: ficha-ped-planilha-a4;
     width: auto;
     max-width: none;
     padding: 0;
@@ -11469,6 +11564,16 @@ tr.row-inactive td {
   }
 
   body.ficha-print-mode .ficha-sheet-ped .ped-ficha-contrato-grupo {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  body.ficha-print-mode .ficha-sheet-ped-planilha .ficha-section,
+  body.ficha-print-mode .ficha-sheet-ped-planilha .ficha-table {
+    break-inside: auto;
+  }
+
+  body.ficha-print-mode .ficha-sheet-ped-planilha .ped-planilha-fechamento {
     break-inside: avoid;
     page-break-inside: avoid;
   }

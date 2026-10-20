@@ -214,13 +214,24 @@ export function PedidoDetailPage() {
               Voltar
             </Link>
             {pedido ? (
-              <a
-                href={`/pedidos/${pedido.id}/ficha`}
-                className="btn btn-secondary"
-                onClick={(e) => onAbrirFichaClick(e, `/pedidos/${pedido.id}/ficha`)}
-              >
-                Ficha do pedido
-              </a>
+              <>
+                <a
+                  href={`/pedidos/${pedido.id}/ficha`}
+                  className="btn btn-secondary"
+                  onClick={(e) => onAbrirFichaClick(e, `/pedidos/${pedido.id}/ficha`)}
+                >
+                  Ficha do pedido
+                </a>
+                <a
+                  href={`/pedidos/${pedido.id}/ficha-planilha`}
+                  className="btn btn-secondary"
+                  onClick={(e) =>
+                    onAbrirFichaClick(e, `/pedidos/${pedido.id}/ficha-planilha`)
+                  }
+                >
+                  Ficha planilha
+                </a>
+              </>
             ) : null}
             {pedido?.orcamento?.id ? (
               <Link to={`/orcamentos/${pedido.orcamento.id}`} className="btn btn-secondary">
