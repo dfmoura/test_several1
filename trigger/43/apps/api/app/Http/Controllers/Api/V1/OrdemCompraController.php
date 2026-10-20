@@ -26,6 +26,8 @@ class OrdemCompraController extends Controller
                 $validated['q'] ?? null,
                 $validated['status'] ?? null,
                 isset($validated['fornecedor_id']) ? (int) $validated['fornecedor_id'] : null,
+                $validated['de'] ?? null,
+                $validated['ate'] ?? null,
             ),
             'meta' => [
                 'origens' => OrdemCompra::ORIGENS,

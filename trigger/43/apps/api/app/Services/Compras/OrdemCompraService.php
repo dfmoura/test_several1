@@ -12,6 +12,7 @@ use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Fiscal\NfeEntradaService;
 use App\Support\BobinaAreaComercial;
+use App\Support\ListPeriodo;
 use App\Support\NfeExactDimensoes;
 use App\Support\PadraoDecimal;
 use App\Support\VolumeGeometria;
@@ -29,8 +30,14 @@ class OrdemCompraService
     /**
      * @return list<array<string, mixed>>
      */
-    public function list(Empresa $empresa, ?string $q = null, ?string $status = null, ?int $fornecedorId = null): array
-    {
+    public function list(
+        Empresa $empresa,
+        ?string $q = null,
+        ?string $status = null,
+        ?int $fornecedorId = null,
+        ?string $de = null,
+        ?string $ate = null,
+    ): array {
         $query = OrdemCompra::query()
             ->with([
                 'fornecedor:id,codigo,razao_social,nome_fantasia,cnpj_cpf,email,telefone',
@@ -62,6 +69,8 @@ class OrdemCompraService
                     });
             });
         }
+
+        ListPeriodo::apply($query, 'created_at', $de, $ate);
 
         return $query->get()->map(fn (OrdemCompra $oc) => $this->toOut($oc))->all();
     }

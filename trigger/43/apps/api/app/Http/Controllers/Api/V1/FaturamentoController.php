@@ -7,6 +7,7 @@ use App\Models\Empresa;
 use App\Models\Faturamento;
 use App\Models\Pedido;
 use App\Services\Financeiro\FaturamentoService;
+use App\Support\ListPeriodo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,10 +20,16 @@ class FaturamentoController extends Controller
         $this->authorizeRead($request);
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
+            ...ListPeriodo::rules(),
         ]);
 
         return response()->json([
-            'data' => $this->faturamentos->list($this->empresa(), $validated['q'] ?? null),
+            'data' => $this->faturamentos->list(
+                $this->empresa(),
+                $validated['q'] ?? null,
+                $validated['de'] ?? null,
+                $validated['ate'] ?? null,
+            ),
         ]);
     }
 

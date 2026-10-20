@@ -8,6 +8,7 @@ use App\Models\NfseTomada;
 use App\Services\Compras\NfseCaixaService;
 use App\Services\Compras\NfsePrestadorCadastroService;
 use App\Services\Compras\NfseTomadaFinanceiroService;
+use App\Support\ListPeriodo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -31,13 +32,22 @@ class NfseCaixaController extends Controller
             'q' => ['nullable', 'string', 'max:120'],
             'situacao' => ['nullable', 'string', Rule::in(NfseTomada::SITUACOES)],
             'ano' => ['nullable', 'integer', 'min:2000', 'max:2100'],
+            ...ListPeriodo::rules(),
         ]);
+
+        $de = $validated['de'] ?? null;
+        $ate = $validated['ate'] ?? null;
+        $ano = ListPeriodo::filled($de, $ate)
+            ? null
+            : (isset($validated['ano']) ? (int) $validated['ano'] : null);
 
         return response()->json($this->caixa->listar(
             $this->empresa(),
             $validated['q'] ?? null,
             $validated['situacao'] ?? null,
-            isset($validated['ano']) ? (int) $validated['ano'] : null,
+            $ano,
+            $de,
+            $ate,
         ));
     }
 

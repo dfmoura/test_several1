@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Empresa;
 use App\Models\OrdemProducao;
 use App\Services\Producao\OrdemProducaoService;
+use App\Support\ListPeriodo;
 use App\Support\PadraoDecimal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class OrdemProducaoController extends Controller
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
             'status' => ['nullable', 'string', 'in:'.implode(',', OrdemProducao::STATUSES)],
+            ...ListPeriodo::rules(),
         ]);
 
         return response()->json([
@@ -27,6 +29,8 @@ class OrdemProducaoController extends Controller
                 $this->empresa(),
                 $validated['q'] ?? null,
                 $validated['status'] ?? null,
+                $validated['de'] ?? null,
+                $validated['ate'] ?? null,
             ),
             'meta' => ['statuses' => OrdemProducao::STATUSES],
         ]);

@@ -15801,7 +15801,26 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
-  align-items: center;
+  align-items: flex-end;
+}
+
+.nfe-destinadas-date {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted, #64748b);
+}
+
+.nfe-destinadas-date input[type='date'] {
+  font-size: 0.82rem;
+  padding: 0.35rem 0.5rem;
+  min-height: 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text);
 }
 
 .nfe-destinadas-search {

@@ -10,6 +10,7 @@ use App\Services\Comercial\PedidoService;
 use App\Services\Producao\OrdemProducaoService;
 use App\Services\Producao\OrdemServicoService;
 use App\Services\Producao\RastreioInsumosService;
+use App\Support\ListPeriodo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -28,6 +29,7 @@ class PedidoController extends Controller
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
             'status' => ['nullable', 'string', 'in:'.implode(',', Pedido::STATUSES)],
+            ...ListPeriodo::rules(),
         ]);
 
         return response()->json([
@@ -35,6 +37,8 @@ class PedidoController extends Controller
                 $this->empresa(),
                 $validated['q'] ?? null,
                 $validated['status'] ?? null,
+                $validated['de'] ?? null,
+                $validated['ate'] ?? null,
             ),
             'meta' => ['statuses' => Pedido::STATUSES],
         ]);

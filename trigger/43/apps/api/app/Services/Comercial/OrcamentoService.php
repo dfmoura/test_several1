@@ -26,6 +26,7 @@ use App\Support\ContornoSvgSanitizer;
 use App\Support\FacaPosicao;
 use App\Support\SaidaEtiqueta;
 use App\Support\FacasComposicao;
+use App\Support\ListPeriodo;
 use App\Support\ModelosComposicao;
 use App\Support\OrcamentoItens;
 use App\Support\PadraoDecimal;
@@ -130,6 +131,13 @@ class OrcamentoService
                     ->orWhereHas('linkAprovacao', fn ($l) => $l->where('destino_nome', 'like', $term));
             });
         }
+
+        ListPeriodo::apply(
+            $q,
+            'created_at',
+            isset($filters['de']) ? (string) $filters['de'] : null,
+            isset($filters['ate']) ? (string) $filters['ate'] : null,
+        );
 
         return $q->get()->map(fn (Orcamento $o) => $this->toOut($o, comContato: true))->all();
     }
@@ -590,7 +598,14 @@ class OrcamentoService
 
         $input = $this->buildMotorInput($data, $parceiro, $empresa, $idsInsumoJaGravados);
 
-        return [$input, $this->motor->calcular($input)];
+        try {
+            return [$input, $this->motor->calcular($input)];
+        } catch (\InvalidArgumentException $e) {
+            // Catálogo/tarifa ausente — 422 comercial, não 500 genérico (homolog/prod).
+            throw ValidationException::withMessages([
+                'orcamento' => [$e->getMessage()],
+            ]);
+        }
     }
 
     /**
@@ -1561,11 +1576,22 @@ class OrcamentoService
             'puxada_cm',
             'cores',
             'papel',
+            'papel_tarifa',
+            'papel_produto_id',
+            'papel_produto_codigo',
             'acabamento',
+            'acabamento_tarifa',
+            'acabamento_tarifa_composta',
+            'acabamento_complemento',
+            'acabamento_produto_id',
+            'acabamento_produto_codigo',
             'modelos',
             'colunas',
             'etiq_por_rolo',
             'tubete',
+            'tubete_rotulo',
+            'tubete_produto_id',
+            'tubete_produto_codigo',
             'caixa_medida',
             'z',
             'maquina',

@@ -321,6 +321,7 @@ final class OrcamentoValidationRules
             'status' => ['nullable', 'string', Rule::in(Orcamento::STATUSES)],
             'parceiro_id' => ['nullable', 'integer'],
             'vendedor_parceiro_id' => ['nullable', 'integer'],
+            ...ListPeriodo::rules(),
         ];
     }
 

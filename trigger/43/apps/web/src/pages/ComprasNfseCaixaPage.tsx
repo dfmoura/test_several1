@@ -12,6 +12,7 @@ import { SortableTh } from '../components/SortableTh';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCnpjCpf, formatCurrency, formatDate } from '../lib/format';
+import { appendPeriodo, currentMonthRange } from '../lib/periodo';
 import { useTableSort } from '../lib/useTableSort';
 
 type Nota = {
@@ -45,10 +46,11 @@ const SORT = {
 export function ComprasNfseCaixaPage() {
   const { hasPermission } = useAuth();
   const podeParceiro = hasPermission('parceiro.escrever');
-  const anoAtual = new Date().getFullYear();
+  const mesAtual = currentMonthRange();
   const [rows, setRows] = useState<Nota[]>([]);
   const [q, setQ] = useState('');
-  const [ano, setAno] = useState('');
+  const [de, setDe] = useState(mesAtual.de);
+  const [ate, setAte] = useState(mesAtual.ate);
   const [cadastro, setCadastro] = useState('');
   const [sync, setSync] = useState<Sync | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,14 +59,14 @@ export function ComprasNfseCaixaPage() {
   const [cadastroNota, setCadastroNota] = useState<Nota | null>(null);
   const pollRef = useRef<number | null>(null);
 
-  const load = async (search?: string, year?: string) => {
+  const load = async (search?: string, deVal?: string, ateVal?: string) => {
     setLoading(true);
     setErro(null);
     try {
       const params = new URLSearchParams();
       params.set('situacao', 'NA_CAIXA');
       if (search) params.set('q', search);
-      if (year) params.set('ano', year);
+      appendPeriodo(params, deVal, ateVal);
       const [lista, estado] = await Promise.all([
         api.get<{ data: Nota[] }>(`/nfse-tomadas?${params.toString()}`),
         api.get<{ data: Sync }>('/nfse-sync'),
@@ -79,10 +81,11 @@ export function ComprasNfseCaixaPage() {
   };
 
   useEffect(() => {
-    void load();
+    void load(undefined, de, ate);
     return () => {
       if (pollRef.current != null) window.clearInterval(pollRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -96,13 +99,13 @@ export function ComprasNfseCaixaPage() {
     }
     if (pollRef.current != null) return;
     pollRef.current = window.setInterval(() => {
-      void load(q, ano);
+      void load(q, de, ate);
     }, 2500);
-  }, [sync?.sync_status, q, ano]);
+  }, [sync?.sync_status, q, de, ate]);
 
   const handleSearch = (ev: FormEvent) => {
     ev.preventDefault();
-    void load(q, ano);
+    void load(q, de, ate);
   };
 
   const atualizar = async () => {
@@ -110,7 +113,7 @@ export function ComprasNfseCaixaPage() {
     setErro(null);
     try {
       await api.post('/nfse-sync', {});
-      await load(q, ano);
+      await load(q, de, ate);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível atualizar a caixa.');
     } finally {
@@ -168,19 +171,14 @@ export function ComprasNfseCaixaPage() {
               placeholder="Número, prestador, CNPJ, chave…"
               aria-label="Buscar"
             />
-            <select
-              className="nfe-destinadas-select"
-              value={ano}
-              onChange={(e) => setAno(e.target.value)}
-              aria-label="Ano"
-            >
-              <option value="">Todos os anos</option>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <option key={anoAtual - i} value={anoAtual - i}>
-                  {anoAtual - i}
-                </option>
-              ))}
-            </select>
+            <label className="nfe-destinadas-date">
+              <span>De</span>
+              <input type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+            </label>
+            <label className="nfe-destinadas-date">
+              <span>Até</span>
+              <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+            </label>
             <select
               className="nfe-destinadas-select nfe-destinadas-select--situacao"
               value={cadastro}
@@ -207,7 +205,7 @@ export function ComprasNfseCaixaPage() {
           onClose={() => setCadastroNota(null)}
           onCommitted={() => {
             setCadastroNota(null);
-            void load(q, ano);
+            void load(q, de, ate);
           }}
         />
       ) : null}
@@ -220,12 +218,12 @@ export function ComprasNfseCaixaPage() {
             <div className="empty-state">
               {rows.length > 0 ? (
                 <>Nenhuma NFS-e com este cadastro de prestador neste resultado.</>
-              ) : ano ? (
-                <>
-                  Nenhuma NFS-e de {ano} nesta caixa. Escolha outro ano ou Todos os anos e clique em Filtrar.
-                </>
               ) : q ? (
                 <>Nenhuma NFS-e neste filtro.</>
+              ) : de || ate ? (
+                <>
+                  Nenhuma NFS-e neste período. Ajuste De/Até e clique em Filtrar.
+                </>
               ) : (
                 <>
                   Nenhuma NFS-e aguardando conferência. Atualizar do fisco consulta o ADN de produção com o

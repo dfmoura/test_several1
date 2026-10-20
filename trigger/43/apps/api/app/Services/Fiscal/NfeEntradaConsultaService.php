@@ -4,6 +4,7 @@ namespace App\Services\Fiscal;
 
 use App\Models\Empresa;
 use App\Models\NfeEntrada;
+use App\Support\ListPeriodo;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -20,6 +21,8 @@ class NfeEntradaConsultaService
         Empresa $empresa,
         ?string $q = null,
         ?int $ano = null,
+        ?string $de = null,
+        ?string $ate = null,
     ): array {
         $query = NfeEntrada::query()
             ->where('empresa_id', $empresa->id)
@@ -31,7 +34,9 @@ class NfeEntradaConsultaService
             ->orderByDesc('data_emissao')
             ->orderByDesc('id');
 
-        if ($ano !== null && $ano > 0) {
+        if (ListPeriodo::filled($de, $ate)) {
+            ListPeriodo::apply($query, 'data_emissao', $de, $ate);
+        } elseif ($ano !== null && $ano > 0) {
             $query->whereYear('data_emissao', $ano);
         }
 

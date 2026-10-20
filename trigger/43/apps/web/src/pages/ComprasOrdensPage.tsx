@@ -7,6 +7,7 @@ import { api, type OrdemCompra } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { OC_LISTA_STATUSES, ocStatusLabel } from '../lib/comprasUi';
 import { formatCurrency, formatDate } from '../lib/format';
+import { appendPeriodo, currentMonthRange, hasPeriodo } from '../lib/periodo';
 import { useTableSort } from '../lib/useTableSort';
 
 type StatusTab = '' | (typeof OC_LISTA_STATUSES)[number];
@@ -29,13 +30,16 @@ const SORT = {
   previsao: (o: OrdemCompra) => o.previsao_entrega,
 };
 
-function emptyMessage(status: StatusTab, q: string): string {
+function emptyMessage(status: StatusTab, q: string, de: string, ate: string): string {
   const qTrim = q.trim();
   if (status && !qTrim) {
-    return `Nenhuma ordem de compra com status ${ocStatusLabel(status)}.`;
+    return `Nenhuma ordem de compra com status ${ocStatusLabel(status)}${hasPeriodo(de, ate) ? ' neste período' : ''}.`;
   }
   if (status || qTrim) {
     return 'Nenhuma ordem de compra encontrada com estes filtros.';
+  }
+  if (hasPeriodo(de, ate)) {
+    return 'Nenhuma ordem de compra neste período.';
   }
   return 'Nenhuma ordem de compra.';
 }
@@ -46,12 +50,15 @@ export function ComprasOrdensPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [ordens, setOrdens] = useState<OrdemCompra[]>([]);
   const [q, setQ] = useState('');
+  const mesAtual = currentMonthRange();
+  const [de, setDe] = useState(mesAtual.de);
+  const [ate, setAte] = useState(mesAtual.ate);
   const [status, setStatusState] = useState<StatusTab>(() => parseStatusTab(searchParams.get('status')));
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(ordens, SORT);
 
-  const load = useCallback(async (search?: string, st?: string) => {
+  const load = useCallback(async (search?: string, st?: string, deVal?: string, ateVal?: string) => {
     setLoading(true);
     setErro(null);
     try {
@@ -59,6 +66,7 @@ export function ComprasOrdensPage() {
       const qTrim = search?.trim();
       if (qTrim) params.set('q', qTrim);
       if (st) params.set('status', st);
+      appendPeriodo(params, deVal, ateVal);
       const qs = params.toString();
       const res = await api.get<{ data: OrdemCompra[] }>(
         `/ordens-compra${qs ? `?${qs}` : ''}`,
@@ -83,7 +91,7 @@ export function ComprasOrdensPage() {
         { replace: true },
       );
     }
-    void load(undefined, status || undefined);
+    void load(undefined, status || undefined, de, ate);
     // Carga inicial (aba vinda da URL). Trocas de aba/busca disparam load à parte.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -100,12 +108,12 @@ export function ComprasOrdensPage() {
       },
       { replace: true },
     );
-    void load(q, next || undefined);
+    void load(q, next || undefined, de, ate);
   };
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    void load(q, status || undefined);
+    void load(q, status || undefined, de, ate);
   };
 
   return (
@@ -141,7 +149,7 @@ export function ComprasOrdensPage() {
 
       <div className="card" style={{ marginBottom: '1rem' }}>
         <div className="card-body">
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
               <label htmlFor="ordens-compra-busca">Buscar</label>
               <input
@@ -151,7 +159,15 @@ export function ComprasOrdensPage() {
                 placeholder="Código, fornecedor…"
               />
             </div>
-            <div style={{ alignSelf: 'flex-end' }}>
+            <div className="form-group">
+              <label htmlFor="ordens-compra-de">De</label>
+              <input id="ordens-compra-de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="ordens-compra-ate">Até</label>
+              <input id="ordens-compra-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+            </div>
+            <div>
               <button type="submit" className="btn btn-secondary">
                 Buscar
               </button>
@@ -165,7 +181,7 @@ export function ComprasOrdensPage() {
           {loading ? (
             <div className="loading">Carregando…</div>
           ) : sorted.length === 0 ? (
-            <div className="empty-state">{emptyMessage(status, q)}</div>
+            <div className="empty-state">{emptyMessage(status, q, de, ate)}</div>
           ) : (
             <table className="data-table">
               <thead>

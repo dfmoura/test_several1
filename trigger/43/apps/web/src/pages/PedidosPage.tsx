@@ -5,6 +5,7 @@ import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type Pedido } from '../lib/api';
 import { formatDate } from '../lib/format';
+import { appendPeriodo, currentMonthRange, hasPeriodo } from '../lib/periodo';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { PED_LISTA_STATUSES, pedStatusLabel } from '../lib/producaoUi';
 import { useTableSort } from '../lib/useTableSort';
@@ -38,13 +39,16 @@ function activateRow(e: KeyboardEvent, go: () => void) {
   }
 }
 
-function emptyMessage(status: StatusTab, q: string): string {
+function emptyMessage(status: StatusTab, q: string, de: string, ate: string): string {
   const qTrim = q.trim();
   if (status && !qTrim) {
-    return `Nenhum pedido com status ${pedStatusLabel(status)}.`;
+    return `Nenhum pedido com status ${pedStatusLabel(status)}${hasPeriodo(de, ate) ? ' neste período' : ''}.`;
   }
   if (status || qTrim) {
     return 'Nenhum pedido encontrado com estes filtros.';
+  }
+  if (hasPeriodo(de, ate)) {
+    return 'Nenhum pedido neste período.';
   }
   return 'Nenhum pedido. Aprove um orçamento com liberação financeira.';
 }
@@ -54,12 +58,15 @@ export function PedidosPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [q, setQ] = useState('');
+  const mesAtual = currentMonthRange();
+  const [de, setDe] = useState(mesAtual.de);
+  const [ate, setAte] = useState(mesAtual.ate);
   const [status, setStatusState] = useState<StatusTab>(() => parseStatusTab(searchParams.get('status')));
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(pedidos, SORT);
 
-  const load = useCallback(async (search?: string, st?: string) => {
+  const load = useCallback(async (search?: string, st?: string, deVal?: string, ateVal?: string) => {
     setLoading(true);
     setErro(null);
     try {
@@ -67,6 +74,7 @@ export function PedidosPage() {
       const qTrim = search?.trim();
       if (qTrim) params.set('q', qTrim);
       if (st) params.set('status', st);
+      appendPeriodo(params, deVal, ateVal);
       const qs = params.toString();
       const res = await api.get<{ data: Pedido[] }>(`/pedidos${qs ? `?${qs}` : ''}`);
       setPedidos(res.data);
@@ -88,7 +96,7 @@ export function PedidosPage() {
         { replace: true },
       );
     }
-    void load(undefined, status || undefined);
+    void load(undefined, status || undefined, de, ate);
     // Carga inicial (aba vinda da URL). Trocas de aba/busca disparam load à parte.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -105,12 +113,12 @@ export function PedidosPage() {
       },
       { replace: true },
     );
-    void load(q, next || undefined);
+    void load(q, next || undefined, de, ate);
   };
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    void load(q, status || undefined);
+    void load(q, status || undefined, de, ate);
   };
 
   return (
@@ -139,7 +147,7 @@ export function PedidosPage() {
 
       <div className="card" style={{ marginBottom: '1rem' }}>
         <div className="card-body">
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
               <label htmlFor="pedidos-busca">Buscar</label>
               <input
@@ -149,7 +157,15 @@ export function PedidosPage() {
                 placeholder="PED, ORC, cliente, contato…"
               />
             </div>
-            <div style={{ alignSelf: 'flex-end' }}>
+            <div className="form-group">
+              <label htmlFor="pedidos-de">De</label>
+              <input id="pedidos-de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="pedidos-ate">Até</label>
+              <input id="pedidos-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+            </div>
+            <div>
               <button type="submit" className="btn btn-secondary">
                 Buscar
               </button>
@@ -168,7 +184,7 @@ export function PedidosPage() {
           {loading ? (
             <div className="loading">Carregando…</div>
           ) : sorted.length === 0 ? (
-            <div className="empty-state">{emptyMessage(status, q)}</div>
+            <div className="empty-state">{emptyMessage(status, q, de, ate)}</div>
           ) : (
             <table className="data-table">
               <thead>

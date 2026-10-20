@@ -5,6 +5,7 @@ namespace App\Services\Compras;
 use App\Models\DfeDocumento;
 use App\Models\DfeSyncEstado;
 use App\Models\Empresa;
+use App\Support\ListPeriodo;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -27,6 +28,8 @@ class DfeCaixaService
         ?string $q = null,
         ?string $situacao = null,
         ?int $ano = null,
+        ?string $de = null,
+        ?string $ate = null,
     ): array {
         $query = DfeDocumento::query()
             ->where('empresa_id', $empresa->id)
@@ -38,7 +41,10 @@ class DfeCaixaService
             $query->where('situacao', $situacao);
         }
 
-        if ($ano !== null && $ano > 0) {
+        if (ListPeriodo::filled($de, $ate)) {
+            // Emissão vazia não pode sumir da caixa (ADR): intervalo só restringe data preenchida.
+            ListPeriodo::apply($query, 'data_emissao', $de, $ate, includeNull: true);
+        } elseif ($ano !== null && $ano > 0) {
             // Emissão vazia não pode sumir da caixa: o filtro de ano só restringe data preenchida.
             $query->where(function ($inner) use ($ano) {
                 $inner->whereYear('data_emissao', $ano)

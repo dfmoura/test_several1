@@ -4,6 +4,7 @@ import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
 import { api, type NfeEntradaLista } from '../lib/api';
 import { formatCnpjCpf, formatCurrency, formatDate } from '../lib/format';
+import { appendPeriodo, currentMonthRange, hasPeriodo } from '../lib/periodo';
 import { useTableSort } from '../lib/useTableSort';
 
 const SORT = {
@@ -23,23 +24,24 @@ function activateRow(e: KeyboardEvent, go: () => void) {
 
 export function ComprasNfeRecebidasPage() {
   const navigate = useNavigate();
-  const anoAtual = new Date().getFullYear();
+  const mesAtual = currentMonthRange();
   const [rows, setRows] = useState<NfeEntradaLista[]>([]);
   const [q, setQ] = useState('');
-  const [ano, setAno] = useState(String(anoAtual));
+  const [de, setDe] = useState(mesAtual.de);
+  const [ate, setAte] = useState(mesAtual.ate);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, SORT);
 
-  const load = async (search?: string, year?: string) => {
+  const load = async (search?: string, deVal?: string, ateVal?: string) => {
     setLoading(true);
     setErro(null);
     try {
       const params = new URLSearchParams();
       if (search) params.set('q', search);
-      if (year) params.set('ano', year);
+      appendPeriodo(params, deVal, ateVal);
       const qs = params.toString();
-      const res = await api.get<{ data: NfeEntradaLista[]; meta: { ano: number } }>(
+      const res = await api.get<{ data: NfeEntradaLista[] }>(
         `/nfe-entradas${qs ? `?${qs}` : ''}`,
       );
       setRows(res.data);
@@ -51,12 +53,13 @@ export function ComprasNfeRecebidasPage() {
   };
 
   useEffect(() => {
-    void load(undefined, String(anoAtual));
-  }, [anoAtual]);
+    void load(undefined, de, ate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    void load(q, ano);
+    void load(q, de, ate);
   };
 
   return (
@@ -84,7 +87,7 @@ export function ComprasNfeRecebidasPage() {
 
       <div className="card" style={{ marginBottom: '1rem' }}>
         <div className="card-body">
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
               <label>Buscar</label>
               <input
@@ -93,17 +96,15 @@ export function ComprasNfeRecebidasPage() {
                 placeholder="Número, chave, emitente, OC…"
               />
             </div>
-            <div className="form-group" style={{ minWidth: 120 }}>
-              <label>Ano</label>
-              <select value={ano} onChange={(e) => setAno(e.target.value)}>
-                {[anoAtual, anoAtual - 1, anoAtual - 2, anoAtual - 3].map((y) => (
-                  <option key={y} value={String(y)}>
-                    {y}
-                  </option>
-                ))}
-              </select>
+            <div className="form-group">
+              <label htmlFor="nfe-vinculadas-de">De</label>
+              <input id="nfe-vinculadas-de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
             </div>
-            <div style={{ alignSelf: 'flex-end' }}>
+            <div className="form-group">
+              <label htmlFor="nfe-vinculadas-ate">Até</label>
+              <input id="nfe-vinculadas-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+            </div>
+            <div>
               <button type="submit" className="btn btn-secondary">
                 Filtrar
               </button>
@@ -118,9 +119,11 @@ export function ComprasNfeRecebidasPage() {
             <div className="loading">Carregando…</div>
           ) : sorted.length === 0 ? (
             <div className="empty-state">
-              Nenhuma NF-e vinculada neste ano. O espelho nasce quando a{' '}
-              <Link to="/compras/ordens">ordem de compra</Link> é recebida com XML. Notas carregadas
-              do fisco ainda sem vínculo ficam na{' '}
+              {hasPeriodo(de, ate) || q.trim()
+                ? 'Nenhuma NF-e vinculada neste período.'
+                : 'Nenhuma NF-e vinculada.'}{' '}
+              O espelho nasce quando a <Link to="/compras/ordens">ordem de compra</Link> é
+              recebida com XML. Notas carregadas do fisco ainda sem vínculo ficam na{' '}
               <Link to="/compras/nfe-destinadas">Caixa de NF-e</Link>.
             </div>
           ) : (

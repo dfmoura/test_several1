@@ -23,6 +23,7 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDate } from '../lib/format';
+import { appendPeriodo, currentMonthRange } from '../lib/periodo';
 import { useTableSort } from '../lib/useTableSort';
 
 const SORT = {
@@ -191,12 +192,13 @@ function CadastroStatusIcon({
 export function ComprasNfeDestinadasPage() {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
-  const anoAtual = new Date().getFullYear();
+  const mesAtual = currentMonthRange();
   const [docs, setDocs] = useState<DfeDocumento[]>([]);
   const [sync, setSync] = useState<DfeSyncEstado | null>(null);
   const [q, setQ] = useState('');
   const [situacao, setSituacao] = useState('');
-  const [ano, setAno] = useState(String(anoAtual));
+  const [de, setDe] = useState(mesAtual.de);
+  const [ate, setAte] = useState(mesAtual.ate);
   const [loading, setLoading] = useState(true);
   const [listaErro, setListaErro] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -215,18 +217,18 @@ export function ComprasNfeDestinadasPage() {
   const podeEscrever = hasPermission('compras.escrever');
   const podeParceiro = hasPermission('parceiro.escrever');
 
-  const load = useCallback(async (search?: string, st?: string, year?: string) => {
+  const load = useCallback(async (search?: string, st?: string, deVal?: string, ateVal?: string) => {
     setLoading(true);
     setListaErro(null);
     try {
       const params = new URLSearchParams();
       if (search) params.set('q', search);
       if (st) params.set('situacao', st);
-      if (year) params.set('ano', year);
+      appendPeriodo(params, deVal, ateVal);
       const qs = params.toString();
       const res = await api.get<{
         data: DfeDocumento[];
-        meta: { situacoes: string[]; ano: number; sync: DfeSyncEstado };
+        meta: { situacoes: string[]; sync: DfeSyncEstado };
       }>(`/dfe-documentos${qs ? `?${qs}` : ''}`);
       setDocs(res.data);
       setSync(res.meta.sync);
@@ -249,9 +251,10 @@ export function ComprasNfeDestinadasPage() {
   };
 
   useEffect(() => {
-    void load(undefined, undefined, String(anoAtual));
+    void load(undefined, undefined, de, ate);
     return () => stopPoll();
-  }, [anoAtual, load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load]);
 
   useEffect(() => {
     if (sync?.sync_status !== 'RUNNING') {
@@ -261,14 +264,14 @@ export function ComprasNfeDestinadasPage() {
     }
     if (pollRef.current != null) return;
     pollRef.current = window.setInterval(() => {
-      void load(q, situacao, ano);
+      void load(q, situacao, de, ate);
     }, 2500);
     return () => stopPoll();
-  }, [sync?.sync_status, load, q, situacao, ano]);
+  }, [sync?.sync_status, load, q, situacao, de, ate]);
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    void load(q, situacao, ano);
+    void load(q, situacao, de, ate);
   };
 
   const handleAtualizar = async () => {
@@ -277,7 +280,7 @@ export function ComprasNfeDestinadasPage() {
     try {
       const res = await api.post<{ data: DfeSyncEstado }>('/dfe-sync', {});
       setSync(res.data);
-      void load(q, situacao, ano);
+      void load(q, situacao, de, ate);
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         setSyncErro(err.details?.sync?.[0] ?? err.message);
@@ -331,7 +334,7 @@ export function ComprasNfeDestinadasPage() {
     setAcaoErro(null);
     try {
       await api.post(`/dfe-documentos/${doc.id}/buscar-xml`, {});
-      void load(q, situacao, ano);
+      void load(q, situacao, de, ate);
     } catch (err) {
       setAcaoErro(err instanceof ApiError ? err.details?.dfe?.[0] ?? err.message : 'Falha ao buscar XML.');
     } finally {
@@ -365,7 +368,7 @@ export function ComprasNfeDestinadasPage() {
     setAcaoErro(null);
     try {
       await api.post(`/dfe-documentos/${doc.id}/sem-interesse`, {});
-      void load(q, situacao, ano);
+      void load(q, situacao, de, ate);
     } catch (err) {
       setAcaoErro(err instanceof ApiError ? err.details?.dfe?.[0] ?? err.message : 'Falha ao marcar.');
     } finally {
@@ -436,7 +439,7 @@ export function ComprasNfeDestinadasPage() {
     try {
       await api.post(path, {});
       fecharCadastro();
-      void load(q, situacao, ano);
+      void load(q, situacao, de, ate);
     } catch (err) {
       const key = cadastroPapel === 'fornecedor' ? 'fornecedor' : 'transportador';
       setAcaoErro(
@@ -456,7 +459,7 @@ export function ComprasNfeDestinadasPage() {
       cadastroPreview.acao === 'adicionar_papel_transportadora');
 
   const totalCaixa = sync?.total_documentos ?? 0;
-  const vazioPorAno = docs.length === 0 && !q && !situacao && totalCaixa > 0;
+  const vazioPorPeriodo = docs.length === 0 && !q && !situacao && totalCaixa > 0;
   const nenhumDocumentoFisco = docs.length === 0 && !q && !situacao && totalCaixa === 0;
   const syncRodando = syncing || sync?.sync_status === 'RUNNING';
 
@@ -572,18 +575,14 @@ export function ComprasNfeDestinadasPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          <select
-            className="nfe-destinadas-select"
-            value={ano}
-            onChange={(e) => setAno(e.target.value)}
-            aria-label="Ano"
-          >
-            {[anoAtual, anoAtual - 1, anoAtual - 2].map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
+          <label className="nfe-destinadas-date">
+            <span>De</span>
+            <input type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+          </label>
+          <label className="nfe-destinadas-date">
+            <span>Até</span>
+            <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+          </label>
           <select
             className="nfe-destinadas-select nfe-destinadas-select--situacao"
             value={situacao}
@@ -756,10 +755,10 @@ export function ComprasNfeDestinadasPage() {
             <div className="empty-state">
               {listaErro ? (
                 <>{listaErro}</>
-              ) : vazioPorAno ? (
+              ) : vazioPorPeriodo ? (
                 <>
-                  Nenhuma NF-e de {ano} nesta lista. A caixa tem {totalCaixa}{' '}
-                  {totalCaixa === 1 ? 'documento' : 'documentos'} — troque o ano e clique em
+                  Nenhuma NF-e neste período. A caixa tem {totalCaixa}{' '}
+                  {totalCaixa === 1 ? 'documento' : 'documentos'} — ajuste De/Até e clique em
                   Filtrar.
                 </>
               ) : sync?.sync_bloqueio ? (

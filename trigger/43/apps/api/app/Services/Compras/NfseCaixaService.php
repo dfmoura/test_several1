@@ -9,6 +9,7 @@ use App\Models\NfseTomada;
 use App\Services\Cadastros\EmpresaCertificadoA1Materializer;
 use App\Services\Cadastros\EmpresaCertificadoA1Service;
 use App\Services\Cadastros\EmpresaCertificadoA1Tls;
+use App\Support\ListPeriodo;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -29,14 +30,26 @@ final class NfseCaixaService
     /**
      * @return array{data: list<array<string, mixed>>, meta: array<string, mixed>}
      */
-    public function listar(Empresa $empresa, ?string $q, ?string $situacao, ?int $ano): array
-    {
+    public function listar(
+        Empresa $empresa,
+        ?string $q,
+        ?string $situacao,
+        ?int $ano,
+        ?string $de = null,
+        ?string $ate = null,
+    ): array {
         $query = NfseTomada::query()->where('empresa_id', $empresa->id);
         if ($situacao !== null && $situacao !== '') {
             $query->where('situacao', $situacao);
         }
-        if ($ano !== null) {
-            $query->whereYear('data_emissao', $ano);
+        if (ListPeriodo::filled($de, $ate)) {
+            // Caixa: emissão nula permanece visível (mesmo critério da Caixa DF-e).
+            ListPeriodo::apply($query, 'data_emissao', $de, $ate, includeNull: true);
+        } elseif ($ano !== null) {
+            $query->where(function ($inner) use ($ano) {
+                $inner->whereYear('data_emissao', $ano)
+                    ->orWhereNull('data_emissao');
+            });
         }
         if ($q !== null && trim($q) !== '') {
             $term = trim($q);

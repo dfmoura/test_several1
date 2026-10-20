@@ -7,6 +7,7 @@ import { api, type Faturamento } from '../lib/api';
 import { formatCurrency, formatDate } from '../lib/format';
 import { nfStatusLabel } from '../lib/fiscalUi';
 import { hrefFaturamento } from '../lib/cobrancaUi';
+import { appendPeriodo, currentMonthRange, hasPeriodo } from '../lib/periodo';
 import { useTableSort } from '../lib/useTableSort';
 
 const SORT = {
@@ -42,16 +43,20 @@ export function FaturamentosPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<Faturamento[]>([]);
   const [q, setQ] = useState('');
+  const mesAtual = currentMonthRange();
+  const [de, setDe] = useState(mesAtual.de);
+  const [ate, setAte] = useState(mesAtual.ate);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, SORT);
 
-  const load = async (search?: string) => {
+  const load = async (search?: string, deVal?: string, ateVal?: string) => {
     setLoading(true);
     setErro(null);
     try {
       const params = new URLSearchParams();
       if (search) params.set('q', search);
+      appendPeriodo(params, deVal, ateVal);
       const qs = params.toString();
       const res = await api.get<{ data: Faturamento[] }>(`/faturamentos${qs ? `?${qs}` : ''}`);
       setRows(res.data);
@@ -63,12 +68,13 @@ export function FaturamentosPage() {
   };
 
   useEffect(() => {
-    void load();
+    void load(undefined, de, ate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    void load(q);
+    void load(q, de, ate);
   };
 
   return (
@@ -92,12 +98,20 @@ export function FaturamentosPage() {
 
       <div className="card" style={{ marginBottom: '1rem' }}>
         <div className="card-body">
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
               <label>Buscar</label>
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="FAT, PED, cliente…" />
             </div>
-            <div style={{ alignSelf: 'flex-end' }}>
+            <div className="form-group">
+              <label htmlFor="faturamentos-de">De</label>
+              <input id="faturamentos-de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="faturamentos-ate">Até</label>
+              <input id="faturamentos-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+            </div>
+            <div>
               <button type="submit" className="btn btn-secondary">
                 Filtrar
               </button>
@@ -112,7 +126,11 @@ export function FaturamentosPage() {
             <div className="loading">Carregando…</div>
           ) : sorted.length === 0 ? (
             <div className="empty-state">
-              Nenhum faturamento nesta EMP. Pedidos com status Produzido faturam na ficha do pedido.
+              {q.trim()
+                ? 'Nenhum faturamento encontrado com estes filtros.'
+                : hasPeriodo(de, ate)
+                  ? 'Nenhum faturamento neste período.'
+                  : 'Nenhum faturamento nesta EMP. Pedidos com status Produzido faturam na ficha do pedido.'}
             </div>
           ) : (
             <table className="data-table">

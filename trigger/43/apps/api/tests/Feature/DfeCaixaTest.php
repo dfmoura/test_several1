@@ -150,6 +150,22 @@ class DfeCaixaTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.total_documentos', 3)
             ->assertJsonPath('data.ano_alvo_hidratacao', $anoAtual);
+
+        // Intervalo De/Até (substitui ano na UI): emissão nula permanece na caixa.
+        $mes = $this->withHeader('X-Empresa-Id', (string) $empresa->id)
+            ->getJson(sprintf(
+                '/api/v1/dfe-documentos?de=%d-03-01&ate=%d-03-31',
+                $anoAtual,
+                $anoAtual,
+            ))
+            ->assertOk()
+            ->assertJsonPath('meta.ano', null)
+            ->assertJsonPath('meta.de', sprintf('%d-03-01', $anoAtual))
+            ->assertJsonPath('meta.ate', sprintf('%d-03-31', $anoAtual));
+        $nomesMes = collect($mes->json('data'))->pluck('emit_nome')->all();
+        $this->assertContains('Fornecedor Alfa', $nomesMes);
+        $this->assertContains('Sem Emissao', $nomesMes);
+        $this->assertNotContains('Fornecedor Antigo', $nomesMes);
     }
 
     public function test_sem_permissao_compras_retorna_403(): void

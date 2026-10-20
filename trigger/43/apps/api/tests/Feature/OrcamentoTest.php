@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\AuditLog;
 use App\Models\Empresa;
+use App\Models\EstoqueSaldo;
 use App\Models\Orcamento;
 use App\Models\OrcamentoItem;
+use App\Models\OrcCatalogoPapel;
 use App\Models\Parceiro;
 use App\Models\Produto;
+use App\Models\ProdutoGrupo;
 use App\Support\OrcamentoItens;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -407,6 +410,79 @@ class OrcamentoTest extends TestCase
         $this->assertSame('Posição A', $dup->json('data.itens.0.rotulo'));
         $this->assertSame('60X40', $dup->json('data.itens.1.input_snapshot.medida'));
         $this->assertSame(2, $dup->json('data.result_snapshot.totais.n_itens'));
+        $this->assertSame(Orcamento::STATUS_APROVADO, Orcamento::query()->findOrFail($id)->status);
+    }
+
+    public function test_duplicar_aprovado_preserva_sku_papel_do_snapshot(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $grupo = ProdutoGrupo::query()->create([
+            'codigo' => 'MP-FLM',
+            'nome' => 'Filmes',
+            'familia' => 'MP',
+            'natureza' => 'COMPRA',
+            'tipo_item_sped' => '01',
+            'situacao' => 'ATIVO',
+        ]);
+        $papel = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MP-FLM-DUP',
+            'familia' => 'MP',
+            'grupo_id' => $grupo->id,
+            'descricao_fiscal' => 'BOPP BRILHO AUTOADESIVO COLACRIL BXT',
+            'descricao_comercial' => 'BOPP BRILHO AUTOADESIVO COLACRIL BXT',
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+        ]);
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $papel->id,
+            'qtde' => '100',
+            'unidade' => 'M2',
+            'custo_medio' => '1',
+        ]);
+        OrcCatalogoPapel::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $papel->id,
+            'nome' => 'SKU-'.$papel->codigo,
+            'grupo_id' => $grupo->id,
+            'preco_m2' => 7.2,
+            'ativo' => true,
+            'ordem' => 0,
+        ]);
+
+        $payload = $this->payload();
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload);
+        $create->assertCreated();
+        $id = (int) $create->json('data.id');
+
+        $orc = Orcamento::query()->findOrFail($id);
+        $snap = $orc->input_snapshot;
+        // Nome legado fora do catálogo — só o SKU amarra o preço (caso nuvem ORC-42).
+        $snap['papel'] = 'BOPP BRILHO AUTOADESIVO COLACRIL BXT';
+        $snap['papel_tarifa'] = null;
+        $snap['papel_produto_id'] = $papel->id;
+        $snap['papel_produto_codigo'] = $papel->codigo;
+        $orc->input_snapshot = $snap;
+        $orc->status = Orcamento::STATUS_APROVADO;
+        $orc->save();
+
+        $item = OrcamentoItem::query()->where('orcamento_id', $id)->firstOrFail();
+        $itemSnap = $item->input_snapshot;
+        $itemSnap['papel'] = $snap['papel'];
+        $itemSnap['papel_tarifa'] = null;
+        $itemSnap['papel_produto_id'] = $papel->id;
+        $itemSnap['papel_produto_codigo'] = $papel->codigo;
+        $item->input_snapshot = $itemSnap;
+        $item->save();
+
+        $dup = $this->withHeaders($h)->postJson('/api/v1/orcamentos/'.$id.'/duplicar');
+        $dup->assertCreated();
+        $this->assertSame($papel->id, (int) $dup->json('data.input_snapshot.papel_produto_id'));
         $this->assertSame(Orcamento::STATUS_APROVADO, Orcamento::query()->findOrFail($id)->status);
     }
 

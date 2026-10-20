@@ -13,6 +13,7 @@ use App\Services\Estoque\CaixaExpedicao;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Support\CatalogoServicoSaida;
 use App\Support\FacasComposicao;
+use App\Support\ListPeriodo;
 use App\Support\OrcamentoAceiteFaixas;
 use App\Support\PadraoDecimal;
 use App\Support\TipoOperacaoSaida;
@@ -302,8 +303,13 @@ class PedidoService
     /**
      * @return list<array<string, mixed>>
      */
-    public function list(Empresa $empresa, ?string $q = null, ?string $status = null): array
-    {
+    public function list(
+        Empresa $empresa,
+        ?string $q = null,
+        ?string $status = null,
+        ?string $de = null,
+        ?string $ate = null,
+    ): array {
         $query = Pedido::query()
             ->where('empresa_id', $empresa->id)
             ->with([
@@ -335,6 +341,8 @@ class PedidoService
                     ->orWhereHas('orcamento.linkAprovacao', fn ($l) => $l->where('destino_nome', 'like', $like));
             });
         }
+
+        ListPeriodo::apply($query, 'created_at', $de, $ate);
 
         return $query->limit(200)->get()->map(fn (Pedido $p) => $this->toOut($p))->all();
     }

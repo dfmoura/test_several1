@@ -22,6 +22,7 @@ use App\Services\Fiscal\FiscalSaidaTransporte;
 use App\Services\Fiscal\NfePaQtdeModalidade;
 use App\Services\Producao\PaEmbalagemService;
 use App\Support\FacasComposicao;
+use App\Support\ListPeriodo;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -54,8 +55,12 @@ class FaturamentoService
     /**
      * @return list<array<string, mixed>>
      */
-    public function list(Empresa $empresa, ?string $q = null): array
-    {
+    public function list(
+        Empresa $empresa,
+        ?string $q = null,
+        ?string $de = null,
+        ?string $ate = null,
+    ): array {
         $query = Faturamento::query()
             ->where('empresa_id', $empresa->id)
             ->with(['parceiro:id,codigo,razao_social', 'pedido:id,codigo,status', 'orcamento:id,codigo'])
@@ -69,6 +74,8 @@ class FaturamentoService
                     ->orWhereHas('parceiro', fn ($p) => $p->where('razao_social', 'like', $like));
             });
         }
+
+        ListPeriodo::apply($query, 'created_at', $de, $ate);
 
         return $query->limit(200)->get()->map(fn (Faturamento $f) => $this->toOut($f))->all();
     }

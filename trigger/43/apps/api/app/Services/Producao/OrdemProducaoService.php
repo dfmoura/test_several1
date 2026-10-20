@@ -17,6 +17,7 @@ use App\Services\Codigo\CodigoGenerator;
 use App\Services\Estoque\EstoqueCongelamento;
 use App\Services\Estoque\EstoqueSaldoWriter;
 use App\Services\Producao\RastreioInsumosService;
+use App\Support\ListPeriodo;
 use App\Support\PadraoDecimal;
 use App\Support\UnidadesMedida;
 use Illuminate\Support\Facades\Auth;
@@ -41,8 +42,13 @@ class OrdemProducaoService
     /**
      * @return list<array<string, mixed>>
      */
-    public function list(Empresa $empresa, ?string $q = null, ?string $status = null): array
-    {
+    public function list(
+        Empresa $empresa,
+        ?string $q = null,
+        ?string $status = null,
+        ?string $de = null,
+        ?string $ate = null,
+    ): array {
         $query = OrdemProducao::query()
             ->where('empresa_id', $empresa->id)
             ->with(['pedido:id,codigo,status', 'pedidoItem:id,descricao,necessidade'])
@@ -58,6 +64,8 @@ class OrdemProducaoService
                     ->orWhereHas('pedido', fn ($p) => $p->where('codigo', 'like', $like));
             });
         }
+
+        ListPeriodo::apply($query, 'created_at', $de, $ate);
 
         return $query->limit(200)->get()->map(fn (OrdemProducao $o) => $this->toOut($o))->all();
     }

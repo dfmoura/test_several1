@@ -220,6 +220,7 @@ final class CompraValidationRules
             'produto_id' => ['nullable', 'integer'],
             'fornecedor_id' => ['nullable', 'integer'],
             'parceiro_id' => ['nullable', 'integer'],
+            ...ListPeriodo::rules(),
         ];
     }
 }

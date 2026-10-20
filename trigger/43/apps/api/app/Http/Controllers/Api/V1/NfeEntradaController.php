@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Empresa;
 use App\Models\NfeEntrada;
 use App\Services\Fiscal\NfeEntradaConsultaService;
+use App\Support\ListPeriodo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -24,9 +25,14 @@ class NfeEntradaController extends Controller
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
             'ano' => ['nullable', 'integer', 'min:2006', 'max:2100'],
+            ...ListPeriodo::rules(),
         ]);
 
-        $ano = isset($validated['ano']) ? (int) $validated['ano'] : (int) now()->year;
+        $de = $validated['de'] ?? null;
+        $ate = $validated['ate'] ?? null;
+        $ano = ListPeriodo::filled($de, $ate)
+            ? null
+            : (isset($validated['ano']) ? (int) $validated['ano'] : (int) now()->year);
         $empresa = $this->empresa();
 
         return response()->json([
@@ -34,9 +40,13 @@ class NfeEntradaController extends Controller
                 $empresa,
                 $validated['q'] ?? null,
                 $ano,
+                $de,
+                $ate,
             ),
             'meta' => [
                 'ano' => $ano,
+                'de' => ListPeriodo::value($de),
+                'ate' => ListPeriodo::value($ate),
             ],
         ]);
     }
