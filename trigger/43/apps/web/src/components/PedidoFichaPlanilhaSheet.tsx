@@ -38,7 +38,8 @@ import {
   pedChipClass,
   specOperacional,
 } from '../lib/producaoFicha';
-import { saidaEtiquetaLabelCurto } from '../lib/saidaEtiqueta';
+import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
+import { isSaidaEtiqueta, saidaEtiquetaLabelCurto } from '../lib/saidaEtiqueta';
 
 /**
  * Ficha planilha do pedido — A4 paisagem, uso interno.
@@ -227,7 +228,13 @@ function TabelaProducao({
             <td>{dashCell(ln.formatoFaca)}</td>
             <td className="ficha-td-num">{dashCell(ln.nFaca)}</td>
             <td className="ficha-td-num">{fmtQtd(ln.z)}</td>
-            <td>{dashCell(ln.saida)}</td>
+            <td className="ped-planilha-saida">
+              {ln.saidaCodigo && isSaidaEtiqueta(ln.saidaCodigo) ? (
+                <SaidaEtiquetaBadge code={ln.saidaCodigo} variant="dense" />
+              ) : (
+                '—'
+              )}
+            </td>
             <td>{dashCell(ln.maquina)}</td>
           </tr>
         ))}

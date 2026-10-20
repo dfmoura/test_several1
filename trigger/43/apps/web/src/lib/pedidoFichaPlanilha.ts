@@ -69,7 +69,8 @@ export type PedidoPlanilhaProducaoLinha = {
   formatoFaca: string | null;
   nFaca: string | null;
   z: number | null;
-  saida: string | null;
+  /** Código canônico (SAIDA_*) para o badge; null → célula "—". */
+  saidaCodigo: string | null;
   maquina: string | null;
 };
 
@@ -224,6 +225,9 @@ export function linhasProducaoPlanilha(
     const somaRolos = linhas.reduce((acc, ln) => acc + (ln.rolos ?? 0), 0);
     const rolos = rolosFaixa ?? (somaRolos > 0 ? money2(somaRolos) : null);
 
+    const spec = specOperacional(pedido, item);
+    const saidaCodigo = strOrNull(spec.saida_etiqueta);
+
     return {
       key: `p-${item.id}`,
       itemOrdem: item.ordem,
@@ -241,7 +245,7 @@ export function linhasProducaoPlanilha(
       formatoFaca: base?.faca ?? null,
       nFaca: base?.nFaca ?? null,
       z: base?.z ?? null,
-      saida: base?.saida ?? null,
+      saidaCodigo,
       maquina: base?.maquina ?? null,
     };
   });

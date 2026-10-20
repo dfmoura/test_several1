@@ -10136,6 +10136,29 @@ tr.row-inactive td {
   font-size: 6pt;
 }
 
+/* Saída: badge denso na coluna — legível sem inflar a linha da planilha. */
+.ficha-sheet-ped-planilha .ped-planilha-saida {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-saida .saida-etiqueta-badge--dense {
+  gap: 0.2rem;
+  padding: 0.05rem 0.22rem 0.05rem 0.05rem;
+  max-width: 28mm;
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-saida .saida-etiqueta-badge--dense .saida-etiqueta-badge__img {
+  width: 3.6mm;
+  height: 4mm;
+  border-radius: 1px;
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-saida .saida-etiqueta-badge--dense .saida-etiqueta-badge__text {
+  font-size: 5.5pt;
+  line-height: 1.1;
+}
+
 .ficha-sheet-ped-planilha .ped-planilha-fechamento {
   width: 90mm;
   max-width: 100%;
@@ -11586,6 +11609,12 @@ tr.row-inactive td {
   body.ficha-print-mode .ficha-sheet-ped-planilha .ped-planilha-fechamento {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  body.ficha-print-mode .ficha-sheet-ped-planilha .ped-planilha-saida .saida-etiqueta-badge--dense,
+  body.ficha-print-mode .ficha-sheet-ped-planilha .ped-planilha-saida .saida-etiqueta-badge__img {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   body.ficha-print-mode .ficha-sheet-ped .ped-ficha-etq-item + .ped-ficha-etq-item,
