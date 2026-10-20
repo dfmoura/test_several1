@@ -10207,6 +10207,83 @@ tr.row-inactive td {
   font-weight: 700;
 }
 
+/* OP chão · Impressão / Acabamento — A4 paisagem. Satélite da ficha flexo. */
+.ficha-sheet.ficha-sheet-op-chao {
+  width: 297mm;
+  max-width: 297mm;
+  padding: 6mm 7mm 5mm;
+  font-size: 7.25pt;
+}
+
+.ficha-sheet-op-chao .op-chao-kv {
+  grid-template-columns: max-content max-content minmax(0, 1fr);
+  margin-bottom: 1.5mm;
+}
+
+.ficha-sheet-op-chao .op-chao-hint {
+  margin: 0 0 1.2mm;
+  font-size: 5.75pt;
+  color: var(--text-muted, #5a6570);
+  letter-spacing: 0.02em;
+}
+
+.ficha-sheet-op-chao .op-chao-table {
+  width: 100%;
+  table-layout: auto;
+  font-size: 6.5pt;
+}
+
+.ficha-sheet-op-chao .op-chao-table th {
+  font-size: 5.5pt;
+  padding: 0.55mm 0.7mm;
+  white-space: nowrap;
+  line-height: 1.15;
+  vertical-align: bottom;
+}
+
+.ficha-sheet-op-chao .op-chao-table td {
+  padding: 0.5mm 0.7mm;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+.ficha-sheet-op-chao .op-chao-table .ficha-td-num {
+  white-space: nowrap;
+}
+
+.ficha-sheet-op-chao .op-chao-obs {
+  max-width: 28mm;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ficha-sheet-op-chao .op-chao-saida {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.ficha-sheet-op-chao .op-chao-saida .saida-etiqueta-badge--dense {
+  gap: 0.2rem;
+  padding: 0.05rem 0.22rem 0.05rem 0.05rem;
+  max-width: 28mm;
+}
+
+.ficha-sheet-op-chao .op-chao-saida .saida-etiqueta-badge--dense .saida-etiqueta-badge__img {
+  width: 3.6mm;
+  height: 4mm;
+  border-radius: 1px;
+}
+
+.ficha-sheet-op-chao .op-chao-saida .saida-etiqueta-badge--dense .saida-etiqueta-badge__text {
+  font-size: 5.5pt;
+  line-height: 1.1;
+}
+
+.ficha-sheet-op-chao .ficha-autoria {
+  margin-top: 2mm;
+}
+
 /* OP materiais · retirada — A4 paisagem. Satélite da ficha flexo retrato. */
 .ficha-sheet.ficha-sheet-op-materiais {
   width: 297mm;
@@ -11527,6 +11604,12 @@ tr.row-inactive td {
   margin: 6mm;
 }
 
+/* A4 paisagem — Impressão / Acabamento da OP (satélite; não altera ficha flexo). */
+@page ficha-op-chao-a4 {
+  size: A4 landscape;
+  margin: 6mm;
+}
+
 @media print {
   body.ficha-print-mode {
     background: #fff !important;
@@ -11608,6 +11691,13 @@ tr.row-inactive td {
 
   body.ficha-print-mode .ficha-sheet.ficha-sheet-op-materiais {
     page: ficha-op-materiais-a4;
+    width: auto;
+    max-width: none;
+    padding: 0;
+  }
+
+  body.ficha-print-mode .ficha-sheet.ficha-sheet-op-chao {
+    page: ficha-op-chao-a4;
     width: auto;
     max-width: none;
     padding: 0;
@@ -11705,13 +11795,20 @@ tr.row-inactive td {
     break-inside: auto;
   }
 
+  body.ficha-print-mode .ficha-sheet-op-chao .ficha-section,
+  body.ficha-print-mode .ficha-sheet-op-chao .ficha-table {
+    break-inside: auto;
+  }
+
   body.ficha-print-mode .ficha-sheet-ped-planilha .ped-planilha-fechamento {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
   body.ficha-print-mode .ficha-sheet-ped-planilha .ped-planilha-saida .saida-etiqueta-badge--dense,
-  body.ficha-print-mode .ficha-sheet-ped-planilha .ped-planilha-saida .saida-etiqueta-badge__img {
+  body.ficha-print-mode .ficha-sheet-ped-planilha .ped-planilha-saida .saida-etiqueta-badge__img,
+  body.ficha-print-mode .ficha-sheet-op-chao .op-chao-saida .saida-etiqueta-badge--dense,
+  body.ficha-print-mode .ficha-sheet-op-chao .op-chao-saida .saida-etiqueta-badge__img {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

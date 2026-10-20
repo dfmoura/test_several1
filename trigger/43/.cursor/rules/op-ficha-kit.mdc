@@ -20,6 +20,7 @@ OP = o que produzir + kit + fechar
 - 1 kit por OP.
 - Bobina da lista = grupo do catálogo. Outro grupo só com motivo. Etiqueta com papel no snapshot só fecha depois que o papel saiu.
 - Ficha impressa = ordem de flexo: impressão, quanto rodar, kit, conferência. Sem preço, rpm, hora ou guia do ORC. Tela da ordem repete a mesma leitura numa linha.
+- Satélites paisagem (sem R$, sem kit): **Impressão** e **Acabamento** — planilha do item da OP; links na toolbar. Materiais continua só após saída.
 
 ## Não faça
 

@@ -88,6 +88,10 @@ import { ProducaoApontamentosPage } from './pages/ProducaoApontamentosPage';
 import { ProducaoApontamentoChaoPage } from './pages/ProducaoApontamentoChaoPage';
 import { OrdemProducaoFichaPage } from './pages/OrdemProducaoFichaPage';
 import { OrdemProducaoFichaMateriaisPage } from './pages/OrdemProducaoFichaMateriaisPage';
+import {
+  OrdemProducaoFichaAcabamentoPage,
+  OrdemProducaoFichaImpressaoPage,
+} from './pages/OrdemProducaoFichaChaoPage';
 import { PaEmbalagemEtiquetasPage } from './pages/PaEmbalagemEtiquetasPage';
 import { OrdemServicoDetailPage } from './pages/OrdemServicoDetailPage';
 import { RastreioInsumosFichaPage } from './pages/RastreioInsumosFichaPage';
@@ -953,6 +957,28 @@ export default function App() {
           <ProtectedRoute>
             <PermissionRoute permission="producao.ler">
               <OrdemProducaoFichaMateriaisPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/ordens-producao/:id/ficha-impressao"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="producao.ler">
+              <OrdemProducaoFichaImpressaoPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/ordens-producao/:id/ficha-acabamento"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="producao.ler">
+              <OrdemProducaoFichaAcabamentoPage />
             </PermissionRoute>
           </ProtectedRoute>
         }

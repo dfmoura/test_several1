@@ -106,6 +106,24 @@ export function OrdemProducaoDetailPage() {
             >
               Imprimir lista
             </a>
+            <a
+              href={`/ordens-producao/${op.id}/ficha-impressao`}
+              className="btn btn-secondary btn-sm"
+              onClick={(e) =>
+                onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha-impressao`)
+              }
+            >
+              Impressão
+            </a>
+            <a
+              href={`/ordens-producao/${op.id}/ficha-acabamento`}
+              className="btn btn-secondary btn-sm"
+              onClick={(e) =>
+                onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha-acabamento`)
+              }
+            >
+              Acabamento
+            </a>
             {podeVerFichaMateriais(op) ? (
               <a
                 href={`/ordens-producao/${op.id}/ficha-materiais`}

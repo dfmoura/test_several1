@@ -94,4 +94,15 @@ Ordem concluída não é recalculada. SKU já gravado e linha já saída não s�
 
 A porta **Na máquina** sai do menu. O fecho (etiquetas boas, refugo, tolerância) fica na OP. A grade Material / Saiu / Rasgou / Sobra / Perda / Usou não volta para esse cartão. Sobra e rasgo continuam em Estoque · **A buscar**. Rolos reais e caixas alocadas são o passo seguinte, na mesma ordem, depois de `CONCLUIDA`.
 
+## Emenda 2026-10-20 — fichas de chão (Impressão / Acabamento)
+
+Satélites paisagem da ficha flexo, sem preço e sem mexer no kit:
+
+| Rota | Quem | Conteúdo |
+|------|------|----------|
+| `/ordens-producao/:id/ficha-impressao` | PCP / máquina (`producao.ler`) | Identidade do item + parâmetros de impressão (largura do papel = largura × colunas, faca, Z, máquina…) |
+| `/ordens-producao/:id/ficha-acabamento` | PCP / rebobinação (`producao.ler`) | Mesma identidade + parâmetros de rebobinação (colunas reb., etiq/rolo, rolos, m/rolo…) |
+
+Grão = planilha do PED (`pedidoFichaPlanilha`) escopada ao **item da OP**. Sem gate de `SAIDA_PRODUCAO` (diferente de Materiais). Sem alterar `/ficha` (flexo + kit) nem `/ficha-materiais`.
+
 Alterar esta ADR exige decisão explícita (produção + estoque + UX).
