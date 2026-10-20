@@ -417,7 +417,6 @@ export function PedidoFichaPlanilhaSheet({
             <span className="ficha-chip ficha-chip-muted">{prazoEntregaCompleto(p)}</span>
           ) : null}
           <span className="ficha-chip ficha-chip-muted">±{p.tolerancia_qtd_pct}%</span>
-          <span className="ficha-chip ficha-chip-muted">A4 paisagem</span>
         </div>
       </div>
 
