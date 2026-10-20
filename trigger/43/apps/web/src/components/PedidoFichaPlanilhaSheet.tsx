@@ -17,6 +17,7 @@ import {
 } from '../lib/pedidoConfirmacao';
 import {
   comissaoInclusaDoItem,
+  linhaSimplesDoItem,
   particionarItensPedido,
   somaValores,
 } from '../lib/pedidoFichaContrato';
@@ -27,6 +28,7 @@ import {
   type PedidoPlanilhaVisual,
 } from '../lib/pedidoFichaPlanilha';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
+import { tipoServicoLabel } from '../lib/operacoesSaida';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { pedStatusLabel } from '../lib/producaoUi';
 import {
@@ -40,8 +42,9 @@ import { saidaEtiquetaLabelCurto } from '../lib/saidaEtiqueta';
 
 /**
  * Ficha planilha do pedido — A4 paisagem, uso interno.
- * Duas tabelas densas (comercial + produção). Satélite da ficha contrato retrato.
- * Valores travados. Sem custo/gordura. Sem DomPDF.
+ * Etiquetas: tabelas densas (comercial + produção).
+ * Revenda e serviço: tabelas comerciais compactas (sem produção).
+ * Satélite da ficha contrato retrato. Valores travados. Sem custo/gordura.
  */
 export type PedidoFichaPlanilhaSheetProps = {
   pedido: Pedido;
@@ -233,10 +236,82 @@ function TabelaProducao({
   );
 }
 
+/**
+ * Revenda / serviço — mesmo grão da ficha contrato retrato.
+ * Fora da grade de etiqueta e fora da tabela de produção.
+ */
+function TabelaSimplesPlanilha({
+  pedido,
+  itens,
+  sku,
+  descricaoLabel,
+  valorLabel,
+  rodape,
+}: {
+  pedido: Pedido;
+  itens: PedidoItem[];
+  sku: boolean;
+  descricaoLabel: string;
+  valorLabel: string;
+  rodape: string;
+}) {
+  const total = somaValores(itens);
+
+  return (
+    <table className="ficha-table ped-planilha-table ped-planilha-table--simples">
+      <thead>
+        <tr>
+          <th>Item</th>
+          {sku ? <th>SKU</th> : <th>Serviço</th>}
+          <th>{descricaoLabel}</th>
+          <th className="ficha-td-num">Qtd</th>
+          <th className="ficha-td-num">Unitário</th>
+          <th className="ficha-td-num">{valorLabel}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {itens.map((item) => {
+          const ln = linhaSimplesDoItem(pedido, item);
+          const spec = specOperacional(pedido, item);
+          const desc = descricaoFromPedidoSpec(spec);
+          const servico = !sku ? tipoServicoLabel(desc.tipo_servico) || 'Serviço' : null;
+          return (
+            <tr key={item.id}>
+              <td className="ficha-td-num">{ln.ordem}</td>
+              {sku ? <td>{dashCell(ln.sku)}</td> : <td>{dashCell(servico)}</td>}
+              <td>{dashCell(ln.descricao)}</td>
+              <td className="ficha-td-num">
+                {formatDecimalBr(ln.qtde, 0)}
+                {ln.unidade ? ` ${ln.unidade}` : ''}
+              </td>
+              <td className="ficha-td-num">{fmtUnit(ln.unitario)}</td>
+              <td className="ficha-td-num">{formatCurrency(ln.total)}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colSpan={5} className="ficha-td-num">
+            {rodape}
+          </td>
+          <td className="ficha-td-num">
+            <strong>{formatCurrency(total)}</strong>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  );
+}
+
 function FechamentoPlanilha({ pedido }: { pedido: Pedido }) {
   const grupos = particionarItensPedido(pedido.itens ?? []);
+  const totalEtiquetas = somaValores(grupos.etiquetas);
+  const totalRevenda = somaValores(grupos.revendas);
+  const vendaMista = grupos.etiquetas.length > 0 && grupos.revendas.length > 0;
   const somaItens = somaValores(pedido.itens ?? []);
   const fechamento = descontoAplicadoNoTotal(descontoDoPedido(pedido), somaItens);
+  const mostraComissao = grupos.etiquetas.length > 0 || grupos.servicos.length > 0;
   const comissao = [...grupos.etiquetas, ...grupos.servicos].reduce(
     (acc, item) => acc + comissaoInclusaDoItem(pedido, item),
     0,
@@ -244,10 +319,16 @@ function FechamentoPlanilha({ pedido }: { pedido: Pedido }) {
 
   return (
     <div className="ped-planilha-fechamento">
+      {vendaMista ? (
+        <p>
+          <span>Subtotal da venda</span>
+          <strong>{formatCurrency(totalEtiquetas + totalRevenda)}</strong>
+        </p>
+      ) : null}
       <p>
         <span>{fechamentoPlanilhaHint(pedido)}</span>
       </p>
-      {comissao > 0.004 ? (
+      {mostraComissao && comissao > 0.004 ? (
         <p>
           <span>
             Comissão <span className="ped-ficha-fechamento-nota">já inclusa</span>
@@ -357,13 +438,9 @@ export function PedidoFichaPlanilhaSheet({
         {entregaOps ? <FichaKv label="Entrega" value={entregaOps} /> : null}
       </div>
 
-      {grupos.etiquetas.length === 0 ? (
-        <FichaSection title="Comercial">
-          <p className="ficha-empty">Nenhum item de etiqueta neste pedido.</p>
-        </FichaSection>
-      ) : (
+      {grupos.etiquetas.length > 0 ? (
         <>
-          <FichaSection title="Comercial">
+          <FichaSection title="Comercial · etiqueta">
             <TabelaComercial pedido={p} itens={grupos.etiquetas} />
           </FichaSection>
           <FichaSection title="Produção">
@@ -373,25 +450,41 @@ export function PedidoFichaPlanilhaSheet({
             <TabelaProducao pedido={p} itens={grupos.etiquetas} />
           </FichaSection>
         </>
-      )}
+      ) : null}
 
-      {(grupos.revendas.length > 0 || grupos.servicos.length > 0) && (
-        <FichaSection title="Outros itens">
-          <p className="ficha-empty">
-            {[
-              grupos.revendas.length > 0
-                ? `${grupos.revendas.length} revenda(s)`
-                : null,
-              grupos.servicos.length > 0
-                ? `${grupos.servicos.length} serviço(s)`
-                : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-            {' — ver ficha contrato (retrato) para detalhe.'}
-          </p>
+      {grupos.revendas.length > 0 ? (
+        <FichaSection title="Produto de revenda">
+          <TabelaSimplesPlanilha
+            pedido={p}
+            itens={grupos.revendas}
+            sku
+            descricaoLabel="Descrição"
+            valorLabel="Subtotal"
+            rodape="Total revenda"
+          />
         </FichaSection>
-      )}
+      ) : null}
+
+      {grupos.servicos.length > 0 ? (
+        <FichaSection title="Prestação de serviço">
+          <TabelaSimplesPlanilha
+            pedido={p}
+            itens={grupos.servicos}
+            sku={false}
+            descricaoLabel="Descrição"
+            valorLabel="Total"
+            rodape="Total serviços"
+          />
+        </FichaSection>
+      ) : null}
+
+      {grupos.etiquetas.length === 0 &&
+      grupos.revendas.length === 0 &&
+      grupos.servicos.length === 0 ? (
+        <FichaSection title="Itens">
+          <p className="ficha-empty">Nenhum item neste pedido.</p>
+        </FichaSection>
+      ) : null}
 
       <FechamentoPlanilha pedido={p} />
 

@@ -10126,6 +10126,16 @@ tr.row-inactive td {
   white-space: nowrap;
 }
 
+/* Revenda / serviço — grade curta; tipografia um pouco mais legível. */
+.ficha-sheet-ped-planilha .ped-planilha-table--simples {
+  font-size: 7pt;
+  max-width: 220mm;
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-table--simples th {
+  font-size: 6pt;
+}
+
 .ficha-sheet-ped-planilha .ped-planilha-fechamento {
   width: 90mm;
   max-width: 100%;
