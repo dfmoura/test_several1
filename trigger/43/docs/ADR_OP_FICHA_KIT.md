@@ -96,13 +96,21 @@ A porta **Na máquina** sai do menu. O fecho (etiquetas boas, refugo, tolerânci
 
 ## Emenda 2026-10-20 — fichas de chão (Impressão / Acabamento)
 
-Satélites paisagem da ficha flexo, sem preço e sem mexer no kit:
+Satélites paisagem da ficha flexo, sem preço e sem mexer no kit. (Substituída pela emenda 2026-10-29.)
 
 | Rota | Quem | Conteúdo |
 |------|------|----------|
-| `/ordens-producao/:id/ficha-impressao` | PCP / máquina (`producao.ler`) | Identidade do item + parâmetros de impressão (largura do papel = largura × colunas, faca, Z, máquina…) |
-| `/ordens-producao/:id/ficha-acabamento` | PCP / rebobinação (`producao.ler`) | Mesma identidade + parâmetros de rebobinação (colunas reb., etiq/rolo, rolos, m/rolo…) |
+| `/ordens-producao/:id/ficha-impressao` | PCP / máquina (`producao.ler`) | Identidade do item + parâmetros de impressão |
+| `/ordens-producao/:id/ficha-acabamento` | PCP / rebobinação (`producao.ler`) | Mesma identidade + parâmetros de rebobinação |
 
-Grão = planilha do PED (`pedidoFichaPlanilha`) escopada ao **item da OP**. Sem gate de `SAIDA_PRODUCAO` (diferente de Materiais). Sem alterar `/ficha` (flexo + kit) nem `/ficha-materiais`.
+## Emenda 2026-10-29 — ficha de chão unificada
+
+Um satélite paisagem A4 substitui as duas rotas acima. Toolbar: **Impressão e acabamento**.
+
+| Rota | Quem | Conteúdo |
+|------|------|----------|
+| `/ordens-producao/:id/ficha-chao` | PCP / chão (`producao.ler`) | Identidade (1×) → Impressão · máquina (bloco completo) → Acabamento · rebobinação (**só exclusivos**: colunas reb., etiq/rolo, rolos, m/rolo) |
+
+Rotas antigas `ficha-impressao` e `ficha-acabamento` redirecionam para `ficha-chao`. Sem repetir Item / metragem / acabamento / tubete / saída na banda de rebobinação (já na impressão na mesma folha). Grão = planilha do PED (`pedidoFichaPlanilha`) escopada ao **item da OP**. Sem gate de `SAIDA_PRODUCAO`. Sem alterar `/ficha` (flexo + kit) nem `/ficha-materiais`.
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX).

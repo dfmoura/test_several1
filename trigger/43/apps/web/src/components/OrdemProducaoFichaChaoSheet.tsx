@@ -15,7 +15,6 @@ import {
   linhaProducaoChao,
   linhasIdentidadeChao,
   opFichaChaoMeta,
-  type OpFichaChaoVariante,
 } from '../lib/opFichaChao';
 import { textoMaquinaFlexo } from '../lib/opFichaFlexo';
 import type {
@@ -27,12 +26,11 @@ import { opStatusLabel } from '../lib/producaoUi';
 import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
 
 /**
- * Ficha de chão da OP — Impressão ou Acabamento (A4 paisagem).
- * Satélite da ficha flexo retrato. Duas bandas densas sem R$.
+ * Ficha de chão unificada da OP — Impressão + Acabamento (A4 paisagem).
+ * Satélite da ficha flexo retrato. Identidade 1×; rebobinação só exclusivos.
  * Reusa grão da planilha do PED, escopado ao item da OP.
  */
 export type OrdemProducaoFichaChaoSheetProps = {
-  variante: OpFichaChaoVariante;
   ordem: OrdemProducao;
   pedido: Pedido | null;
   empresaNome: string;
@@ -144,39 +142,24 @@ function TabelaImpressao({ ln }: { ln: PedidoPlanilhaProducaoLinha }) {
   );
 }
 
+/** Só exclusivos de rebobinação — metragem/acabamento/tubete/saída ficam na impressão. */
 function TabelaAcabamento({ ln }: { ln: PedidoPlanilhaProducaoLinha }) {
   return (
     <table className="ficha-table op-chao-table op-chao-table--acabamento">
       <thead>
         <tr>
-          <th>Item</th>
-          <th className="ficha-td-num">Metragem linear</th>
-          <th>Acabamento</th>
-          <th>Tubete</th>
           <th className="ficha-td-num">Qdade colunas rebobinação</th>
           <th className="ficha-td-num">Qdade etiquetas p/ rolo</th>
           <th className="ficha-td-num">Qdade de rolos</th>
           <th className="ficha-td-num">Qdade metros / rolo</th>
-          <th>Saída</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td className="ficha-td-num">{ln.itemOrdem}</td>
-          <td className="ficha-td-num">{fmtQtd(ln.metragemLinear)}</td>
-          <td>{dashCell(ln.acabamento)}</td>
-          <td>{dashCell(ln.tubete)}</td>
           <td className="ficha-td-num">{fmtQtd(ln.colunasRebobinacao)}</td>
           <td className="ficha-td-num">{fmtQtd(ln.etiqPorRolo)}</td>
           <td className="ficha-td-num">{fmtQtd(ln.rolos)}</td>
           <td className="ficha-td-num">{fmtQtd(ln.metrosPorRolo)}</td>
-          <td className="op-chao-saida">
-            {ln.saidaCodigo && isSaidaEtiqueta(ln.saidaCodigo) ? (
-              <SaidaEtiquetaBadge code={ln.saidaCodigo} variant="dense" />
-            ) : (
-              '—'
-            )}
-          </td>
         </tr>
       </tbody>
     </table>
@@ -184,14 +167,13 @@ function TabelaAcabamento({ ln }: { ln: PedidoPlanilhaProducaoLinha }) {
 }
 
 export function OrdemProducaoFichaChaoSheet({
-  variante,
   ordem: o,
   pedido,
   empresaNome,
   emitidoPor,
   emitidoEm,
 }: OrdemProducaoFichaChaoSheetProps) {
-  const meta = opFichaChaoMeta(variante);
+  const meta = opFichaChaoMeta();
   const item = itemPedidoDaOp(o, pedido);
   const identidade = pedido && item ? linhasIdentidadeChao(pedido, item) : [];
   const producao = pedido && item ? linhaProducaoChao(pedido, item) : null;
@@ -217,7 +199,7 @@ export function OrdemProducaoFichaChaoSheet({
 
   return (
     <article
-      className={`ficha-sheet ped-ficha ficha-sheet-op-chao ficha-sheet-op-chao--${variante}`}
+      className="ficha-sheet ped-ficha ficha-sheet-op-chao ficha-sheet-op-chao--unificada"
       aria-label={`${meta.titulo} da ordem ${o.codigo}`}
     >
       <header className="ficha-masthead">
@@ -269,14 +251,22 @@ export function OrdemProducaoFichaChaoSheet({
         )}
       </FichaSection>
 
-      <FichaSection title={meta.secaoBaixo}>
-        {meta.hintBaixo ? <p className="op-chao-hint">{meta.hintBaixo}</p> : null}
+      <FichaSection title={meta.secaoImpressao}>
+        <p className="op-chao-hint">{meta.hintImpressao}</p>
         {!producao ? (
           <p className="ficha-empty">
             Sem especificação do item do pedido para montar os parâmetros de chão.
           </p>
-        ) : variante === 'impressao' ? (
+        ) : (
           <TabelaImpressao ln={producao} />
+        )}
+      </FichaSection>
+
+      <FichaSection title={meta.secaoAcabamento}>
+        {!producao ? (
+          <p className="ficha-empty">
+            Sem especificação do item do pedido para montar a rebobinação.
+          </p>
         ) : (
           <TabelaAcabamento ln={producao} />
         )}
@@ -294,7 +284,7 @@ export function OrdemProducaoFichaChaoSheet({
 
       <footer className="ficha-footer">
         <span>
-          Uso interno · {o.codigo} · {meta.titulo.toLowerCase()} · emitido por {emitidoPor}
+          Uso interno · {o.codigo} · impressão e acabamento · emitido por {emitidoPor}
         </span>
         <TriggerAttribution
           variant="print"

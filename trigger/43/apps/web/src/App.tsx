@@ -88,10 +88,7 @@ import { ProducaoApontamentosPage } from './pages/ProducaoApontamentosPage';
 import { ProducaoApontamentoChaoPage } from './pages/ProducaoApontamentoChaoPage';
 import { OrdemProducaoFichaPage } from './pages/OrdemProducaoFichaPage';
 import { OrdemProducaoFichaMateriaisPage } from './pages/OrdemProducaoFichaMateriaisPage';
-import {
-  OrdemProducaoFichaAcabamentoPage,
-  OrdemProducaoFichaImpressaoPage,
-} from './pages/OrdemProducaoFichaChaoPage';
+import { OrdemProducaoFichaChaoPage } from './pages/OrdemProducaoFichaChaoPage';
 import { PaEmbalagemEtiquetasPage } from './pages/PaEmbalagemEtiquetasPage';
 import { OrdemServicoDetailPage } from './pages/OrdemServicoDetailPage';
 import { RastreioInsumosFichaPage } from './pages/RastreioInsumosFichaPage';
@@ -168,6 +165,13 @@ function RedirectFaturamentoLegado() {
   if (id && tituloId) return <Navigate to={`/faturamentos/${id}/cobranca/${tituloId}/ficha`} replace />;
   if (id) return <Navigate to={`/faturamentos/${id}`} replace />;
   return <Navigate to="/faturamentos" replace />;
+}
+
+/** Rotas antigas ficha-impressao / ficha-acabamento → ficha-chao unificada. */
+function RedirectOpFichaChaoLegado() {
+  const { id } = useParams<{ id: string }>();
+  if (id) return <Navigate to={`/ordens-producao/${id}/ficha-chao`} replace />;
+  return <Navigate to="/ordens-producao" replace />;
 }
 
 export default function App() {
@@ -963,11 +967,22 @@ export default function App() {
       />
 
       <Route
+        path="/ordens-producao/:id/ficha-chao"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="producao.ler">
+              <OrdemProducaoFichaChaoPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/ordens-producao/:id/ficha-impressao"
         element={
           <ProtectedRoute>
             <PermissionRoute permission="producao.ler">
-              <OrdemProducaoFichaImpressaoPage />
+              <RedirectOpFichaChaoLegado />
             </PermissionRoute>
           </ProtectedRoute>
         }
@@ -978,7 +993,7 @@ export default function App() {
         element={
           <ProtectedRoute>
             <PermissionRoute permission="producao.ler">
-              <OrdemProducaoFichaAcabamentoPage />
+              <RedirectOpFichaChaoLegado />
             </PermissionRoute>
           </ProtectedRoute>
         }

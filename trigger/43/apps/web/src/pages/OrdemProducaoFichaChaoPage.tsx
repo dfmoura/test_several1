@@ -5,11 +5,9 @@ import { api, type OrdemProducao, type Pedido } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { brandDocumentTitle } from '../lib/brand';
 import { voltarDaFicha } from '../lib/fichaNav';
-import { opFichaChaoMeta, type OpFichaChaoVariante } from '../lib/opFichaChao';
+import { opFichaChaoMeta } from '../lib/opFichaChao';
 
-type Props = { variante: OpFichaChaoVariante };
-
-function OrdemProducaoFichaChaoPage({ variante }: Props) {
+export function OrdemProducaoFichaChaoPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, empresas, empresaId } = useAuth();
@@ -18,7 +16,7 @@ function OrdemProducaoFichaChaoPage({ variante }: Props) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const emitidoEm = useMemo(() => new Date(), []);
-  const meta = opFichaChaoMeta(variante);
+  const meta = opFichaChaoMeta();
 
   const empresaNome = useMemo(() => {
     const emp = empresas.find((e) => e.id === empresaId);
@@ -27,7 +25,7 @@ function OrdemProducaoFichaChaoPage({ variante }: Props) {
 
   useEffect(() => {
     if (!id) {
-      setError(`Ordem inválida para ficha de ${meta.titulo.toLowerCase()}.`);
+      setError('Ordem inválida para ficha de impressão e acabamento.');
       setLoading(false);
       return;
     }
@@ -56,7 +54,7 @@ function OrdemProducaoFichaChaoPage({ variante }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [id, meta.titulo]);
+  }, [id]);
 
   useEffect(() => {
     document.body.classList.add('ficha-print-mode');
@@ -103,7 +101,6 @@ function OrdemProducaoFichaChaoPage({ variante }: Props) {
 
       {ordem && !loading && (
         <OrdemProducaoFichaChaoSheet
-          variante={variante}
           ordem={ordem}
           pedido={pedido}
           empresaNome={empresaNome}
@@ -113,12 +110,4 @@ function OrdemProducaoFichaChaoPage({ variante }: Props) {
       )}
     </div>
   );
-}
-
-export function OrdemProducaoFichaImpressaoPage() {
-  return <OrdemProducaoFichaChaoPage variante="impressao" />;
-}
-
-export function OrdemProducaoFichaAcabamentoPage() {
-  return <OrdemProducaoFichaChaoPage variante="acabamento" />;
 }

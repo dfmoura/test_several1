@@ -1,6 +1,6 @@
 /**
- * Grão das fichas de chão da OP (Impressão / Acabamento) — só apresentação.
- * Satélites da ficha flexo retrato. Reusa a planilha do PED sem R$.
+ * Grão da ficha de chão unificada da OP (Impressão + Acabamento) — só apresentação.
+ * Satélite da ficha flexo retrato. Reusa a planilha do PED sem R$.
  * Sem persistir campo novo; sem alterar kit, materiais ou ficha flexo.
  */
 import type { OrdemProducao, Pedido, PedidoItem } from './api';
@@ -15,8 +15,6 @@ import {
 } from './pedidoFichaPlanilha';
 import { specOperacional } from './producaoFicha';
 import { saidaEtiquetaLabelCurto } from './saidaEtiqueta';
-
-export type OpFichaChaoVariante = 'impressao' | 'acabamento';
 
 export function itemPedidoDaOp(
   ordem: OrdemProducao,
@@ -62,27 +60,20 @@ export function linhaProducaoChao(
   return ln ?? null;
 }
 
-export function opFichaChaoMeta(variante: OpFichaChaoVariante): {
+export function opFichaChaoMeta(): {
   titulo: string;
   docLabel: string;
-  secaoBaixo: string;
-  hintBaixo: string | null;
+  secaoImpressao: string;
+  hintImpressao: string;
+  secaoAcabamento: string;
   toolbarHint: string;
 } {
-  if (variante === 'impressao') {
-    return {
-      titulo: 'Impressão',
-      docLabel: 'Ficha de impressão · chão de máquina',
-      secaoBaixo: 'Impressão · máquina',
-      hintBaixo: 'Largura do papel = largura × colunas de produção',
-      toolbarHint: 'Impressão · A4 paisagem · sem preço · envio à máquina',
-    };
-  }
   return {
-    titulo: 'Acabamento',
-    docLabel: 'Ficha de acabamento · rebobinação',
-    secaoBaixo: 'Acabamento · rebobinação',
-    hintBaixo: null,
-    toolbarHint: 'Acabamento · A4 paisagem · sem preço · rebobinação',
+    titulo: 'Impressão e acabamento',
+    docLabel: 'Ficha de chão · impressão e rebobinação',
+    secaoImpressao: 'Impressão · máquina',
+    hintImpressao: 'Largura do papel = largura × colunas de produção',
+    secaoAcabamento: 'Acabamento · rebobinação',
+    toolbarHint: 'Impressão e acabamento · A4 paisagem · sem preço · chão',
   };
 }

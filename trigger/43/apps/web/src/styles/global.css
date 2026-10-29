@@ -10233,7 +10233,7 @@ tr.row-inactive td {
   font-weight: 700;
 }
 
-/* OP chão · Impressão / Acabamento — A4 paisagem. Satélite da ficha flexo. */
+/* OP chão · Impressão e acabamento (unificada) — A4 paisagem. Satélite da ficha flexo. */
 .ficha-sheet.ficha-sheet-op-chao {
   width: 297mm;
   max-width: 297mm;
@@ -10308,6 +10308,17 @@ tr.row-inactive td {
 
 .ficha-sheet-op-chao .ficha-autoria {
   margin-top: 2mm;
+}
+
+/* Banda de rebobinação enxuta (só exclusivos) — não estica a página. */
+.ficha-sheet-op-chao--unificada .op-chao-table--acabamento {
+  width: auto;
+  max-width: 100%;
+}
+
+.ficha-sheet-op-chao--unificada .op-chao-table--acabamento th,
+.ficha-sheet-op-chao--unificada .op-chao-table--acabamento td {
+  min-width: 28mm;
 }
 
 /* OP materiais · retirada — A4 paisagem. Satélite da ficha flexo retrato. */
@@ -11630,7 +11641,7 @@ tr.row-inactive td {
   margin: 6mm;
 }
 
-/* A4 paisagem — Impressão / Acabamento da OP (satélite; não altera ficha flexo). */
+/* A4 paisagem — Impressão e acabamento da OP (satélite unificado; não altera ficha flexo). */
 @page ficha-op-chao-a4 {
   size: A4 landscape;
   margin: 6mm;
