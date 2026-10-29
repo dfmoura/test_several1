@@ -26,8 +26,8 @@
         </p>
       @elseif($motivoNova)
         <p>{{ $motivoNova }}</p>
-        @if($empresa->status === 'AGUARDA_PIX')
-          <p><a class="btn" href="{{ route('conta') }}">Ver ativação</a></p>
+        @if($empresa->status === 'AGUARDA_PIX' && $pixAtivacao)
+          <p><a class="btn" href="{{ route('pix.mostrar', $pixAtivacao->txid) }}">Pagar PIX de ativação</a></p>
         @endif
         @if($motivoNova === 'Falta saldo para abrir uma demanda.')
           <p><a class="btn" href="{{ route('conta.recarga') }}">Adicionar saldo</a></p>

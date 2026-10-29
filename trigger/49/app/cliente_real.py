@@ -74,12 +74,20 @@ class ClienteFaixaA:
             },
         )
 
-    def resultados(self, numero: str) -> list[dict]:
-        dados = self.http.get_json(
-            URL_RESULTADOS.replace("3_consultar", "3.1_consultar"),
-            {"codigo": numero, "tipo": "numeroControlePNCPCompra"},
+    def resultados(
+        self, *, uasg: str, inicio: date, fim: date, pagina: int, tamanho: int
+    ) -> dict:
+        # Mesmo padrão do sistema 23: janela por UASG, não consulta por número isolado.
+        return self.http.get_json(
+            URL_RESULTADOS,
+            {
+                "pagina": pagina,
+                "tamanhoPagina": tamanho,
+                "unidadeOrgaoCodigoUnidade": uasg,
+                "dataResultadoPncpInicial": inicio.isoformat(),
+                "dataResultadoPncpFinal": fim.isoformat(),
+            },
         )
-        return [item for item in dados.get("resultado") or [] if isinstance(item, dict)]
 
     def catalogo(self, codigo: str, tipo: str) -> dict | None:
         return None

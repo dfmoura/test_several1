@@ -13,8 +13,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $parametros = [
-            'ATIVACAO_CENTAVOS' => '50000',
-            'TICKET_ABERTURA' => '50000',
+            'ATIVACAO_CENTAVOS' => '100000',
+            'TICKET_ABERTURA' => '100000',
+            'RECARGA_MINIMA_CENTAVOS' => '100001',
             'VALIDADE_PROPOSTA_DIAS' => '10',
             'EXPIRACAO_PIX_MINUTOS' => '60',
             'RECUSAS_SEM_CUSTO' => '2',
@@ -57,5 +58,9 @@ class DatabaseSeeder extends Seeder
                 'criado_em' => now(),
             ],
         );
+
+        if (app()->environment('local')) {
+            $this->call(DemoLocalSeeder::class);
+        }
     }
 }

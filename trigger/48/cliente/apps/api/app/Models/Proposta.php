@@ -16,6 +16,7 @@ class Proposta extends Model
     protected function casts(): array
     {
         return [
+            'etapas' => 'array',
             'valida_ate' => 'datetime',
             'criada_em' => 'datetime',
         ];
@@ -39,9 +40,18 @@ class Proposta extends Model
             'restricoes' => $this->restricoes,
             'incluso' => $this->incluso,
             'nao_incluso' => $this->nao_incluso,
+            'etapas' => is_array($this->etapas) ? $this->etapas : [],
             'prazo_dias_uteis' => $this->prazo_dias_uteis,
             'valor_centavos' => $this->valor_centavos,
             'observacao' => $this->observacao,
         ];
+    }
+
+    /**
+     * @return list<array{ordem: int, titulo: string, resultado: string, aceite: string}>
+     */
+    public function planoEtapas(): array
+    {
+        return is_array($this->etapas) ? $this->etapas : [];
     }
 }

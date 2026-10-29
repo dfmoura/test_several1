@@ -1,0 +1,2486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Observatório Social Brasil · Compras públicas</title>
+  <link rel="icon" href="/static/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap"
+    rel="stylesheet"
+  />
+    <link rel="stylesheet" href="/static/style.css?v=osb50-90" />
+</head>
+<body>
+  <!-- ===== AUTH (layout UX trigger/23 — sem Power BI) ===== -->
+  <div id="login-page" class="login-page auth-gate" hidden>
+    <div class="login-form-card auth-card">
+      <div class="login-auth-brand auth-brand">
+        <div class="brand-logo-wrap">
+          <img
+            class="brand-logo"
+            src="/static/logo_osb.webp"
+            alt="Observatório Social do Brasil"
+            width="1024"
+            height="387"
+            decoding="async"
+          />
+        </div>
+      </div>
+
+      <h1 class="login-product-eyebrow">Acesso</h1>
+
+      <div id="auth-acesso-restrito" class="alert alert-warning" hidden role="status"></div>
+      <div id="auth-msg" class="alert alert-error" hidden role="status"></div>
+
+      <div id="auth-login-panel">
+        <form id="form-auth-login" class="form-col">
+          <div class="form-group field">
+            <label for="auth-login-user">Usuário</label>
+            <input id="auth-login-user" type="text" required autocomplete="username" maxlength="80" />
+          </div>
+          <div class="form-group field">
+            <label for="auth-login-pass">Senha</label>
+            <input id="auth-login-pass" type="password" required autocomplete="current-password" maxlength="200" />
+          </div>
+          <button type="submit" class="btn btn-primary primary">Entrar</button>
+        </form>
+        <div id="auth-takeover" class="login-takeover auth-takeover" hidden>
+          <p class="auth-takeover-lead">
+            Já existe uma sessão ativa nesta conta. Com a senha correta você pode
+            encerrar a anterior e entrar aqui.
+          </p>
+          <button type="button" class="btn btn-secondary ghost" id="btn-auth-takeover">
+            Encerrar sessão anterior e entrar
+          </button>
+        </div>
+      </div>
+
+      <div id="auth-bootstrap-panel" hidden>
+        <form id="form-auth-bootstrap" class="form-col">
+          <p class="subtitle auth-lead" style="margin-top:0">
+            Nenhum usuário cadastrado. Crie o <strong>primeiro administrador</strong>.
+          </p>
+          <div class="form-group field">
+            <label for="auth-boot-user">Usuário admin</label>
+            <input id="auth-boot-user" type="text" required minlength="3" maxlength="80" autocomplete="username" />
+          </div>
+          <div class="form-group field">
+            <label for="auth-boot-pass">Senha</label>
+            <input id="auth-boot-pass" type="password" required minlength="6" maxlength="200" autocomplete="new-password" />
+          </div>
+          <div class="form-group field">
+            <label for="auth-boot-pass2">Confirmar senha</label>
+            <input id="auth-boot-pass2" type="password" required minlength="6" maxlength="200" autocomplete="new-password" />
+          </div>
+          <button type="submit" class="btn btn-primary primary">Criar administrador</button>
+        </form>
+      </div>
+    </div>
+    <a
+      class="vendor-credit vendor-credit--auth"
+      href="https://www.triggerti.com"
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Trigger Data Intelligence"
+    >
+      <img class="vendor-mark" src="/static/trigger-mark.png" width="18" height="18" alt="" decoding="async" />
+      <span>Desenvolvido pela <strong>Trigger</strong></span>
+    </a>
+  </div>
+
+  <!-- ===== APP SHELL (layout UX trigger/23) ===== -->
+  <div id="app-shell" class="app-layout app-shell" hidden>
+    <aside class="app-sidebar sidebar">
+      <div class="sidebar-brand brand">
+        <div class="brand-logo-wrap">
+          <img
+            class="brand-logo"
+            src="/static/logo_osb.webp"
+            alt="Observatório Social do Brasil"
+            width="1024"
+            height="387"
+            decoding="async"
+          />
+        </div>
+        <div class="sidebar-product">
+          <span class="sidebar-product-meta">Produto</span>
+          <span class="sidebar-product-name">Compras públicas</span>
+          <span class="sidebar-product-byline">Analytics nativo · multiunidade</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav nav" aria-label="Menu principal">
+        <div class="nav-group" data-nav-group="analise">
+          <div class="nav-group-label">Análise</div>
+          <a href="#inicio" data-nav="inicio" class="nav-btn active">Início</a>
+          <a href="#alertas" data-nav="alertas" class="nav-btn" id="nav-alertas">Alertas</a>
+          <a href="#compras" data-nav="compras" class="nav-btn" id="nav-compras" hidden>Compras.gov</a>
+          <a href="#propostas" data-nav="propostas" class="nav-btn" id="nav-propostas" hidden>Propostas abertas</a>
+          <a href="#vencedores" data-nav="vencedores" class="nav-btn" id="nav-vencedores" hidden>CNPJs vencedores</a>
+        </div>
+        <div class="nav-group" data-nav-group="dados" id="nav-group-dados">
+          <div class="nav-group-label">Dados</div>
+          <a href="#coleta" data-nav="coleta" class="nav-btn" id="nav-coleta">Coleta</a>
+          <a href="#enriquecimento" data-nav="enriquecimento" class="nav-btn" id="nav-enriquecimento">Enriquecimento</a>
+          <a href="#operacao" data-nav="operacao" class="nav-btn" id="nav-operacao">Operação</a>
+        </div>
+        <div class="nav-group" data-nav-group="cadastros" id="nav-group-cadastros">
+          <div class="nav-group-label">Cadastros</div>
+          <a href="#organizacao" data-nav="organizacao" class="nav-btn" id="nav-organizacao">Organização</a>
+          <a href="#territorio" data-nav="territorio" class="nav-btn" id="nav-territorio">Território</a>
+          <a href="#configuracao" data-nav="configuracao" class="nav-btn" id="nav-configuracao">Configuração</a>
+          <a href="#usuarios" data-nav="usuarios" class="nav-btn" id="nav-usuarios" hidden>Usuários</a>
+          <a href="#backlog" data-nav="backlog" class="nav-btn" id="nav-backlog">Backlog</a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer sidebar-foot">
+        <div class="auth-user-box">
+          <div class="auth-user-row">
+            <div class="auth-user-meta">
+              <p class="sidebar-foot-title" style="margin:0 0 3px;font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--side-muted)">Sessão</p>
+              <p class="auth-user-name user-name" id="whoami" style="margin:0;font-size:12.5px;font-weight:600;color:#e8f0ee">—</p>
+              <p class="auth-user-papel user-role" id="whoami-papel" style="margin:1px 0 0;font-size:11px;color:var(--side-muted)"></p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm auth-logout-btn" id="btn-logout">Sair</button>
+          </div>
+        </div>
+        <div class="sidebar-vendor">
+          <a
+            class="vendor-credit"
+            href="https://www.triggerti.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Trigger Data Intelligence"
+          >
+            <img class="vendor-mark" src="/static/trigger-mark.png" width="16" height="16" alt="" decoding="async" />
+            <span>Desenvolvido pela <strong>Trigger</strong></span>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <div class="app-main content">
+      <header class="app-header topbar">
+        <div class="header-product">
+          <div>
+            <div class="header-product-label">Monitoramento</div>
+            <div class="header-title topbar-title">Observatório Social Brasil</div>
+          </div>
+        </div>
+
+        <div class="header-controls">
+          <div class="escopo-header" id="escopo-header" hidden>
+            <div class="unidade-switcher-label" id="escopo-rotulo">—</div>
+            <div class="filtro-visao-wrap" id="filtro-visao-wrap" hidden>
+              <label class="unidade-switcher-label" for="filtro-visao-select">Filtrar visão</label>
+              <select id="filtro-visao-select" aria-describedby="filtro-visao-ajuda"></select>
+              <span id="filtro-visao-ajuda" class="sr-only">
+                Escolha matriz (consolidado) ou filial dentro do seu ACL. Não altera permissões.
+              </span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div id="unidade-flash" class="unidade-flash" hidden role="status"></div>
+      <div id="ops-acesso-banner" class="ops-acesso-banner" hidden role="status"></div>
+
+      <main class="app-content">
+        <!-- Início = indicadores (lentes rede × unidade). Consulta densa — sem page-header (padrão Compras.gov). Alias legado: #indicadores → #inicio -->
+        <section id="view-inicio" class="view" aria-label="Início">
+          <div class="stack-gap">
+            <div class="card">
+              <div class="card-body">
+                <p class="muted" id="ind-contexto">—</p>
+                <div
+                  class="ind-periodo-bar"
+                  id="ind-periodo-bar"
+                  role="group"
+                  aria-label="Período dos indicadores"
+                >
+                  <div
+                    class="ind-periodo-toggle"
+                    role="tablist"
+                    aria-label="Preset de período"
+                    id="ind-periodo-toggle"
+                  >
+                    <button
+                      type="button"
+                      class="ind-periodo-btn active"
+                      role="tab"
+                      aria-selected="true"
+                      data-periodo="ano_atual"
+                      id="ind-periodo-ano-atual"
+                    >
+                      Ano atual
+                    </button>
+                    <button
+                      type="button"
+                      class="ind-periodo-btn"
+                      role="tab"
+                      aria-selected="false"
+                      data-periodo="ano_anterior"
+                      id="ind-periodo-ano-anterior"
+                    >
+                      Ano anterior
+                    </button>
+                    <button
+                      type="button"
+                      class="ind-periodo-btn"
+                      role="tab"
+                      aria-selected="false"
+                      data-periodo="quadrimestre"
+                      id="ind-periodo-quad"
+                    >
+                      Quadrimestre
+                    </button>
+                    <button
+                      type="button"
+                      class="ind-periodo-btn"
+                      role="tab"
+                      aria-selected="false"
+                      data-periodo="intervalo"
+                      id="ind-periodo-intervalo"
+                    >
+                      Intervalo
+                    </button>
+                    <button
+                      type="button"
+                      class="ind-periodo-btn"
+                      role="tab"
+                      aria-selected="false"
+                      data-periodo="tudo"
+                      id="ind-periodo-tudo"
+                    >
+                      Tudo
+                    </button>
+                  </div>
+                  <!-- Slot único: rótulo | De–Até | ano+slider Q -->
+                  <div class="ind-periodo-slot" id="ind-periodo-slot">
+                    <p
+                      class="ind-periodo-rotulo muted"
+                      id="ind-periodo-rotulo"
+                      aria-live="polite"
+                    >
+                      —
+                    </p>
+                    <form
+                      id="form-ind-periodo-intervalo"
+                      class="ind-periodo-intervalo"
+                      hidden
+                      aria-label="Intervalo personalizado"
+                    >
+                      <div class="ind-periodo-campo">
+                        <label for="ind-data-inicio">De</label>
+                        <input type="date" id="ind-data-inicio" required />
+                      </div>
+                      <div class="ind-periodo-campo">
+                        <label for="ind-data-fim">Até</label>
+                        <input type="date" id="ind-data-fim" required />
+                      </div>
+                      <button type="submit" class="btn btn-primary btn-sm">Aplicar</button>
+                    </form>
+                    <div
+                      id="ind-periodo-quad-wrap"
+                      class="ind-periodo-quad"
+                      hidden
+                      role="group"
+                      aria-label="Quadrimestre"
+                    >
+                      <div class="ind-quad-ano-wrap">
+                        <button
+                          type="button"
+                          class="ind-quad-ano-btn"
+                          id="ind-quad-ano-prev"
+                          aria-label="Ano anterior"
+                        >
+                          ‹
+                        </button>
+                        <span class="ind-quad-ano" id="ind-quad-ano" aria-live="polite">2026</span>
+                        <button
+                          type="button"
+                          class="ind-quad-ano-btn"
+                          id="ind-quad-ano-next"
+                          aria-label="Próximo ano"
+                        >
+                          ›
+                        </button>
+                      </div>
+                      <div class="ind-quad-slider-wrap">
+                        <input
+                          type="range"
+                          id="ind-quad-range"
+                          class="ind-quad-range"
+                          min="1"
+                          max="3"
+                          step="1"
+                          value="3"
+                          aria-valuemin="1"
+                          aria-valuemax="3"
+                          aria-valuenow="3"
+                          aria-label="Quadrimestre do ano"
+                        />
+                        <div class="ind-quad-ticks" aria-hidden="true">
+                          <span>Q1</span><span>Q2</span><span>Q3</span>
+                        </div>
+                      </div>
+                      <p class="ind-periodo-rotulo muted" id="ind-quad-rotulo">—</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-grid ind-kpi-grid" style="margin-top:0.85rem">
+                  <div
+                    class="ind-kpi ind-kpi--dual"
+                    title="Processos de compra no escopo (total) e com resultado homologado no PNCP (existe resultado ou registro 07.3)."
+                  >
+                    <h3>Contratações</h3>
+                    <p class="ind-kpi-hint">Total · homologadas</p>
+                    <div
+                      class="ind-kpi-dual"
+                      role="group"
+                      aria-label="Contratações: total e homologadas"
+                    >
+                      <div class="ind-kpi-metric ind-kpi-metric--contratado">
+                        <span class="ind-kpi-metric-label">Total</span>
+                        <p class="ind-kpi-n" id="ind-contratacoes">0</p>
+                      </div>
+                      <div class="ind-kpi-metric ind-kpi-metric--homologado">
+                        <span class="ind-kpi-metric-label">Homologadas</span>
+                        <p class="ind-kpi-n" id="ind-contratacoes-homologadas">0</p>
+                      </div>
+                    </div>
+                    <p class="ind-kpi-rate muted" id="ind-contratacoes-taxa" hidden></p>
+                  </div>
+                  <div
+                    class="ind-kpi ind-kpi--dual"
+                    title="Soma do valor estimado das contratações no escopo e do valor homologado das que têm resultado no PNCP."
+                  >
+                    <h3>Valor</h3>
+                    <p class="ind-kpi-hint">Estimado · homologado</p>
+                    <div
+                      class="ind-kpi-dual"
+                      role="group"
+                      aria-label="Valor: estimado e homologado"
+                    >
+                      <div class="ind-kpi-metric ind-kpi-metric--contratado">
+                        <span class="ind-kpi-metric-label">Estimado</span>
+                        <p
+                          class="ind-kpi-n ind-kpi-n--money"
+                          id="ind-valor-contratacoes"
+                        >
+                          R$ 0,00
+                        </p>
+                      </div>
+                      <div class="ind-kpi-metric ind-kpi-metric--homologado">
+                        <span class="ind-kpi-metric-label">Homologado</span>
+                        <p
+                          class="ind-kpi-n ind-kpi-n--money"
+                          id="ind-valor-homologadas"
+                        >
+                          R$ 0,00
+                        </p>
+                      </div>
+                    </div>
+                    <p class="ind-kpi-rate muted" id="ind-valor-taxa" hidden></p>
+                  </div>
+                  <div
+                    class="ind-kpi ind-kpi--dual"
+                    id="ind-kpi-cobertura-acompanhamento"
+                    hidden
+                    title="Contratações com ≥1 responsável na filial (preferência operacional — não ACL) e sem responsável."
+                  >
+                    <h3>Responsável</h3>
+                    <p class="ind-kpi-hint">Com · sem</p>
+                    <div
+                      class="ind-kpi-dual"
+                      role="group"
+                      aria-label="Com e sem responsável"
+                    >
+                      <div class="ind-kpi-metric ind-kpi-metric--contratado">
+                        <span class="ind-kpi-metric-label">Com</span>
+                        <p class="ind-kpi-n" id="ind-acompanhamento-com">0</p>
+                      </div>
+                      <div class="ind-kpi-metric ind-kpi-metric--homologado">
+                        <span class="ind-kpi-metric-label">Sem</span>
+                        <p class="ind-kpi-n" id="ind-acompanhamento-sem">0</p>
+                      </div>
+                    </div>
+                    <p class="ind-kpi-rate muted" id="ind-acompanhamento-taxa" hidden></p>
+                  </div>
+                  <div
+                    class="ind-kpi"
+                    id="ind-kpi-filiais"
+                    hidden
+                    title="Quantidade de filiais cobertas pelo escopo do seu login."
+                  >
+                    <h3>Filiais no escopo</h3>
+                    <p class="ind-kpi-hint">Unidades cobertas pelo seu login</p>
+                    <p class="ind-kpi-n" id="ind-filiais">0</p>
+                  </div>
+                  <div
+                    class="ind-kpi"
+                    id="ind-kpi-uasgs"
+                    title="Unidades compradoras (UASG) monitoradas no escopo."
+                  >
+                    <h3>UASGs ativas</h3>
+                    <p class="ind-kpi-hint">Unidades compradoras monitoradas</p>
+                    <p class="ind-kpi-n" id="ind-uasgs">0</p>
+                  </div>
+                  <!-- Pessoal permanece na API (acompanhamentos_meus); UI prioriza cobertura. -->
+                  <div id="ind-kpi-acompanhamentos" hidden aria-hidden="true">
+                    <p class="ind-kpi-n" id="ind-acompanhamentos-meus">0</p>
+                  </div>
+                  <div
+                    class="ind-kpi"
+                    title="Municípios IBGE associados ao monitoramento no escopo."
+                  >
+                    <h3>Municípios</h3>
+                    <p class="ind-kpi-hint">Localidades monitoradas (IBGE)</p>
+                    <p class="ind-kpi-n" id="ind-municipios">—</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Lente rede: rede geográfica (mapa + ranking) + tabela completa sob demanda -->
+            <div class="card" id="ind-painel-rede" hidden>
+              <div class="card-body">
+                <div class="page-header-row ind-comp-header">
+                  <div>
+                    <h3 id="ind-rede-titulo">Rede geográfica</h3>
+                    <p class="muted" id="ind-rede-desc" style="margin-top:0.35rem">
+                      Totais por filial no mapa — mesmo período e métrica do Início.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="ind-rede-layout" id="ind-rede-layout">
+                  <div class="ind-rede-map-col">
+                    <div class="ind-geo-shell ind-rede-shell" id="ind-rede-shell">
+                      <div
+                        id="ind-rede-map"
+                        class="ind-geo-map"
+                        role="img"
+                        aria-label="Mapa da rede de filiais por totais"
+                      ></div>
+                      <button
+                        type="button"
+                        class="ind-geo-fs"
+                        id="btn-ind-rede-fs"
+                        title="Tela cheia"
+                        aria-label="Abrir mapa da rede em tela cheia"
+                        aria-pressed="false"
+                      >
+                        <svg class="ind-geo-fs-icon ind-geo-fs-expand" width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                          <path fill="currentColor" d="M2.5 2.5h3.2v1.2H3.7v1.98H2.5V2.5zm7.8 0h3.2v3.18h-1.2V3.7H10.3V2.5zM2.5 10.32H3.7v1.98h1.98v1.2H2.5v-3.18zm9.98 1.98V10.32h1.2v3.18h-3.2v-1.2h1.98z"/>
+                        </svg>
+                        <svg class="ind-geo-fs-icon ind-geo-fs-compress" width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                          <path fill="currentColor" d="M6.2 2.5v3.18H2.5V4.48h2.5V2.5h1.2zm3.6 0h1.2v1.98h2.5v1.2H9.8V2.5zM2.5 9.82h3.7V13.5H5V11.02H2.5v-1.2zm7.3 0H13.5v1.2H11v2.48H9.8V9.82z"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <div id="ind-rede-legend" class="ind-geo-legend"></div>
+                    <div class="ind-geo-meta">
+                      <p id="ind-rede-footer" class="ind-geo-footer muted"></p>
+                      <button type="button" class="btn btn-secondary btn-sm" id="btn-ind-rede-brasil" hidden>
+                        Ver Brasil
+                      </button>
+                    </div>
+                  </div>
+                  <div class="ind-rede-rank-col">
+                    <h4 class="ind-breakdown-title" id="ind-rede-rank-titulo">Filiais</h4>
+                    <p class="ind-breakdown-hint muted" id="ind-rede-rank-hint">
+                      Clique para focar · Abrir visão para detalhar a filial
+                    </p>
+                    <div
+                      id="ind-rede-ranking"
+                      class="ind-rede-ranking"
+                      aria-live="polite"
+                      aria-label="Ranking de filiais"
+                    ></div>
+                  </div>
+                </div>
+
+                <details class="ind-rede-table-details" id="ind-rede-table-details">
+                  <summary>Ver tabela completa</summary>
+                  <div
+                    class="table-wrap table-wrap--scroll-y"
+                    style="margin-top:0.65rem"
+                    aria-label="Andamento por filial — tabela com rolagem"
+                  >
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th>Filial</th>
+                          <th>UF</th>
+                          <th>Código</th>
+                          <th>UASGs</th>
+                          <th>Contratações</th>
+                          <th title="Contratações com resultado no PNCP">Homologadas</th>
+                          <th title="Processos com ≥1 usuário da filial acompanhando (preferência)">Com resp.</th>
+                          <th title="Processos sem responsável na filial">Sem resp.</th>
+                          <th title="Valor estimado das contratações">Valor</th>
+                          <th title="Valor homologado das contratações com resultado PNCP">Valor homologado</th>
+                          <th>Municípios</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tbody-comp-filial"></tbody>
+                    </table>
+                  </div>
+                </details>
+              </div>
+            </div>
+
+            <div class="card" id="ind-card-analise">
+              <div class="card-body">
+                <div class="page-header-row ind-comp-header">
+                  <div>
+                    <h3 id="ind-comp-titulo">Comparativos</h3>
+                    <p class="muted" id="ind-comp-desc" style="margin-top:0.35rem">
+                      Agregações nativas no escopo — Compras.gov / PNCP.
+                    </p>
+                  </div>
+                  <div class="ind-comp-controls">
+                    <div
+                      class="ind-analise-toggle"
+                      role="tablist"
+                      aria-label="Grupo de análise"
+                      id="ind-analise-toggle"
+                      hidden
+                    >
+                      <button
+                        type="button"
+                        class="ind-analise-btn active"
+                        role="tab"
+                        aria-selected="true"
+                        aria-controls="ind-pane-comparativos"
+                        data-analise="comparativos"
+                        id="ind-analise-comparativos"
+                      >
+                        Comparativos
+                      </button>
+                      <button
+                        type="button"
+                        class="ind-analise-btn"
+                        role="tab"
+                        aria-selected="false"
+                        aria-controls="ind-pane-geo"
+                        data-analise="geo"
+                        id="ind-analise-geo"
+                      >
+                        Distribuição geográfica
+                      </button>
+                    </div>
+                    <div
+                      class="ind-metrica-toggle"
+                      role="tablist"
+                      aria-label="Métrica dos gráficos"
+                      id="ind-metrica-toggle"
+                    >
+                      <button
+                        type="button"
+                        class="ind-metrica-btn active"
+                        role="tab"
+                        aria-selected="true"
+                        data-metrica="quantidade"
+                        id="ind-metrica-qtd"
+                      >
+                        Quantidade
+                      </button>
+                      <button
+                        type="button"
+                        class="ind-metrica-btn"
+                        role="tab"
+                        aria-selected="false"
+                        data-metrica="valor"
+                        id="ind-metrica-valor"
+                      >
+                        Valor
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="ind-analise-pane"
+                  id="ind-pane-comparativos"
+                  role="tabpanel"
+                  aria-labelledby="ind-analise-comparativos"
+                  data-analise-pane="comparativos"
+                >
+                  <div class="ind-comp-legend" id="ind-comp-legend" aria-hidden="false">
+                    <span class="ind-legend-item ind-legend-item--contratado">
+                      <i class="ind-legend-swatch" aria-hidden="true"></i>
+                      Contratado
+                    </span>
+                    <span class="ind-legend-item ind-legend-item--homologado">
+                      <i class="ind-legend-swatch" aria-hidden="true"></i>
+                      Homologado
+                    </span>
+                    <span class="ind-legend-hint muted" id="ind-comp-legend-hint">
+                      Por porte = homologadas (predominante; sem 07.3 → Não informado)
+                    </span>
+                  </div>
+                  <div class="ind-breakdowns" style="margin-top:0.85rem">
+                    <!-- Por UASG: só lente filial (unidade). Matriz/rede omite. -->
+                    <div id="ind-bloco-uasg">
+                      <h3 class="ind-breakdown-title">Por UASG</h3>
+                      <div id="ind-bars-uasg" class="ind-bars"></div>
+                    </div>
+                    <div>
+                      <h3 class="ind-breakdown-title">Por modalidade</h3>
+                      <div id="ind-bars-mod" class="ind-bars"></div>
+                    </div>
+                    <div>
+                      <h3 class="ind-breakdown-title">Por situação</h3>
+                      <div id="ind-bars-sit" class="ind-bars"></div>
+                    </div>
+                    <div>
+                      <h3 class="ind-breakdown-title">Por porte</h3>
+                      <p class="ind-breakdown-hint muted">
+                        Mesmo universo do KPI homologadas · predominante por valor
+                      </p>
+                      <div id="ind-bars-porte" class="ind-bars"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="ind-analise-pane"
+                  id="ind-pane-geo"
+                  role="tabpanel"
+                  aria-labelledby="ind-analise-geo"
+                  data-analise-pane="geo"
+                  hidden
+                >
+                  <div class="ind-geo-toolbar">
+                    <p class="ind-geo-hint muted" id="ind-geo-hint">
+                      Sede do vencedor homologado · somente valores homologados
+                    </p>
+                    <div
+                      class="ind-geo-mode-toggle"
+                      role="group"
+                      aria-label="Modo do mapa"
+                      id="ind-geo-mode-toggle"
+                    >
+                      <button
+                        type="button"
+                        class="ind-geo-mode-btn active"
+                        data-mode="estados"
+                        id="ind-geo-mode-estados"
+                      >
+                        Estados
+                      </button>
+                      <button
+                        type="button"
+                        class="ind-geo-mode-btn"
+                        data-mode="calor"
+                        id="ind-geo-mode-calor"
+                      >
+                        Calor · municípios
+                      </button>
+                    </div>
+                  </div>
+                  <div class="ind-geo-shell" id="ind-geo-shell">
+                    <div
+                      id="ind-geo-map"
+                      class="ind-geo-map"
+                      role="img"
+                      aria-label="Mapa de distribuição por localidade dos vencedores"
+                    ></div>
+                    <button
+                      type="button"
+                      class="ind-geo-fs"
+                      id="btn-ind-geo-fs"
+                      title="Tela cheia"
+                      aria-label="Abrir mapa em tela cheia"
+                      aria-pressed="false"
+                    >
+                      <svg class="ind-geo-fs-icon ind-geo-fs-expand" width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                        <path fill="currentColor" d="M2.5 2.5h3.2v1.2H3.7v1.98H2.5V2.5zm7.8 0h3.2v3.18h-1.2V3.7H10.3V2.5zM2.5 10.32H3.7v1.98h1.98v1.2H2.5v-3.18zm9.98 1.98V10.32h1.2v3.18h-3.2v-1.2h1.98z"/>
+                      </svg>
+                      <svg class="ind-geo-fs-icon ind-geo-fs-compress" width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                        <path fill="currentColor" d="M6.2 2.5v3.18H2.5V4.48h2.5V2.5h1.2zm3.6 0h1.2v1.98h2.5v1.2H9.8V2.5zM2.5 9.82h3.7V13.5H5V11.02H2.5v-1.2zm7.3 0H13.5v1.2H11v2.48H9.8V9.82z"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div id="ind-geo-legend" class="ind-geo-legend"></div>
+                  <div class="ind-geo-meta">
+                    <p id="ind-geo-footer" class="ind-geo-footer muted"></p>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-ind-geo-brasil" hidden>
+                      Ver Brasil
+                    </button>
+                  </div>
+                  <div id="ind-geo-ranking" class="ind-geo-ranking" aria-live="polite"></div>
+                </div>
+              </div>
+            </div>
+            <!-- Listagem de contratações: só em Compras.gov (visão filial). Início = KPIs + análise. -->
+          </div>
+        </section>
+
+        <!-- Compras.gov: consulta densa — orientação pelo menu; sem page-header -->
+        <section id="view-compras" class="view" hidden aria-label="Compras.gov">
+          <div class="stack-gap">
+            <div class="card">
+              <div class="card-body">
+                <!-- Período: mesmo padrão do Início (não o select do trigger/23) -->
+                <div
+                  class="ind-periodo-bar compras-periodo-bar"
+                  id="compras-periodo-bar"
+                  role="group"
+                  aria-label="Período da consulta Compras.gov"
+                >
+                  <div
+                    class="ind-periodo-toggle"
+                    role="tablist"
+                    aria-label="Preset de período"
+                    id="compras-periodo-toggle"
+                  >
+                    <button type="button" class="ind-periodo-btn active" role="tab" aria-selected="true" data-periodo="ano_atual">Ano atual</button>
+                    <button type="button" class="ind-periodo-btn" role="tab" aria-selected="false" data-periodo="ano_anterior">Ano anterior</button>
+                    <button type="button" class="ind-periodo-btn" role="tab" aria-selected="false" data-periodo="quadrimestre">Quadrimestre</button>
+                    <button type="button" class="ind-periodo-btn" role="tab" aria-selected="false" data-periodo="intervalo">Intervalo</button>
+                    <button type="button" class="ind-periodo-btn" role="tab" aria-selected="false" data-periodo="tudo">Tudo</button>
+                  </div>
+                  <div class="ind-periodo-slot" id="compras-periodo-slot">
+                    <p class="ind-periodo-rotulo muted" id="compras-periodo-rotulo" aria-live="polite">—</p>
+                    <form id="form-compras-periodo-intervalo" class="ind-periodo-intervalo" hidden aria-label="Intervalo personalizado">
+                      <div class="ind-periodo-campo">
+                        <label for="compras-data-inicio">De</label>
+                        <input type="date" id="compras-data-inicio" required />
+                      </div>
+                      <div class="ind-periodo-campo">
+                        <label for="compras-data-fim">Até</label>
+                        <input type="date" id="compras-data-fim" required />
+                      </div>
+                      <button type="submit" class="btn btn-primary btn-sm">Aplicar</button>
+                    </form>
+                    <div id="compras-periodo-quad-wrap" class="ind-periodo-quad" hidden role="group" aria-label="Quadrimestre">
+                      <div class="ind-quad-ano-wrap">
+                        <button type="button" class="ind-quad-ano-btn" id="compras-quad-ano-prev" aria-label="Ano anterior">‹</button>
+                        <span class="ind-quad-ano" id="compras-quad-ano" aria-live="polite">2026</span>
+                        <button type="button" class="ind-quad-ano-btn" id="compras-quad-ano-next" aria-label="Próximo ano">›</button>
+                      </div>
+                      <div class="ind-quad-slider-wrap">
+                        <input
+                          type="range"
+                          id="compras-quad-range"
+                          class="ind-quad-range"
+                          min="1"
+                          max="3"
+                          step="1"
+                          value="3"
+                          aria-valuemin="1"
+                          aria-valuemax="3"
+                          aria-valuenow="3"
+                          aria-label="Quadrimestre do ano"
+                        />
+                        <div class="ind-quad-ticks" aria-hidden="true">
+                          <span>Q1</span><span>Q2</span><span>Q3</span>
+                        </div>
+                      </div>
+                      <p class="ind-periodo-rotulo muted" id="compras-quad-rotulo">—</p>
+                    </div>
+                  </div>
+                </div>
+
+                <form id="form-compras-busca" class="compras-filtros-grid" style="margin-top:0.85rem">
+                  <div class="form-group compras-fg-uasg">
+                    <label for="compras-filtro-uasg">UASG</label>
+                    <select id="compras-filtro-uasg">
+                      <option value="">Todas do escopo</option>
+                    </select>
+                  </div>
+                  <div class="form-group compras-fg-compact">
+                    <label for="compras-filtro-situacao">Situação</label>
+                    <select id="compras-filtro-situacao" title="Situação">
+                      <option value="">Todas</option>
+                    </select>
+                  </div>
+                  <div class="form-group compras-fg-mod">
+                    <label for="compras-filtro-modalidade">Modalidade</label>
+                    <div
+                      id="compras-filtro-modalidade"
+                      class="ms"
+                      data-placeholder="Todas"
+                      aria-label="Modalidade"
+                    ></div>
+                  </div>
+                  <div class="form-group compras-fg-compact compras-fg-tipo">
+                    <label for="compras-filtro-tipo">Tipo</label>
+                    <select id="compras-filtro-tipo" title="Tipo">
+                      <option value="">Todos</option>
+                      <option value="M">Material</option>
+                      <option value="S">Serviço</option>
+                    </select>
+                  </div>
+                  <div class="form-group compras-fg-compact">
+                    <label for="compras-filtro-processo">Processo</label>
+                    <input id="compras-filtro-processo" type="text" maxlength="80" placeholder="Nº" autocomplete="off" title="Processo" />
+                  </div>
+                  <div class="form-group compras-fg-compact">
+                    <label for="compras-filtro-numero">Nº</label>
+                    <input id="compras-filtro-numero" type="text" maxlength="40" placeholder="Compra" autocomplete="off" title="Nº compra" />
+                  </div>
+                  <div class="form-group compras-fg-q">
+                    <label for="compras-filtro-q">Busca</label>
+                    <input id="compras-filtro-q" type="text" maxlength="200" placeholder="Objeto, PNCP ou idCompra" autocomplete="off" />
+                  </div>
+                  <div class="form-group compras-fg-compact">
+                    <label for="compras-filtro-acompanhamento">Acompanhamento</label>
+                    <select
+                      id="compras-filtro-acompanhamento"
+                      title="Cobertura da filial e preferência pessoal — não altera permissões"
+                    >
+                      <option value="">Todas</option>
+                      <option value="com">Com responsável</option>
+                      <option value="sem_resp">Sem responsável</option>
+                      <option value="minhas">Que eu acompanho</option>
+                      <option value="sem">Que eu não acompanho</option>
+                    </select>
+                  </div>
+                  <div class="form-group compras-filtro-actions">
+                    <label class="compras-filtro-actions-label" aria-hidden="true">&nbsp;</label>
+                    <div class="compras-filtro-btns">
+                      <button
+                        type="submit"
+                        class="btn btn-primary btn-icon"
+                        title="Buscar"
+                        aria-label="Buscar"
+                      >
+                        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                          <path
+                            fill="currentColor"
+                            d="M11.7 10.3a5.5 5.5 0 1 0-1.4 1.4l3.3 3.3a1 1 0 0 0 1.4-1.4l-3.3-3.3zM6.5 10a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-secondary btn-icon"
+                        id="btn-compras-limpar"
+                        title="Limpar filtros"
+                        aria-label="Limpar filtros"
+                      >
+                        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                          <path
+                            fill="currentColor"
+                            d="M4.2 3.1a.75.75 0 0 1 1.06 0L8 5.84l2.74-2.74a.75.75 0 1 1 1.06 1.06L9.06 6.9l2.74 2.74a.75.75 0 1 1-1.06 1.06L8 7.96l-2.74 2.74a.75.75 0 0 1-1.06-1.06L6.94 6.9 4.2 4.16a.75.75 0 0 1 0-1.06z"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+                <p class="muted compras-consulta-meta" id="compras-consulta-meta" aria-live="polite">—</p>
+
+                <div
+                  class="table-wrap table-wrap--scroll-y table-wrap--compras"
+                  style="margin-top:0.75rem"
+                >
+                  <table class="data-table" id="table-compras">
+                    <thead id="compras-tabela-head">
+                      <tr>
+                        <th class="sortable col-num-compra" data-sort="numero">Nº / Modalidade</th>
+                        <th class="sortable col-processo" data-sort="processo">Processo</th>
+                        <th class="sortable col-uasg" data-sort="uasg">UASG</th>
+                        <th class="sortable col-num col-ano" data-sort="ano">Ano</th>
+                        <th class="sortable col-situacao" data-sort="situacao">Situação</th>
+                        <th class="sortable col-num col-money" data-sort="valor_est">Valor est.</th>
+                        <th class="sortable col-num col-money" data-sort="valor_hom">Valor hom.</th>
+                        <th class="sortable col-pncp" data-sort="pncp">PNCP</th>
+                        <th class="sortable col-tipo" data-sort="tipo">Tipo</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-contratacoes"></tbody>
+                  </table>
+                </div>
+
+                <div
+                  class="compras-pager"
+                  id="compras-pager"
+                  hidden
+                  role="navigation"
+                  aria-label="Paginação da consulta"
+                >
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-icon"
+                    id="compras-page-prev"
+                    title="Página anterior"
+                    aria-label="Página anterior"
+                  >
+                    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                      <path
+                        fill="currentColor"
+                        d="M10.5 3.2a.75.75 0 0 1 0 1.06L7.06 7.7l3.44 3.44a.75.75 0 1 1-1.06 1.06l-4-4a.75.75 0 0 1 0-1.06l4-4a.75.75 0 0 1 1.06 0z"
+                      />
+                    </svg>
+                  </button>
+                  <p class="compras-pager-label muted" id="compras-pager-label" aria-live="polite">—</p>
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-icon"
+                    id="compras-page-next"
+                    title="Próxima página"
+                    aria-label="Próxima página"
+                  >
+                    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                      <path
+                        fill="currentColor"
+                        d="M5.5 3.2a.75.75 0 0 1 1.06 0l4 4a.75.75 0 0 1 0 1.06l-4 4a.75.75 0 1 1-1.06-1.06L8.94 7.7 5.5 4.26a.75.75 0 0 1 0-1.06z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Propostas abertas: itens com prazo PNCP vigente (visão filial · sem IA) -->
+        <section id="view-propostas" class="view" hidden aria-label="Propostas abertas">
+          <div class="stack-gap">
+            <div class="card">
+              <div class="card-body">
+                <form id="form-propostas-busca" class="compras-filtros-grid">
+                  <div class="form-group compras-fg-compact">
+                    <label for="prop-filtro-horizonte">Horizonte</label>
+                    <select id="prop-filtro-horizonte" title="Prazo até o encerramento">
+                      <option value="todos" selected>Todos abertos</option>
+                      <option value="24h">Até 24 horas</option>
+                      <option value="72h">Até 72 horas</option>
+                      <option value="7d">Até 7 dias</option>
+                      <option value="30d">Até 30 dias</option>
+                    </select>
+                  </div>
+                  <div class="form-group compras-fg-uasg">
+                    <label for="prop-filtro-uasg">UASG</label>
+                    <select id="prop-filtro-uasg" title="UASGs vinculadas à filial da visão filtrada">
+                      <option value="">Todas da filial</option>
+                    </select>
+                  </div>
+                  <div class="form-group compras-fg-mod">
+                    <label for="prop-filtro-modalidade">Modalidade</label>
+                    <div
+                      id="prop-filtro-modalidade"
+                      class="ms"
+                      data-placeholder="Todas"
+                      aria-label="Modalidade"
+                    ></div>
+                  </div>
+                  <div class="form-group compras-fg-compact compras-fg-tipo">
+                    <label for="prop-filtro-tipo">Tipo</label>
+                    <select id="prop-filtro-tipo" title="Tipo">
+                      <option value="">Todos</option>
+                      <option value="M">Material</option>
+                      <option value="S">Serviço</option>
+                    </select>
+                  </div>
+                  <div class="form-group compras-fg-q">
+                    <label for="prop-filtro-q">Busca</label>
+                    <input
+                      id="prop-filtro-q"
+                      type="text"
+                      maxlength="200"
+                      placeholder="Objeto, processo, PNCP ou descrição"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div class="form-group compras-fg-compact">
+                    <label for="prop-filtro-acompanhamento">Acompanhamento</label>
+                    <select
+                      id="prop-filtro-acompanhamento"
+                      title="Cobertura da filial e preferência pessoal — não altera permissões"
+                    >
+                      <option value="">Todas</option>
+                      <option value="com">Com responsável</option>
+                      <option value="sem_resp">Sem responsável</option>
+                      <option value="minhas">Que eu acompanho</option>
+                      <option value="sem">Que eu não acompanho</option>
+                    </select>
+                  </div>
+                  <div class="form-group compras-filtro-actions">
+                    <label class="compras-filtro-actions-label" aria-hidden="true">&nbsp;</label>
+                    <div class="compras-filtro-btns">
+                      <button
+                        type="submit"
+                        class="btn btn-primary btn-icon"
+                        title="Buscar"
+                        aria-label="Buscar"
+                      >
+                        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                          <path
+                            fill="currentColor"
+                            d="M11.7 10.3a5.5 5.5 0 1 0-1.4 1.4l3.3 3.3a1 1 0 0 0 1.4-1.4l-3.3-3.3zM6.5 10a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-secondary btn-icon"
+                        id="btn-prop-limpar"
+                        title="Limpar filtros"
+                        aria-label="Limpar filtros"
+                      >
+                        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                          <path
+                            fill="currentColor"
+                            d="M4.2 3.1a.75.75 0 0 1 1.06 0L8 5.84l2.74-2.74a.75.75 0 1 1 1.06 1.06L9.06 6.9l2.74 2.74a.75.75 0 1 1-1.06 1.06L8 7.96l-2.74 2.74a.75.75 0 0 1-1.06-1.06L6.94 6.9 4.2 4.16a.75.75 0 0 1 0-1.06z"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+
+                <p class="muted compras-consulta-meta" id="prop-consulta-meta" aria-live="polite">—</p>
+                <div id="prop-resumo" class="prop-resumo" hidden aria-label="Síntese do recorte"></div>
+
+                <div
+                  class="table-wrap table-wrap--scroll-y table-wrap--compras"
+                  style="margin-top:0.75rem"
+                >
+                  <table class="data-table" id="table-propostas">
+                    <thead id="prop-tabela-head">
+                      <tr>
+                        <th class="sortable col-prazo" data-sort="horas_restantes">Prazo</th>
+                        <th class="sortable col-num-compra" data-sort="numero_compra">Compra</th>
+                        <th class="sortable col-processo" data-sort="processo">Processo</th>
+                        <th class="sortable col-num" data-sort="numero_item">Item</th>
+                        <th class="sortable" data-sort="descricao_resumida">Descrição</th>
+                        <th class="sortable col-num" data-sort="codigo_ncm">NCM</th>
+                        <th class="sortable col-num" data-sort="quantidade">Qtd</th>
+                        <th class="sortable col-num col-money" data-sort="valor_unitario_estimado_num">Unitário</th>
+                        <th class="sortable col-num col-money" data-sort="valor_total_num">Total est.</th>
+                        <th class="sortable col-num" data-sort="desvio_pct">vs mediana</th>
+                        <th class="sortable col-uasg" data-sort="uasg">UASG</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-propostas"></tbody>
+                  </table>
+                </div>
+
+                <div
+                  class="compras-pager"
+                  id="prop-pager"
+                  hidden
+                  role="navigation"
+                  aria-label="Paginação das propostas abertas"
+                >
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-icon"
+                    id="prop-page-prev"
+                    title="Página anterior"
+                    aria-label="Página anterior"
+                  >
+                    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                      <path
+                        fill="currentColor"
+                        d="M10.5 3.2a.75.75 0 0 1 0 1.06L7.06 7.7l3.44 3.44a.75.75 0 1 1-1.06 1.06l-4-4a.75.75 0 0 1 0-1.06l4-4a.75.75 0 0 1 1.06 0z"
+                      />
+                    </svg>
+                  </button>
+                  <p class="compras-pager-label muted" id="prop-pager-label" aria-live="polite">—</p>
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-icon"
+                    id="prop-page-next"
+                    title="Próxima página"
+                    aria-label="Próxima página"
+                  >
+                    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                      <path
+                        fill="currentColor"
+                        d="M5.5 3.2a.75.75 0 0 1 1.06 0l4 4a.75.75 0 0 1 0 1.06l-4 4a.75.75 0 1 1-1.06-1.06L8.94 7.7 5.5 4.26a.75.75 0 0 1 0-1.06z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CNPJs vencedores: consulta densa — mesmo padrão de período/filtros de Compras.gov -->
+        <section id="view-vencedores" class="view" hidden aria-label="CNPJs vencedores">
+          <div class="stack-gap">
+            <div class="card">
+              <div class="card-body">
+                <div
+                  class="ind-periodo-bar compras-periodo-bar"
+                  id="vencedores-periodo-bar"
+                  role="group"
+                  aria-label="Período da consulta CNPJs vencedores"
+                >
+                  <div
+                    class="ind-periodo-toggle"
+                    role="tablist"
+                    aria-label="Preset de período"
+                    id="vencedores-periodo-toggle"
+                  >
+                    <button type="button" class="ind-periodo-btn active" role="tab" aria-selected="true" data-periodo="ano_atual">Ano atual</button>
+                    <button type="button" class="ind-periodo-btn" role="tab" aria-selected="false" data-periodo="ano_anterior">Ano anterior</button>
+                    <button type="button" class="ind-periodo-btn" role="tab" aria-selected="false" data-periodo="quadrimestre">Quadrimestre</button>
+                    <button type="button" class="ind-periodo-btn" role="tab" aria-selected="false" data-periodo="intervalo">Intervalo</button>
+                    <button type="button" class="ind-periodo-btn" role="tab" aria-selected="false" data-periodo="tudo">Tudo</button>
+                  </div>
+                  <div class="ind-periodo-slot" id="vencedores-periodo-slot">
+                    <p class="ind-periodo-rotulo muted" id="vencedores-periodo-rotulo" aria-live="polite">—</p>
+                    <form id="form-vencedores-periodo-intervalo" class="ind-periodo-intervalo" hidden aria-label="Intervalo personalizado">
+                      <div class="ind-periodo-campo">
+                        <label for="vencedores-data-inicio">De</label>
+                        <input type="date" id="vencedores-data-inicio" required />
+                      </div>
+                      <div class="ind-periodo-campo">
+                        <label for="vencedores-data-fim">Até</label>
+                        <input type="date" id="vencedores-data-fim" required />
+                      </div>
+                      <button type="submit" class="btn btn-primary btn-sm">Aplicar</button>
+                    </form>
+                    <div id="vencedores-periodo-quad-wrap" class="ind-periodo-quad" hidden role="group" aria-label="Quadrimestre">
+                      <div class="ind-quad-ano-wrap">
+                        <button type="button" class="ind-quad-ano-btn" id="vencedores-quad-ano-prev" aria-label="Ano anterior">‹</button>
+                        <span class="ind-quad-ano" id="vencedores-quad-ano" aria-live="polite">2026</span>
+                        <button type="button" class="ind-quad-ano-btn" id="vencedores-quad-ano-next" aria-label="Próximo ano">›</button>
+                      </div>
+                      <div class="ind-quad-slider-wrap">
+                        <input
+                          type="range"
+                          id="vencedores-quad-range"
+                          class="ind-quad-range"
+                          min="1"
+                          max="3"
+                          step="1"
+                          value="3"
+                          aria-valuemin="1"
+                          aria-valuemax="3"
+                          aria-valuenow="3"
+                          aria-label="Quadrimestre do ano"
+                        />
+                        <div class="ind-quad-ticks" aria-hidden="true">
+                          <span>Q1</span><span>Q2</span><span>Q3</span>
+                        </div>
+                      </div>
+                      <p class="ind-periodo-rotulo muted" id="vencedores-quad-rotulo">—</p>
+                    </div>
+                  </div>
+                </div>
+
+                <form id="form-vencedores-busca" class="compras-filtros-grid" style="margin-top:0.85rem">
+                  <div class="form-group compras-fg-uasg">
+                    <label for="vencedores-filtro-uasg">UASG</label>
+                    <select id="vencedores-filtro-uasg">
+                      <option value="">Todas do escopo</option>
+                    </select>
+                  </div>
+                  <div class="form-group compras-fg-mod">
+                    <label for="vencedores-filtro-modalidade">Modalidade</label>
+                    <div
+                      id="vencedores-filtro-modalidade"
+                      class="ms"
+                      data-placeholder="Todas"
+                      aria-label="Modalidade"
+                    ></div>
+                  </div>
+                  <div class="form-group compras-fg-compact">
+                    <label for="vencedores-filtro-uf">UF</label>
+                    <select id="vencedores-filtro-uf" title="UF da sede do vencedor">
+                      <option value="">Todas</option>
+                    </select>
+                  </div>
+                  <div class="form-group compras-fg-compact">
+                    <label for="vencedores-filtro-porte">Porte</label>
+                    <select id="vencedores-filtro-porte" title="Porte do fornecedor">
+                      <option value="">Todos</option>
+                      <option value="_vazio_">Não informado</option>
+                    </select>
+                  </div>
+                  <div class="form-group compras-fg-compact">
+                    <label for="vencedores-filtro-status">Status cache</label>
+                    <select id="vencedores-filtro-status" title="Status do enriquecimento CNPJ">
+                      <option value="">Todos</option>
+                      <option value="vencido">Cache vencido</option>
+                      <option value="pendente">Pendente</option>
+                      <option value="atualizado">Atualizado</option>
+                      <option value="cpf">CPF (sem QSA)</option>
+                    </select>
+                  </div>
+                  <div class="form-group compras-fg-q">
+                    <label for="vencedores-filtro-q">Busca</label>
+                    <input id="vencedores-filtro-q" type="text" maxlength="200" placeholder="Nome ou CNPJ/CPF" autocomplete="off" />
+                  </div>
+                  <div class="form-group compras-filtro-actions">
+                    <label class="compras-filtro-actions-label" aria-hidden="true">&nbsp;</label>
+                    <div class="compras-filtro-btns">
+                      <button type="submit" class="btn btn-primary btn-icon" title="Buscar" aria-label="Buscar">
+                        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                          <path
+                            fill="currentColor"
+                            d="M11.7 10.3a5.5 5.5 0 1 0-1.4 1.4l3.3 3.3a1 1 0 0 0 1.4-1.4l-3.3-3.3zM6.5 10a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-secondary btn-icon"
+                        id="btn-vencedores-limpar"
+                        title="Limpar filtros"
+                        aria-label="Limpar filtros"
+                      >
+                        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                          <path
+                            fill="currentColor"
+                            d="M4.2 3.1a.75.75 0 0 1 1.06 0L8 5.84l2.74-2.74a.75.75 0 1 1 1.06 1.06L9.06 6.9l2.74 2.74a.75.75 0 1 1-1.06 1.06L8 7.96l-2.74 2.74a.75.75 0 0 1-1.06-1.06L6.94 6.9 4.2 4.16a.75.75 0 0 1 0-1.06z"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+                <p class="muted compras-consulta-meta" id="vencedores-consulta-meta" aria-live="polite">—</p>
+
+                <div class="table-wrap table-wrap--scroll-y table-wrap--compras" style="margin-top:0.75rem">
+                  <table class="data-table" id="table-vencedores">
+                    <thead id="vencedores-tabela-head">
+                      <tr>
+                        <th class="sortable" data-sort="nome">Fornecedor</th>
+                        <th class="sortable" data-sort="ni">CNPJ / CPF</th>
+                        <th class="sortable col-num" data-sort="itens" title="Clique no número para ver as homologações">Itens</th>
+                        <th class="sortable col-num" data-sort="compras">Compras</th>
+                        <th class="sortable col-num col-money" data-sort="valor">Valor hom.</th>
+                        <th class="sortable" data-sort="municipio">Município</th>
+                        <th class="sortable" data-sort="atualizacao">Última atualização</th>
+                        <th class="col-acao">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-vencedores"></tbody>
+                  </table>
+                </div>
+
+                <div
+                  class="compras-pager"
+                  id="vencedores-pager"
+                  hidden
+                  role="navigation"
+                  aria-label="Paginação dos CNPJs vencedores"
+                >
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-icon"
+                    id="vencedores-page-prev"
+                    title="Página anterior"
+                    aria-label="Página anterior"
+                  >
+                    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                      <path
+                        fill="currentColor"
+                        d="M10.5 3.2a.75.75 0 0 1 0 1.06L7.06 7.7l3.44 3.44a.75.75 0 1 1-1.06 1.06l-4-4a.75.75 0 0 1 0-1.06l4-4a.75.75 0 0 1 1.06 0z"
+                      />
+                    </svg>
+                  </button>
+                  <p class="compras-pager-label muted" id="vencedores-pager-label" aria-live="polite">—</p>
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-icon"
+                    id="vencedores-page-next"
+                    title="Próxima página"
+                    aria-label="Próxima página"
+                  >
+                    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                      <path
+                        fill="currentColor"
+                        d="M5.5 3.2a.75.75 0 0 1 1.06 0l4 4a.75.75 0 0 1 0 1.06l-4 4a.75.75 0 1 1-1.06-1.06L8.94 7.7 5.5 4.26a.75.75 0 0 1 0-1.06z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Coleta -->
+        <section id="view-coleta" class="view" hidden>
+          <div class="page-header">
+            <div class="page-header-row">
+              <div>
+                <h1>Coleta</h1>
+                <p>
+                  Planejador central: filiais que compartilham a mesma UASG geram
+                  <strong>uma</strong> sequência HTTP. Falhas parciais podem ser reprocessadas.
+                </p>
+              </div>
+              <div class="page-header-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-coleta-refresh">
+                  Atualizar
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-coleta-executar">
+                  Executar agora
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack-gap">
+            <div class="card">
+              <div class="card-body">
+                <div class="page-header-row">
+                  <div>
+                    <h3>Plano consolidado</h3>
+                    <p class="muted" id="coleta-plano-resumo">—</p>
+                  </div>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-coleta-plano">
+                    Recalcular plano
+                  </button>
+                </div>
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>UASG</th>
+                        <th>Nome</th>
+                        <th>Filiais</th>
+                        <th>Economia</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-plano-uasg"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body">
+                <h3>Agendamento</h3>
+                <p class="muted" style="margin:0.35rem 0 0;font-size:0.85rem">
+                  Período salvo aqui vale para plano, execução manual e coleta automática.
+                  Após cada coleta, a fase 2 enriquece CNPJs em lotes (com descanso) até 06:00 BRT.
+                  Salve antes de recalcular o plano.
+                </p>
+                <form id="form-agendamento" class="form-row" style="margin-top:0.85rem">
+                  <div class="form-group">
+                    <label for="ag-ativo">Ativo</label>
+                    <select id="ag-ativo">
+                      <option value="0">Não</option>
+                      <option value="1">Sim</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="ag-hora">Hora local (BRT)</label>
+                    <input id="ag-hora" type="time" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="ag-dias">Período (dias)</label>
+                    <input id="ag-dias" type="number" min="1" max="3660" required />
+                  </div>
+                  <div class="form-group" style="justify-content:flex-end">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                  </div>
+                </form>
+                <p class="muted" style="margin:0.75rem 0 0;font-size:0.85rem" id="ag-meta"></p>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body">
+                <h3>Execuções recentes</h3>
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Origem</th>
+                        <th>Situação</th>
+                        <th>UASGs</th>
+                        <th>HTTP</th>
+                        <th>Ok / Falha</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-execucoes"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" id="card-exec-detalhe" hidden>
+              <div class="card-body">
+                <div class="page-header-row">
+                  <div>
+                    <h3 id="exec-detalhe-titulo">Execução</h3>
+                    <p class="muted" id="exec-detalhe-meta"></p>
+                  </div>
+                  <div class="page-header-actions">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-reprocessar" hidden>
+                      Reprocessar falhas
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-fecha-exec">
+                      Fechar
+                    </button>
+                  </div>
+                </div>
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>UASG</th>
+                        <th>Filiais</th>
+                        <th>Situação</th>
+                        <th>Tentativas</th>
+                        <th>Erro</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-tarefas"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Enriquecimento -->
+        <section id="view-enriquecimento" class="view" hidden>
+          <div class="page-header">
+            <div class="page-header-row">
+              <div>
+                <h1>Enriquecimento</h1>
+                <p>
+                  Cadeias públicas CNPJ e CEP com failover.
+                  Após a coleta roda a <strong>fase 2 automática</strong>: lotes de CNPJ com descanso
+                  até 06:00 BRT (fora dessa janela, um lote só). Falha de enriquecimento
+                  <strong>não interrompe</strong> a coleta Compras.gov.
+                </p>
+              </div>
+              <div class="page-header-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-enriq-refresh">
+                  Atualizar
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-enriq-job">
+                  Processar pendentes
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack-gap">
+            <div class="card">
+              <div class="card-body">
+                <div class="card-grid">
+                  <div class="card card-body">
+                    <h3>Pendentes CNPJ</h3>
+                    <p class="muted" id="kpi-cnpj-pendentes">0</p>
+                  </div>
+                  <div class="card card-body">
+                    <h3>Enriquecidos</h3>
+                    <p class="muted" id="kpi-cnpj-ok">0</p>
+                  </div>
+                  <div class="card card-body">
+                    <h3>CEPs em cache</h3>
+                    <p class="muted" id="kpi-ceps">0</p>
+                  </div>
+                </div>
+                <p class="muted" id="enriq-job-status" style="margin-top:0.85rem">—</p>
+                <p class="muted" id="enriq-pos-coleta-status" style="margin-top:0.35rem">—</p>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body">
+                <h3>Consulta manual</h3>
+                <p class="muted" style="margin:0.15rem 0 0">
+                  CNPJ (14 dígitos) e CEP avulsos — a fila abaixo só lista CNPJ pendente.
+                </p>
+                <div class="enriq-consulta-grid" style="margin-top:0.85rem">
+                  <div class="enriq-consulta-col">
+                    <form id="form-enriq-cnpj" class="enriq-consulta-form">
+                      <div class="form-group" style="flex:1;min-width:0">
+                        <label for="enriq-cnpj">CNPJ</label>
+                        <input id="enriq-cnpj" required maxlength="18" placeholder="00.000.000/0000-00" />
+                      </div>
+                      <button type="submit" class="btn btn-primary btn-sm">Enriquecer</button>
+                    </form>
+                    <p class="muted enriq-consulta-result" id="enriq-cnpj-result"></p>
+                  </div>
+                  <div class="enriq-consulta-col">
+                    <form id="form-enriq-cep" class="enriq-consulta-form">
+                      <div class="form-group" style="flex:1;min-width:0">
+                        <label for="enriq-cep">CEP</label>
+                        <input id="enriq-cep" required maxlength="10" placeholder="38400-000" />
+                      </div>
+                      <button type="submit" class="btn btn-primary btn-sm">Consultar</button>
+                    </form>
+                    <p class="muted enriq-consulta-result" id="enriq-cep-result"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body">
+                <h3>Fila de pendentes</h3>
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>NI</th>
+                        <th>Razão social</th>
+                        <th>Último erro</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-pendentes-cnpj"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Alertas -->
+        <section id="view-alertas" class="view" hidden>
+          <div class="page-header">
+            <div class="page-header-row">
+              <div>
+                <h1>Alertas</h1>
+                <p>
+                  Regras configuráveis avaliadas sobre o banco no escopo do seu usuário.
+                  Sem Power BI — só métricas nativas.
+                </p>
+              </div>
+              <div class="page-header-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-alertas-refresh">
+                  Avaliar agora
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack-gap">
+            <div class="card">
+              <div class="card-body">
+                <p class="muted" id="alertas-resumo">—</p>
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Alerta</th>
+                        <th>Severidade</th>
+                        <th>Valor</th>
+                        <th>Limiar</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-alertas"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body">
+                <h3>Regras</h3>
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Chave</th>
+                        <th>Métrica</th>
+                        <th>Limiar</th>
+                        <th>Ativo</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-alerta-regras"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Operação -->
+        <section id="view-operacao" class="view" hidden>
+          <div class="page-header">
+            <div class="page-header-row">
+              <div>
+                <h1>Operação</h1>
+                <p>
+                  Prontidão para produção (Lightsail). Analytics nativos —
+                  <strong>Power BI não faz parte deste produto</strong>.
+                </p>
+              </div>
+              <div class="page-header-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-ops-refresh">
+                  Atualizar
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-ops-backup">
+                  Backup agora
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack-gap">
+            <div class="card">
+              <div class="card-body">
+                <p class="muted" id="ops-info">—</p>
+                <p class="muted" id="ops-pronto" style="margin-top:0.5rem"></p>
+              </div>
+            </div>
+
+            <div class="card" id="card-ops-acesso">
+              <div class="card-body">
+                <div class="page-header-row">
+                  <div>
+                    <h3>Acesso de usuários</h3>
+                    <p class="muted" style="margin:0.35rem 0 0;font-size:0.85rem">
+                      App permanece no ar (coleta/enriquecimento). Em modo restrito,
+                      só administradores entram; sessões de consulta são encerradas.
+                    </p>
+                  </div>
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-ops-acesso-toggle">
+                    Ativar restrição
+                  </button>
+                </div>
+                <p class="muted" id="ops-acesso-meta" style="margin:0.85rem 0 0;font-size:0.85rem">—</p>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body">
+                <h3>Checks automáticos</h3>
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Status</th>
+                        <th>Detalhe</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-ops-auto"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body">
+                <h3>Checks manuais (VM / AWS)</h3>
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Como</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-ops-manual"></tbody>
+                  </table>
+                </div>
+                <p class="muted" style="margin-top:0.85rem;font-size:0.85rem">
+                  Procedimentos: <code>RUNBOOK.md</code> ·
+                  <code>scripts/go_live_check.sh</code> ·
+                  <code>docker-compose.prod.yml</code>
+                </p>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body">
+                <h3>Roadmap analítico</h3>
+                <p class="muted" style="margin-top:0.35rem">
+                  O que está entregue, adiado ou rejeitado (Power BI rejeitado).
+                </p>
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Status</th>
+                        <th>Nota</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-roadmap"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Configuração -->
+        <section id="view-configuracao" class="view" hidden>
+          <div class="page-header">
+            <div class="page-header-row">
+              <div>
+                <h1>Configuração</h1>
+                <p>
+                  Precedência <strong>global → matriz → filial</strong> (herança em runtime).
+                  A filial só sobrescreve parâmetros permitidos quando a matriz autorizar.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-body" style="margin-bottom:1rem">
+            <label for="config-unidade-select"><strong>Unidade de contexto</strong></label>
+            <select id="config-unidade-select" style="margin-top:0.35rem;max-width:28rem">
+              <option value="">Plataforma (global)</option>
+            </select>
+            <p class="muted" style="margin:0.5rem 0 0;font-size:0.85rem">
+              Escolha matriz ou filial para ver herança e gravar valores no escopo correspondente.
+            </p>
+          </div>
+
+          <div class="stack-gap">
+            <div class="card">
+              <div class="card-body">
+                <div class="page-header-row">
+                  <div>
+                    <h3>Valores efetivos</h3>
+                    <p class="muted" id="config-contexto">Contexto: plataforma (global).</p>
+                  </div>
+                  <div class="page-header-actions">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-config-refresh">Atualizar</button>
+                  </div>
+                </div>
+                <div id="config-auth-filial" class="form-row" style="margin-top:0.85rem" hidden>
+                  <div class="form-group" style="justify-content:flex-end">
+                    <label>&nbsp;</label>
+                    <button type="button" class="btn btn-secondary" id="btn-auth-excecao">
+                      Autorizar exceções nesta filial
+                    </button>
+                  </div>
+                </div>
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Chave</th>
+                        <th>Valor efetivo</th>
+                        <th>Origem</th>
+                        <th>Exceção filial</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-config-efetiva"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" id="card-config-editar">
+              <div class="card-body">
+                <h3 id="config-edit-title">Definir valor</h3>
+                <form id="form-config-valor" class="form-row" style="margin-top:0.85rem">
+                  <div class="form-group">
+                    <label for="cfg-escopo">Escopo</label>
+                    <select id="cfg-escopo">
+                      <option value="global">Global</option>
+                      <option value="matriz">Matriz</option>
+                      <option value="filial">Filial</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="cfg-chave">Parâmetro</label>
+                    <select id="cfg-chave" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="cfg-valor">Valor</label>
+                    <input id="cfg-valor" required />
+                  </div>
+                  <div class="form-group" style="justify-content:flex-end">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                  </div>
+                </form>
+                <p class="muted" style="margin:0.75rem 0 0;font-size:0.85rem">
+                  Escopo matriz/filial usa a unidade selecionada abaixo (dentro do seu ACL).
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Território (fluxo guiado · padrão UX trigger/23 · sem Power BI) -->
+        <section id="view-territorio" class="view" hidden>
+          <div class="page-header">
+            <div class="page-header-row">
+              <div>
+                <h1>Território</h1>
+                <p>
+                  Configure o escopo geográfico da <strong>filial</strong>: município IBGE,
+                  catálogo UASG (Compras.gov) e monitoramento. Desativar preserva histórico.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-body" id="territorio-seletor-card" style="margin-bottom:1rem">
+            <label for="territorio-filial-select"><strong>Filial a configurar</strong></label>
+            <select id="territorio-filial-select" style="margin-top:0.35rem;max-width:28rem"></select>
+            <p class="muted" style="margin:0.5rem 0 0;font-size:0.85rem">
+              Lista limitada às filiais do seu escopo de login (matriz enxerga as filiais da org).
+            </p>
+          </div>
+
+          <div id="territorio-sem-filial" class="card card-body" hidden>
+            <p class="muted" style="margin:0">
+              Nenhuma filial no seu escopo. Cadastre filiais em Organização ou peça vínculo ao administrador.
+            </p>
+          </div>
+
+          <div id="territorio-painel" class="stack-gap" hidden>
+            <div class="card">
+              <div class="card-body">
+                <p class="muted" id="territorio-filial-ctx" style="margin:0 0 0.85rem;font-size:12.5px">—</p>
+                <ol class="territorio-steps" id="territorio-steps" aria-label="Progresso do território">
+                  <li class="territorio-step" data-step="1">
+                    <span class="territorio-step-n">1</span>
+                    <span class="territorio-step-label">Município IBGE</span>
+                  </li>
+                  <li class="territorio-step" data-step="2">
+                    <span class="territorio-step-n">2</span>
+                    <span class="territorio-step-label">Sincronizar UASG</span>
+                  </li>
+                  <li class="territorio-step" data-step="3">
+                    <span class="territorio-step-n">3</span>
+                    <span class="territorio-step-label">Monitorar</span>
+                  </li>
+                  <li class="territorio-step" data-step="4">
+                    <span class="territorio-step-n">4</span>
+                    <span class="territorio-step-label">Coleta</span>
+                  </li>
+                </ol>
+                <p id="territorio-passo-hint" class="muted" style="margin:0.75rem 0 0;font-size:12.5px" role="status"></p>
+              </div>
+            </div>
+
+            <div class="card" id="territorio-card-municipio">
+              <div class="card-body">
+                <h3>1 · Município da filial</h3>
+                <p class="muted" style="margin:0.35rem 0 0;font-size:12.5px">
+                  Informe o código IBGE — nome e UF vêm da API oficial do IBGE (gratuita).
+                </p>
+                <form id="form-municipio" class="form-row" style="margin-top:0.85rem">
+                  <div class="form-group">
+                    <label for="mun-ibge">Código IBGE</label>
+                    <input
+                      id="mun-ibge"
+                      type="text"
+                      inputmode="numeric"
+                      required
+                      pattern="[0-9]{7}"
+                      maxlength="7"
+                      placeholder="ex.: 3170206"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="mun-nome">Município</label>
+                    <input id="mun-nome" maxlength="120" placeholder="preenchido pelo IBGE" readonly />
+                  </div>
+                  <div class="form-group">
+                    <label for="mun-uf">UF</label>
+                    <input id="mun-uf" maxlength="2" placeholder="—" readonly style="text-transform:uppercase;max-width:4.5rem" />
+                  </div>
+                  <div class="form-group" style="justify-content:flex-end">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary" id="btn-associar-mun" disabled>
+                      Associar município
+                    </button>
+                  </div>
+                </form>
+                <p id="mun-ibge-status" class="muted" style="margin:0.5rem 0 0;font-size:12.5px" role="status"></p>
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>IBGE</th>
+                        <th>Nome</th>
+                        <th>UF</th>
+                        <th>Status</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-municipios"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" id="territorio-card-catalogo">
+              <div class="card-body">
+                <div class="page-header-row">
+                  <div>
+                    <h3>2 · Catálogo UASG</h3>
+                    <p class="muted">UASGs oficiais do município (API Compras.gov · módulo 05). Sem fontes externas de BI.</p>
+                  </div>
+                  <div class="page-header-actions">
+                    <select id="sel-mun-catalogo" style="min-width:200px" aria-label="Município do catálogo"></select>
+                    <button type="button" class="btn btn-primary" id="btn-sync-uasg">Sincronizar catálogo</button>
+                  </div>
+                </div>
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Código</th>
+                        <th>Nome</th>
+                        <th>Monitoramento</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-catalogo-uasg"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" id="territorio-card-monitor">
+              <div class="card-body">
+                <h3>3 · UASGs monitoradas</h3>
+                <p class="muted" style="margin:0.35rem 0 0;font-size:12.5px">
+                  Histórico da filial. Com UASGs ativas, vá em <strong>Coleta</strong> (passo 4) para executar.
+                </p>
+                <div class="table-wrap" style="margin-top:0.75rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Código</th>
+                        <th>Nome</th>
+                        <th>Ativo</th>
+                        <th>Desativado em</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-uasgs-filial"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Organização -->
+        <section id="view-organizacao" class="view" hidden>
+          <div class="page-header">
+            <div class="page-header-row">
+              <div>
+                <h1>Organização</h1>
+                <p>Cadastre a organização, a matriz e as filiais. Escopo sempre visível no cabeçalho.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack-gap">
+            <div class="card" id="card-nova-org" hidden>
+              <div class="card-body">
+                <h3>Nova organização</h3>
+                <form id="form-org" class="form-row" style="margin-top:0.85rem">
+                  <div class="form-group">
+                    <label for="org-nome">Nome</label>
+                    <input id="org-nome" required minlength="2" maxlength="200" />
+                  </div>
+                  <div class="form-group">
+                    <label for="org-codigo">Código</label>
+                    <input id="org-codigo" maxlength="40" placeholder="ex.: OSB" />
+                  </div>
+                  <div class="form-group" style="justify-content:flex-end">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary">Criar organização</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body">
+                <h3>Organizações</h3>
+                <div class="table-wrap" style="margin-top:0.75rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Código</th>
+                        <th>Status</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-orgs"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" id="card-unidades" hidden>
+              <div class="card-body">
+                <div class="page-header-row">
+                  <div>
+                    <h3 id="titulo-unidades">Unidades</h3>
+                    <p class="muted" id="desc-unidades"></p>
+                  </div>
+                </div>
+
+                <form id="form-unidade" class="stack-gap" style="margin-top:1rem" hidden>
+                  <div id="unidade-form-msg" class="alert alert-error" hidden role="status"></div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="uni-tipo">Tipo</label>
+                      <select id="uni-tipo">
+                        <option value="matriz">Matriz</option>
+                        <option value="filial">Filial</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="uni-nome">Nome</label>
+                      <input id="uni-nome" required minlength="2" maxlength="200" />
+                    </div>
+                    <div class="form-group">
+                      <label for="uni-codigo">Código</label>
+                      <input id="uni-codigo" maxlength="40" placeholder="ex.: OSB · único na org" />
+                    </div>
+                    <div class="form-group">
+                      <label for="uni-cnpj">CNPJ</label>
+                      <input
+                        id="uni-cnpj"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        maxlength="18"
+                        placeholder="00.000.000/0000-00"
+                      />
+                    </div>
+                    <div class="form-group" id="wrap-matriz-id" hidden>
+                      <label for="uni-matriz-id">Matriz da filial</label>
+                      <select id="uni-matriz-id"></select>
+                    </div>
+                  </div>
+                  <p class="muted small" style="margin:0;font-size:12.5px">
+                    CNPJ opcional (14 dígitos). Para filial: tipo «Filial» — a matriz é selecionada automaticamente quando só existe uma.
+                  </p>
+                  <button type="submit" class="btn btn-primary">Adicionar unidade</button>
+                </form>
+
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Tipo</th>
+                        <th>Nome</th>
+                        <th>Código</th>
+                        <th>CNPJ</th>
+                        <th>Status</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-unidades"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" id="card-vinculos" hidden>
+              <div class="card-body">
+                <h3 id="titulo-vinculo">Vincular usuário à unidade</h3>
+                <p class="muted small" id="desc-vinculo" style="margin:0.35rem 0 0;font-size:12.5px">
+                  Define o acesso operacional do usuário na unidade (papel no escopo).
+                </p>
+                <form id="form-vinculo" class="form-row" style="margin-top:0.85rem">
+                  <div class="form-group">
+                    <label for="vinc-unidade">Unidade</label>
+                    <select id="vinc-unidade" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="vinc-usuario">Usuário</label>
+                    <select id="vinc-usuario" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="vinc-papel">Papel</label>
+                    <select id="vinc-papel">
+                      <option value="admin_matriz">Admin matriz</option>
+                      <option value="gestor_matriz">Gestor matriz</option>
+                      <option value="gestor_filial">Gestor filial</option>
+                      <option value="analista_filial">Analista filial</option>
+                      <option value="auditor">Auditor</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="justify-content:flex-end">
+                    <label>&nbsp;</label>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                      <button type="submit" class="btn btn-primary" id="btn-vinculo-submit">Vincular</button>
+                      <button type="button" class="btn btn-secondary" id="btn-vinculo-cancelar" hidden>Cancelar</button>
+                    </div>
+                  </div>
+                </form>
+                <div class="table-wrap" style="margin-top:1rem">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Unidade</th>
+                        <th>Usuário</th>
+                        <th>Papel</th>
+                        <th>Ativo</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-vinculos"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Usuários -->
+        <section id="view-usuarios" class="view" hidden>
+          <div class="page-header">
+            <div class="page-header-row">
+              <div>
+                <h1>Usuários</h1>
+                <p>Contas da plataforma. O escopo operacional vem do vínculo com unidades.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" id="card-novo-usuario">
+            <div class="card-body">
+              <h3 id="titulo-usuario">Novo usuário</h3>
+              <p class="muted small" id="desc-usuario" style="margin:0.35rem 0 0;font-size:12.5px">
+                Conta de login. O acesso operacional às unidades é definido em Organização → vínculos.
+              </p>
+              <form id="form-usuario" class="form-row" style="margin-top:0.85rem">
+                <div class="form-group">
+                  <label for="usr-username">Usuário</label>
+                  <input id="usr-username" required minlength="3" maxlength="80" autocomplete="off" />
+                </div>
+                <div class="form-group">
+                  <label for="usr-password" id="label-usr-password">Senha</label>
+                  <input id="usr-password" type="password" required minlength="6" maxlength="200" autocomplete="new-password" />
+                </div>
+                <div class="form-group">
+                  <label for="usr-papel">Papel plataforma</label>
+                  <select id="usr-papel">
+                    <option value="consulta">Consulta</option>
+                    <option value="admin">Admin geral</option>
+                  </select>
+                </div>
+                <div class="form-group" style="justify-content:flex-end">
+                  <label>&nbsp;</label>
+                  <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                    <button type="submit" class="btn btn-primary" id="btn-usuario-submit">Criar</button>
+                    <button type="button" class="btn btn-secondary" id="btn-usuario-cancelar" hidden>Cancelar</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:1rem">
+            <div class="card-body">
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Usuário</th>
+                      <th>Papel</th>
+                      <th>Ativo</th>
+                      <th>Sessão</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-usuarios"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Backlog -->
+        <section id="view-backlog" class="view" hidden>
+          <div class="page-header">
+            <div class="page-header-row">
+              <div>
+                <h1>Backlog</h1>
+                <p>
+                  Registro de melhorias (BLG-) com data de início e fim.
+                  Na conclusão, registre a observação do que ficou feito.
+                </p>
+              </div>
+              <div class="page-header-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-backlog-refresh">
+                  Atualizar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack-gap">
+            <div class="card">
+              <div class="card-body">
+                <form id="form-backlog-filtro" class="form-row" style="margin-top:0">
+                  <div class="form-group" style="flex:1;min-width:200px">
+                    <label for="blg-q">Buscar</label>
+                    <input id="blg-q" type="search" maxlength="120" placeholder="Código BLG, tarefa ou observação" />
+                  </div>
+                  <div class="form-group">
+                    <label for="blg-situacao">Situação</label>
+                    <select id="blg-situacao">
+                      <option value="todos">Todos</option>
+                      <option value="abertos">Abertos</option>
+                      <option value="concluidos" selected>Concluídos</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="justify-content:flex-end">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                  </div>
+                </form>
+                <p class="muted" id="blg-stats" style="margin-top:0.75rem">—</p>
+              </div>
+            </div>
+
+            <div class="card" id="card-backlog-novo" hidden>
+              <div class="card-body">
+                <h3>Novo lançamento</h3>
+                <form id="form-backlog-novo" class="form-col" style="margin-top:0.85rem;gap:0.75rem">
+                  <div class="form-group">
+                    <label for="blg-tarefa">Tarefa</label>
+                    <input id="blg-tarefa" required maxlength="500" placeholder="O que foi ou precisa ser feito (1 parágrafo)" />
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="blg-inicio">Data início</label>
+                      <input id="blg-inicio" type="datetime-local" required />
+                    </div>
+                    <div class="form-group">
+                      <label for="blg-fim">Data fim <span class="muted">(opcional — já conclui)</span></label>
+                      <input id="blg-fim" type="datetime-local" />
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="blg-obs">Observação da conclusão <span class="muted">(se houver fim)</span></label>
+                    <textarea id="blg-obs" maxlength="500" rows="2" placeholder="Como ficou / o que foi entregue"></textarea>
+                  </div>
+                  <div>
+                    <button type="submit" class="btn btn-primary" id="btn-backlog-lancar">Lançar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body" style="padding:0">
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th style="width:7rem">Código</th>
+                        <th>Tarefa</th>
+                        <th style="width:9.5rem">Início</th>
+                        <th style="width:9.5rem">Fim</th>
+                        <th>Observação da conclusão</th>
+                        <th style="width:7rem">Situação</th>
+                        <th style="width:12rem" id="th-blg-acoes" hidden>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-backlog"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="modal-compras" class="modal-dialog" aria-labelledby="modal-compras-titulo">
+    <div class="modal-dialog-inner">
+      <div class="modal-dialog-head">
+        <div>
+          <h2 id="modal-compras-titulo">Detalhe</h2>
+          <p class="muted" id="modal-compras-meta">—</p>
+        </div>
+        <div class="modal-compras-actions">
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            id="btn-compras-acompanhar"
+            hidden
+            title="Assume o acompanhamento desta contratação nesta filial (1 responsável — não altera permissões)"
+          >
+            Assumir
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="modal-compras-fechar">Fechar</button>
+        </div>
+      </div>
+      <div class="modal-dialog-body">
+        <div class="compras-detail-grid">
+          <section class="compras-detail-panel">
+            <h3>Identificação</h3>
+            <dl id="modal-compras-ident" class="compras-dl"></dl>
+          </section>
+          <section class="compras-detail-panel">
+            <h3>Prazos e valores</h3>
+            <dl id="modal-compras-prazos" class="compras-dl"></dl>
+          </section>
+          <section class="compras-detail-panel">
+            <h3>Órgão e unidade</h3>
+            <dl id="modal-compras-orgao" class="compras-dl"></dl>
+          </section>
+          <section class="compras-detail-panel">
+            <h3>Referências PNCP</h3>
+            <dl id="modal-compras-refs" class="compras-dl"></dl>
+          </section>
+        </div>
+        <section class="compras-detail-panel compras-detail-wide">
+          <h3>Objeto</h3>
+          <p id="modal-compras-objeto" class="compras-objeto">—</p>
+        </section>
+        <section class="compras-detail-panel compras-detail-wide">
+          <h3>Itens e resultados</h3>
+          <p class="muted" id="modal-compras-itens-meta">—</p>
+          <div class="table-wrap table-wrap--scroll-y" style="margin-top:0.5rem">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Descrição</th>
+                  <th>Tipo</th>
+                  <th>Qtd</th>
+                  <th>Valor</th>
+                  <th>Resultados</th>
+                </tr>
+              </thead>
+              <tbody id="modal-compras-itens"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="modal-prop-item" class="modal-dialog" aria-labelledby="modal-prop-titulo">
+    <div class="modal-dialog-inner">
+      <div class="modal-dialog-head">
+        <div>
+          <h2 id="modal-prop-titulo">Item · proposta aberta</h2>
+          <p class="muted" id="modal-prop-meta">—</p>
+        </div>
+        <div class="modal-compras-actions">
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm"
+            id="btn-prop-abrir-compra"
+            title="Abre o detalhe da contratação"
+          >
+            Abrir contratação
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="modal-prop-fechar">Fechar</button>
+        </div>
+      </div>
+      <div class="modal-dialog-body">
+        <p id="modal-prop-leitura" class="prop-leitura muted"></p>
+        <div class="compras-detail-grid">
+          <section class="compras-detail-panel">
+            <h3>Item</h3>
+            <dl id="modal-prop-dados-item" class="compras-dl"></dl>
+          </section>
+          <section class="compras-detail-panel">
+            <h3>Contratação</h3>
+            <dl id="modal-prop-contratacao" class="compras-dl"></dl>
+          </section>
+          <section class="compras-detail-panel">
+            <h3>Mediana local</h3>
+            <dl id="modal-prop-benchmark" class="compras-dl"></dl>
+          </section>
+          <section class="compras-detail-panel">
+            <h3>Campos-chave</h3>
+            <div id="modal-prop-campos-chave" class="prop-campos-chave"></div>
+          </section>
+        </div>
+        <section class="compras-detail-panel compras-detail-wide">
+          <h3>Comparáveis na base</h3>
+          <p class="muted" id="modal-prop-comp-meta">—</p>
+          <div class="table-wrap table-wrap--scroll-y" style="margin-top:0.5rem">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Compra</th>
+                  <th>Processo</th>
+                  <th>Unidade</th>
+                  <th>Unitário</th>
+                  <th>Origem</th>
+                </tr>
+              </thead>
+              <tbody id="modal-prop-comparaveis"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="modal-vencedor" class="modal-dialog" aria-labelledby="modal-vencedor-titulo">
+    <div class="modal-dialog-inner">
+      <div class="modal-dialog-head">
+        <div>
+          <h2 id="modal-vencedor-titulo">Fornecedor</h2>
+          <p class="muted" id="modal-vencedor-meta">—</p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" id="modal-vencedor-fechar">Fechar</button>
+      </div>
+      <div class="modal-dialog-body">
+        <section class="compras-detail-panel compras-detail-wide" id="modal-vencedor-empresa-wrap">
+          <h3>Cadastro</h3>
+          <dl id="modal-vencedor-empresa" class="compras-dl"></dl>
+        </section>
+        <section class="compras-detail-panel compras-detail-wide" id="modal-vencedor-qsa-wrap" hidden>
+          <h3>QSA</h3>
+          <div class="table-wrap table-wrap--scroll-y" style="margin-top:0.5rem">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Qualificação</th>
+                </tr>
+              </thead>
+              <tbody id="modal-vencedor-qsa"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="compras-detail-panel compras-detail-wide" id="modal-vencedor-homolog-wrap" hidden>
+          <h3>Homologações</h3>
+          <p class="muted" id="modal-vencedor-homolog-meta">—</p>
+          <div class="table-wrap table-wrap--scroll-y" style="margin-top:0.5rem">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Compra</th>
+                  <th>Processo</th>
+                  <th>Objeto</th>
+                  <th>Item</th>
+                  <th class="col-num col-money">Valor</th>
+                </tr>
+              </thead>
+              <tbody id="modal-vencedor-homolog"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="/static/app.js?v=osb50-90" defer></script>
+</body>
+</html>

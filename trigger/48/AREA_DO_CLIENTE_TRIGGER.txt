@@ -317,19 +317,23 @@ Unidade: centavos, inteiro. Nunca ponto flutuante.
 Moeda: BRL. Fuso: America/Sao_Paulo.
 Parâmetros de negócio, numa tabela de configuração, não espalhados:
 
-  ATIVACAO_CENTAVOS      = 50000     (R$ 500,00)
-  TICKET_ABERTURA        = 50000     (R$ 500,00)
-  VALIDADE_PROPOSTA_DIAS = 10        (dias corridos)
-  EXPIRACAO_PIX_MINUTOS  = 60        (ativação e complemento)
-  RECUSAS_SEM_CUSTO      = 2         (em janela de 90 dias)
-  DIAS_PARA_BLOQUEIO     = 5         (PIX complementar em aberto)
-  RASCUNHO_CONTA_DIAS    = 7         (cadastro sem PIX)
+  ATIVACAO_CENTAVOS       = 100000    (R$ 1.000,00 — PIX fixo de cadastro)
+  TICKET_ABERTURA         = 100000    (R$ 1.000,00 — reserva ao abrir demanda)
+  RECARGA_MINIMA_CENTAVOS = 100001    (acima de R$ 1.000,00)
+  VALIDADE_PROPOSTA_DIAS  = 10        (dias corridos)
+  EXPIRACAO_PIX_MINUTOS   = 60        (ativação e complemento)
+  RECUSAS_SEM_CUSTO       = 2         (em janela de 90 dias)
+  DIAS_PARA_BLOQUEIO      = 5         (PIX complementar em aberto)
+  RASCUNHO_CONTA_DIAS     = 7         (cadastro sem PIX)
 
-Por que R$ 500
+Por que R$ 1.000
   Alto o bastante para filtrar cadastro vazio. Baixo o bastante para
   uma empresa real começar. Não é taxa perdida: entra como saldo e
   é abatido da fatura. Se a Trigger recusar a demanda, o saldo volta.
-  O parâmetro muda antes do go-live sem redesenhar o sistema.
+  Ativação é valor fixo. Recarga voluntária é estritamente superior
+  a R$ 1.000 (mínimo aceito R$ 1.000,01), para não confundir com o
+  PIX de cadastro e não criar PIX de centavos. O parâmetro muda
+  sem redesenhar o sistema.
 
 Carteira — ledger
   A verdade é a tabela de movimentos. Só acrescenta. Nunca apaga,
@@ -735,8 +739,9 @@ PIX estático de chave aleatória não serve. Sem txid não há como
 saber qual CNPJ pagou o quê.
 
 Recarga voluntária usa a mesma porta, finalidade RECARGA, valor
-escolhido pelo cliente com mínimo igual ao ticket, para não criar
-PIX de centavos.
+escolhido pelo cliente estritamente acima do PIX de ativação
+(RECARGA_MINIMA_CENTAVOS), para não criar PIX de centavos nem
+igualar o valor fixo de cadastro.
 
 
 ================================================================================
@@ -1098,7 +1103,9 @@ Fase 3 — quando houver uso
   Reserva volta se a Trigger recusa ou se a proposta expira.
   A terceira recusa do cliente em 90 dias consome o ticket.
   Aprovar não marca a fatura como paga e não exige saldo cheio.
-  Apresentar gera a fatura e o complemento certo
+  Apresentar deixa a entrega aguardando validação, sem fatura.
+  Na validação (ou no silêncio de cinco dias úteis) gera a fatura
+  e o complemento certo
   (valor aprovado − reservado aplicado − disponível aplicado).
   CONCLUIDA só com fatura LIQUIDADA.
   Nota interna não aparece em nenhuma resposta de cliente.

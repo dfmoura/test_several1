@@ -1,0 +1,569 @@
+================================================================================
+ANALISE TECNICA ï¿½ App de liberacao de recarga EV + cobranca (PIX / Stripe)
+Projeto baseado no material Livoltek disponivel na raiz do workspace
+Data da analise: 2026-10-26
+Escopo: SOMENTE ANALISE (sem codigo, sem implementacao)
+================================================================================
+
+1. RESUMO EXECUTIVO
+--------------------------------------------------------------------------------
+O objetivo e um aplicativo/plataforma em que o usuario:
+  1) escolhe a estacao/carga desejada;
+  2) paga (PIX via Banco Inter e/ou cartao/outros via Stripe);
+  3) o sistema reconhece o recebimento;
+  4) libera o equipamento Livoltek para iniciar a recarga.
+
+CONCLUSAO PRINCIPAL (viavel):
+  O caminho tecnico correto NAO e ï¿½hackearï¿½ o app My Livoltek nem controlar
+  o carregador por Bluetooth a distancia. O caminho e:
+
+    App proprio + Backend de pagamentos + Servidor OCPP (CSMS) proprio
+    (ou de terceiro) apontado no carregador.
+
+Os equipamentos Livoltek da pasta documentada suportam OCPP 1.6J (com caminho
+de atualizacao para OCPP 2.0.1 nos modelos DC/Motion). A documentacao de
+comissionamento deixa claro que a URL do CMS/OCPP e configuravel ï¿½ inclusive
+para backends de terceiros (ex.: ocpp.voltbras.com.br no guia DC 30kW; URL
+generica wss://... no guia DC 40ï¿½120kW).
+
+Ou seja: o produto Livoltek ja foi pensado para operacao comercial via OCPP
+(APP/QRCode/RFID/VIN + CSMS). Seu app entra como a camada de UX + cobranca;
+a liberacao fisica da energia e feita pelo CSMS via RemoteStartTransaction
+(ou Authorize + StartTransaction no fluxo OCPP).
+
+
+2. O QUE HA NA DOCUMENTACAO (INVENTARIO)
+--------------------------------------------------------------------------------
+Pasta: 01 - Livoltek-20261026T215802Z-1-001/01 - Livoltek/
+
+  01 - Datasheet
+    - Catalogo JNG + Livoltek EV Charger
+    - MotionFast 180-240K DC Charger Station (HW module)
+
+  02 - Manual
+    - Atom HomeAC (datasheet, user manual, installer/end-user APP guides,
+      quick install, initial parameter setting)
+    - WallBox user manual
+    - Manual MF (Motion Fast)
+
+  03 - Informacoes Gerais / Guias rapidos
+    - Configuracao OCPP CA (CMS)
+    - Configuracao OCPP Carregador Veicular CA
+    - Guia primeiro uso AC Atom
+    - Configuracao carregador veicular
+    - Comissionamento DC 30kW e DC 40ï¿½120kW
+    - Firmware AC, rede bifasica / PE abnormal
+    - Politica de garantia
+
+  04 - Apresentacao
+    - Solucoes de recarga VE (portfolios AC/DC + CMS/EMSP)
+
+  05 - Controle de Potencia
+    - EV HUB (gestao de carga / DLM)
+    - Smart Meters Litiot (LHE12D, LHE34C, LHE34D)
+
+
+3. EQUIPAMENTOS RELEVANTES PARA O APP
+--------------------------------------------------------------------------------
+3.1 Linha AC ï¿½ Atom HomeAC (residencial / semi-publico)
+  Modelos: 7.3 kW (mono), 11 kW e 22 kW (tri)
+  Conector: Type 2, cabo ~5 m
+  Autenticacao nativa: Free Charging, MyLivoltek APP, RFID opcional
+  Comunicacao: Bluetooth local; Wi-Fi / Ethernet / 4G opcional
+  Medicao: chip de medicao interno
+  OCPP: documentado nos guias CA via ï¿½Central Systemï¿½ no app Intelligent
+        Assistant / My Livoltek (acesso local BLE + PIN)
+  Observacao: Atom HomeAC e forte em uso residencial/privativo. Para
+  cobranca publica/semi-publica, validar no pedido/firmware se OCPP 1.6J
+  esta habilitado na SKU especifica (os guias de OCPP CA existem, mas o
+  datasheet Atom enfatiza MyLivoltek/offline; o catalogo lista tambem
+  Plug&Charge/APP/RFID/OCPP em variantes).
+
+3.2 Linha AC publica ï¿½ Duplo CA / modelos com tela
+  Autenticacao: Plug&Charge, APP, RFID, OCPP, cartao de credito (opcional)
+  Protocolo: OCPP 1.6 J
+  Mais alinhados a operacao comercial do que o Atom residencial puro.
+
+3.3 Linha DC ï¿½ Wallbox / Slim / Motion Fast (30 kW ate 240 kW+)
+  Conectores: CCS2 / CCS1 / CHAdeMO / GB/T (+ AC Type 2 opcional em alguns)
+  Protocolo: OCPP 1.6J, update path para OCPP 2.0.1
+  Autenticacao: RFID ISO 14443 A/B, APP, NFC/cartao (opcional), QR na tela
+  UI: tela touch (7" ou 10.1" conforme modelo)
+  Conectividade: 4G / Ethernet (Wi-Fi em alguns)
+  Indicador na tela: icone Wi-Fi verde = conectado ao OCPP e comunicando
+
+3.4 EV HUB (Controle de potencia)
+  Modelo LHECCH.R110
+  Ate 32 carregadores; OCPP 1.6/2.0 JSON
+  Dynamic Load Management (limites por potencia/fase/EVC)
+  Util se a estacao tiver varios pontos e risco de sobrecarga do ramal ï¿½
+  nao substitui o CSMS de cobranca, mas integra o ecossistema.
+
+
+4. COMO O EQUIPAMENTO LIBERA A RECARGA (SEGUNDO A DOC)
+--------------------------------------------------------------------------------
+Modos documentados:
+
+  A) Carregamento gratuito / AUTO / Start Mode AUTO
+     - Plugou ? inicia (sem autenticacao). INADEQUADO para cobranca.
+
+  B) Desbloqueio por app fabricante (My Livoltek / app local da estacao)
+     - Usuario autentica no app da Livoltek e inicia.
+     - NAO e o caminho do seu produto (voce nao controla esse app).
+
+  C) RFID / NFC / cartao (quando habilitado)
+     - Swipe inicia/para. Pode ser integrado a um CSMS (idTag OCPP).
+
+  D) QR Code na tela + app de gestao (doc DC Motion)
+     - Fluxo tipico comercial: usuario escaneia ? autoriza na plataforma.
+
+  E) OCPP via CSMS (recomendado para o seu caso)
+     - Carregador aponta CMS URL para SEU servidor OCPP (ou SaaS).
+     - Plataforma envia RemoteStartTransaction apos pagamento confirmado.
+     - Doc DC 40ï¿½120 kW: CMS URL, Charge Point Identity, perfis de
+       seguranca 1ï¿½4 (sem TLS ate mTLS).
+     - Doc DC 30 kW: exemplo de URL de terceiro (Voltbras/GWM) ï¿½
+       prova de que o hardware aceita CSMS externo.
+
+Para o app proposto, o modo operacional deve ser:
+  ï¿½Autorizado apenas via OCPPï¿½ (sem free charging; sem start local livre).
+
+
+5. FLUXO DE NEGOCIO PROPOSTO (ALTO NIVEL)
+--------------------------------------------------------------------------------
+Persona: motorista na estacao (ou proximo, via mapa).
+
+  [1] Descoberta
+      - App lista estacoes online (status OCPP: Available / Occupied /
+        Faulted / Unavailable).
+      - Usuario escolhe ponto (charge point + connectorId).
+
+  [2] Escolha da ï¿½cargaï¿½
+      Opcoes tipicas a definir no produto:
+      a) Pre-pago por energia (kWh) ï¿½ ex.: R$ 30 / ~X kWh estimados;
+      b) Pre-pago por tempo;
+      c) Pre-pago por valor fixo (credito na sessao);
+      d) Pos-pago / captura sob autorizacao (Stripe Auth + Capture;
+         PIX e naturalmente ï¿½pago na horaï¿½).
+      Recomendacao inicial Brasil: pre-pago PIX por VALOR, com teto de
+      energia/tempo; ao terminar, se sobrar credito ? estorno/credito
+      em conta; se faltar ? encerrar ao atingir o valor pago.
+
+  [3] Pagamento (APIs configuradas ? detalhe em secao 8 / doc mestre 7.6)
+      - Inter API Pix cob imediata (DEFAULT): /pix/v2/cob + webhook +
+        devolucao; QR/copia-cola com TTL em segundos.
+      - Inter Bolepix V3 (complementar): /cobranca/v3/cobrancas quando
+        houver vencimento/boleto ? nao default do posto.
+      - Stripe: PaymentIntent + Refunds (cartao / metodos Stripe).
+      - Backend marca CONFIRMED/PAID somente apos webhook PSP
+        (nunca confiar so no front).
+
+  [4] Liberacao
+      - Backend ? CSMS ? OCPP RemoteStartTransaction(idTag, connectorId)
+        ou equivalente no perfil de autorizacao escolhido.
+      - Carregador muda para Preparing/Charging apos plug (ou ja plugado).
+      - App mostra ï¿½ Liberado ï¿½ conecte o veiculo / iniciando ï¿½.
+
+  [5] Durante a sessao
+      - MeterValues periodicos (Wh, potencia, SoC se disponivel).
+      - App exibe progresso e saldo restante do pre-pago.
+      - Regras de corte: valor esgotado ? RemoteStopTransaction.
+
+  [6] Encerramento
+      - StopTransaction (usuario, veiculo, ou limite atingido).
+      - Conciliacao: energia real x valor pago ? estorno parcial / credito.
+      - Recibo + historico.
+
+  [7] Falhas
+      - Pagou e RemoteStart falhou ? estorno automatico + alerta ops.
+      - Timeout ï¿½liberado mas nao plugou em N minutosï¿½ ? cancelar sessao
+        e estornar (politica de negocio).
+
+
+6. ARQUITETURA LOGICA RECOMENDADA
+--------------------------------------------------------------------------------
+CONFIRMADO (2026-10-28): aplicativo ligado a servidor PROPRIO; o servidor
+conecta na rede OCPP dos carregadores e efetua as liberacoes.
+Detalhe canonico: DOCUMENTACAO_ARQUITETURA_PLATAFORMA_RECARGA_EV.txt
+
+  +-------------+     +------------------+     +-------------------+
+  | App mobile  |---->| API Backend      |---->| Gateway PIX Inter |
+  | / PWA / QR  |     | (pedidos, auth,  |     +-------------------+
+  +-------------+     |  sessoes, regras)|---->| Stripe            |
+                      +--------+---------+     +-------------------+
+                               |
+                               v
+                      +------------------+
+                      | CSMS OCPP 1.6J   |  <--- WebSocket/JSON do charger
+                      | PROPRIO          |       (um charge point por vez
+                      +--------+---------+        no cadastro/comissao)
+                               |
+                               v
+                      +------------------+
+                      | Carregador       |
+                      | Livoltek (CA/DC) |
+                      +------------------+
+
+Em uma frase:
+  App = UX + cobranca. Servidor proprio = autoridade de dinheiro + OCPP.
+  Carregador so aponta CMS URL para o nosso CSMS.
+
+Componentes:
+  - Frontend: app Kotlin (decisao mestre) ou PWA auxiliar + QR na estacao.
+  - Backend API: usuarios, estacoes, precos, pedidos, webhooks, NF/recibo.
+  - Motor de cobranca: adaptadores Inter + Stripe + tarifas dinamicas.
+  - CSMS proprio: cerebro OCPP (conexoes, RemoteStart/Stop, MeterValues).
+  - Admin: painel do operador (tarifas, estacoes, suporte, conciliacao).
+
+Posicionamento (nao confundir com Tupi):
+  - Nos = CPO: mapa so das NOSSAS estacoes; liberacao no nosso CSMS.
+  - Tupi = marketplace/EMSP: mapa agregado; "conectada" libera la.
+  - Vincular ao Tupi (futuro) = exportar NOSSOS pontos para o app deles;
+    cada equipamento associado explicitamente (manual ou lote de IDs).
+  - Ver ANALISE_COMPETITIVA_TUPI_INCREMENTOS.txt secao 1.1.
+
+Decisao CSMS: PROPRIO (SaaS descartado) - ver secao 17 e doc mestre.
+
+
+7. MAPEAMENTO OCPP (CONCEITUAL ï¿½ SEM CODIGO)
+--------------------------------------------------------------------------------
+Mensagens-chave OCPP 1.6J para este produto:
+
+  BootNotification / Heartbeat / StatusNotification
+    ? saber se a estacao esta online e o estado do connector.
+
+  Authorize / StartTransaction / StopTransaction / MeterValues
+    ? sessao de carga e medicao.
+
+  RemoteStartTransaction / RemoteStopTransaction
+    ? liberar/encerrar apos pagamento (ou ao esgotar credito).
+
+  ChangeConfiguration / GetConfiguration (ops)
+    ? ajustar HeartbeatInterval, MeterValueSampleInterval, etc.
+
+Perfis de seguranca (doc Motion Fast):
+  1 ï¿½ sem seguranca
+  2 ï¿½ Basic Auth
+  3 ï¿½ TLS (server)
+  4 ï¿½ mTLS
+Producao: preferir >= 2; ideal 3 ou 4.
+
+Identidade:
+  Charge Point Identity = ID unico cadastrado no seu CSMS
+  (SN ou ID fornecido pela plataforma ï¿½ padrao ja usado nos guias).
+
+
+8. PAGAMENTOS ? PIX (BANCO INTER) E STRIPE
+--------------------------------------------------------------------------------
+Canonico (mapeamento de APIs + PaymentPort): secao 7.6 e ADR-006 em
+DOCUMENTACAO_ARQUITETURA_PLATAFORMA_RECARGA_EV.txt (v1.2+).
+Refs: https://developers.inter.co/references/pix
+      https://developers.inter.co/references/cobranca-bolepix
+      https://docs.stripe.com/api
+
+8.1 Inter ? DEFAULT MVP: API Pix (cobranca imediata)
+  - PUT/POST /pix/v2/cob com calendario.expiracao em segundos
+    (ex. 300?900) = TTL do checkout no posto.
+  - Exibir pixCopiaECola (QR / copia-cola) no app.
+  - PAID so apos webhook Pix (ou consulta PSP) ? nunca so pelo front.
+  - Idempotencia: txid estavel por payment_id; 1 pagamento = 1 sessao.
+  - Estornos: PUT /pix/{e2eid}/devolucao/{id} (total/parcial) em
+    START_FAILED, timeout sem plug, sobra de credito.
+
+8.2 Inter ? Cobranca V3 Bolepix (complementar, nao default da sessao)
+  - POST /cobranca/v3/cobrancas (Boleto+Pix; codigoSolicitacao;
+    seuNumero correlaciona sessao).
+  - Webhook /cobrancas/webhook; situacao RECEBIDO libera o mesmo
+    pipeline PAID -> RemoteStart.
+  - Usar quando negocio pedir vencimento por DATA / boleto / PDF /
+    sumario. Nao substitui API Pix no fluxo ?pague em N minutos?.
+  - Cancelar: POST .../cancelar. Devolucao fina de sessao: preferir
+    API Pix (8.1) quando o recebimento foi Pix.
+
+8.3 Stripe ? PaymentIntents + Refunds
+  - POST /v1/payment_intents (BRL; metadata session_id/payment_id;
+    Idempotency-Key = payment_id).
+  - Webhook payment_intent.succeeded -> mesmo pipeline de PAID.
+  - Estorno: POST /v1/refunds (payment_intent; amount parcial ok).
+  - Util para cartao / turistas / metodos Stripe. Holds (capture
+    manual) = Fase 2 se pos-pago.
+
+8.4 Modelo de preco (definir com o negocio)
+  - R$/kWh (mais justo; depende de MeterValues confiaveis).
+  - R$/min (simples; menos justo em potencia variavel).
+  - Taxa de sessao + energia.
+  - Tarifa por faixa horaria (doc Atom ja fala de tarifas locais /
+    time-of-use ? conceito similar no CSMS).
+  - Detalhe do motor dinamico: documento mestre secao 7.
+
+8.5 Fiscal / compliance (levantar fora deste material)
+  - Emissao de recibo/NF conforme operacao (CPO vs marketplace).
+  - LGPD (dados de usuario, placa, localizacao, pagamentos).
+  - Conciliacao bancaria Inter + Stripe + sessoes OCPP
+    (ledger interno no documento mestre 10.1).
+
+
+9. ALINHAMENTO DO FLUXO COM O HARDWARE LIVOLTEK
+--------------------------------------------------------------------------------
+O que a documentacao CONFIRMA:
+  [OK] Carregadores DC (e variantes comerciais) falam OCPP 1.6J.
+  [OK] URL do CMS e configuravel para servidor proprio/terceiro.
+  [OK] Liberacao pode ser via APP/QRCode/RFID/VIN ligados a gestao.
+  [OK] Medicao / registros de carga existem (energia, tempo, etc.).
+  [OK] Tela mostra status de conexao OCPP (WallBox/MC).
+  [OK] EV HUB existe se precisar balancear potencia entre varios EVC.
+
+O que PRECISA VALIDAR com Livoltek / no equipamento real (lacunas):
+  [?] SKU exata do cliente (Atom residencial vs DC publico vs Duplo CA).
+  [?] OCPP habilitado de fabrica na SKU Atom (guias existem; datasheet
+      Atom e mais ï¿½MyLivoltekï¿½). Confirmar firmware minimo.
+  [?] RemoteStartTransaction suportado e comportamento com veiculo
+      ja plugado vs ainda nao plugado.
+  [?] Granularidade e frequencia de MeterValues (Wh) para pre-pago fino.
+  [?] Precisao MID / classe do medidor se for cobranca regulamentada.
+  [?] idTag: gerar tags virtuais por sessao/pagamento vs RFID fisico.
+  [?] Multi-conector: connectorId correto (DC dual gun).
+  [?] Comportamento offline: cache local de transacoes (catalogo cita
+      cache) ï¿½ o que acontece se cair 4G no meio da sessao paga.
+  [?] Se usarao CMS Livoltek/EMSP ou CSMS 100% proprio (apresentacao
+      menciona CMS & EMSP com gestao financeira ï¿½ pode ser alternativa
+      comercial em vez de construir tudo).
+
+
+10. RISCOS E PONTOS DE ATENCAO
+--------------------------------------------------------------------------------
+  R1 ï¿½ Escolher o Atom ï¿½homeï¿½ como se fosse posto publico
+       Mitigacao: para cobranca self-service, preferir modelos com OCPP
+       comercial confirmado (DC / AC publico / Duplo CA).
+
+  R2 ï¿½ Liberar carga so com ï¿½pagamento no frontï¿½
+       Mitigacao: liberacao somente apos webhook verificado + estado
+       interno PAID ? REMOTE_START_SENT ? CHARGING.
+
+  R3 ï¿½ Pagou e nao carregou
+       Mitigacao: timeout + estorno automatico; monitoramento de
+       StatusNotification.
+
+  R4 ï¿½ Divergencia kWh cobrado x medido
+       Mitigacao: polï¿½tica clara; arredondamento; auditoria StopTransaction
+       meterStop - meterStart.
+
+  R5 ï¿½ Seguranca OCPP (perfil 1 em producao)
+       Mitigacao: TLS + auth; nao expor CSMS na internet sem WAF/allowlist
+       se possivel.
+
+  R6 ï¿½ Dupla cobranca / race conditions
+       Mitigacao: estado da sessao com maquina de estados + locks
+       idempotentes por payment_id.
+
+  R7 ï¿½ Dependencia de conectividade 4G/Ethernet na estacao
+       Mitigacao: monitor de heartbeat; app avisa ï¿½estacao offlineï¿½;
+       nao aceitar pagamento se CSMS nao ve o charge point.
+
+  R8 ï¿½ Concorrencia de uso (duas pessoas pagam o mesmo connector)
+       Mitigacao: reserva/hold do connector no momento do checkout.
+
+
+11. ESCOPO FUNCIONAL SUGERIDO (MVP vs DEPOIS)
+--------------------------------------------------------------------------------
+MVP (minimo para provar o ciclo completo):
+  - Cadastro de 1+ charge points no CSMS
+  - Listagem/status no app
+  - Checkout PIX (Inter) OU Stripe (pode comecar por um so)
+  - Webhook ? RemoteStart
+  - Acompanhar sessao (MeterValues basico)
+  - RemoteStop / fim natural
+  - Estorno se nao iniciar
+  - Painel admin simples (estacoes + sessoes + pagamentos)
+
+Fase 2:
+  - Os dois metodos de pagamento juntos
+  - Pre-pago por kWh com corte automatico
+  - QR Code na estacao (deep link / sessao)
+  - Conta usuario, historico, recibos
+  - Tarifas por horario / por estacao
+  - Notificacoes push
+
+Fase 3:
+  - Multi-operador / white-label
+  - EV HUB / DLM
+  - RFID vinculado a conta
+  - OCPP 2.0.1 quando firmware estiver maduro
+  - Relatorios fiscais e conciliacao avancada
+
+
+12. ALTERNATIVAS DE PRODUTO (DECISAO ESTRATEGICA)
+--------------------------------------------------------------------------------
+  Opcao A ï¿½ CSMS proprio + app proprio + Inter/Stripe
+    Maximo controle; mais engenharia (OCPP nao e trivial).
+
+  Opcao B ï¿½ CSMS SaaS com API + app proprio + Inter/Stripe
+    Mais rapido; validar RemoteStart via API e webhooks.
+
+  Opcao C ï¿½ Usar CMS/EMSP Livoltek (se oferecer cobranca/white-label)
+    Menos codigo; depende de contrato/features da Livoltek.
+
+  Opcao D ï¿½ Integrar so pagamento e usar RFID ï¿½pre-carregadoï¿½
+    Pior UX; nao atende bem ï¿½escolher carga ? pagar ? liberarï¿½.
+
+Recomendacao de analise: B para acelerar MVP, com caminho para A se o
+volume/controle exigir. Validar C com comercial Livoltek antes de
+construir cobranca do zero.
+
+
+13. CHECKLIST DE VERIFICACAO COM O HARDWARE / FORNECEDOR
+--------------------------------------------------------------------------------
+Antes de codar o MVP, confirmar por escrito/teste em bancada:
+
+  [ ] Modelo e SN do(s) carregador(es) do projeto
+  [ ] Firmware atual e se OCPP 1.6J esta ativo
+  [ ] Consegue apontar CMS URL para um CSMS de teste (ex. SteVe)
+  [ ] BootNotification + StatusNotification chegando
+  [ ] RemoteStartTransaction inicia carga com veiculo de teste
+  [ ] MeterValues com energia em Wh em intervalo configuravel
+  [ ] RemoteStop encerra e StopTransaction traz meterStop
+  [ ] Comportamento se pagamento ok e cabo nao conectado
+  [ ] Comportamento em queda de rede no meio da sessao
+  [ ] Se ha MID / homologacao necessaria para cobranca publica no local
+  [ ] Opcao de desabilitar free charging / start local
+  [ ] Dual connector: isolamento correto por connectorId
+
+
+14. VEREDITO
+--------------------------------------------------------------------------------
+O material Livoltek na raiz SUPORTA o tipo de aplicativo desejado, desde
+que a integracao seja via OCPP (CSMS) e nao via app My Livoltek/Bluetooth.
+
+Fluxo alinhado a documentacao:
+  escolher carga ? pagar (PIX Inter / Stripe) ? confirmar webhook ?
+  RemoteStart OCPP ? medicao MeterValues ? encerrar ? conciliacao.
+
+Premissas / decisoes:
+
+  1) SKU / familia do equipamento ï¿½ FECHADO (2026-10-26)
+     Decisao do solicitante: linha AC/DC COMERCIAL
+     (nao Atom residencial puro).
+     Implicacao: caminho OCPP 1.6J + CMS URL configuravel e o esperado;
+     liberacao via RemoteStart apos pagamento e o desenho correto.
+     Ainda util anotar o modelo exato (ex.: Duplo CA, WallBox DC 30,
+     Motion Fast 60/120, etc.) e SN na instalacao ï¿½ mas a familia
+     comercial ja desbloqueia a arquitetura do app.
+
+  2) CSMS — ATUALIZADO (2026-10-27)
+     Decisao do solicitante: CRIAR (CSMS proprio + API propria).
+     Nao contratar SaaS de terceiro como cerebro OCPP.
+     (A escolha anterior "SaaS com API" fica superada — ver secao 17/18.)
+
+  3) Modelo de cobranca — FECHADO (2026-10-27)
+     Decisao: sistema DINAMICO (nao travar um unico modo).
+     Ver secao 18.
+
+  4) Teste RemoteStart + MeterValues — EM CRIACAO
+     Roteiro em: PLANO_TESTE_REMOTE_START_METERVALUES.txt
+     Execucao pendente no equipamento comercial.
+
+Nada foi codado nesta etapa — apenas analise, decisoes e plano de teste.
+
+Indice de documentos (mesmo workspace):
+  DOCUMENTACAO_ARQUITETURA_PLATAFORMA_RECARGA_EV.txt  - mestre (v1.1+)
+  ANALISE_COMPETITIVA_TUPI_INCREMENTOS.txt            - UX + marketplace
+  PLANO_TESTE_REMOTE_START_METERVALUES.txt            - gate hardware
+  Este arquivo                                        - analise Livoltek
+
+
+16. DECISAO REGISTRADA — FAMILIA DO EQUIPAMENTO
+--------------------------------------------------------------------------------
+Status: CONFIRMADO pelo solicitante = AC/DC comercial.
+
+O que isso resolve:
+  - Nao dependemos do fluxo residencial My Livoltek / Bluetooth.
+  - Integracao = apontar o carregador para um CSMS e liberar carga
+    apos PIX/Stripe via OCPP.
+
+
+17. DECISAO REGISTRADA — CSMS = CRIAR (PROPRIO)  [atualiza SaaS]
+--------------------------------------------------------------------------------
+Status anterior (mesmo dia): SaaS com API — SUPERADO.
+Status atual: CRIAR CSMS proprio + API interna (Opcao A).
+
+Arquitetura alvo:
+
+  App (seu) ? Backend cobranca (PIX Inter + Stripe + regras dinamicas)
+                    ? API interna
+              CSMS proprio (OCPP 1.6J WebSocket com o carregador)
+                    ?
+              Carregador Livoltek AC/DC comercial
+
+O que passa a ser construido (alem do app de cobranca):
+  - Servidor OCPP (conexao do charge point, Boot/Heartbeat/Status,
+    RemoteStart/Stop, MeterValues, Start/StopTransaction)
+  - API interna do CSMS para o backend de pagamentos
+    (start, stop, status, energia da sessao)
+  - Cadastro de charge points (identity, connectors, URL/TLS)
+  - Persistencia de sessoes OCPP + conciliacao com pagamentos
+
+Implicacao: mais engenharia que SaaS, mas controle total do fluxo
+"webhook pago ? RemoteStart" e da cobranca dinamica por kWh.
+
+
+18. DECISAO REGISTRADA — COBRANCA DINAMICA
+--------------------------------------------------------------------------------
+Status: CONFIRMADO = sistema dinamico (nao um unico modo fixo).
+
+Significado:
+  Tarifas e regras sao CONFIGURAVEIS por estacao / conector / horario /
+  campanha — o motor de preco escolhe a regra ativa na hora do checkout
+  e durante a sessao (corte/estorno).
+
+Dimensoes tipicas a suportar (admin configura, app so consome):
+  - Modo de cobranca: R$/kWh | R$/minuto | valor fixo (credito) |
+    hibrido (taxa de sessao + energia)
+  - Tabela por faixa horaria (ponta / fora ponta)
+  - Preco por estacao ou grupo de estacoes
+  - Limites: valor maximo da sessao, tempo max, kWh max
+  - Metodo de pagamento aceito naquele ponto (PIX, Stripe, ambos)
+  - Politica de estorno: timeout sem plug, falha RemoteStart,
+    sobra de credito pre-pago, cancelamento usuario
+
+Fluxo com motor dinamico:
+  1) Usuario escolhe estacao ? backend resolve "tarifa vigente agora"
+  2) Checkout mostra preco estimado + modo ativo
+  3) Pagamento (PIX/Stripe) gera credito/autorizacao da sessao
+  4) Durante carga: MeterValues alimentam o motor (consumo vs saldo)
+  5) Regra de corte (saldo/tempo/kWh) ? RemoteStop
+  6) Conciliacao final conforme politica da tarifa usada na sessao
+
+MVP sugerido do motor (ainda dinamico, escopo enxuto):
+  - CRUD de tarifas (modo + valor + vigencia + estacao)
+  - Uma tarifa "default" por estacao
+  - Pre-pago por VALOR com conversao em kWh/tempo conforme modo
+  - Estorno automatico se sessao nao iniciar
+
+
+19. PLANO DE TESTE
+--------------------------------------------------------------------------------
+Arquivo dedicado (criar/executar na bancada):
+  PLANO_TESTE_REMOTE_START_METERVALUES.txt
+
+Objetivo: validar no Livoltek comercial + CSMS proprio que
+RemoteStart libera e MeterValues medem energia de forma usavel
+pela cobranca dinamica.
+
+
+15. FONTES CONSULTADAS (NA PASTA DO PROJETO)
+--------------------------------------------------------------------------------
+  - Datasheet Atom HomeAC Charger
+  - Datasheet / catalogo MotionFast e Catalogo JNG + Livoltek
+  - Guias OCPP CA (CMS) e Configuracao OCPP CA
+  - Guia primeiro uso AC Atom (modos desbloqueio app vs gratuito)
+  - Guia configuracao carregador veicular
+  - Comissionamento DC 30 kW (CMS Enable, URL OCPP terceira)
+  - Comissionamento DC 40ï¿½120 kW (CMS URL, security profile, QR/APP/RFID)
+  - User Manual WallBox (OCPP status na UI, RFID, charging records)
+  - Manual MF / Motion Fast (OCPP 1.6J ? 2.0.1)
+  - EV HUB datasheet (DLM, ate 32 EVC, OCPP 1.6/2.0)
+  - Apresentacao Livoltek Hexing Solucoes de Recarga VE (portfolio + CMS)
+
+================================================================================
+FIM DA ANALISE
+================================================================================

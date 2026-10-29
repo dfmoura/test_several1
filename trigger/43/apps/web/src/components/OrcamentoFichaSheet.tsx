@@ -286,8 +286,8 @@ function FichaItemBody({
     pushDesc('Etiq/rolo', snap(input, 'etiq_por_rolo'), snap(input, 'etiq_por_rolo') === '—');
     pushDesc(
       'Tubete',
-      snap(input, 'tubete_rotulo') !== '—' ? snap(input, 'tubete_rotulo') : snap(input, 'tubete'),
-      snap(input, 'tubete_rotulo') === '—' && snap(input, 'tubete') === '—',
+      snap(input, 'tubete') !== '—' ? snap(input, 'tubete') : snap(input, 'tubete_rotulo'),
+      snap(input, 'tubete') === '—' && snap(input, 'tubete_rotulo') === '—',
     );
     pushDesc('Z', snap(input, 'z'), snap(input, 'z') === '—');
     pushDesc('Máq.', snap(input, 'maquina'), snap(input, 'maquina') === '—');

@@ -188,8 +188,9 @@ export type OrcForm = {
   modelos_composicao_quantidades: number[][];
   colunas: number;
   etiq_por_rolo: number;
-  /** Polegada canônica (1", 1" 1/2, 3") — preço e caixas. */
+  /** Polegada canônica (1", 1" 1/2, 3") — preço e caixas. SKU físico fica fora do ORC. */
   tubete: string;
+  /** Legado de snaps antigos; UI/ORC não grava mais. */
   tubete_produto_id: number | '';
   tubete_produto_codigo: string;
   tubete_rotulo: string;
@@ -1033,10 +1034,10 @@ export function formFromSnapshot(
     colunas: Number(snap.colunas) || 1,
     etiq_por_rolo: Number(snap.etiq_por_rolo) || 1000,
     tubete: String(snap.tubete ?? base.tubete),
-    tubete_produto_id:
-      snap.tubete_produto_id == null || snap.tubete_produto_id === '' ? '' : Number(snap.tubete_produto_id),
-    tubete_produto_codigo: String(snap.tubete_produto_codigo ?? ''),
-    tubete_rotulo: String(snap.tubete_rotulo ?? ''),
+    // ORC = só polegada; ignore SKU dimensional herdado de snaps antigos.
+    tubete_produto_id: '',
+    tubete_produto_codigo: '',
+    tubete_rotulo: '',
     caixa_medida: String(snap.caixa_medida ?? ''),
     z: snap.z == null || snap.z === '' ? '' : Number(snap.z),
     maquina: String(snap.maquina ?? base.maquina),
@@ -1403,13 +1404,9 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
     colunas: form.colunas,
     etiq_por_rolo: form.etiq_por_rolo,
     tubete: form.tubete,
-    ...(form.tubete_produto_id !== ''
-      ? {
-          tubete_produto_id: form.tubete_produto_id,
-          tubete_produto_codigo: form.tubete_produto_codigo || null,
-          tubete_rotulo: form.tubete_rotulo || null,
-        }
-      : {}),
+    tubete_produto_id: null,
+    tubete_produto_codigo: null,
+    tubete_rotulo: null,
     ...(form.caixa_medida.trim() ? { caixa_medida: form.caixa_medida.trim() } : {}),
     z: form.z === '' ? null : form.z,
     maquina: form.maquina,

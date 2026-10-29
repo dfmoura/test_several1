@@ -4,7 +4,11 @@ namespace App\Http\Controllers\Operacao;
 
 use App\Domain\Anexos\AnexosService;
 use App\Domain\Carteira\CarteiraService;
+use App\Domain\Demanda\AssistenciaClient;
 use App\Domain\Demanda\DemandaService;
+use App\Domain\Demanda\PropostaEtapas;
+use App\Domain\Demanda\PropostaRascunho;
+use App\Domain\RegraNegocio;
 use App\Http\Controllers\Controller;
 use App\Models\CobrancaPix;
 use App\Models\Demanda;
@@ -12,11 +16,13 @@ use App\Models\Marco;
 use App\Models\Mensagem;
 use App\Models\MovimentoSaldo;
 use App\Suporte\Dinheiro;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 class DemandaController extends Controller
 {
-    public function mostrar(Demanda $demanda, CarteiraService $carteira)
+    public function mostrar(Demanda $demanda, CarteiraService $carteira, AssistenciaClient $assistencia)
     {
         $demanda->load(['empresa.carteira', 'propostas', 'fatura', 'apresentacao', 'anexos', 'marcos', 'eventos']);
 
@@ -28,6 +34,8 @@ class DemandaController extends Controller
             'pix' => $demanda->fatura
                 ? CobrancaPix::query()->where('fatura_id', $demanda->fatura->id)->latest('id')->get()
                 : collect(),
+            'rascunho' => PropostaRascunho::para($demanda, request()),
+            'assistenciaAtiva' => $assistencia->ativa(),
         ]);
     }
 
@@ -62,37 +70,83 @@ class DemandaController extends Controller
     public function propor(Request $request, Demanda $demanda, DemandaService $demandas)
     {
         $dados = $request->validate([
-            'objetivo' => ['required', 'string', 'max:4000'],
-            'contexto' => ['required', 'string', 'max:4000'],
             'descricao_funcional' => ['required', 'string', 'max:8000'],
-            'requisitos' => ['required', 'string', 'max:8000'],
-            'criterios_aceite' => ['required', 'string', 'max:4000'],
-            'premissas' => ['required', 'string', 'max:4000'],
-            'restricoes' => ['required', 'string', 'max:4000'],
             'incluso' => ['required', 'string', 'max:4000'],
             'nao_incluso' => ['required', 'string', 'max:4000'],
+            'criterios_aceite' => ['required', 'string', 'max:4000'],
             'prazo_dias_uteis' => ['required', 'integer', 'min:1', 'max:365'],
-            'horas_estimadas' => ['nullable', 'integer', 'min:1', 'max:5000'],
             'valor' => ['required', 'string', 'max:30'],
+            'etapas' => ['nullable', 'array', 'max:'.PropostaEtapas::MAXIMO],
+            'etapas.*.titulo' => ['nullable', 'string', 'max:160'],
+            'etapas.*.resultado' => ['nullable', 'string', 'max:800'],
+            'etapas.*.aceite' => ['nullable', 'string', 'max:800'],
+            'objetivo' => ['nullable', 'string', 'max:4000'],
+            'contexto' => ['nullable', 'string', 'max:4000'],
+            'requisitos' => ['nullable', 'string', 'max:8000'],
+            'premissas' => ['nullable', 'string', 'max:4000'],
+            'restricoes' => ['nullable', 'string', 'max:4000'],
+            'horas_estimadas' => ['nullable', 'integer', 'min:1', 'max:5000'],
             'observacao' => ['nullable', 'string', 'max:2000'],
         ]);
-        $demandas->propor($demanda, (int) auth('operacao')->id(), [
-            'objetivo' => $dados['objetivo'],
-            'contexto' => $dados['contexto'],
-            'descricao_funcional' => $dados['descricao_funcional'],
-            'requisitos' => $dados['requisitos'],
-            'criterios_aceite' => $dados['criterios_aceite'],
-            'premissas' => $dados['premissas'],
-            'restricoes' => $dados['restricoes'],
-            'incluso' => $dados['incluso'],
-            'nao_incluso' => $dados['nao_incluso'],
-            'prazo_dias_uteis' => $dados['prazo_dias_uteis'],
-            'horas_estimadas' => $dados['horas_estimadas'] ?? null,
+        $demandas->propor($demanda, (int) auth('operacao')->id(), PropostaRascunho::completar($demanda, [
+            ...$dados,
             'valor_centavos' => Dinheiro::centavosDeTexto($dados['valor']),
-            'observacao' => $dados['observacao'] ?? null,
-        ]);
+        ]));
 
         return back()->with('ok', 'Proposta enviada ao cliente.');
+    }
+
+    public function desdobrar(Demanda $demanda, AssistenciaClient $client): JsonResponse
+    {
+        if (! in_array($demanda->status, ['EM_ANALISE', 'PROPOSTA_ENVIADA'], true)) {
+            return response()->json(['erro' => 'Esta demanda não aceita desdobramento agora.'], 422);
+        }
+        $chave = 'assistencia:desdobrar:'.(string) auth('operacao')->id();
+        if (RateLimiter::tooManyAttempts($chave, 20)) {
+            return response()->json(['erro' => 'Muitas tentativas. Espere um minuto e tente de novo.'], 429);
+        }
+        RateLimiter::hit($chave, 60);
+
+        $mensagens = Mensagem::query()
+            ->where('demanda_id', $demanda->id)
+            ->where('visibilidade', 'CLIENTE')
+            ->orderByDesc('criada_em')
+            ->limit(8)
+            ->get()
+            ->reverse()
+            ->map(fn (Mensagem $m) => [
+                'autor' => $m->autor_tipo,
+                'corpo' => mb_substr((string) $m->corpo, 0, 500),
+            ])
+            ->values()
+            ->all();
+
+        try {
+            $rascunho = $client->desdobrarProposta([
+                'codigo' => $demanda->codigo,
+                'titulo' => $demanda->titulo,
+                'descricao' => $demanda->descricao,
+                'objetivo' => $demanda->objetivo,
+                'sistema_atual' => $demanda->sistema_atual,
+                'mensagens' => $mensagens,
+            ]);
+        } catch (RegraNegocio $e) {
+            return response()->json(['erro' => $e->getMessage()], 503);
+        }
+
+        try {
+            $etapas = PropostaEtapas::normalizar($rascunho['etapas'] ?? []);
+        } catch (RegraNegocio $e) {
+            return response()->json(['erro' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'descricao_funcional' => mb_substr(trim((string) ($rascunho['descricao_funcional'] ?? '')), 0, 8000),
+            'incluso' => mb_substr(trim((string) ($rascunho['incluso'] ?? '')), 0, 4000),
+            'nao_incluso' => mb_substr(trim((string) ($rascunho['nao_incluso'] ?? '')), 0, 4000),
+            'criterios_aceite' => mb_substr(trim((string) ($rascunho['criterios_aceite'] ?? '')), 0, 4000),
+            'etapas' => $etapas,
+        ]);
     }
 
     public function recusar(Request $request, Demanda $demanda, DemandaService $demandas)

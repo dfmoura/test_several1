@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automação de Consultas HTTP</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface-2: #243044;
+      --border: #334155;
+      --text: #e8eef7;
+      --muted: #94a3b8;
+      --accent: #2dd4bf;
+      --accent-dim: #0f766e;
+      --danger: #f87171;
+      --warning: #fbbf24;
+      --ok: #4ade80;
+      --radius: 12px;
+      --shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #164e63 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #1e3a5f 0%, transparent 50%),
+        var(--bg);
+      line-height: 1.5;
+    }
+
+    .wrap {
+      width: min(1100px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2rem 0 3rem;
+    }
+
+    header {
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: clamp(1.6rem, 3vw, 2.1rem);
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 0;
+      max-width: 60ch;
+    }
+
+    .grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      margin-bottom: 1rem;
+    }
+
+    .panel {
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.2rem;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .panel h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .meta {
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .meta-row span:first-child { color: var(--muted); }
+    .meta-row strong {
+      text-align: right;
+      word-break: break-word;
+      font-weight: 600;
+    }
+
+    .aviso {
+      border-left: 3px solid var(--warning);
+      background: rgba(251, 191, 36, 0.08);
+      padding: 0.85rem 1rem;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      color: #fde68a;
+      font-size: 0.92rem;
+      margin-bottom: 1rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 0.7rem 1.1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.12s ease, background 0.12s ease;
+      color: #042f2e;
+      background: var(--accent);
+    }
+
+    button:hover:not(:disabled) { transform: translateY(-1px); }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button.secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    button.danger {
+      background: #7f1d1d;
+      color: #fecaca;
+      border-color: #991b1b;
+    }
+
+    .progress-wrap {
+      margin: 0.4rem 0 0.2rem;
+    }
+
+    .progress-bar {
+      height: 12px;
+      background: var(--surface-2);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+      transition: width 0.35s ease;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .status-pill.running,
+    .status-pill.cancelling { color: var(--warning); }
+    .status-pill.completed { color: var(--ok); }
+    .status-pill.cancelled,
+    .status-pill.failed { color: var(--danger); }
+    .status-pill.idle { color: var(--muted); }
+
+    .toast {
+      min-height: 1.4rem;
+      margin: 0 0 1rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .toast.error { color: var(--danger); }
+    .toast.ok { color: var(--ok); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 0.65rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    tbody tr:hover { background: rgba(45, 212, 191, 0.04); }
+
+    .empty {
+      color: var(--muted);
+      padding: 1rem 0.25rem;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 0.1rem 0.45rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: var(--surface-2);
+    }
+
+    .tag.ok { color: var(--ok); }
+    .tag.erro { color: var(--danger); }
+    .tag.em_andamento { color: var(--warning); }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    footer {
+      margin-top: 1.5rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 640px) {
+      .meta-row { flex-direction: column; gap: 0.15rem; }
+      .meta-row strong { text-align: left; }
+      button { flex: 1 1 calc(50% - 0.65rem); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Automação de Consultas HTTP</h1>
+      <p class="subtitle">
+        Interface local para iniciar e acompanhar requisições HTTP sequenciais
+        em ambiente Docker. Uso demonstrativo e educacional.
+      </p>
+    </header>
+
+    <div class="aviso" id="aviso">
+      Respostas HTTP (incluindo 200) indicam apenas sucesso técnico da requisição.
+      Não comprovam que o mecanismo de busca contabilizou a pesquisa como válida.
+    </div>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>Configuração</h2>
+        <div class="meta">
+          <div class="meta-row">
+            <span>Consulta</span>
+            <strong id="cfg-consulta">{{ config.consulta }}</strong>
+          </div>
+          <div class="meta-row">
+            <span>Total de consultas</span>
+            <strong id="cfg-total">{{ config.total_consultas }}</strong>
+          </div>
+          <div class="meta-row">
+            <span>Intervalo</span>
+            <strong id="cfg-intervalo">{{ config.intervalo_segundos }} s</strong>
+          </div>
+          <div class="meta-row">
+            <span>Timeout HTTP</span>
+            <strong id="cfg-timeout">{{ config.timeout_http }} s</strong>
+          </div>
+          <div class="meta-row">
+            <span>Mecanismo</span>
+            <strong id="cfg-engine">{{ config.search_engine }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Estado da execução</h2>
+        <div class="meta">
+          <div class="meta-row">
+            <span>Estado</span>
+            <strong><span class="status-pill idle" id="st-status">idle</span></strong>
+          </div>
+          <div class="meta-row">
+            <span>Mensagem</span>
+            <strong id="st-mensagem">Aguardando início.</strong>
+          </div>
+          <div class="meta-row">
+            <span>Tentadas</span>
+            <strong id="st-tentadas">0</strong>
+          </div>
+          <div class="meta-row">
+            <span>Concluídas (técnicas)</span>
+            <strong id="st-concluidas">0</strong>
+          </div>
+          <div class="meta-row">
+            <span>Erros</span>
+            <strong id="st-erros">0</strong>
+          </div>
+          <div class="meta-row">
+            <span>Critério técnico OK</span>
+            <strong id="st-validas">0</strong>
+          </div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar" aria-hidden="true">
+            <div class="progress-fill" id="st-progress"></div>
+          </div>
+          <div class="meta-row" style="margin-top:0.45rem">
+            <span>Progresso</span>
+            <strong id="st-progress-label">0%</strong>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="controls">
+      <button type="button" id="btn-start">Iniciar</button>
+      <button type="button" id="btn-cancel" class="danger" disabled>Cancelar</button>
+      <button type="button" id="btn-refresh" class="secondary">Atualizar status</button>
+      <button type="button" id="btn-clear" class="secondary">Limpar histórico</button>
+    </div>
+
+    <p class="toast" id="toast" role="status" aria-live="polite"></p>
+
+    <section class="panel">
+      <h2>Histórico das requisições</h2>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Status</th>
+              <th>HTTP</th>
+              <th>Duração</th>
+              <th>Início</th>
+              <th>Término</th>
+              <th>Erro / observação</th>
+            </tr>
+          </thead>
+          <tbody id="history-body">
+            <tr><td colspan="7" class="empty">Nenhuma requisição registrada.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      Serviço publicado apenas em 127.0.0.1. Não utilize este projeto para contornar
+      CAPTCHA, limites ou políticas de mecanismos de busca.
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var pollTimer = null;
+      var startInFlight = false;
+
+      var els = {
+        toast: document.getElementById("toast"),
+        btnStart: document.getElementById("btn-start"),
+        btnCancel: document.getElementById("btn-cancel"),
+        btnRefresh: document.getElementById("btn-refresh"),
+        btnClear: document.getElementById("btn-clear"),
+        status: document.getElementById("st-status"),
+        mensagem: document.getElementById("st-mensagem"),
+        tentadas: document.getElementById("st-tentadas"),
+        concluidas: document.getElementById("st-concluidas"),
+        erros: document.getElementById("st-erros"),
+        validas: document.getElementById("st-validas"),
+        progress: document.getElementById("st-progress"),
+        progressLabel: document.getElementById("st-progress-label"),
+        historyBody: document.getElementById("history-body"),
+        cfgConsulta: document.getElementById("cfg-consulta"),
+        cfgTotal: document.getElementById("cfg-total"),
+        cfgIntervalo: document.getElementById("cfg-intervalo"),
+        cfgTimeout: document.getElementById("cfg-timeout"),
+        cfgEngine: document.getElementById("cfg-engine"),
+        aviso: document.getElementById("aviso")
+      };
+
+      function setToast(message, type) {
+        els.toast.textContent = message || "";
+        els.toast.className = "toast" + (type ? " " + type : "");
+      }
+
+      function formatDuration(ms) {
+        if (ms === null || ms === undefined) return "—";
+        if (ms < 1000) return ms + " ms";
+        return (ms / 1000).toFixed(2) + " s";
+      }
+
+      function formatTime(iso) {
+        if (!iso) return "—";
+        try {
+          var d = new Date(iso);
+          return d.toLocaleString("pt-BR");
+        } catch (e) {
+          return iso;
+        }
+      }
+
+      function isActive(status) {
+        return status === "running" || status === "cancelling";
+      }
+
+      function updateControls(status) {
+        var active = isActive(status);
+        els.btnStart.disabled = active || startInFlight;
+        els.btnCancel.disabled = !active;
+        els.btnClear.disabled = active;
+      }
+
+      function renderHistory(items) {
+        if (!items || !items.length) {
+          els.historyBody.innerHTML =
+            '<tr><td colspan="7" class="empty">Nenhuma requisição registrada.</td></tr>';
+          return;
+        }
+
+        var html = "";
+        for (var i = items.length - 1; i >= 0; i--) {
+          var item = items[i];
+          var detail = item.erro || item.observacao || "—";
+          html +=
+            "<tr>" +
+            "<td>" + item.numero + "</td>" +
+            '<td><span class="tag ' + (item.status || "") + '">' +
+            (item.status || "—") +
+            "</span></td>" +
+            "<td>" + (item.http_status != null ? item.http_status : "—") + "</td>" +
+            "<td>" + formatDuration(item.duracao_ms) + "</td>" +
+            "<td>" + formatTime(item.iniciado_em) + "</td>" +
+            "<td>" + formatTime(item.finalizado_em) + "</td>" +
+            "<td>" + escapeHtml(detail) + "</td>" +
+            "</tr>";
+        }
+        els.historyBody.innerHTML = html;
+      }
+
+      function escapeHtml(text) {
+        return String(text)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function applyStatus(data) {
+        if (!data) return;
+        var status = data.status || "idle";
+        els.status.textContent = status;
+        els.status.className = "status-pill " + status;
+        els.mensagem.textContent = data.mensagem || "—";
+        els.tentadas.textContent = String(data.tentadas || 0);
+        els.concluidas.textContent = String(data.concluidas || 0);
+        els.erros.textContent = String(data.erros || 0);
+        els.validas.textContent = String(data.validas || 0);
+
+        var pct = Number(data.progresso_percentual || 0);
+        els.progress.style.width = pct + "%";
+        els.progressLabel.textContent = pct.toFixed(1) + "%";
+
+        if (data.config) {
+          els.cfgConsulta.textContent = data.config.consulta || "—";
+          els.cfgTotal.textContent = String(data.config.total_consultas || "—");
+          els.cfgIntervalo.textContent = (data.config.intervalo_segundos || "—") + " s";
+          els.cfgTimeout.textContent = (data.config.timeout_http || "—") + " s";
+          els.cfgEngine.textContent = data.config.search_engine || "—";
+          if (data.config.aviso) {
+            els.aviso.textContent = data.config.aviso;
+          }
+        }
+
+        renderHistory(data.historico_execucao || []);
+        updateControls(status);
+      }
+
+      function api(path, options) {
+        return fetch(path, options).then(function (res) {
+          return res.json().then(function (body) {
+            return { httpOk: res.ok, status: res.status, body: body };
+          });
+        });
+      }
+
+      function refreshStatus() {
+        return api("/api/status")
+          .then(function (result) {
+            if (!result.body || !result.body.ok) {
+              setToast((result.body && result.body.error) || "Falha ao obter status.", "error");
+              return;
+            }
+            applyStatus(result.body);
+          })
+          .catch(function () {
+            setToast("Não foi possível conectar à API.", "error");
+          });
+      }
+
+      els.btnRefresh.addEventListener("click", function () {
+        refreshStatus().then(function () {
+          setToast("Status atualizado.", "ok");
+        });
+      });
+
+      els.btnStart.addEventListener("click", function () {
+        if (startInFlight || els.btnStart.disabled) return;
+        startInFlight = true;
+        updateControls("running");
+        setToast("Iniciando execução...", "");
+
+        api("/api/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}"
+        })
+          .then(function (result) {
+            if (!result.body || !result.body.ok) {
+              setToast(
+                (result.body && result.body.error) || "Não foi possível iniciar.",
+                "error"
+              );
+              return refreshStatus();
+            }
+            setToast(result.body.message || "Execução iniciada.", "ok");
+            if (result.body.status) {
+              applyStatus(result.body.status);
+            } else {
+              return refreshStatus();
+            }
+          })
+          .catch(function () {
+            setToast("Erro de rede ao iniciar a execução.", "error");
+          })
+          .then(function () {
+            startInFlight = false;
+            refreshStatus();
+          });
+      });
+
+      els.btnCancel.addEventListener("click", function () {
+        setToast("Solicitando cancelamento...", "");
+        api("/api/cancel", { method: "POST" })
+          .then(function (result) {
+            if (!result.body || !result.body.ok) {
+              setToast(
+                (result.body && result.body.error) || "Não foi possível cancelar.",
+                "error"
+              );
+            } else {
+              setToast(result.body.message || "Cancelamento solicitado.", "ok");
+            }
+            return refreshStatus();
+          })
+          .catch(function () {
+            setToast("Erro de rede ao cancelar.", "error");
+          });
+      });
+
+      els.btnClear.addEventListener("click", function () {
+        api("/api/history/clear", { method: "POST" })
+          .then(function (result) {
+            if (!result.body || !result.body.ok) {
+              setToast(
+                (result.body && result.body.error) || "Não foi possível limpar o histórico.",
+                "error"
+              );
+            } else {
+              setToast(result.body.message || "Histórico limpo.", "ok");
+            }
+            return refreshStatus();
+          })
+          .catch(function () {
+            setToast("Erro de rede ao limpar histórico.", "error");
+          });
+      });
+
+      refreshStatus();
+      pollTimer = setInterval(refreshStatus, 1000);
+
+      window.addEventListener("beforeunload", function () {
+        if (pollTimer) clearInterval(pollTimer);
+      });
+    })();
+  </script>
+</body>
+</html>

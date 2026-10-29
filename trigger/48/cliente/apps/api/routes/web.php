@@ -3,12 +3,14 @@
 use App\Http\Controllers\AnexoController;
 use App\Http\Controllers\CadastroController;
 use App\Http\Controllers\ContaController;
+use App\Http\Controllers\DemandaAssistenciaController;
 use App\Http\Controllers\DemandaController;
 use App\Http\Controllers\EntrarController;
 use App\Http\Controllers\ExtratoController;
 use App\Http\Controllers\FaturaController;
 use App\Http\Controllers\InicioController;
 use App\Http\Controllers\LegalController;
+use App\Http\Controllers\Operacao\AssistenciaController as OperacaoAssistenciaController;
 use App\Http\Controllers\Operacao\DemandaController as OperacaoDemandaController;
 use App\Http\Controllers\Operacao\EmpresaController as OperacaoEmpresaController;
 use App\Http\Controllers\Operacao\EntrarController as OperacaoEntrarController;
@@ -22,7 +24,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::bind('demanda', function (string $codigo) {
     $consulta = Demanda::query()->where('codigo', $codigo);
-    if (request()->is('operacao/*') && auth('operacao')->check()) {
+    // Escopo por path: a rota /operacao/* já exige o guard operacao no middleware.
+    if (str_starts_with(request()->path(), 'operacao/') || request()->path() === 'operacao') {
         return $consulta->firstOrFail();
     }
 
@@ -62,6 +65,12 @@ Route::middleware(['cliente', 'sessao.absoluta:web'])->group(function () {
     Route::post('/sair', [EntrarController::class, 'sair'])->name('sair');
     Route::get('/demandas', [DemandaController::class, 'index'])->name('demandas.index');
     Route::get('/demandas/nova', [DemandaController::class, 'criar'])->name('demandas.criar');
+    Route::post('/demandas/assistencia', [DemandaAssistenciaController::class, 'abrir'])
+        ->name('demandas.assistencia.abrir');
+    Route::post('/demandas/assistencia/mensagem', [DemandaAssistenciaController::class, 'mensagem'])
+        ->name('demandas.assistencia.mensagem');
+    Route::post('/demandas/assistencia/finalizar', [DemandaAssistenciaController::class, 'finalizar'])
+        ->name('demandas.assistencia.finalizar');
     Route::post('/demandas', [DemandaController::class, 'salvar'])->name('demandas.salvar');
     Route::get('/demandas/{demanda}', [DemandaController::class, 'mostrar'])->name('demandas.mostrar');
     Route::post('/demandas/{demanda}/enviar', [DemandaController::class, 'enviar'])->name('demandas.enviar');
@@ -75,8 +84,9 @@ Route::middleware(['cliente', 'sessao.absoluta:web'])->group(function () {
     Route::get('/faturas/{fatura}/pdf', [FaturaController::class, 'pdf'])->name('faturas.pdf');
     Route::get('/extrato', ExtratoController::class)->name('extrato');
     Route::get('/conta', [ContaController::class, 'mostrar'])->name('conta');
+    Route::post('/conta/receita', [ContaController::class, 'atualizarReceita'])->name('conta.receita');
     Route::get('/conta/recarga', [ContaController::class, 'recarga'])->name('conta.recarga');
-    Route::post('/conta/recarga', [ContaController::class, 'emitirRecarga'])->middleware('throttle:pix');
+    Route::post('/conta/recarga', [ContaController::class, 'emitirRecarga'])->name('conta.recarga.emitir');
     Route::get('/pix/{txid}', [PixController::class, 'mostrar'])->name('pix.mostrar');
     Route::get('/pix/{txid}/situacao', [PixController::class, 'situacao'])->name('pix.situacao');
     Route::post('/pix/{txid}/simular', [PixController::class, 'simular'])->name('pix.simular');
@@ -90,6 +100,9 @@ Route::prefix('operacao')->group(function () {
     Route::middleware(['operacao', 'sessao.absoluta:operacao'])->group(function () {
         Route::get('/', FilaController::class)->name('operacao.fila');
         Route::get('/auditoria', [FilaController::class, 'auditoria'])->name('operacao.auditoria');
+        Route::get('/assistencia', [OperacaoAssistenciaController::class, 'mostrar'])->name('operacao.assistencia');
+        Route::post('/assistencia', [OperacaoAssistenciaController::class, 'salvar'])->name('operacao.assistencia.salvar');
+        Route::post('/assistencia/testar', [OperacaoAssistenciaController::class, 'testar'])->name('operacao.assistencia.testar');
         Route::get('/empresas', [OperacaoEmpresaController::class, 'index'])->name('operacao.empresas');
         Route::get('/empresas/{empresa}', [OperacaoEmpresaController::class, 'mostrar'])->name('operacao.empresa');
         Route::post('/empresas/{empresa}/bloquear', [OperacaoEmpresaController::class, 'bloquear'])->name('operacao.empresas.bloquear');
@@ -98,6 +111,8 @@ Route::prefix('operacao')->group(function () {
         Route::get('/demandas/{demanda}', [OperacaoDemandaController::class, 'mostrar'])->name('operacao.demanda');
         Route::post('/demandas/{demanda}/mensagens', [OperacaoDemandaController::class, 'mensagem'])->name('operacao.mensagens');
         Route::post('/demandas/{demanda}/proposta', [OperacaoDemandaController::class, 'propor'])->name('operacao.propor');
+        Route::post('/demandas/{demanda}/desdobrar', [OperacaoDemandaController::class, 'desdobrar'])
+            ->name('operacao.desdobrar');
         Route::post('/demandas/{demanda}/recusar', [OperacaoDemandaController::class, 'recusar'])->name('operacao.recusar');
         Route::post('/demandas/{demanda}/executar', [OperacaoDemandaController::class, 'executar'])->name('operacao.executar');
         Route::post('/demandas/{demanda}/marco', [OperacaoDemandaController::class, 'marco'])->name('operacao.marco');

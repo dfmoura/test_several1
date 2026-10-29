@@ -1,0 +1,279 @@
+FONTES DE DADOS — https://www.raioxmunicipal.com.br
+Gerado em: 2026-10-28
+Escopo: municípios ativos de Santa Catarina (Tubarão, Laguna, Capivari de Baixo, Armazém; outras cidades "em breve")
+
+================================================================================
+RESUMO
+================================================================================
+O Raio-X Municipal NÃO produz os dados primários. Ele agrega, organiza e
+visualiza dados públicos oficiais já publicados por órgãos e portais de
+transparência. O front-end consome a API própria:
+
+  https://api.raioxmunicipal.com.br/api
+
+Essa API serve dados já processados; as origens declaradas na interface
+(componente de crédito "Fonte:") são principalmente:
+
+  1) Portal da Transparência municipal (Betha / portal próprio)
+  2) SICONFI / Tesouro Nacional
+  3) IBGE
+  4) Site oficial da Câmara Municipal (caso Tubarão/SC — módulo Políticos)
+
+Rodapé do site: "Dados do Portal Betha Transparência · Projeto sem fins lucrativos"
+
+
+================================================================================
+1. PORTAL DA TRANSPARÊNCIA MUNICIPAL (fonte principal da maioria dos módulos)
+================================================================================
+Código interno da fonte na UI:  transparencia
+
+Nome exibido:  Portal da Transparência — {Município}/{UF}
+Detalhe:       URL do portal de cada cidade (campo portalUrl)
+
+Portais por cidade (extraídos do frontend):
+
+  - Tubarão / SC
+      https://transparencia.tubarao.sc.gov.br
+      (portal próprio do município)
+
+  - Laguna / SC
+      transparencia.betha.cloud
+      (Portal Betha Transparência)
+
+  - Capivari de Baixo / SC
+      transparencia.betha.cloud
+
+  - Armazém / SC
+      transparencia.betha.cloud
+
+Conjuntos / rótulos citados na interface a partir dessa fonte:
+
+  - COD_CREDORES
+      Ranking e pagamentos a fornecedores/credores
+  - COD_PESSOAL_GERAL
+      Folha / pessoal (com filtro por dataEmpenho; ano corrente pode ser parcial)
+  - Execução Detalhada de Despesas (ex.: Educação)
+  - Registros brutos de pagamento, empenhos, contratos, licitações e obras
+
+Módulos que usam predominantemente "fonte: transparencia":
+
+  - Visão Geral / Dashboard (KPIs, evolução, ranking de credores, por setor)
+  - Contratos
+  - Empresas / fornecedores
+  - Licitações
+  - Obras
+  - Servidores / cargos e salários / estrutura (folha)
+  - Saúde (gastos da função saúde via execução orçamentária)
+  - Educação (gastos da função educação)
+  - Segurança (gastos das secretarias de segurança / defesa civil)
+  - Emendas (quando publicadas no portal)
+  - Mapa / heatmap de investimentos (a partir dos dados municipais georreferenciados
+    ou associados a bairros/regiões)
+
+Observação da própria UI:
+  dados do ano corrente podem estar incompletos — "portal atualizado mensalmente".
+  "Sem dado publicado" = município não disponibiliza aquele conjunto, não = gasto zero.
+
+
+================================================================================
+2. SICONFI / TESOURO NACIONAL
+================================================================================
+Código interno da fonte na UI:  siconfi
+
+Nome exibido:  SICONFI / Tesouro Nacional
+Detalhe:       siconfi.tesouro.fazenda.gov.br
+
+Conjuntos citados:
+
+  - Balanço Patrimonial (SICONFI)
+  - DCA (Demonstrações Contábeis Anuais) — ex.: "Fonte: SICONFI/DCA"
+
+Indicadores típicos:
+
+  - Ativo total / ativo circulante / caixa e equivalentes / imobilizado
+  - Passivo total / passivo circulante e não circulante
+  - Empréstimos e financiamentos
+  - Dívida ativa
+  - Composição estimada da receita / origem do dinheiro (quando disponível)
+
+Módulos:
+
+  - Financeiro (saúde financeira do município)
+  - Dívidas / endividamento
+  - Parte do dashboard "origem do dinheiro" (bloco siconfi na API)
+
+
+================================================================================
+3. IBGE
+================================================================================
+Código interno da fonte na UI:  ibge
+
+Nome exibido:  IBGE
+Detalhe:       ibge.gov.br
+
+Uso declarado no produto como fonte oficial possível (cadastro de créditos).
+Observação da UI no módulo Políticos: bairros citados em proposições
+NÃO são lista oficial do IBGE — são menções extraídas dos textos.
+
+
+================================================================================
+4. CÂMARA MUNICIPAL (módulo Políticos — Tubarão/SC)
+================================================================================
+Fonte explícita na interface:
+
+  "Fonte: site oficial da Câmara Municipal de Tubarão/SC."
+
+Conteúdo:
+
+  - Vereadores / políticos (atuais e histórico)
+  - Proposições, requerimentos, moções, projetos de lei
+  - Sanções / promulgação / vetos
+  - Rankings de produção legislativa, comissões, leis, áreas e bairros mencionados
+
+
+================================================================================
+5. CAMADA TÉCNICA DE ENTREGA (não é órgão produtor do dado)
+================================================================================
+API de dados do produto:
+
+  Base URL:  https://api.raioxmunicipal.com.br/api
+
+Exemplos de endpoints observados em uso:
+
+  GET /dashboard/kpis?ano=&cidade=
+  GET /dashboard/evolucao?cidade=
+  GET /dashboard/por-setor?ano=&cidade=
+  GET /dashboard/ranking-credores?ano=&limit=&cidade=
+  GET /dashboard/origem-dinheiro?ano=&cidade=
+  GET /dashboard/receita-evolucao?cidade=
+  GET /financeiro/patrimonio?exercicio=&cidade=
+  GET /financeiro/patrimonio/evolucao?cidade=
+  GET /contratos ... /obras ... /licitacoes ... /empresas ...
+  GET /servidores ... /educacao ... /saude ... /seguranca ...
+  GET /emendas ... /politicos ... /mapa/heatmap ... /mapa/camadas ...
+  POST /investigacao/perguntar   (assistente / IA sobre os dados já agregados)
+  POST /analytics/evento
+
+Parâmetro de cidade: slug (ex.: tubarao, laguna, capivari-de-baixo, armazem)
+
+Mapas (base cartográfica, não dado municipal):
+
+  Esri ArcGIS Online — World Dark Gray Base
+  https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}
+  (Leaflet no frontend)
+
+Telemetria / infra (não são fontes de dados municipais):
+
+  - Firebase (projeto raioxmunicipal-*)
+  - Google Analytics / Tag Manager
+  - Google AdSense
+
+
+================================================================================
+6. MAPA RÁPIDO: MÓDULO → FONTE PRINCIPAL
+================================================================================
+Visão Geral .............. Portal da Transparência (+ SICONFI em trechos financeiros)
+Mapa Inteligente ......... Portal da Transparência + tiles ArcGIS
+Financeiro ............... SICONFI/Tesouro (+ transparência em despesas/receitas)
+Dívidas .................. SICONFI/DCA
+Estrutura / Folha ........ Portal da Transparência (COD_PESSOAL_GERAL etc.)
+Obras .................... Portal da Transparência
+Cargos e Salários ........ Portal da Transparência
+Servidores ............... Portal da Transparência
+Saúde .................... Portal da Transparência (execução orçamentária)
+Educação ................. Portal da Transparência (execução orçamentária)
+Segurança ................ Portal da Transparência (execução orçamentária)
+Contratos ................ Portal da Transparência
+Empresas ................. Portal da Transparência (COD_CREDORES / credores)
+Licitações ............... Portal da Transparência
+Emendas .................. Portal da Transparência (quando publicado)
+Políticos ................ Câmara Municipal (Tubarão/SC)
+Investigação (IA) ........ Respostas sobre dados já carregados via API própria
+Comparativo .............. Mesmas fontes, cruzando cidades suportadas
+
+
+================================================================================
+7. LIMITAÇÕES IMPORTANTES
+================================================================================
+- O site não publica uma página dedicada "Metodologia/Fontes" navegável;
+  as fontes aparecem nos créditos por seção (rótulo "Fonte:") e no rodapé.
+- Cobertura atual concentrada em municípios de SC que usam portal Betha
+  ou portal próprio equivalente.
+- Disponibilidade varia por município e por conjunto (ex.: composição de
+  receita SICONFI pode vir vazia para algumas cidades).
+- Ano corrente costuma ser parcial até o portal/SICONFI atualizarem.
+
+
+================================================================================
+8. COMO VERIFICAR NA ORIGEM
+================================================================================
+1) Abrir o portal listado para a cidade (seção 1) e buscar os mesmos
+   conjuntos (credores, pessoal, empenhos, contratos, obras, licitações).
+2) Consultar SICONFI em https://siconfi.tesouro.fazenda.gov.br
+   (DCA / balanço patrimonial do município e exercício).
+3) Para políticos de Tubarão, conferir o site oficial da Câmara Municipal.
+4) Comparar totais com os endpoints da API do Raio-X (seção 5).
+
+
+================================================================================
+9. HOSPEDAGEM E INFRAESTRUTURA
+================================================================================
+Verificado em: 2026-10-28 (DNS público + cabeçalhos HTTP + ASN)
+
+O produto está dividido em duas hospedagens distintas:
+
+--------------------------------------------------------------------------------
+9.1 Front-end (site)
+--------------------------------------------------------------------------------
+URL:            https://www.raioxmunicipal.com.br
+Hospedagem:     Firebase Hosting (Google)
+Projeto Firebase observado:  raioxmunicipal-a2266
+CNAME DNS:      www.raioxmunicipal.com.br → raioxmunicipal-a2266.web.app
+IPs públicos:   199.36.158.100  /  2620:0:890::100
+CDN / edge:     Fastly (AS54113), org Google LLC
+Evidências:     header Vary: x-fh-requested-host (fingerprint Firebase Hosting);
+                X-Served-By / X-Cache / X-Timer no estilo edge Fastly
+Conteúdo:       SPA (HTML estático + assets JS/CSS Vite/React)
+
+Observação: o apex raioxmunicipal.com.br (sem www) não resolve A/AAAA
+no momento da verificação — o site ativo é o host www.
+
+--------------------------------------------------------------------------------
+9.2 API (backend de dados)
+--------------------------------------------------------------------------------
+URL:            https://api.raioxmunicipal.com.br
+Hospedagem:     Hetzner Online GmbH (AS24940)
+Localização ASN: Helsinki, Finlândia
+IP:             65.109.62.15
+PTR:            static.15.62.109.65.clients.your-server.de
+Servidor HTTP:  uvicorn (Python / ASGI)
+Resposta raiz observada:
+  {"status":"ok","projeto":"Mapa+ — Radar Inteligente de Tubarão/SC","docs":"/docs"}
+Base de dados servida ao front:  https://api.raioxmunicipal.com.br/api
+
+--------------------------------------------------------------------------------
+9.3 Domínio e DNS
+--------------------------------------------------------------------------------
+Domínio:        raioxmunicipal.com.br (.br)
+Registro DNS:   Registro.br
+Nameservers:    d.sec.dns.br / f.sec.dns.br
+Certificado TLS (www): Google Trust Services (WR3) — certificado compartilhado
+                com vários SANs (inclui www.raioxmunicipal.com.br)
+
+--------------------------------------------------------------------------------
+9.4 Serviços auxiliares (não hospedam o conteúdo municipal)
+--------------------------------------------------------------------------------
+- Firebase (Analytics / Installations) — telemetria do app web
+- Google Analytics / Tag Manager
+- Google AdSense
+- Esri ArcGIS Online — tiles de mapa (base cartográfica)
+
+--------------------------------------------------------------------------------
+9.5 Como revalidar a hospedagem
+--------------------------------------------------------------------------------
+1) dig/nslookup: CNAME de www → *.web.app (Firebase)
+2) dig/nslookup: A de api → IP Hetzner; PTR *.your-server.de
+3) curl -I https://www.raioxmunicipal.com.br  → Vary: x-fh-requested-host
+4) curl -I https://api.raioxmunicipal.com.br   → Server: uvicorn
+
+Fim do arquivo.

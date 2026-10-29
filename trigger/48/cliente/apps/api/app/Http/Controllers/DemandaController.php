@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Anexos\AnexosService;
 use App\Domain\Carteira\CarteiraService;
+use App\Domain\Demanda\AssistenciaClient;
 use App\Domain\Demanda\DemandaService;
 use App\Domain\Empresa\EmpresaAtual;
 use App\Domain\Fatura\FaturaService;
@@ -14,8 +15,10 @@ use App\Models\Marco;
 use App\Models\Mensagem;
 use App\Models\Proposta;
 use App\Models\Usuario;
+use App\Domain\RegraNegocio;
 use App\Suporte\Dinheiro;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class DemandaController extends Controller
 {
@@ -28,12 +31,15 @@ class DemandaController extends Controller
         ]);
     }
 
-    public function criar()
+    public function criar(AssistenciaClient $assistencia)
     {
-        return view('demandas.criar', ['demanda' => null]);
+        return view('demandas.criar', [
+            'demanda' => null,
+            'assistenciaAtiva' => $assistencia->ativa(),
+        ]);
     }
 
-    public function salvar(Request $request, EmpresaAtual $atual, DemandaService $demandas, AnexosService $anexos)
+    public function salvar(Request $request, EmpresaAtual $atual, DemandaService $demandas)
     {
         $atual->exigir('demanda.abrir');
         $dados = $this->validar($request);
@@ -43,7 +49,6 @@ class DemandaController extends Controller
             $dados,
             $request->boolean('rascunho'),
         );
-        $this->anexar($request, $demanda, $anexos);
 
         return redirect()->route('demandas.mostrar', $demanda->codigo)
             ->with('ok', $demanda->status === 'RASCUNHO' ? 'Rascunho salvo.' : 'Demanda enviada. Reservamos o ticket de abertura.');
@@ -87,7 +92,7 @@ class DemandaController extends Controller
     }
 
     /**
-     * @return array{valor_centavos: int, prazo_dias_uteis: int|string, descricao_funcional: string, incluso: string, nao_incluso: string, criterios_aceite: string}|null
+     * @return array{valor_centavos: int, prazo_dias_uteis: int|string, descricao_funcional: string, incluso: string, nao_incluso: string, criterios_aceite: string, etapas: list<array<string, mixed>>}|null
      */
     private function aceiteCongelado(?Proposta $aprovada): ?array
     {
@@ -96,6 +101,7 @@ class DemandaController extends Controller
         }
         $registro = Aprovacao::query()->where('proposta_id', $aprovada->id)->first();
         $escopo = is_array($registro?->escopo_snapshot) ? $registro->escopo_snapshot : [];
+        $etapas = $escopo['etapas'] ?? $aprovada->etapas;
 
         return [
             'valor_centavos' => (int) ($registro?->valor_centavos ?? $aprovada->valor_centavos),
@@ -104,6 +110,7 @@ class DemandaController extends Controller
             'incluso' => (string) ($escopo['incluso'] ?? $aprovada->incluso),
             'nao_incluso' => (string) ($escopo['nao_incluso'] ?? $aprovada->nao_incluso),
             'criterios_aceite' => (string) ($escopo['criterios_aceite'] ?? $aprovada->criterios_aceite),
+            'etapas' => is_array($etapas) ? $etapas : [],
         ];
     }
 
@@ -155,12 +162,44 @@ class DemandaController extends Controller
     public function validarEntrega(Request $request, Demanda $demanda, DemandaService $demandas, EmpresaAtual $atual)
     {
         $atual->exigir('demanda.aprovar');
+        $this->exigirConfirmacaoDoValor($request, $demanda);
         $fatura = $demandas->validarEntrega($demanda, $request->user('web'));
         $mensagem = $fatura->status === 'LIQUIDADA'
             ? 'Entrega validada. O saldo foi abatido e a demanda está concluída.'
             : 'Entrega validada. Falta '.Dinheiro::reais((int) $fatura->complemento_centavos).' por PIX para concluir.';
 
         return back()->with('ok', $mensagem);
+    }
+
+    private function exigirConfirmacaoDoValor(Request $request, Demanda $demanda): void
+    {
+        $aprovada = Proposta::query()
+            ->where('demanda_id', $demanda->id)
+            ->where('status', 'APROVADA')
+            ->first();
+        $aceite = $this->aceiteCongelado($aprovada);
+        if ($aceite === null) {
+            throw ValidationException::withMessages([
+                'confirmar_valor' => 'Não há valor aprovado para confirmar.',
+            ]);
+        }
+        $request->validate([
+            'confirmar_valor' => ['required', 'string', 'max:40'],
+        ], [
+            'confirmar_valor.required' => 'Digite o valor da proposta para validar a entrega.',
+        ]);
+        try {
+            $informado = Dinheiro::centavosDeTexto((string) $request->input('confirmar_valor'));
+        } catch (RegraNegocio $e) {
+            throw ValidationException::withMessages([
+                'confirmar_valor' => $e->getMessage(),
+            ]);
+        }
+        if ($informado !== (int) $aceite['valor_centavos']) {
+            throw ValidationException::withMessages([
+                'confirmar_valor' => 'Digite exatamente '.Dinheiro::reais((int) $aceite['valor_centavos']).' para confirmar.',
+            ]);
+        }
     }
 
     public function pedirAjuste(Request $request, Demanda $demanda, DemandaService $demandas, EmpresaAtual $atual)
@@ -186,18 +225,12 @@ class DemandaController extends Controller
         $dados = $request->validate([
             'descricao' => ['required', 'string', 'max:5000'],
             'acessos' => ['nullable', 'string', 'max:4000'],
-            'anexos' => ['nullable', 'array', 'max:5'],
-            'anexos.*' => ['file', 'mimes:pdf,png,jpg,jpeg,webp,txt,zip', 'max:10240'],
         ], [
             'required' => 'Preencha :attribute.',
             'max.string' => ':attribute passou do limite.',
-            'max.array' => 'Envie no máximo 5 arquivos.',
-            'max.file' => 'Cada arquivo pode ter no máximo 10 MB.',
-            'mimes' => 'Use PDF, PNG, JPG, WEBP, TXT ou ZIP.',
         ], [
             'descricao' => 'a descrição da demanda',
             'acessos' => 'os acessos',
-            'anexos' => 'os arquivos',
         ]);
         $descricao = trim($dados['descricao']);
 
@@ -233,12 +266,5 @@ class DemandaController extends Controller
         }
 
         return rtrim(mb_substr($contato, 0, 160));
-    }
-
-    private function anexar(Request $request, Demanda $demanda, AnexosService $anexos): void
-    {
-        foreach ($request->file('anexos', []) as $arquivo) {
-            $anexos->guardar($demanda, $arquivo);
-        }
     }
 }

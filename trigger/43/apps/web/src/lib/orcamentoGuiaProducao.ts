@@ -246,7 +246,7 @@ export function buildGuiaProducaoLinhas(
   linhas.push({
     grupo: 'embalagem',
     item: 'Tubete',
-    especificacao: txt(espec.tubete_rotulo, txt(espec.tubete)),
+    especificacao: txt(espec.tubete, txt(espec.tubete_rotulo)),
     quantidade: qty(rolos, 0, 'un.'),
     nota: `${txt(espec.etiq_por_rolo)} etiq./rolo · ${qty(q, 0, 'etiq.')}`,
   });

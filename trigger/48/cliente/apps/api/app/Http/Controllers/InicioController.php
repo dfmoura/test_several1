@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Cobranca\CobrancaService;
 use App\Domain\Empresa\EmpresaAtual;
+use App\Models\CobrancaPix;
 use App\Models\Demanda;
 use App\Models\MovimentoSaldo;
 use App\Models\Notificacao;
@@ -10,7 +12,7 @@ use App\Models\Parametro;
 
 class InicioController extends Controller
 {
-    public function __invoke(EmpresaAtual $atual)
+    public function __invoke(EmpresaAtual $atual, CobrancaService $cobrancas)
     {
         $empresa = $atual->empresa();
         $carteira = $empresa->carteira;
@@ -21,12 +23,16 @@ class InicioController extends Controller
             ->first();
         $ticket = Parametro::inteiro('TICKET_ABERTURA');
         $motivo = null;
+        $pixAtivacao = null;
         if ($empresa->status !== 'ATIVA') {
             $motivo = match ($empresa->status) {
                 'AGUARDA_PIX' => 'Falta o PIX de ativação.',
                 'BLOQUEADA' => 'Conta bloqueada por liquidação em atraso.',
                 default => 'A conta não está ativa.',
             };
+            if ($empresa->status === 'AGUARDA_PIX') {
+                $pixAtivacao = $this->cobrancaAtivacao($empresa->id, $cobrancas);
+            }
         } elseif ($demanda) {
             $motivo = 'Há uma demanda em andamento.';
         } elseif ((int) $carteira->disponivel_centavos < $ticket) {
@@ -38,6 +44,7 @@ class InicioController extends Controller
             'carteira' => $carteira,
             'demanda' => $demanda,
             'motivoNova' => $motivo,
+            'pixAtivacao' => $pixAtivacao,
             'movimentos' => MovimentoSaldo::query()->where('empresa_id', $empresa->id)->latest('id')->limit(5)->get(),
             'avisos' => Notificacao::query()
                 ->where('destinatario_tipo', 'CLIENTE')
@@ -47,6 +54,15 @@ class InicioController extends Controller
                 ->get(),
             'saldoMinimo' => Parametro::inteiro('SALDO_MINIMO_CENTAVOS'),
         ]);
+    }
+
+    private function cobrancaAtivacao(int $empresaId, CobrancaService $cobrancas): CobrancaPix
+    {
+        return $cobrancas->emitir(
+            $empresaId,
+            'ATIVACAO',
+            Parametro::inteiro('ATIVACAO_CENTAVOS'),
+        );
     }
 
     public function lerAvisos()

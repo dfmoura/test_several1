@@ -184,7 +184,11 @@ def promover_continua_amanha(db: Session, hoje: date) -> int:
         )
     ).all()
     for job in linhas:
+        # Orçamento é por noite. Sem zerar, a retomada estoura na primeira chamada.
         job.status = "pendente"
+        job.chamadas = 0
+        job.motivo = ""
+        job.terminado_em = None
     if linhas:
         db.commit()
     return len(linhas)

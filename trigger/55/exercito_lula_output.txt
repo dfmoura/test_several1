@@ -1,0 +1,37 @@
+========================================
+ Coleta: https://www.exercitodolula.org/
+ Data:   2026-10-28 21:17:41
+========================================
+
+--- Status HTTP ---
+200
+
+--- Título ---
+Aliste-se no Exército do Lula e ganhe sua patente
+
+--- Meta description ---
+Carteirinha digital grátis em 2 minutos. Traga mais gente, suba de Soldado a General e leve seu pelotão ao topo do ranking. Sem CPF e sem telefone.
+
+--- Trecho de texto da página inicial (até 500 chars) ---
+Aliste-se no Exército do Lula e ganhe sua patente Pular para o conteúdo Quero me alistar Seu apoio agora tem patente. Aliste-se em 2 minutos, ganhe sua carteirinha digital e suba de patente trazendo mais gente. Iniciativa independente de quem apoia. Não é documento oficial. pessoas alistadas Foto, nome, cidade e e-mail. Só isso. Receba a carteirinha Com número de registro, pelotão e QR para validar. Recrute e suba de patente Cada pessoa alistada pelo seu link conta ponto. De Soldado a Gen
+
+--- Links encontrados (17) ---
+   1. https://www.exercitodolula.org/_next/static/chunks/1e7rq3n5r4az6.css
+   2. https://www.exercitodolula.org/_next/static/chunks/1j7cx0zt81qti.js
+   3. https://www.exercitodolula.org/manifest.webmanifest
+   4. https://www.exercitodolula.org
+   5. https://www.exercitodolula.org/icon.png?icon.1rf11strwfu8p.png
+   6. https://www.exercitodolula.org/apple-icon.png?apple-icon.0gw66xvt9ju-x.png
+   7. https://www.exercitodolula.org/
+   8. https://www.exercitodolula.org/#how-it-works
+   9. https://www.exercitodolula.org/ranking/platoons
+  10. https://www.exercitodolula.org/ranks
+  11. https://www.exercitodolula.org/faq
+  12. https://www.exercitodolula.org/sign-in
+  13. https://www.exercitodolula.org/enlist
+  14. https://www.exercitodolula.org/privacy
+  15. https://www.exercitodolula.org/terms
+  16. https://www.exercitodolula.org/cdn-cgi/l/email-protection#7a1b100f1e1b3a1f021f0819130e151e15160f161b5415081d
+  17. https://www.exercitodolula.org/cdn-cgi/l/email-protection#f5949f809194b5908d9087969c819a919a99809994db9a8792
+
+========================================

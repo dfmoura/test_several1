@@ -1,0 +1,223 @@
+================================================================================
+PLANO DE TESTE — RemoteStart + MeterValues (Livoltek AC/DC comercial)
+Projeto: app liberacao recarga + cobranca dinamica (PIX Inter / Stripe)
+CSMS: proprio (a criar) — este plano valida o elo OCPP com o hardware
+Data: 2026-10-27
+Escopo: roteiro de teste (ainda sem codigo de producao)
+================================================================================
+
+0. OBJETIVO
+--------------------------------------------------------------------------------
+Provar, no equipamento real (ou bancada), que:
+
+  A) O carregador conecta no CSMS proprio via OCPP 1.6J
+  B) RemoteStartTransaction libera a recarga apos um "pagamento simulado"
+  C) MeterValues entregam energia (Wh) usavel para cobranca dinamica
+  D) RemoteStop / StopTransaction fecham a sessao com meter final
+
+Sem A–D OK, nao adianta evoluir PIX/Stripe em producao.
+
+
+1. PRE-REQUISITOS
+--------------------------------------------------------------------------------
+Regra de escopo: este plano e POR CHARGE POINT (identity OCPP).
+Cada equipamento e vinculado/cadastrado de forma explicita no CSMS
+proprio - nao ha importacao automatica de "todos os carregadores do
+mercado". (Arquitetura: app -> servidor proprio -> OCPP -> liberacao.
+Ver DOCUMENTACAO_ARQUITETURA secoes 4.1-4.5.)
+
+Hardware / rede
+  [ ] Carregador Livoltek AC/DC comercial (modelo + SN anotados): ________
+  [ ] Firmware atualizado (anotar versao): ________
+  [ ] Free charging / Start Mode AUTO DESLIGADO (so autoriza via OCPP)
+  [ ] Conectividade estavel: Ethernet preferivel; 4G como plano B
+  [ ] Veiculo de teste OU load bank / EV simulator (se disponivel)
+
+CSMS de teste (minimo viavel) — cadastro DESTE equipamento
+  [ ] Endpoint OCPP alcancavel pelo carregador
+      Ex.: wss://<host>:443/ocpp   ou  ws://<host>:9000/ocpp
+  [ ] Charge Point Identity cadastrado (= SN ou ID definido)
+  [ ] Security profile combinado com o equipamento (doc Livoltek 1–4)
+      Recomendado teste: perfil 2 (Basic Auth) ou 3 (TLS server)
+  [ ] Logs OCPP visiveis (todas as frames JSON)
+
+No carregador (comissionamento — baseados nos guias Livoltek)
+  [ ] CMS Enable = Enable
+  [ ] CMS URL = URL do CSMS de teste (com path/porta corretos)
+  [ ] Charge Point Identity = mesmo ID do cadastro
+  [ ] Connect Server / icone OCPP verde (ou equivalente)
+  [ ] Anotar connectorIds existentes (1, 2, …): ________
+
+Se houver N carregadores no piloto: repetir este plano (ou checklist
+equivalente) para cada identity — aprovacao nao “contagia” o parque.
+
+
+2. MATRIZ DE CASOS
+--------------------------------------------------------------------------------
+ID   Caso                              Resultado esperado
+---- --------------------------------  ------------------------------------------
+T01  Boot + Heartbeat                  BootNotification Accepted; Heartbeat OK
+T02  StatusNotification idle           Connector Available (ou Preparing)
+T03  RemoteStart sem plug              Accepted; depois timeout/idle sem Charging
+                                       (ou Preparing) — documentar comportamento
+T04  RemoteStart com veiculo plugado   Vai para Charging; corrente/potencia > 0
+T05  MeterValues durante carga         Wh crescente; intervalo configuravel
+T06  RemoteStop                        Para carga; StopTransaction com meterStop
+T07  Start?Stop por limite de credito  Simular saldo esgotado ? RemoteStop
+T08  Dois conectores (se dual)         Start no connector 1 nao libera o 2
+T09  Queda de rede no meio             Reconnect; sessao recuperavel ou regra
+                                       clara de abandono
+T10  Pagamento simulado E2E            "PAID" no backend fake ? RemoteStart
+                                       ? MeterValues ? Stop ? conciliacao
+
+
+3. PROCEDIMENTO DETALHADO
+--------------------------------------------------------------------------------
+
+--- T01 Boot + Heartbeat ---
+1. Apontar CMS URL e identity; reiniciar ou Connect Server.
+2. No CSMS, confirmar recebimento de BootNotification.
+3. Responder Accepted (com intervalo de Heartbeat, ex. 60–300 s).
+4. Confirmar Heartbeats periodicos.
+PASS: charge point online no CSMS por >= 5 min sem queda.
+
+
+--- T02 Status idle ---
+1. Sem veiculo / cabo no holder.
+2. Observar StatusNotification por connectorId.
+PASS: estado compativel com "livre" (Available).
+FAIL: Faulted/Unavailable sem causa ? abrir chamado Livoltek / checar PE, rede.
+
+
+--- T03 RemoteStart sem plug ---
+1. Enviar RemoteStartTransaction (idTag de teste, connectorId=N).
+2. Registrar resposta: Accepted / Rejected + status seguinte.
+3. Aguardar politica de timeout (definir T minutos, ex. 5).
+PASS: comportamento documentado (nao fica Charging eterno sem veiculo).
+NOTA: o app de cobranca usara esse timeout para estorno.
+
+
+--- T04 RemoteStart com plug ---
+1. Conectar veiculo; aguardar Preparing (se aplicavel).
+2. RemoteStartTransaction com mesmo connectorId.
+3. Verificar saida de energia / tela "charging" / LED.
+PASS: Charging em < X segundos (anotar X). Medir potencia aproximada.
+
+
+--- T05 MeterValues ---
+1. Com sessao em Charging, observar MeterValues.
+2. Anotar:
+   - measurand (Energy.Active.Import.Register em Wh?)
+   - intervalo entre samples (s)
+   - se Wh e absoluto (register) ou intervalo
+3. Em 5–10 min, confirmar crescimento monotonico do register.
+PASS: delta Wh coerente com potencia × tempo (ordem de grandeza).
+FAIL: sem MeterValues / so potencia sem energia ? cobranca por kWh inviavel
+      ate ajustar Get/ChangeConfiguration (MeterValueSampleInterval,
+      MeterValuesSampledData).
+
+
+--- T06 RemoteStop ---
+1. Durante Charging, RemoteStopTransaction.
+2. Confirmar StopTransaction com transactionId, meterStop, reason.
+PASS: energia final = meterStop - meterStart (ou equivalente).
+
+
+--- T07 Limite de credito (cobranca dinamica) ---
+1. Simular sessao com credito pequeno (ex. R$ 5 ? kWh ou minutos
+   equivalentes pela tarifa dinamica de teste).
+2. Quando saldo projetado zerar, CSMS envia RemoteStop.
+PASS: para perto do limite; conciliacao dentro da tolerancia definida
+      (ex. +/- 0,1 kWh ou +/- R$ 0,50).
+
+
+--- T08 Dual connector (se houver) ---
+1. RemoteStart so no connector 1.
+2. Verificar que connector 2 permanece Available e nao energiza.
+PASS: isolamento por connectorId.
+
+
+--- T09 Queda de rede ---
+1. Em Charging, desconectar Ethernet/4G por 1–2 min; religar.
+2. Observar: sessao continua? Stop orfao? Reconnect + Status.
+PASS: regra documentada (o que o app deve mostrar / estornar).
+
+
+--- T10 E2E pagamento simulado ---
+1. Backend fake: cria sessao + marca PAID (sem Inter/Stripe ainda).
+   (Apos gate: trocar fake pelo PaymentPort — Inter Pix / Stripe;
+   ver doc mestre 7.6. Mesmos campos: payment_id, provider_ref.)
+2. API interna do CSMS: start.
+3. Seguir T04–T06.
+4. Gravar: payment_id, transactionId, Wh, valor "consumido".
+PASS: trilha auditavel pagamento ? transacao OCPP ? energia.
+
+
+4. FORMULARIO DE RESULTADO (preencher na execucao)
+--------------------------------------------------------------------------------
+Data: ____________  Local: ____________  Operador: ____________
+Modelo: ____________  SN: ____________  FW: ____________
+CSMS URL: ____________  Identity: ____________  Profile: ____________
+
+T01: [ ] PASS [ ] FAIL  Notas: ________________________________
+T02: [ ] PASS [ ] FAIL  Notas: ________________________________
+T03: [ ] PASS [ ] FAIL  Notas: ________________________________
+T04: [ ] PASS [ ] FAIL  Tempo ate Charging: ____ s
+T05: [ ] PASS [ ] FAIL  Intervalo MeterValues: ____ s
+                         Wh inicio: ____  Wh fim (10 min): ____
+T06: [ ] PASS [ ] FAIL  meterStart: ____  meterStop: ____
+T07: [ ] PASS [ ] FAIL  Tolerancia: ____
+T08: [ ] PASS [ ] FAIL [ ] N/A
+T09: [ ] PASS [ ] FAIL  Notas: ________________________________
+T10: [ ] PASS [ ] FAIL  Notas: ________________________________
+
+Veredito bancada:
+  [ ] Apto a integrar PIX/Stripe em cima deste CSMS
+  [ ] Bloqueado — pendencias: ________________________________
+
+
+5. CRITERIOS DE ACEITE PARA SEGUIR AO APP DE COBRANCA
+--------------------------------------------------------------------------------
+Minimo obrigatorio:
+  - T01, T02, T04, T05, T06 = PASS
+  - T03 comportamento conhecido (mesmo que imperfect)
+  - T10 = PASS com CSMS proprio + API interna
+
+Desejavel antes de producao:
+  - T07, T08 (se dual), T09 documentado
+
+
+6. ORDEM DE TRABALHO SUGERIDA (ALINHADA AS DECISOES)
+--------------------------------------------------------------------------------
+  1. Subir CSMS proprio minimo (so OCPP + API start/stop/status/meter)
+  2. Apontar 1 Livoltek comercial e executar este plano (T01–T06, T10)
+  3. Ligar motor de tarifa DINAMICA no backend (tarifa de teste)
+  4. Rodar T07 com credito pequeno
+  5. So entao: adaptadores reais (doc mestre 7.6 / ADR-006):
+       a) Inter API Pix cob imediata (DEFAULT) — webhook + devolucao
+          https://developers.inter.co/references/pix
+       b) Stripe PaymentIntents + Refunds + webhooks
+          https://docs.stripe.com/api
+       c) Inter Bolepix V3 so se houver caso de vencimento/boleto
+          https://developers.inter.co/references/cobranca-bolepix
+     Mesmo pipeline interno: PAID -> RemoteStart (T10 deixa de ser fake).
+
+
+7. REFERENCIAS NO MATERIAL LIVOLTEK
+--------------------------------------------------------------------------------
+  - Comissionamento DC 40–120 kW: CMS URL, Charge Point Identity,
+    security profiles 1–4, Connect Server, QR/APP/RFID/VIN
+  - Comissionamento DC 30 kW: CMS Enable, Server URL de terceiro
+  - WallBox manual: icone comunicacao OCPP (verde/azul/vermelho)
+  - Catalogo / MF: OCPP 1.6J, path para 2.0.1
+
+8. DOCUMENTOS IRMAOS
+--------------------------------------------------------------------------------
+  DOCUMENTACAO_ARQUITETURA_PLATAFORMA_RECARGA_EV.txt — mestre / ADR
+    (v1.2+: ADR-006 + secao 7.6 adaptadores Inter/Stripe)
+  ANALISE_APP_LIBERACAO_RECARGA_EV.txt               — analise Livoltek
+  ANALISE_COMPETITIVA_TUPI_INCREMENTOS.txt           — UX + marketplace
+
+================================================================================
+FIM DO PLANO DE TESTE
+================================================================================

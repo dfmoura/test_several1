@@ -1,0 +1,2 @@
+datetime,request_number,http_code,time_total_s,time_connect_s,time_dns_s,remote_ip,curl_exit,error
+2026-10-28 21:08:32,1,200,0.106100,0.007416,0.002306,2606:4700:10::ac42:93f3,0,""

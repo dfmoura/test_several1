@@ -24,6 +24,12 @@ class DocumentoTest extends TestCase
         $this->assertStringNotContainsString('25', substr($mascara, -2));
     }
 
+    public function test_mascara_documento_publico_de_cnpj_do_qsa(): void
+    {
+        $this->assertSame('11.***/***/0001-**', Documento::mascararDocumentoPublico('11222333000181'));
+        $this->assertSame('***.982.247-**', Documento::mascararDocumentoPublico('52998224725'));
+    }
+
     public function test_converte_reais_sem_ponto_flutuante(): void
     {
         $this->assertSame(450000, Dinheiro::centavosDeTexto('4.500,00'));

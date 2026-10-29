@@ -1,0 +1,468 @@
+================================================================================
+ANALISE COMPETITIVA + INCREMENTOS RECOMENDADOS
+Referencia: app TUPI RECARGA (com.tupinamba) no dispositivo conectado
+================================================================================
+
+Data da varredura   : 2026-10-27
+Dispositivo         : Motorola moto g35 5G (ADB autorizado)
+Pacote Android      : com.tupinamba
+Versao instalada    : 5.7.1 (versionCode 405070102)
+Metodo              : inspecao UI ao vivo (uiautomator + screenshots)
+                      + documentacao publica Tupi (Play Store / suporte)
+Escopo              : SOMENTE ANALISE / RECOMENDACOES — sem codigo
+Destino             : incrementar nossa plataforma (Kotlin + CSMS proprio
+                      + PIX Inter/Stripe + tarifas dinamicas + Livoltek
+                      AC/DC comercial)
+
+Principio:
+  Copiar o que eleva conversao e operacao.
+  NAO copiar complexidade de marketplace nacional no MVP.
+  Decidir sempre o melhor caminho para o NOSSO produto (CPO proprio,
+  nao agregador de 2800 carregadores de terceiros).
+
+
+================================================================================
+1. O QUE O TUPI E (POSICIONAMENTO)
+================================================================================
+
+Tupi = app de MOBILIDADE / marketplace de eletropostos + carteira +
+inicio de carga em estacoes “conectadas” (software Tupi Conecta).
+
+Nosso produto = CPO / operador das NOSSAS estacoes Livoltek, com
+pagamento soberano e CSMS proprio.
+
+Consequencia estrategica (DECISAO):
+  - Adotar a EXCELENCIA DE UX de posto do Tupi (QR, limite, tarifas
+    transparentes, ociosidade, mapa claro).
+  - NAO tentar, no MVP, virar agregador nacional de redes (Shell,
+    BYD, etc.). Isso e outro negocio (EMSP marketplace).
+  - No futuro, se quisermos “aparecer em mapas de terceiros”, isso e
+    integracao outbound — fora do nucleo agora.
+
+
+================================================================================
+1.1 COMO FUNCIONA O MARKETPLACE (TUPI) — ESCLARECIMENTO
+================================================================================
+Atualizado: 2026-10-28 (alinhado a DOCUMENTACAO_ARQUITETURA v1.1)
+
+O Tupi e o app do MOTORISTA (EMSP): um mapa grande com muitos eletropostos.
+Quem “liga” o parque nele e o CPO (dono da estacao). Vincular-se ao Tupi
+NAO faz o nosso app herdar o inventario nacional deles.
+
+Dois niveis no mapa deles (doc + UI):
+
+  A) So catalogo (pin cinza / “listada”)
+     Endereco / potencia aproximada. NAO inicia carga pelo Tupi.
+     Serve para descoberta e rota.
+
+  B) Conectada — Tupi Conecta (pin azul)
+     CPO integrou aquele ponto. Status mais real, preco, reserva,
+     iniciar carga e pagar na carteira Tupi.
+
+Filtros (“Conectadas”, “Shell Recharge”, “Disponiveis agora”) existem
+porque NEM TUDO no mapa e liberavel pelo mesmo sistema.
+
+Quando o CPO vincula o sistema ao Tupi (direcao OUTBOUND):
+
+  1. Contrato / conta de operador no marketplace
+  2. Associacao de CADA charge point (identity) — manual ou lote de IDs
+  3. Hardware/CSMS apontado conforme o modelo tecnico acordado
+     (CSMS deles, bridge, ou ponte com o CSMS do CPO)
+  4. Pin passa de “listada” para “conectada” e libera no APP DELES
+
+O que isso NAO faz:
+  - Nao coloca Shell/BYD/etc. automaticamente no NOSSO app
+  - Nao substitui nosso CSMS proprio no nucleo do produto
+  - Nao elimina comissionamento por equipamento
+
+Resumo em uma linha:
+  Vincular ao marketplace = nossas estacoes entram no mapa DELES;
+  nao o contrario.
+
+No nosso produto (CPO):
+  App proprio -> servidor proprio -> OCPP -> liberacao das NOSSAS Livoltek.
+  Mapa do app = so o parque cadastrado no nosso CSMS.
+  Ver ADR-010 e secoes 4.1–4.5 da documentacao mestre.
+
+
+================================================================================
+2. MAPA DE FUNCIONALIDADES OBSERVADAS NO APP
+================================================================================
+
+2.1 Navegacao principal (bottom bar) — confirmado na UI
+  [1] Estacoes     — mapa Google + busca + filtros
+  [2] Dicas        — educacao / etiqueta / saude da bateria
+  [3] Iniciar carga — FAB central (acao primaria)
+  [4] Veiculos     — cadastro hibrido / 100% eletrico
+  [5] Perfil       — pagamento, historico, cupons, configs, impacto CO2
+
+2.2 Mapa / descoberta
+  - Busca por nome, estacao ou endereco
+  - Chip: Planejar viagem | Mais proximas | Carga rapida
+  - Botao Filtrar com:
+      SOMENTE EXIBIR ESTACOES:
+      · Conectadas
+      · Shell Recharge
+      · Carga rapida
+      · Ultra rapida (>120 kW)
+      · Acesso publico
+      · Disponiveis agora
+  - Pins no mapa; zoom + recentrar GPS
+  - Distincao visual estacao conectada vs apenas listada
+    (doc publica: azul = Tupi Conecta / cinza = so catalogo)
+
+2.3 Ficha da estacao (exemplo real varrido)
+  Estacao: “Aguas Claras - Posto Ipiranga 60kW”
+  Por tomada (connector):
+    - Status: Ocupada (25%) | Disponivel | Em manutencao
+    - Plug: CCS 2
+    - Potencia: 60 kW | tag “Rapida”
+    - Preco: “R$ 1,00 + R$ 1,99/kWh”  (taxa ativacao + energia)
+    - Ociosidade: “R$ 2,00 por minuto”
+  CTAs: Tracar rota | Reservar | Iniciar carga
+  Lista de busca mostra: distancia, kW, R$/kWh, status
+
+2.4 Iniciar carga (FAB)
+  Passos na tela:
+    1. Conecte o plug
+    2. Aponte a camera para o QRCode
+  Extras:
+    - Suporte (atalho)
+    - Ativar flash
+    - Inserir codigo da estacao (fallback sem camera)
+  Doc suporte confirma tambem:
+    - Inicio pelo mapa sem QR
+    - Selecao de plug se multi-conector
+    - Limite de carga (valor) estilo posto de combustivel
+    - “Carregar sem limite”
+    - Formas: carteira, cartao, Ticket Car, Sem Parar, Flex Frota
+
+2.5 Pagamento / carteira (tela real)
+  - Saldo da carteira (R$ 0,00)
+  - + Adicionar saldo (PIX e outras formas — doc)
+  - Formas de pagamento (+ adicionar)
+  - Minimo de saldo para iniciar com carteira (doc: R$ 20)
+
+2.6 Tarifas (doc + UI)
+  - R$/kWh
+  - Taxa de ativacao (session fee) — as vezes isenta acima de minimo
+  - Preco por horario (faixas) — dinamico
+  - Taxa de ociosidade (idle fee) com tolerancia + R$/min
+  - Notificacoes de tolerancia / inicio de ociosidade
+  - Cupom aplica em energia, nao em ociosidade (doc)
+
+2.7 Reserva
+  - Reservar estacao conectada (~15 min)
+  - Pode ser tarifada (cartao)
+  - So faz sentido em rede com disputa de vaga
+
+2.8 Planejador de viagem
+  - Origem / destino
+  - Capacidade kWh, autonomia km, plugs, % bateria inicial
+  - Tracar rota com pontos de recarga
+  - Adicionar veiculo
+
+2.9 Veiculos
+  - Tipo: Hibrido | 100% eletrico
+  - Compatibilidade de plug com estacoes
+  - Pergunta “Ja tem carregador residencial?”
+
+2.10 Perfil / engagement
+  - Impacto ambiental (CO2 poupado) apos recargas
+  - Historico
+  - Cupons
+  - Ajuda / termos / privacidade
+  - Opt-in email e push (“novas estacoes”)
+
+2.11 Dicas (educacao in-app)
+  - Legenda de status dos icones
+  - Liberar vaga / ociosidade
+  - Carga rapida ate ~80%
+
+
+================================================================================
+3. O QUE ADOTAR NO NOSSO APP (DECISOES)
+================================================================================
+
+Legenda de prioridade:
+  P0 = MVP (obrigatorio para competir na experiencia de posto)
+  P1 = logo apos piloto (diferencial claro)
+  P2 = escala / nice-to-have
+  N/A = nao adotar agora (negocio diferente)
+
+------------------------------------------------------------------------------
+ID   Feature Tupi                         Nossa decisao
+------------------------------------------------------------------------------
+F01  FAB central “Iniciar carga”          P0 ADOTAR
+     (acao primaria obvia)                CTA dominante; reduz erro cognitivo.
+
+F02  QR + flash + codigo manual           P0 ADOTAR
+                                          Fallback “Inserir codigo/SN” e
+                                          essencial em posto (camera falha,
+                                          chuva, glare).
+
+F03  Plug primeiro, depois QR             P0 ADOTAR
+                                          Ordem: conectar ? pagar/liberar
+                                          (alinha OCPP Preparing/Charging).
+
+F04  Multi-tomada na ficha                P0 ADOTAR
+     (status por connector)               Obrigatorio no Livoltek dual gun.
+                                          QR deve ja carregar connectorId.
+
+F05  Transparencia de preco na ficha      P0 ADOTAR
+     (energia + taxas visiveis)           Casar com motor DINAMICO:
+                                          mostrar snapshot vigente +
+                                          breakdown (kWh, ativacao, ociosidade
+                                          se houver).
+
+F06  Limite de carga (valor)              P0 ADOTAR
+     estilo posto                         Casa perfeitamente com pre-pago
+                                          PIX/Stripe + RemoteStop no limite.
+                                          Default UX: “Definir valor” com
+                                          atalhos R$ 20/40/60 + custom.
+
+F07  Sessao ao vivo (kWh, status)         P0 ADOTAR
+                                          Ja previsto na nossa arquitetura
+                                          via MeterValues.
+
+F08  Carteira + PIX adicionar saldo       P1 ADOTAR (variante)
+                                          MVP: pagar a sessao na hora (PIX
+                                          Instantaneo) SEM forcar carteira.
+                                          P1: carteira pre-paga (como Tupi)
+                                          para quem recarrega recorrente —
+                                          reduz atrito no 2o uso.
+
+F09  Taxa de ociosidade + tolerancia      P1 ADOTAR
+                                          Critico em posto com fila.
+                                          Exigir: countdown na UI + push
+                                          “faltam 3 min” + email/recibo.
+                                          Tarifa dinamica ja comporta idle.
+
+F10  Taxa de ativacao (session fee)       P1 ADOTAR no motor de tarifas
+                                          Exibir sempre se > 0.
+
+F11  Mapa das NOSSAS estacoes             P0 ADOTAR (escopo proprio)
+                                          Mapa/lista so do parque do CPO.
+                                          Filtros MVP: Disponivel | AC/DC |
+                                          potencia | preco. Sem “Shell Recharge”.
+
+F12  Filtros tipo marketplace             N/A no MVP
+     (Shell, Ultra >120, etc.)            So faz sentido com rede agregada.
+
+F13  Reserva 15 min                       P2 AVALIAR
+                                          So se houver disputa real de vaga.
+                                          Custo: lock de connector + cobranca
+                                          no-show. Nao bloquear MVP.
+
+F14  Planejador de viagem nacional        N/A no MVP
+                                          Somos CPO, nao Waze de VE.
+                                          P2: “rota ate ESTA estacao”
+                                          (deep link Waze/Google) — SIM, P0
+                                          leve: botao “Como chegar”.
+
+F15  Cadastro de veiculos / plugs         P1 ADOTAR simplificado
+                                          1 veiculo + tipo de conector
+                                          (CCS2 / Type2) para filtrar
+                                          e validar compatibilidade.
+                                          Nao bloquear carga se nao cadastrou
+                                          (fail open na UX; fail closed so
+                                          em pagamento).
+
+F16  Dicas / educacao in-app              P1 ADOTAR enxuto
+                                          3 cards: ociosidade, como iniciar,
+                                          suporte. Reduz ticket de suporte.
+
+F17  Impacto CO2 no perfil                P2 ADOTAR
+                                          Barato e bom para marketing;
+                                          apos historico real de kWh.
+
+F18  Cupons                               P1 ADOTAR (motor promo)
+                                          Casa com tarifas dinamicas
+                                          (desconto % ou R$ na energia).
+
+F19  Frota / Ticket / Sem Parar           P2 / sob demanda B2B
+                                          Nao no MVP B2C.
+
+F20  Push de novas estacoes               P1 ADOTAR
+                                          + push transacional P0:
+                                          pago, liberado, carga concluida,
+                                          ociosidade, estorno.
+
+F21  Suporte na tela de QR                P0 ADOTAR
+                                          WhatsApp/telefone com session_id
+                                          ja preenchido (contexto).
+
+F22  Status “Ocupada (25%)”               P1 SE MeterValues/SoC permitirem
+                                          Senao: Ocupada/Disponivel/Offline/
+                                          Manutencao (P0).
+
+
+================================================================================
+4. UX — MELHOR CAMINHO PARA O NOSSO APP (SINTESE)
+================================================================================
+
+Padrao de navegacao recomendado (inspirado no Tupi, adaptado ao CPO):
+
+  Bottom nav (4 itens + FAB):
+    Estacoes | Historico | [FAB Iniciar] | Carteira/Pagamento | Perfil
+
+  DECISAO: no MVP, “Dicas” vira secao dentro de Perfil/Ajuda
+  (menos ruido). “Veiculos” dentro de Perfil ate haver frota.
+
+Fluxo de posto (DECISAO — ordem otimizada):
+
+  A) Usuario no posto
+     1. FAB ? QR (ou codigo)
+     2. Confirma connector + breakdown de preco dinamico
+     3. Define limite em R$ (ou “ate completar / sem limite” se
+        politica do operador permitir — default: COM limite)
+     4. Paga PIX (preferencial) ou Stripe
+     5. “Liberado — aguarde inicio” / sessao ao vivo
+     6. Parar / limite / ociosidade / recibo
+
+  B) Usuario a caminho
+     Mapa ? ficha ? Como chegar ? (opcional) aviso de preco vigente
+
+Regras de clareza que o Tupi acerta e devemos igualar ou superar:
+  - Nunca esconder ociosidade / taxa de ativacao
+  - Sempre mostrar status por tomada
+  - Sempre ter caminho sem camera
+  - Sempre ter suporte contextual apos pagar
+
+
+================================================================================
+5. GAPS DO TUPI QUE PODEMOS SUPERAR (VANTAGEM COMPETITIVA)
+================================================================================
+
+G1  Pre-pago PIX nativo por sessao (sem saldo minimo R$ 20)
+    ? Menor friccao no primeiro uso.
+
+G2  Estorno automatico se RemoteStart falhar / timeout sem plug
+    ? Confianca (nossa arquitetura fail-closed ja exige isso).
+
+G3  Recibo com trilha payment_id ? ocpp_transaction ? kWh
+    ? Transparencia B2B e antifraude (Tupi e caixa-preta para o CPO).
+
+G4  Admin do operador (tarifas dinamicas, saude OCPP, RemoteStop)
+    ? Tupi e app do motorista; nosso diferencial e a plataforma CPO
+      completa (CSMS + cobranca + app).
+
+G5  Branding white-label do posto
+    ? App com cara do estacionamento/shopping, nao so da rede nacional.
+
+G6  Seguranca OCPP soberana (CSMS proprio)
+    ? Controle do elo critico energia?dinheiro.
+
+
+================================================================================
+6. BACKLOG PRIORIZADO (PRATICO)
+================================================================================
+
+Sprint MVP (deve ter)
+  [ ] Mapa/lista das estacoes do operador + status OCPP
+  [ ] Ficha por connector (plug, kW, preco breakdown, status)
+  [ ] FAB Iniciar ? QR + codigo manual + flash + suporte
+  [ ] Checkout com limite em R$ + Inter API Pix cob imediata
+      (+ Stripe PaymentIntents; Bolepix so se vencimento/boleto)
+      Ver doc mestre ADR-006 / secao 7.6
+  [ ] Sessao ao vivo + stop + recibo
+  [ ] Push transacional basico
+  [ ] “Como chegar” (deep link Maps/Waze)
+
+Proximas entregas
+  [ ] Carteira pre-paga
+  [ ] Idle fee + notificacoes de tolerancia
+  [ ] Cupons
+  [ ] Veiculo + conector preferencial
+  [ ] Dicas in-app
+  [ ] Historico rico + CO2
+
+Depois / sob demanda
+  [ ] Reserva de vaga
+  [ ] Planejador de viagem
+  [ ] Meios corporativos (Sem Parar / frota)
+  [ ] Agregacao de redes terceiras
+
+
+================================================================================
+7. IMPLICACOES NO MOTOR DE TARIFAS DINAMICAS
+================================================================================
+
+Campos que a varredura Tupi prova que o mercado BR ja educa o usuario a ver:
+
+  - energy_price_per_kwh
+  - activation_fee (taxa de ativacao)
+  - idle_fee_per_minute + idle_grace_minutes
+  - time_of_use windows (preco por horario)
+  - coupon overlay (so energia)
+
+DECISAO: o modelo de dados de tarifa da nossa documentacao mestre
+deve incluir idle_* e activation_fee desde o schema inicial
+(mesmo que idle comece desligado = 0), para nao migrar depois.
+
+
+================================================================================
+8. RISCOS AO “COPIAR TUPI DEMAIS”
+================================================================================
+
+  - Scope creep de marketplace ? atraso do CSMS/pagamento (nucleo).
+  - Carteira obrigatoria com minimo alto ? mata conversao do 1o uso.
+  - Reserva cedo demais ? complexidade operacional sem demanda.
+  - Planejador nacional ? engenharia pesada, pouco ROI para CPO unico.
+
+Mitigacao: este documento fixa P0 estreito na experiencia de POSTO.
+
+
+================================================================================
+9. VEREDITO
+================================================================================
+
+O Tupi e excelente referencia de UX de motorista em eletroposto BR.
+
+Para o nosso app Kotlin + plataforma propria, o melhor caminho e:
+
+  COPIAR com excelencia: QR/codigo, FAB iniciar, ficha por tomada,
+  preco transparente (dinamico), limite estilo posto, sessao ao vivo,
+  suporte contextual, mapa do proprio parque.
+
+  ADIAR: reserva, planejador nacional, filtros de redes parceiras,
+  meios de frota corporativa.
+
+  SUPERAR: PIX por sessao sem friccao, estorno automatico tecnico,
+  auditoria pagamento?OCPP, admin CPO + CSMS soberano, white-label.
+
+Proximo passo natural: wireframes / backlog P0 na documentacao mestre
+(sem implementar codigo ate autorizacao).
+
+Documentos irmaos:
+  DOCUMENTACAO_ARQUITETURA_PLATAFORMA_RECARGA_EV.txt  (mestre; ADR-010)
+  ANALISE_APP_LIBERACAO_RECARGA_EV.txt
+  PLANO_TESTE_REMOTE_START_METERVALUES.txt
+
+
+================================================================================
+10. EVIDENCIAS DA VARREDURA
+================================================================================
+
+Capturas locais (maquina de analise): /tmp/tupi_scan/
+  screen_02.png          mapa + chips
+  screen_filter.png      filtros
+  screen_trip.png        planejador
+  screen_tips.png        dicas
+  screen_vehicles.png    veiculos
+  screen_profile.png     perfil
+  screen_startcharge.png QR iniciar carga
+  screen_payment.png     carteira
+  screen_search.png      busca “Posto”
+  screen_station.png     ficha tomada (preco + ociosidade + reservar)
+
+Fontes publicas cruzadas:
+  - Play Store / App Store Tupi Recarga
+  - suporte.tupinambaenergia.com.br (iniciar carga, reserva, carteira,
+    ociosidade, valores cobrados)
+  - tupimob.com (conectadas vs listadas)
+
+
+================================================================================
+FIM
+================================================================================

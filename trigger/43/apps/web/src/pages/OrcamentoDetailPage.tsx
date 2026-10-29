@@ -110,7 +110,7 @@ function buildOrcSpecTiles(
       ['Modelos', snap.modelos],
       ['Colunas', snap.colunas],
       ['Etiq./rolo', snap.etiq_por_rolo],
-      ['Tubete', snap.tubete_rotulo || snap.tubete],
+      ['Tubete', snap.tubete || snap.tubete_rotulo],
       ['Col. rebob.', snap.coluna_rebobinacao],
       ['Matriz', snap.matriz],
       ['Imposto %', snap.imposto_pct],

@@ -41,5 +41,8 @@
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>
         <env name="TELESCOPE_ENABLED" value="false" force="true"/>
+        <env name="ASSISTENCIA_HABILITADA" value="false" force="true"/>
+        <env name="ASSISTENCIA_URL" value="" force="true"/>
+        <env name="ASSISTENCIA_API_KEY" value="" force="true"/>
     </php>
 </phpunit>

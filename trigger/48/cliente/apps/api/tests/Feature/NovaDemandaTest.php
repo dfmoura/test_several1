@@ -3,16 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\Demanda;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\CriaEmpresa;
 
 class NovaDemandaTest extends AreaTestCase
 {
     use CriaEmpresa;
 
-    public function test_tela_separa_pedido_acessos_e_arquivos(): void
+    public function test_tela_separa_pedido_e_acessos(): void
     {
         [$empresa, $usuario] = $this->empresaComSaldo();
 
@@ -21,11 +19,11 @@ class NovaDemandaTest extends AreaTestCase
             ->assertOk()
             ->assertSee('Descrição da demanda')
             ->assertSee('Como entrar')
-            ->assertSee('Arquivos')
-            ->assertSee('Arraste os arquivos aqui')
+            ->assertDontSee('Arquivos')
+            ->assertDontSee('Arraste os arquivos aqui')
             ->assertSee('name="descricao"', false)
             ->assertSee('name="acessos"', false)
-            ->assertSee('name="anexos[]"', false)
+            ->assertDontSee('name="anexos[]"', false)
             ->assertDontSee('name="titulo"', false)
             ->assertDontSee('name="objetivo"', false)
             ->assertDontSee('name="sistema_atual"', false)
@@ -35,9 +33,8 @@ class NovaDemandaTest extends AreaTestCase
             ->assertDontSee('name="contato_tecnico"', false);
     }
 
-    public function test_acessos_ficam_cifrados_e_anexo_e_gravado(): void
+    public function test_acessos_ficam_cifrados_e_abertura_sem_anexo(): void
     {
-        Storage::fake('anexos');
         [$empresa, $usuario] = $this->empresaComSaldo();
         $segredo = "https://erp.exemplo\nusuario: ana\nsenha: segredo-123";
 
@@ -54,7 +51,6 @@ class NovaDemandaTest extends AreaTestCase
             'prioridade' => 'urgente',
             'contato_tecnico' => 'Ana, ana@example.test',
             'acessos' => $segredo,
-            'anexos' => [UploadedFile::fake()->image('tela.png')],
         ])->assertRedirect();
 
         $demanda = Demanda::query()->firstOrFail();
@@ -68,8 +64,7 @@ class NovaDemandaTest extends AreaTestCase
         $this->assertSame($usuario->nome.', '.$usuario->email, $demanda->contato_tecnico);
         $this->assertSame($segredo, $demanda->acessos);
         $this->assertStringNotContainsString('segredo-123', (string) DB::table('demandas')->value('acessos'));
-        $this->assertSame(1, $demanda->anexos()->count());
-        $this->assertSame('tela.png', $demanda->anexos()->first()->nome_original);
+        $this->assertSame(0, $demanda->anexos()->count());
     }
 
     public function test_acessos_em_branco_nao_grava_segredo(): void

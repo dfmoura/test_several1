@@ -151,6 +151,30 @@ def painel(db: Session, inicio: date, fim: date) -> dict:
             )
             or 0
         ),
+        "itens": int(
+            db.scalar(
+                select(func.count())
+                .select_from(ContratacaoItem)
+                .where(
+                    ContratacaoItem.numero_controle_pncp.in_(
+                        [c.numero_controle_pncp for c in contratacoes] or ["__vazio__"]
+                    )
+                )
+            )
+            or 0
+        ),
+        "resultados": int(
+            db.scalar(
+                select(func.count())
+                .select_from(ResultadoItem)
+                .where(
+                    ResultadoItem.numero_controle_pncp.in_(
+                        [c.numero_controle_pncp for c in contratacoes] or ["__vazio__"]
+                    )
+                )
+            )
+            or 0
+        ),
         **_recortes(contratacoes),
     }
 
@@ -220,6 +244,12 @@ def detalhe_contratacao(db: Session, contratacao_id: uuid.UUID) -> dict | None:
         {
             "numero_item": item.numero_item,
             "descricao": item.descricao,
+            "descricao_detalhada": item.descricao_detalhada,
+            "quantidade": "" if item.quantidade is None else str(item.quantidade).replace(".", ","),
+            "unidade_medida": item.unidade_medida,
+            "valor_unitario": dinheiro_exibicao(item.valor_unitario),
+            "material_ou_servico": item.material_ou_servico,
+            "situacao_item": item.situacao_item,
             "tem_resultado": item.tem_resultado,
             "valor_total": dinheiro_exibicao(item.valor_total),
             "nome_fornecedor": item.nome_fornecedor,

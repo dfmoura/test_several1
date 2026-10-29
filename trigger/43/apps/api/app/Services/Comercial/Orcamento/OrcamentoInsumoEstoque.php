@@ -10,7 +10,8 @@ use App\Support\PadraoDecimal;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Papel, acabamento e tubete do ORC saem do cadastro com saldo.
+ * Papel e acabamento do ORC saem do cadastro com saldo.
+ * Tubete no ORC é só polegada (1" / 1" 1/2 / 3") — ADR_CADASTRO_INSUMO_VOLUME.
  * A tarifa R$/m² continua no catálogo ORC — o nome do produto casa a linha.
  */
 final class OrcamentoInsumoEstoque
@@ -157,21 +158,15 @@ final class OrcamentoInsumoEstoque
             $data = $this->aplicarAcabamento($empresa, $data, $cat, $acabId, $comp, $idsJaGravados);
         }
 
-        $tubId = (int) ($data['tubete_produto_id'] ?? 0);
-        if ($tubId > 0) {
-            $produto = $this->exigirProduto($empresa, $tubId, 'tubete', $idsJaGravados);
-            $desc = $this->descricao($produto);
-            $polegada = self::polegada($produto->codigo.' '.$desc);
-            if ($polegada === null) {
-                throw ValidationException::withMessages([
-                    'tubete' => ['Não foi possível ler a polegada deste tubete (1", 1" 1/2 ou 3").'],
-                ]);
-            }
-            $data['tubete'] = $polegada;
-            $data['tubete_rotulo'] = $desc;
-            $data['tubete_produto_id'] = (int) $produto->id;
-            $data['tubete_produto_codigo'] = (string) $produto->codigo;
+        // ORC não amarra SKU físico EMB-TUB. Polegada canônica alimenta preço/caixas;
+        // peça e baixa ficam para chão / ajuste manual.
+        $tubeteRaw = trim((string) ($data['tubete'] ?? ''));
+        if ($tubeteRaw !== '') {
+            $data['tubete'] = self::polegada($tubeteRaw) ?? $tubeteRaw;
         }
+        $data['tubete_produto_id'] = null;
+        $data['tubete_produto_codigo'] = null;
+        $data['tubete_rotulo'] = null;
 
         return $data;
     }

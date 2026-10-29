@@ -832,7 +832,7 @@ class OrcamentoService
     }
 
     /**
-     * SKUs com saldo para papel, acabamento ou tubete.
+     * SKUs com saldo para papel, acabamento, tubete (consulta) ou caixa.
      *
      * @return list<array<string, mixed>>
      */
@@ -842,7 +842,7 @@ class OrcamentoService
     }
 
     /**
-     * SKUs de papel, filme e tubete já gravados neste orçamento.
+     * SKUs de papel/filme já gravados neste orçamento (tubete ORC = polegada).
      *
      * @return list<int>
      */

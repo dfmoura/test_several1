@@ -1,0 +1,37 @@
+name: trigger-assistencia
+
+services:
+  api:
+    build: .
+    container_name: assistencia_api
+    # 0.0.0.0 no host para o app Docker do 48 alcançar via host.docker.internal
+    ports:
+      - "${APP_BIND:-0.0.0.0}:${APP_PORT:-8051}:8051"
+    environment:
+      APP_PORT: "8051"
+      API_KEY: ${API_KEY:-assistencia-local-dev}
+      LLM_MODE: ${LLM_MODE:-mock}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-3600}
+      MAX_MESSAGE_CHARS: ${MAX_MESSAGE_CHARS:-4000}
+      MAX_DESCRICAO_CHARS: ${MAX_DESCRICAO_CHARS:-5000}
+      LLM_CONFIG_PATH: /app/data/llm.json
+    volumes:
+      - ./app:/app/app:ro
+      - ./data:/app/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8051/health', timeout=5)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    mem_limit: 256m

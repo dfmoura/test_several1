@@ -1,0 +1,1950 @@
+# Projeto conceitual do sistema — Observatório Social Brasil
+## Plataforma de monitoramento de compras públicas, licitações e contratações
+
+Este documento reúne e reorganiza a arquitetura conceitual do sistema, considerando a estrutura do Observatório Social Brasil, a relação entre matriz e filiais, o cadastro de municípios e UASGs, os parâmetros de coleta e a integração com a API de Dados Abertos do Compras.gov.br.
+
+O objetivo é estabelecer uma base consistente para o desenvolvimento do sistema **sem definir uma linguagem de programação**, priorizando regras de negócio, estrutura de dados, permissões, relacionamentos e funcionamento das coletas.
+
+---
+
+# 1. Objetivo geral
+
+Desenvolver uma plataforma para que o Observatório Social Brasil possa monitorar compras públicas de forma centralizada, organizada por matriz e filiais, utilizando dados oficiais disponibilizados por meio das APIs de dados abertos do Governo Federal.
+
+O sistema deverá permitir:
+
+- Cadastrar e administrar a organização matriz e suas filiais.
+- Cadastrar usuários e controlar seus níveis de acesso.
+- Associar municípios a cada filial.
+- Consultar as UASGs vinculadas ou relacionadas aos municípios selecionados.
+- Definir quais UASGs cada filial deverá monitorar.
+- Configurar os parâmetros e módulos de coleta para cada filial.
+- Consultar a API de Dados Abertos do Compras.gov.br.
+- Armazenar e organizar os dados coletados em uma base central.
+- Disponibilizar para cada filial apenas os dados abrangidos por sua configuração e suas permissões.
+- Registrar as coletas, falhas, atualizações e alterações de configuração.
+- Permitir que a matriz acompanhe e administre as operações das filiais.
+
+A arquitetura deverá ser flexível para permitir que uma filial monitore mais de um município e, quando necessário e autorizado, que uma UASG seja acompanhada por filiais diferentes.
+
+---
+
+# 2. Estrutura organizacional do sistema
+
+A estrutura organizacional deve ser separada da estrutura de usuários e da estrutura de monitoramento.
+
+## 2.1. Administrador geral do sistema
+
+O administrador geral é responsável pela administração técnica e operacional da plataforma.
+
+Suas atribuições incluem:
+
+- Gerenciar o acesso ao sistema.
+- Cadastrar organizações.
+- Cadastrar e administrar matrizes e filiais.
+- Criar e administrar usuários.
+- Configurar os parâmetros globais de coleta.
+- Habilitar ou desabilitar módulos de integração.
+- Acompanhar o funcionamento das APIs.
+- Consultar registros de execução e erros.
+- Administrar permissões gerais.
+- Monitorar o consumo e a frequência das requisições.
+- Manter o histórico de alterações e operações.
+
+O administrador geral terá uma conta própria, com permissões diferentes das atribuídas aos usuários da matriz e das filiais.
+
+## 2.2. Organização
+
+Representa a entidade institucional à qual a matriz e as filiais pertencem.
+
+Cada organização deverá possuir, conceitualmente:
+
+- Identificador interno.
+- Razão social ou denominação institucional.
+- CNPJ, quando aplicável.
+- Nome de identificação.
+- Situação cadastral no sistema.
+- Data de cadastro.
+- Responsável institucional.
+- Configurações gerais.
+
+A organização representa o vínculo institucional. Ela não deve ser confundida com uma unidade operacional.
+
+## 2.3. Matriz
+
+A matriz é a unidade responsável pela administração das filiais vinculadas à organização.
+
+Suas atribuições incluem:
+
+- Cadastrar e administrar filiais.
+- Definir os municípios que cada filial poderá acompanhar.
+- Selecionar as UASGs que serão monitoradas.
+- Definir os módulos de dados que deverão ser coletados.
+- Estabelecer parâmetros de coleta.
+- Autorizar exceções às configurações padrão.
+- Consultar resultados consolidados.
+- Acompanhar a situação das coletas das filiais.
+- Administrar os usuários vinculados à sua estrutura, conforme as permissões concedidas.
+
+A matriz poderá ter seu próprio CNPJ, assim como as filiais, conforme a estrutura institucional adotada.
+
+## 2.4. Filiais
+
+Cada filial será uma unidade operacional vinculada à organização.
+
+Cada filial poderá possuir:
+
+- Identificador interno.
+- Nome da filial.
+- CNPJ próprio.
+- Código interno.
+- Município ou conjunto de municípios monitorados.
+- UASGs selecionadas para acompanhamento.
+- Parâmetros de coleta autorizados.
+- Usuários vinculados.
+- Situação operacional.
+- Histórico de configurações.
+
+A filial deverá operar de acordo com as configurações estabelecidas pela matriz, respeitando as permissões concedidas.
+
+### Regra importante
+
+A filial não deverá definir livremente qualquer UASG ou parâmetro de coleta, a menos que a matriz lhe conceda essa permissão.
+
+A matriz poderá determinar quais configurações são obrigatórias, quais podem ser alteradas pela filial e quais exigem autorização.
+
+---
+
+# 3. Hierarquia e relacionamentos organizacionais
+
+A estrutura conceitual será:
+
+```text
+SISTEMA
+   |
+   +-- ADMINISTRADOR GERAL
+   |
+   +-- ORGANIZAÇÃO
+          |
+          +-- MATRIZ
+          |     |
+          |     +-- Usuários da matriz
+          |     |
+          |     +-- Configurações padrão de monitoramento
+          |
+          +-- FILIAL 01
+          |     |
+          |     +-- Usuários da filial
+          |     +-- Municípios monitorados
+          |     +-- UASGs selecionadas
+          |     +-- Parâmetros de coleta
+          |
+          +-- FILIAL 02
+          |     |
+          |     +-- Usuários da filial
+          |     +-- Municípios monitorados
+          |     +-- UASGs selecionadas
+          |     +-- Parâmetros de coleta
+          |
+          +-- FILIAL N
+                |
+                +-- Usuários da filial
+                +-- Municípios monitorados
+                +-- UASGs selecionadas
+                +-- Parâmetros de coleta
+```
+
+O sistema deverá permitir que uma organização possua várias filiais, sem impor um limite fixo.
+
+A quantidade de filiais será determinada pela necessidade administrativa da organização e pelas regras de acesso do sistema.
+
+---
+
+# 4. Cadastro e controle de usuários
+
+Os usuários devem ser cadastrados separadamente das organizações e das unidades organizacionais.
+
+Isso permite que o sistema controle a identidade de cada pessoa e, em outra estrutura, determine a quais unidades ela pode ter acesso.
+
+## 4.1. Tipos de usuário
+
+Sugestão de perfis:
+
+| Perfil | Responsabilidade principal |
+|---|---|
+| Administrador geral | Administra toda a plataforma |
+| Administrador da matriz | Administra as configurações organizacionais e as filiais autorizadas |
+| Gestor da matriz | Acompanha e administra as operações dentro das permissões recebidas |
+| Gestor da filial | Administra as atividades da filial |
+| Analista da filial | Consulta e analisa os dados disponibilizados |
+| Auditor ou consulta | Acessa informações permitidas, sem administrar configurações |
+
+Os perfis são uma proposta inicial. O sistema poderá permitir perfis personalizados e permissões específicas.
+
+## 4.2. Regras de acesso
+
+- O administrador geral poderá acessar as funcionalidades administrativas globais.
+- Os usuários da matriz terão acesso às informações da organização e das filiais autorizadas.
+- Os usuários da filial terão acesso aos dados e às funcionalidades permitidos para sua filial.
+- Um usuário poderá estar vinculado a mais de uma unidade, caso isso seja autorizado.
+- Toda operação administrativa relevante deverá registrar quem a realizou.
+- A desativação de um usuário deverá bloquear seu acesso sem apagar o histórico de suas operações.
+
+## 4.3. Estrutura conceitual
+
+**USUARIO**
+- `idUsuario` — identificador interno.
+- Nome.
+- E-mail.
+- Credencial ou referência ao mecanismo de autenticação.
+- Situação.
+- Data de cadastro.
+- Data do último acesso.
+
+**USUARIO_UNIDADE**
+- `idUsuarioUnidade` — identificador interno.
+- `idUsuario`.
+- `idUnidadeOrganizacional`.
+- Perfil ou conjunto de permissões.
+- Situação do vínculo.
+- Data de início.
+- Data de encerramento, quando aplicável.
+
+Essa separação permite que um mesmo usuário tenha acesso a unidades diferentes sem duplicar seu cadastro.
+
+---
+
+# 5. Cadastro de municípios
+
+O município será uma das referências utilizadas para identificar as unidades administrativas que poderão ser monitoradas.
+
+Cada município deverá ser identificado pelo código oficial do IBGE.
+
+## 5.1. Dados do município
+
+**MUNICIPIO**
+- `codigoMunicipioIbge` — identificador oficial do município.
+- Nome do município.
+- Sigla da UF.
+- Nome da UF.
+- Situação do cadastro.
+
+O `codigoMunicipioIbge` será utilizado para relacionar os municípios às filiais e, quando houver correspondência disponível nos dados oficiais, às UASGs.
+
+## 5.2. Relacionamento entre filiais e municípios
+
+A filial poderá acompanhar um ou vários municípios.
+
+Mesmo que o procedimento inicial de cadastro permita selecionar uma única cidade, recomenda-se que a estrutura do banco de dados suporte vários municípios por filial. Isso evita alterações estruturais quando houver necessidade de ampliar a área de monitoramento.
+
+Para isso, será utilizada uma entidade associativa:
+
+**FILIAL_MUNICIPIO**
+- `idFilialMunicipio`.
+- `idFilial`.
+- `codigoMunicipioIbge`.
+- Situação do vínculo.
+- Data de início do monitoramento.
+- Data de encerramento, quando aplicável.
+
+### Exemplo
+
+| Filial | Município | Código IBGE | Situação |
+|---|---|---|---|
+| Filial A | Município Alfa | Código oficial | Ativo |
+| Filial A | Município Beta | Código oficial | Ativo |
+| Filial B | Município Gama | Código oficial | Ativo |
+
+Os nomes são ilustrativos.
+
+A estrutura permite que a Filial A acompanhe dois municípios, enquanto a Filial B acompanha outro.
+
+---
+
+# 6. Cadastro e identificação das UASGs
+
+A UASG representa uma unidade administrativa de compras ou contratação identificada nos dados governamentais.
+
+No sistema, o catálogo de UASGs deverá ser centralizado. A seleção de uma UASG por uma filial será registrada em uma entidade separada.
+
+Essa distinção é essencial: **a UASG existe independentemente da filial que a monitora**.
+
+## 6.1. Entidade UASG
+
+**UASG**
+- `codigoUasg` — código da UASG.
+- `codigoOrgao` — referência ao órgão correspondente, quando aplicável.
+- `cnpjCpfOrgao`.
+- `codigoMunicipioIbge` — quando informado e validado na fonte oficial.
+- `siglaUf`.
+- Nome ou descrição da unidade, quando disponível.
+- Situação.
+- Data da última atualização.
+
+O modelo deverá ser ajustado conforme os campos efetivamente disponibilizados pela API.
+
+Não se deve presumir que todos os endpoints da API retornem os mesmos campos ou que todos permitam filtrar diretamente por município.
+
+## 6.2. Entidade órgão
+
+**ORGAO**
+- `codigoOrgao`.
+- `cnpjCpfOrgao`.
+- Esfera administrativa.
+- Poder.
+- Nome ou denominação, quando disponível.
+- Situação.
+
+A relação entre órgão e UASG deverá respeitar a estrutura real dos dados oficiais. Caso existam variações, mudanças ou vínculos múltiplos, o modelo poderá precisar de uma tabela associativa ou de histórico.
+
+## 6.3. Como as UASGs serão apresentadas no cadastro da filial
+
+O processo deverá seguir esta ordem:
+
+1. O usuário autorizado inicia o cadastro ou a configuração da filial.
+2. Seleciona o município que deseja acompanhar.
+3. O sistema registra o `codigoMunicipioIbge`.
+4. O sistema consulta sua base de UASGs.
+5. A lista de UASGs relacionadas ao município é apresentada.
+6. O responsável seleciona as UASGs que a filial deverá monitorar.
+7. O sistema verifica os parâmetros de coleta aplicáveis.
+8. A configuração é validada e salva.
+9. O mecanismo de coleta passa a considerar as UASGs selecionadas.
+
+Se a base ainda não possuir as UASGs necessárias, o sistema poderá atualizar seu catálogo consultando a fonte oficial, desde que exista um endpoint adequado.
+
+Se a API não fornecer uma relação direta entre UASG e município, será necessário estabelecer uma estratégia de correspondência a partir dos dados oficiais disponíveis. Essa correspondência deverá ser identificável e auditável, evitando associações presumidas.
+
+---
+
+# 7. Seleção das UASGs por filial
+
+Depois de associar os municípios, a matriz deverá selecionar as UASGs que cada filial efetivamente acompanhará.
+
+Essa seleção é diferente do cadastro geral das UASGs.
+
+## 7.1. Entidade de associação
+
+**FILIAL_UASG**
+- `idFilialUasg`.
+- `idFilial`.
+- `codigoUasg`.
+- `idFilialMunicipio`, quando a associação for feita por um município específico.
+- Situação do monitoramento.
+- Data de início.
+- Data de encerramento.
+- Responsável pela configuração.
+- Observação administrativa.
+
+Essa entidade registra o vínculo entre a filial e a UASG.
+
+### Exemplo
+
+| Filial | Município | UASG | Monitoramento |
+|---|---|---|---|
+| Filial A | Município Alfa | UASG 100001 | Ativo |
+| Filial A | Município Alfa | UASG 100002 | Ativo |
+| Filial A | Município Beta | UASG 100003 | Ativo |
+| Filial B | Município Gama | UASG 100001 | Ativo |
+
+Os códigos apresentados são exemplos ilustrativos.
+
+A tabela demonstra que a mesma UASG poderá ser acompanhada por mais de uma filial, se isso for permitido pela política da organização.
+
+### Regra recomendada
+
+A seleção de uma UASG não deverá, por si só, determinar todos os dados que serão coletados. Ela define **qual unidade administrativa será monitorada**. Os parâmetros de coleta determinarão **quais informações relacionadas a essa unidade deverão ser buscadas**.
+
+---
+
+# 8. Parâmetros de coleta
+
+Esta é uma das partes centrais do projeto.
+
+O sistema deverá separar três níveis de configuração:
+
+1. Parâmetros globais da plataforma.
+2. Parâmetros padrão definidos pela matriz.
+3. Parâmetros específicos de cada filial.
+
+Essa organização oferece controle centralizado sem impedir ajustes autorizados.
+
+## 8.1. Parâmetros globais
+
+Administrados pelo administrador geral.
+
+Exemplos:
+
+- Endereços-base das APIs.
+- Módulos disponíveis.
+- Frequência máxima de consultas.
+- Limites operacionais de requisições.
+- Tamanho de página permitido.
+- Número de tentativas após falhas.
+- Intervalos de repetição.
+- Regras de validação.
+- Configurações de autenticação, quando exigidas.
+- Regras gerais de armazenamento e retenção dos registros técnicos.
+
+Os parâmetros concretos deverão respeitar as condições documentadas por cada serviço.
+
+## 8.2. Parâmetros da matriz
+
+A matriz definirá as configurações padrão de monitoramento para a organização.
+
+Exemplos:
+
+- Módulos que deverão ser acompanhados.
+- Período de referência.
+- Frequência desejada de atualização.
+- Categorias de dados de interesse.
+- Tipos de procedimentos a acompanhar.
+- Critérios de pesquisa disponíveis.
+- Regras de prioridade.
+- Permissões concedidas às filiais.
+- Parâmetros obrigatórios.
+- Parâmetros que poderão ser alterados localmente.
+
+## 8.3. Parâmetros da filial
+
+A filial terá uma configuração operacional própria, subordinada às regras da matriz.
+
+Exemplos:
+
+- UASGs selecionadas.
+- Módulos habilitados.
+- Períodos de interesse.
+- Critérios específicos de monitoramento.
+- Frequência de atualização autorizada.
+- Categorias de itens de interesse.
+- Filtros de consulta compatíveis com os endpoints utilizados.
+
+A filial poderá ter configurações próprias quando a matriz permitir.
+
+## 8.4. Entidades de configuração
+
+### PARAMETRO_COLETA
+
+Representa um parâmetro disponível no sistema.
+
+Campos conceituais:
+
+- `idParametroColeta`.
+- Nome do parâmetro.
+- Descrição.
+- Tipo de valor.
+- Valor padrão, quando aplicável.
+- Módulo ao qual se aplica.
+- Regra de validação.
+- Situação.
+- Indicação de obrigatoriedade.
+
+### CONFIGURACAO_COLETA
+
+Representa a configuração aplicada a uma unidade ou contexto operacional.
+
+Campos conceituais:
+
+- `idConfiguracaoColeta`.
+- Escopo da configuração: global, matriz ou filial.
+- Identificador da unidade correspondente, quando aplicável.
+- Nome da configuração.
+- Situação.
+- Data de início da vigência.
+- Data de encerramento da vigência.
+- Responsável pela alteração.
+- Versão da configuração.
+
+### CONFIGURACAO_COLETA_PARAMETRO
+
+Registra os valores dos parâmetros definidos em uma configuração.
+
+Campos conceituais:
+
+- `idConfiguracaoParametro`.
+- `idConfiguracaoColeta`.
+- `idParametroColeta`.
+- Valor configurado.
+- Origem do valor: padrão, herdado ou definido localmente.
+- Data da alteração.
+
+A separação permite que a matriz defina um parâmetro padrão e que uma filial utilize esse valor ou um valor específico, quando autorizado.
+
+---
+
+# 9. Modelo de configuração herdada e exceções
+
+Recomenda-se utilizar um **modelo híbrido de configuração**.
+
+A matriz define as regras padrão, mas pode permitir exceções por filial. O sistema administra essas diferenças e consolida as necessidades de coleta.
+
+### Exemplo
+
+A matriz determina que todas as filiais acompanhem:
+
+- Contratações.
+- Itens de contratação.
+- Resultados de itens.
+- Fornecedores.
+- Pesquisa de preços.
+
+Uma filial poderá receber uma autorização adicional para acompanhar determinado módulo de planejamento, enquanto outra poderá utilizar um período de referência diferente.
+
+| Configuração | Matriz | Filial A | Filial B |
+|---|---|---|---|
+| Contratações | Obrigatório | Herdado | Herdado |
+| Itens de contratação | Obrigatório | Herdado | Herdado |
+| Fornecedores | Habilitado | Herdado | Herdado |
+| Planejamento | Opcional | Habilitado | Desabilitado |
+| Período de referência | Padrão | Específico, se autorizado | Padrão |
+
+### Regras de precedência
+
+A recomendação é aplicar a seguinte lógica:
+
+1. As regras globais estabelecem os limites da plataforma.
+2. A matriz define as políticas organizacionais.
+3. A filial herda as configurações padrão.
+4. Uma configuração local somente prevalece quando a matriz autorizar a exceção.
+5. O sistema valida se os parâmetros são compatíveis com o endpoint da API.
+6. Configurações inválidas não devem ativar coletas automaticamente.
+7. Cada alteração relevante deve gerar um registro de histórico.
+
+É importante diferenciar uma configuração herdada de uma configuração copiada. Na configuração herdada, uma mudança no padrão da matriz poderá afetar a filial, conforme as regras de vigência. Na configuração copiada, o valor poderá permanecer independente. O sistema deverá tornar essa diferença explícita.
+
+---
+
+# 10. Integração com a API de Dados Abertos do Compras.gov.br
+
+A fonte principal indicada para a integração é:
+
+**Documentação oficial:**  
+https://dadosabertos.compras.gov.br/swagger-ui/index.html#/
+
+A documentação deve ser usada como referência para identificar os endpoints, os parâmetros aceitos, os campos de resposta, a paginação e as regras de consulta.
+
+A API contém serviços para diferentes conjuntos de dados. A disponibilidade e a nomenclatura dos módulos, assim como seus filtros, devem ser confirmadas no Swagger antes da implementação.
+
+## 10.1. Módulos de dados relevantes
+
+Considerando o modelo de dados fornecido, os módulos de interesse incluem:
+
+| Módulo conceitual | Finalidade no sistema |
+|---|---|
+| UASG | Identificar e atualizar unidades administrativas |
+| Órgãos | Identificar os órgãos associados às unidades |
+| Catálogo de materiais — CATMAT | Identificar itens de material |
+| Catálogo de serviços — CATSER | Identificar serviços |
+| Planejamento e PGC | Acompanhar dados de planejamento disponíveis |
+| Contratações | Registrar dados das contratações e procedimentos |
+| Itens de contratação | Identificar os itens associados às contratações |
+| Resultados dos itens | Consultar resultados e valores homologados disponíveis |
+| Pesquisa de preços | Registrar preços e referências de compras |
+| Fornecedores | Identificar os fornecedores relacionados aos registros |
+| Atas de registro de preços | Acompanhar dados de atas, quando disponíveis |
+| Contratos | Acompanhar informações contratuais disponíveis |
+
+A correspondência exata entre os módulos conceituais e os serviços da API deve ser validada na documentação.
+
+Nem todos os módulos necessariamente utilizam o mesmo identificador de unidade, possuem os mesmos filtros ou permitem a consulta direta por `codigoUasg`.
+
+## 10.2. Separação entre fonte externa e banco interno
+
+A API externa não deve ser tratada como se fosse o banco de dados interno do sistema.
+
+É recomendável manter uma camada de integração que:
+
+1. Consulte os endpoints oficiais.
+2. Valide os parâmetros de entrada.
+3. Receba as respostas.
+4. Verifique os dados obrigatórios.
+5. Normalize os campos.
+6. Relacione os registros usando identificadores válidos.
+7. Registre a origem e a data da coleta.
+8. Insira ou atualize os registros internos.
+9. Registre erros e inconsistências.
+
+Os identificadores externos devem ser preservados para permitir rastreabilidade e futuras atualizações.
+
+---
+
+# 11. Modelo de dados de compras públicas
+
+A estrutura fornecida serve como ponto de partida para o modelo de dados do sistema.
+
+É importante distinguir as entidades de negócio dos identificadores usados pela API. Uma referência que aparece em dois conjuntos de dados não deve ser considerada uma chave estrangeira válida sem que a documentação confirme sua correspondência.
+
+## 11.1. ORGAO
+
+Representa o órgão público.
+
+Campos conceituais:
+
+- `codigoOrgao` — chave primária interna ou externa, conforme a origem.
+- `cnpjCpfOrgao`.
+- Esfera administrativa.
+- Poder.
+- Nome ou denominação, quando disponível.
+
+**Finalidade:** manter a identificação dos órgãos públicos relacionados às UASGs e às contratações.
+
+## 11.2. UASG
+
+Representa a unidade administrativa.
+
+Campos conceituais:
+
+- `codigoUasg` — identificador da unidade.
+- `codigoOrgao` — referência ao órgão, quando aplicável.
+- `cnpjCpfOrgao`.
+- `codigoMunicipioIbge`.
+- `siglaUf`.
+- Nome da unidade, quando disponível.
+- Situação.
+- Data da última atualização.
+
+**Finalidade:** manter um catálogo central das UASGs que poderão ser selecionadas pelas filiais.
+
+A existência e a obrigatoriedade de cada campo devem ser confirmadas conforme o endpoint utilizado.
+
+## 11.3. PGC — Planejamento
+
+Representa os registros de planejamento de contratações disponíveis na fonte.
+
+Campos conceituais:
+
+- Identificador do registro de planejamento.
+- Código do órgão.
+- Código da UASG.
+- Código do item de catálogo.
+- Tipo do item: material ou serviço.
+- Ano do plano ou planejamento.
+- Outros identificadores fornecidos pela API.
+
+**Finalidade:** relacionar os dados de planejamento às unidades administrativas e aos itens de catálogo.
+
+A estrutura definitiva deverá refletir os campos e a granularidade reais dos registros publicados.
+
+## 11.4. CONTRATACAO
+
+Representa uma contratação ou procedimento publicado na fonte oficial.
+
+Campos conceituais:
+
+- `idCompra` — identificador da contratação, conforme a fonte.
+- Código da unidade ou UASG.
+- CNPJ ou identificador do órgão.
+- `numeroControlePNCP`, quando disponível.
+- Modalidade ou tipo do procedimento, quando disponível.
+- Datas relevantes.
+- Situação.
+- Outros campos publicados no endpoint.
+
+**Finalidade:** constituir o registro central da contratação.
+
+É importante não presumir que `idCompra` e `numeroControlePNCP` sejam equivalentes. Ambos devem ser armazenados quando existirem, respeitando suas finalidades e regras de unicidade.
+
+## 11.5. ITEM_CONTRAT
+
+Representa os itens vinculados a uma contratação.
+
+Campos conceituais:
+
+- `idCompraItem`.
+- `idCompra`.
+- Código do item de catálogo.
+- Tipo de catálogo: material ou serviço, quando necessário.
+- Identificadores complementares disponibilizados pela API.
+- Descrição do item.
+- Quantidade e unidade de fornecimento, quando disponíveis.
+
+**Finalidade:** permitir que o sistema identifique quais itens compõem uma contratação.
+
+A chave do item deverá ser definida com base na documentação e na granularidade da fonte. Caso o identificador isolado não seja globalmente único, será necessário utilizar uma chave composta ou uma chave interna.
+
+## 11.6. RESULTADO_ITEM
+
+Representa o resultado associado ao item de uma contratação, quando esse conjunto de dados estiver disponível.
+
+Campos conceituais:
+
+- Identificador do resultado.
+- `idCompraItem`.
+- Identificador do fornecedor homologado.
+- Valor homologado.
+- Quantidade homologada, quando disponível.
+- Data ou situação do resultado, quando disponível.
+
+**Finalidade:** registrar os resultados associados aos itens.
+
+O relacionamento deverá respeitar a estrutura real da fonte. Um item poderá apresentar mais de um registro de resultado em determinadas situações; portanto, não se deve assumir uma relação obrigatoriamente de um para um.
+
+## 11.7. MATERIAL — CATMAT
+
+Representa os itens do catálogo de materiais.
+
+Campos conceituais:
+
+- `codigoItem`.
+- `codigoPdm`.
+- `codigoClasse`.
+- `codigoGrupo`.
+- Descrição.
+- Situação, quando disponível.
+
+**Finalidade:** permitir a identificação e a classificação de materiais presentes nos registros de planejamento, contratação e preços.
+
+## 11.8. SERVIÇO — CATSER
+
+Representa os itens do catálogo de serviços.
+
+Campos conceituais:
+
+- `codigoServico`.
+- Código ou referência da hierarquia de serviços.
+- Descrição.
+- Situação, quando disponível.
+
+**Finalidade:** permitir a identificação e a classificação de serviços presentes nos registros coletados.
+
+CATMAT e CATSER devem ser tratados como catálogos distintos. Para facilitar pesquisas, o sistema poderá apresentar ambos em uma interface unificada, preservando internamente a origem e o tipo de cada item.
+
+## 11.9. PESQUISA_PRECO
+
+Representa registros de preços coletados da fonte oficial.
+
+Campos conceituais:
+
+- Identificador interno do registro de preço.
+- Código do item de catálogo.
+- Código da UASG, quando fornecido.
+- Identificador da contratação, quando fornecido.
+- Identificador do item da contratação, quando fornecido.
+- Identificador do fornecedor, quando fornecido.
+- Preço unitário.
+- Data da compra ou do registro.
+- Unidade de fornecimento.
+- Quantidade, quando disponível.
+- Referência à origem oficial.
+
+**Finalidade:** apoiar pesquisas, comparações e análises de preços.
+
+Nem todo registro de preço necessariamente terá vínculo direto com uma contratação ou UASG nos dados publicados. O sistema deve preservar os vínculos existentes e evitar criar relações artificiais.
+
+## 11.10. FORNECEDOR
+
+Representa fornecedores identificados nos registros oficiais.
+
+Campos conceituais:
+
+- `niFornecedor` — identificador informado pela fonte.
+- Razão social, quando disponível.
+- Porte, quando disponível.
+- CNAE ou atividade econômica, quando disponível.
+- Outros dados públicos publicados pela API.
+
+**Finalidade:** identificar fornecedores relacionados às contratações, aos itens e aos resultados.
+
+A chave deve respeitar o formato e o tipo de identificação informados pela fonte. CPF e CNPJ não devem ser tratados como se tivessem necessariamente o mesmo formato ou a mesma regra de validação.
+
+---
+
+# 12. Relacionamentos entre as entidades de compras públicas
+
+O modelo relacional deverá representar as conexões entre órgãos, UASGs, contratações, itens, catálogos, preços e fornecedores.
+
+Um modelo conceitual simplificado é:
+
+```text
+ORGAO
+  |
+  +---- UASG
+           |
+           +---- PGC
+           |      |
+           |      +---- MATERIAL (CATMAT)
+           |      |
+           |      +---- SERVIÇO (CATSER)
+           |
+           +---- CONTRATACAO
+                    |
+                    +---- ITEM_CONTRAT
+                    |        |
+                    |        +---- CATMAT ou CATSER
+                    |        |
+                    |        +---- RESULTADO_ITEM
+                    |                   |
+                    |                   +---- FORNECEDOR
+                    |
+                    +---- PESQUISA_PRECO
+```
+
+Esse desenho é conceitual, e não representa necessariamente todas as chaves estrangeiras diretas da API.
+
+### Regras para o relacionamento
+
+1. Um órgão poderá estar relacionado a uma ou mais UASGs, conforme os dados oficiais.
+2. Uma UASG poderá estar relacionada a diversos registros de planejamento.
+3. Uma UASG poderá estar relacionada a diversas contratações.
+4. Uma contratação poderá possuir vários itens.
+5. Um item poderá ter dados de resultado associados.
+6. Os itens poderão referenciar CATMAT ou CATSER, conforme seu tipo.
+7. Os resultados poderão referenciar fornecedores.
+8. Os registros de pesquisa de preços poderão se relacionar a itens, fornecedores, UASGs ou contratações quando esses vínculos forem disponibilizados pela fonte.
+
+Os relacionamentos definitivos devem ser confirmados a partir dos identificadores presentes em cada endpoint.
+
+---
+
+# 13. Como os dados serão coletados
+
+O sistema deverá possuir um mecanismo central de coleta, responsável por consultar as APIs e atualizar o banco de dados.
+
+A coleta não deverá depender de cada filial acessar diretamente a API. A proposta é manter uma operação centralizada, controlada e auditável.
+
+## 13.1. Fluxo operacional
+
+```text
+CONFIGURAÇÕES GLOBAIS
+        |
+        v
+CONFIGURAÇÕES DA MATRIZ
+        |
+        v
+CONFIGURAÇÕES DAS FILIAIS
+        |
+        v
+MUNICÍPIOS SELECIONADOS
+        |
+        v
+UASGs SELECIONADAS
+        |
+        v
+PARÂMETROS DE COLETA
+        |
+        v
+PLANEJADOR CENTRAL DE COLETAS
+        |
+        v
+CONSULTA À API OFICIAL
+        |
+        v
+VALIDAÇÃO E NORMALIZAÇÃO
+        |
+        v
+BANCO CENTRAL DE DADOS
+        |
+        v
+DISTRIBUIÇÃO LÓGICA POR ESCOPO
+        |
+        v
+CONSULTA PELA MATRIZ E PELAS FILIAIS
+```
+
+## 13.2. Etapas da coleta
+
+### Etapa 1 — Identificar as configurações ativas
+
+O sistema consulta as configurações válidas da matriz e das filiais.
+
+Deve verificar:
+
+- Quais filiais estão ativas.
+- Quais municípios estão associados a elas.
+- Quais UASGs estão habilitadas para monitoramento.
+- Quais módulos estão habilitados.
+- Quais parâmetros devem ser aplicados.
+- Quais configurações estão dentro do período de vigência.
+
+### Etapa 2 — Consolidar as necessidades
+
+Antes de consultar a API, o sistema identifica os dados necessários para atender às filiais.
+
+Se duas filiais monitorarem a mesma UASG e precisarem dos mesmos dados, o sistema deverá avaliar se uma única consulta pode atender a ambas.
+
+Isso evita consultas duplicadas desnecessárias.
+
+### Etapa 3 — Planejar as requisições
+
+O sistema organiza as consultas por endpoint, período, filtros compatíveis e paginação.
+
+O planejador deverá respeitar:
+
+- Limites documentados da API.
+- Parâmetros aceitos por cada endpoint.
+- Frequência de atualização.
+- Quantidade de dados a consultar.
+- Prioridade dos módulos.
+- Histórico de execuções.
+- Regras de repetição após falhas.
+
+### Etapa 4 — Consultar a API
+
+O sistema envia as requisições conforme a documentação oficial.
+
+Cada execução deverá identificar o endpoint consultado, os filtros utilizados e o contexto operacional que motivou a consulta.
+
+### Etapa 5 — Validar a resposta
+
+Os dados recebidos deverão ser verificados antes de serem gravados.
+
+Exemplos de validação:
+
+- Existência dos campos obrigatórios.
+- Formato dos identificadores.
+- Tipos de dados.
+- Coerência das datas.
+- Validade da paginação.
+- Duplicidade de registros.
+- Presença de informações necessárias para os relacionamentos.
+
+### Etapa 6 — Normalizar e armazenar
+
+Os dados serão convertidos para a estrutura interna do sistema.
+
+A operação deverá identificar se cada registro é novo ou se já existe.
+
+Quando o registro já existir, o sistema deverá atualizar os campos aplicáveis sem criar uma cópia desnecessária.
+
+### Etapa 7 — Disponibilizar os dados
+
+Após a validação e o armazenamento, os registros poderão ser consultados pelos usuários autorizados.
+
+A visibilidade de cada registro será determinada pelas regras de acesso e pelo escopo de monitoramento da filial, e não apenas pela existência do registro no banco central.
+
+---
+
+# 14. Banco central e distribuição dos dados
+
+Recomenda-se utilizar um banco centralizado para os dados coletados, com controle de acesso por organização, filial, UASG e demais critérios aplicáveis.
+
+## 14.1. Por que utilizar uma base central?
+
+Imagine que três filiais acompanhem a mesma UASG.
+
+Se o sistema armazenar uma cópia integral da mesma contratação para cada filial, poderá ocorrer:
+
+- Duplicação de dados.
+- Aumento desnecessário do armazenamento.
+- Divergência entre versões do mesmo registro.
+- Maior complexidade de atualização.
+- Dificuldade para consolidar relatórios.
+
+Com uma base central, a contratação poderá ser armazenada uma única vez, enquanto o sistema mantém os vínculos de monitoramento necessários para determinar quais filiais podem consultá-la.
+
+## 14.2. Entidades de distribuição
+
+**REGISTRO_MONITORAMENTO**
+- `idRegistroMonitoramento`.
+- Tipo de registro.
+- Identificador interno do registro.
+- Data de identificação.
+- Situação.
+- Referência à execução responsável pela identificação.
+
+**FILIAL_REGISTRO**
+- `idFilialRegistro`.
+- `idFilial`.
+- Tipo de registro.
+- Identificador interno do registro.
+- Motivo da associação.
+- Data de início da disponibilidade.
+- Data de encerramento, quando aplicável.
+
+Essas entidades são propostas conceituais. A implementação poderá utilizar uma estratégia mais simples quando a relação puder ser derivada diretamente das associações entre filiais, UASGs e registros.
+
+### Regra essencial
+
+A retirada de uma UASG da configuração de uma filial não deve apagar automaticamente os dados históricos coletados.
+
+O sistema deverá encerrar ou atualizar o vínculo de monitoramento, preservando os registros históricos e respeitando a política de retenção e as permissões de acesso.
+
+---
+
+# 15. Controle das execuções e das requisições
+
+O sistema precisa manter um histórico de todas as operações de coleta.
+
+Isso permitirá saber se os dados estão atualizados, identificar falhas e explicar como cada informação foi obtida.
+
+## 15.1. EXECUCAO_COLETA
+
+Representa uma execução lógica de coleta.
+
+Campos conceituais:
+
+- `idExecucaoColeta`.
+- Data e hora de início.
+- Data e hora de término.
+- Módulo.
+- Situação.
+- Quantidade de registros recebidos.
+- Quantidade de registros novos.
+- Quantidade de registros atualizados.
+- Quantidade de registros rejeitados.
+- Resumo do resultado.
+- Versão da configuração utilizada.
+
+Situações possíveis:
+
+- Pendente.
+- Em execução.
+- Concluída.
+- Concluída com ressalvas.
+- Falha.
+- Cancelada.
+
+## 15.2. REQUISICAO_COLETA
+
+Representa uma requisição individual realizada à API.
+
+Campos conceituais:
+
+- `idRequisicaoColeta`.
+- `idExecucaoColeta`.
+- Endpoint consultado.
+- Módulo.
+- Parâmetros aplicados.
+- Número da página, quando aplicável.
+- Data e hora da requisição.
+- Código de resposta HTTP.
+- Duração.
+- Quantidade de registros retornados.
+- Situação.
+- Descrição técnica do erro, quando aplicável.
+
+Credenciais, tokens e segredos não deverão ser gravados em logs.
+
+Os parâmetros registrados deverão ser tratados para evitar a exposição de informações sensíveis.
+
+## 15.3. Histórico das configurações
+
+**HISTORICO_CONFIGURACAO**
+- `idHistoricoConfiguracao`.
+- Identificador da configuração.
+- Unidade responsável.
+- Usuário que realizou a alteração.
+- Data e hora.
+- Valores anteriores relevantes.
+- Valores novos relevantes.
+- Motivo da alteração.
+- Versão resultante.
+
+Esse histórico permitirá identificar quando uma filial passou a monitorar determinada UASG, quando um módulo foi habilitado ou quando um parâmetro foi alterado.
+
+---
+
+# 16. Frequência e atualização dos dados
+
+Nem todos os dados precisam ser coletados na mesma frequência.
+
+A frequência ideal depende da natureza do conjunto de dados, da disponibilidade de atualizações, dos limites da API e da necessidade operacional.
+
+O sistema deverá permitir a configuração de frequências por módulo, com regras globais de proteção contra excesso de requisições.
+
+### Exemplo conceitual
+
+| Tipo de dado | Estratégia de atualização |
+|---|---|
+| Catálogo de materiais | Atualização periódica |
+| Catálogo de serviços | Atualização periódica |
+| Cadastro de órgãos e UASGs | Atualização periódica e correções quando necessário |
+| Contratações | Atualizações frequentes conforme a necessidade |
+| Itens de contratação | Consulta vinculada às contratações relevantes |
+| Resultados dos itens | Atualização conforme disponibilidade e necessidade |
+| Pesquisa de preços | Atualização conforme os dados e filtros suportados |
+| Planejamento | Atualização de acordo com o calendário e os dados disponíveis |
+| Fornecedores | Atualização periódica e por demanda |
+
+Essas estratégias não constituem uma garantia sobre a frequência de publicação de cada conjunto de dados. Os intervalos concretos deverão ser definidos após verificar a API e o comportamento dos dados.
+
+## 16.1. Coleta incremental
+
+Sempre que o endpoint permitir, o sistema deverá buscar registros novos ou modificados sem precisar repetir a coleta integral.
+
+A estratégia poderá utilizar:
+
+- Data de publicação.
+- Data de atualização.
+- Intervalo de datas.
+- Identificadores já armazenados.
+- Paginação.
+- Outras formas de consulta documentadas.
+
+Quando o endpoint não oferecer filtros incrementais adequados, será necessário adotar outra estratégia de atualização e deduplicação.
+
+---
+
+# 17. Tratamento de falhas e inconsistências
+
+O sistema deverá ser capaz de lidar com indisponibilidade da API, respostas incompletas e dados inconsistentes.
+
+## 17.1. Falha temporária
+
+Quando uma requisição falhar por um motivo temporário, o sistema poderá realizar novas tentativas, respeitando limites e intervalos definidos.
+
+## 17.2. Resposta inválida
+
+Se os dados recebidos não atenderem às regras de validação, os registros afetados não deverão ser incorporados silenciosamente.
+
+O sistema deverá registrar a inconsistência e permitir sua análise.
+
+## 17.3. Duplicidade
+
+A gravação deverá utilizar identificadores estáveis e regras de unicidade para impedir que a mesma informação seja inserida várias vezes.
+
+## 17.4. Reprocessamento
+
+Uma execução com falha poderá ser reprocessada sem duplicar os registros já armazenados.
+
+## 17.5. Dados corrigidos na fonte
+
+Se a API publicar uma atualização para um registro já existente, o sistema deverá atualizar os campos correspondentes e manter os metadados necessários para rastreabilidade.
+
+Quando for importante preservar versões anteriores, poderá ser mantido um histórico de alterações dos registros de negócio.
+
+---
+
+# 18. Fluxo completo de cadastro de uma filial
+
+Esta seção descreve como o sistema deverá funcionar na prática, desde o cadastro da filial até a disponibilização dos dados coletados.
+
+## 18.1. Etapa 1 — Cadastrar a filial
+
+A matriz acessa a área de administração e seleciona a opção de cadastrar uma nova filial.
+
+O sistema solicita:
+
+- Nome da filial.
+- CNPJ.
+- Identificação interna, se utilizada.
+- Responsável.
+- Dados administrativos necessários.
+- Situação inicial.
+
+Após a validação, a filial é vinculada à organização.
+
+**Resultado:** a filial passa a existir no sistema, mas ainda não está necessariamente habilitada para coletar dados.
+
+## 18.2. Etapa 2 — Selecionar o município
+
+A matriz acessa a configuração de monitoramento da filial.
+
+O sistema apresenta uma lista de municípios, identificados pelo código oficial do IBGE.
+
+O responsável seleciona o município que deseja acompanhar.
+
+O sistema registra o `codigoMunicipioIbge`.
+
+**Resultado:** o município passa a integrar o escopo de monitoramento da filial.
+
+## 18.3. Etapa 3 — Apresentar as UASGs
+
+O sistema consulta o catálogo interno de UASGs e identifica aquelas relacionadas ao município selecionado.
+
+A interface apresenta informações como:
+
+| Campo | Finalidade |
+|---|---|
+| Código da UASG | Identificar a unidade |
+| Nome da unidade | Facilitar a identificação |
+| Órgão relacionado | Informar o órgão correspondente |
+| Município | Apresentar a localização registrada |
+| UF | Identificar o estado |
+| Situação | Indicar a situação cadastral, quando disponível |
+| Seleção | Permitir escolher a UASG para monitoramento |
+
+A listagem deverá informar quando a relação entre UASG e município não puder ser confirmada diretamente pelos dados oficiais.
+
+## 18.4. Etapa 4 — Selecionar as UASGs
+
+A matriz marca as UASGs que deverão ser monitoradas pela filial.
+
+O sistema grava cada seleção na entidade `FILIAL_UASG`.
+
+A seleção deverá permitir:
+
+- Adicionar UASGs.
+- Retirar UASGs do monitoramento.
+- Consultar as UASGs atualmente monitoradas.
+- Identificar quem realizou a alteração.
+- Consultar o histórico das associações.
+
+## 18.5. Etapa 5 — Configurar os módulos
+
+Para as UASGs selecionadas, a matriz define quais conjuntos de dados deverão ser acompanhados.
+
+Por exemplo:
+
+- Contratações.
+- Itens de contratação.
+- Resultados.
+- Pesquisa de preços.
+- Planejamento.
+- Fornecedores.
+- Contratos e atas, conforme os serviços disponíveis.
+
+O sistema apresenta apenas as opções compatíveis com a integração implementada.
+
+## 18.6. Etapa 6 — Definir os parâmetros
+
+A matriz configura os critérios disponíveis para cada módulo.
+
+Os parâmetros poderão incluir:
+
+- Período de referência.
+- Filtros por data.
+- Tipo de informação.
+- Categoria de item.
+- Frequência de atualização.
+- Outros filtros documentados no endpoint.
+
+Os parâmetros não deverão ser exibidos como se todos fossem aceitos por todos os módulos.
+
+## 18.7. Etapa 7 — Validar a configuração
+
+Antes de ativar o monitoramento, o sistema verifica:
+
+- Se a filial está ativa.
+- Se existe ao menos um município associado.
+- Se existem UASGs selecionadas.
+- Se os módulos estão habilitados.
+- Se os parâmetros são válidos.
+- Se as permissões da matriz permitem a configuração.
+- Se os endpoints necessários estão disponíveis na integração.
+- Se os vínculos entre município e UASG são válidos ou estão devidamente identificados.
+
+Se houver algum problema, o sistema informa o que precisa ser corrigido.
+
+## 18.8. Etapa 8 — Ativar o monitoramento
+
+Depois da validação, a matriz confirma a ativação.
+
+O sistema passa a considerar a configuração no planejamento das coletas.
+
+A primeira coleta poderá ser uma carga inicial dos dados disponíveis. As próximas deverão seguir a estratégia de atualização definida para cada módulo.
+
+## 18.9. Etapa 9 — Acompanhar os resultados
+
+A matriz poderá acompanhar:
+
+- Filiais configuradas.
+- Municípios monitorados.
+- UASGs ativas.
+- Módulos habilitados.
+- Última coleta.
+- Situação das coletas.
+- Quantidade de registros processados.
+- Falhas e inconsistências.
+- Data da última atualização disponível.
+
+A filial poderá consultar os dados e os indicadores aos quais tem acesso.
+
+---
+
+# 19. Exemplo completo de funcionamento
+
+Considere uma organização com uma matriz e duas filiais.
+
+Os nomes e códigos deste exemplo são fictícios.
+
+## 19.1. Estrutura
+
+```text
+ORGANIZAÇÃO OBSERVATÓRIO
+       |
+       +-- MATRIZ
+       |     |
+       |     +-- Configurações gerais
+       |     +-- Usuários administrativos
+       |     +-- Regras de monitoramento
+       |
+       +-- FILIAL A
+       |     |
+       |     +-- Município Alfa
+       |     +-- UASG 100001
+       |     +-- UASG 100002
+       |     +-- Contratações
+       |     +-- Itens
+       |     +-- Pesquisa de preços
+       |
+       +-- FILIAL B
+             |
+             +-- Município Beta
+             +-- UASG 100003
+             +-- UASG 100004
+             +-- Contratações
+             +-- Itens
+             +-- Fornecedores
+```
+
+## 19.2. Configuração
+
+A matriz define que as duas filiais deverão acompanhar contratações e itens.
+
+A Filial A também recebe autorização para acompanhar pesquisa de preços.
+
+A Filial B recebe autorização para acompanhar fornecedores.
+
+O sistema registra essas configurações e valida quais consultas podem ser executadas nos endpoints correspondentes.
+
+## 19.3. Coleta
+
+O planejador central identifica os dados necessários para atender às duas filiais.
+
+Se os filtros e as condições dos endpoints permitirem, poderá consolidar consultas equivalentes.
+
+Os registros são coletados, validados e armazenados na base central.
+
+## 19.4. Disponibilização
+
+A Filial A consulta os dados permitidos para suas UASGs e configurações.
+
+A Filial B consulta os dados permitidos para as suas.
+
+A matriz acompanha ambas as filiais e consulta informações consolidadas conforme suas permissões.
+
+Se uma contratação estiver relacionada a uma UASG monitorada por mais de uma filial, o registro poderá ser compartilhado logicamente entre elas sem que seja necessário duplicar o registro principal no banco.
+
+---
+
+# 20. Diagrama conceitual geral do sistema
+
+O diagrama abaixo reúne a estrutura organizacional, o monitoramento e a integração com a API.
+
+```text
+                         SISTEMA
+                            |
+              +-------------+-------------+
+              |                           |
+              v                           v
+     ADMINISTRADOR GERAL          ORGANIZAÇÃO
+                                          |
+                                          v
+                                        MATRIZ
+                                          |
+                  +-----------------------+----------------------+
+                  |                       |                      |
+                  v                       v                      v
+           CONFIGURAÇÕES            CADASTRO DE             USUÁRIOS
+             PADRÃO                  FILIAIS
+                                          |
+                         +----------------+----------------+
+                         |                |                |
+                         v                v                v
+                      FILIAL A         FILIAL B          FILIAL N
+                         |
+                         v
+                  MUNICÍPIO(S)
+                         |
+                         v
+                 codigoMunicipioIbge
+                         |
+                         v
+                 CATÁLOGO CENTRAL
+                     DE UASGs
+                         |
+                         v
+                   SELEÇÃO DE UASGs
+                         |
+                         v
+                 FILIAL_UASG
+                         |
+                         v
+                PARÂMETROS DE COLETA
+                         |
+                         v
+                CONFIGURACAO_COLETA
+                         |
+                         v
+                PLANEJADOR CENTRAL
+                         |
+                         v
+                 API COMPRAS.GOV.BR
+                         |
+                         v
+                VALIDAÇÃO DOS DADOS
+                         |
+                         v
+                 NORMALIZAÇÃO
+                         |
+                         v
+                  BANCO CENTRAL
+                         |
+          +--------------+---------------+
+          |              |               |
+          v              v               v
+     CONTRATAÇÕES      CATÁLOGOS      FORNECEDORES
+          |
+          +---- ITENS
+          |
+          +---- RESULTADOS
+          |
+          +---- PESQUISA DE PREÇOS
+          |
+          +---- OUTROS MÓDULOS
+                         |
+                         v
+               CONTROLE DE ACESSO
+                         |
+             +-----------+-----------+
+             |                       |
+             v                       v
+        CONSULTA DA MATRIZ     CONSULTA DA FILIAL
+```
+
+---
+
+# 21. Modelo ER conceitual consolidado
+
+A seguir está uma representação textual das principais entidades e de seus relacionamentos.
+
+Ela é uma referência para a futura modelagem do banco de dados, não um script de criação de tabelas.
+
+## 21.1. Estrutura organizacional
+
+```text
+ORGANIZACAO
+- idOrganizacao (PK)
+- nome
+- cnpj
+- situacao
+
+UNIDADE_ORGANIZACIONAL
+- idUnidadeOrganizacional (PK)
+- idOrganizacao (FK)
+- idUnidadeMatriz (FK, opcional)
+- tipoUnidade
+- nome
+- cnpj
+- situacao
+
+USUARIO
+- idUsuario (PK)
+- nome
+- email
+- credencialReferencia
+- situacao
+
+USUARIO_UNIDADE
+- idUsuarioUnidade (PK)
+- idUsuario (FK)
+- idUnidadeOrganizacional (FK)
+- perfil
+- situacao
+```
+
+`UNIDADE_ORGANIZACIONAL` representa a matriz ou uma filial. O campo `idUnidadeMatriz` permite vincular as filiais à matriz, quando essa estrutura for adotada.
+
+O administrador geral poderá ter um vínculo administrativo global separado das permissões organizacionais.
+
+## 21.2. Municípios e UASGs
+
+```text
+MUNICIPIO
+- codigoMunicipioIbge (PK)
+- nome
+- siglaUf
+
+FILIAL_MUNICIPIO
+- idFilialMunicipio (PK)
+- idFilial (FK)
+- codigoMunicipioIbge (FK)
+- situacao
+
+ORGAO
+- codigoOrgao (PK, conforme a fonte)
+- cnpjCpfOrgao
+- esfera
+- poder
+
+UASG
+- codigoUasg (PK, conforme a fonte)
+- codigoOrgao (referência ao órgão)
+- cnpjCpfOrgao
+- codigoMunicipioIbge
+- siglaUf
+
+FILIAL_UASG
+- idFilialUasg (PK)
+- idFilial (FK)
+- codigoUasg (referência à UASG)
+- idFilialMunicipio (FK, opcional)
+- situacao
+```
+
+O modelo poderá precisar de ajustes se a fonte oficial permitir múltiplos vínculos de órgão ou apresentar mudanças nos identificadores.
+
+## 21.3. Configurações
+
+```text
+PARAMETRO_COLETA
+- idParametroColeta (PK)
+- nome
+- descricao
+- tipoValor
+- modulo
+- situacao
+
+CONFIGURACAO_COLETA
+- idConfiguracaoColeta (PK)
+- escopo
+- idUnidadeOrganizacional (opcional)
+- versao
+- vigenciaInicio
+- vigenciaFim
+- situacao
+
+CONFIGURACAO_COLETA_PARAMETRO
+- idConfiguracaoParametro (PK)
+- idConfiguracaoColeta (FK)
+- idParametroColeta (FK)
+- valor
+- origemValor
+
+HISTORICO_CONFIGURACAO
+- idHistoricoConfiguracao (PK)
+- idConfiguracaoColeta
+- idUsuario
+- dataAlteracao
+- valoresAnteriores
+- valoresNovos
+- motivo
+```
+
+A configuração poderá ser complementada com entidades específicas para definir os módulos habilitados e as relações entre uma configuração e as UASGs monitoradas.
+
+## 21.4. Coletas
+
+```text
+EXECUCAO_COLETA
+- idExecucaoColeta (PK)
+- idConfiguracaoColeta
+- modulo
+- dataInicio
+- dataFim
+- situacao
+- quantidadeRecebida
+- quantidadeNova
+- quantidadeAtualizada
+- quantidadeRejeitada
+
+REQUISICAO_COLETA
+- idRequisicaoColeta (PK)
+- idExecucaoColeta (FK)
+- endpoint
+- parametros
+- dataHora
+- codigoResposta
+- duracao
+- situacao
+- erro
+```
+
+## 21.5. Dados de compras públicas
+
+```text
+CONTRATACAO
+- idCompra (identificador da fonte)
+- codigoUasg
+- cnpjCpfOrgao
+- numeroControlePNCP
+- datas relevantes
+- situacao
+
+ITEM_CONTRAT
+- idCompraItem (identificador da fonte)
+- idCompra
+- codigoItemCatalogo
+- tipoItem
+- descricao
+- quantidade
+
+RESULTADO_ITEM
+- idResultado (identificador interno)
+- idCompraItem
+- niFornecedor
+- valorHomologado
+
+MATERIAL
+- codigoItem (PK)
+- codigoPdm
+- codigoClasse
+- codigoGrupo
+
+SERVICO
+- codigoServico (PK)
+- referenciaHierarquia
+- descricao
+
+PESQUISA_PRECO
+- idPesquisaPreco (identificador interno)
+- codigoItemCatalogo
+- codigoUasg, quando disponível
+- idCompra, quando disponível
+- idCompraItem, quando disponível
+- niFornecedor, quando disponível
+- precoUnitario
+- dataCompra
+
+FORNECEDOR
+- niFornecedor (identificador da fonte)
+- razaoSocial
+- porte
+- CNAE
+```
+
+**Importante:** os identificadores apresentados como provenientes da fonte deverão ser confirmados na documentação de cada endpoint. Quando não forem globalmente únicos, a modelagem deverá usar uma chave composta ou um identificador interno estável, preservando a referência original.
+
+---
+
+# 22. Regras de negócio fundamentais
+
+As seguintes regras devem orientar o desenvolvimento do sistema.
+
+### Regra 1 — Toda filial pertence a uma organização
+
+Uma filial não poderá existir isoladamente no modelo organizacional.
+
+### Regra 2 — A matriz administra as filiais
+
+A matriz controla as configurações das filiais dentro das permissões concedidas à organização.
+
+### Regra 3 — Cada usuário possui identidade própria
+
+O acesso dos usuários não deve depender de uma conta compartilhada pela matriz ou pelas filiais.
+
+### Regra 4 — Uma filial poderá acompanhar vários municípios
+
+A estrutura deverá suportar múltiplos municípios por filial, ainda que inicialmente seja selecionado apenas um.
+
+### Regra 5 — O município deverá ser identificado pelo código oficial do IBGE
+
+O código será a referência principal para a associação, desde que a correspondência esteja validada.
+
+### Regra 6 — A UASG é um registro central
+
+O catálogo de UASGs não deverá ser duplicado para cada filial.
+
+### Regra 7 — O vínculo da UASG com a filial é independente
+
+A associação entre uma UASG e uma filial será registrada separadamente do cadastro da própria UASG.
+
+### Regra 8 — A seleção da UASG não substitui os parâmetros de coleta
+
+A UASG determina a unidade acompanhada. Os parâmetros determinam os módulos e os critérios aplicáveis.
+
+### Regra 9 — A matriz define os padrões
+
+As filiais herdam os parâmetros padrão, salvo quando houver uma exceção autorizada.
+
+### Regra 10 — Cada endpoint possui suas próprias regras
+
+O sistema deverá respeitar os filtros, os campos e os limites de cada serviço da API.
+
+### Regra 11 — Os dados coletados serão centralizados
+
+Os registros de negócio deverão ser armazenados centralmente sempre que isso for compatível com a arquitetura e as políticas de acesso.
+
+### Regra 12 — A distribuição será controlada por permissões
+
+A presença de um registro na base central não significa que todas as filiais possam consultá-lo.
+
+### Regra 13 — As configurações deverão possuir histórico
+
+Alterações de municípios, UASGs, módulos e parâmetros deverão ser rastreáveis.
+
+### Regra 14 — A retirada de uma UASG não apaga o histórico
+
+O encerramento do monitoramento não deverá apagar automaticamente os dados já coletados.
+
+### Regra 15 — As coletas deverão ser auditáveis
+
+O sistema deverá registrar as execuções e as requisições realizadas, incluindo falhas e reprocessamentos.
+
+### Regra 16 — Os registros deverão ser atualizados sem duplicação
+
+A identificação de registros existentes deverá utilizar chaves e regras de unicidade adequadas.
+
+### Regra 17 — A configuração será validada antes da ativação
+
+O sistema não deverá ativar uma coleta com parâmetros incompatíveis ou com associações inválidas.
+
+---
+
+# 23. Segurança e governança
+
+A arquitetura deverá contemplar controles de segurança desde o início.
+
+## 23.1. Controle de acesso
+
+As permissões deverão ser verificadas no servidor, em todas as operações relevantes.
+
+Não basta esconder funcionalidades na interface. O sistema deve impedir que um usuário consulte dados ou execute operações para as quais não possui autorização.
+
+## 23.2. Isolamento organizacional
+
+As consultas deverão considerar a organização e a unidade às quais o usuário está vinculado.
+
+A matriz poderá consultar informações das filiais conforme suas permissões. Uma filial não deverá acessar automaticamente os dados de outra.
+
+## 23.3. Auditoria
+
+Deverão ser registrados, no mínimo:
+
+- Criação e alteração de filiais.
+- Alteração de municípios.
+- Seleção e retirada de UASGs.
+- Mudanças de parâmetros.
+- Ativação e desativação de módulos.
+- Alterações de permissões.
+- Execuções de coleta.
+- Falhas e reprocessamentos.
+- Operações administrativas relevantes.
+
+## 23.4. Proteção das credenciais
+
+As credenciais usadas para acessar os serviços deverão ser armazenadas de forma segura quando forem necessárias.
+
+Tokens, senhas e segredos não devem ser expostos nos registros técnicos.
+
+## 23.5. Rastreabilidade dos dados
+
+Sempre que possível, cada registro coletado deverá preservar:
+
+- Fonte oficial.
+- Identificador original.
+- Endpoint de origem.
+- Data da coleta.
+- Data de atualização informada pela fonte, quando disponível.
+- Referência à execução responsável pela coleta.
+
+Esses dados ajudam a demonstrar a procedência da informação e a investigar divergências.
+
+---
+
+# 24. Indicadores para acompanhamento do sistema
+
+Além de armazenar os dados, a plataforma deverá oferecer indicadores operacionais.
+
+## 24.1. Indicadores da matriz
+
+- Quantidade de filiais cadastradas.
+- Quantidade de filiais ativas.
+- Quantidade de municípios monitorados.
+- Quantidade de UASGs monitoradas.
+- Quantidade de módulos habilitados.
+- Percentual de coletas concluídas.
+- Coletas com falha.
+- Filiais com dados desatualizados.
+- Última coleta por módulo.
+- Volume de registros recebidos e atualizados.
+
+## 24.2. Indicadores da filial
+
+- Municípios configurados.
+- UASGs acompanhadas.
+- Módulos ativos.
+- Última atualização dos dados.
+- Quantidade de contratações encontradas.
+- Quantidade de itens identificados.
+- Resultados disponíveis.
+- Registros de pesquisa de preços.
+- Situação das coletas relevantes para a filial.
+
+Os indicadores de compras públicas deverão ser definidos de acordo com os dados efetivamente disponíveis, evitando apresentar estimativas como se fossem registros oficiais.
+
+---
+
+# 25. Plano de implantação por fases
+
+Para reduzir riscos, o sistema deverá ser desenvolvido por etapas.
+
+## Fase 1 — Estrutura organizacional
+
+Implementar:
+
+- Cadastro da organização.
+- Cadastro da matriz.
+- Cadastro de filiais.
+- Cadastro de usuários.
+- Vínculos entre usuários e unidades.
+- Perfis e permissões.
+- Histórico de alterações.
+
+**Resultado esperado:** a estrutura organizacional estará funcional, mesmo sem coleta automatizada.
+
+## Fase 2 — Municípios e UASGs
+
+Implementar:
+
+- Catálogo de municípios.
+- Importação ou atualização dos dados de UASGs.
+- Identificação das UASGs por município, conforme os dados oficiais.
+- Seleção de municípios por filial.
+- Seleção de UASGs por filial.
+- Ativação e desativação do monitoramento.
+- Histórico das associações.
+
+**Resultado esperado:** cada filial poderá definir quais unidades administrativas deseja acompanhar.
+
+## Fase 3 — Configurações de coleta
+
+Implementar:
+
+- Cadastro de parâmetros.
+- Configurações globais.
+- Configurações padrão da matriz.
+- Configurações específicas de filiais.
+- Regras de herança.
+- Exceções autorizadas.
+- Validação das configurações.
+- Histórico e versionamento.
+
+**Resultado esperado:** o sistema saberá o que precisa coletar para atender às filiais.
+
+## Fase 4 — Integração inicial com a API
+
+Começar pelos módulos fundamentais:
+
+1. UASGs e órgãos.
+2. Contratações.
+3. Itens de contratação.
+4. Resultados dos itens, conforme disponibilidade.
+5. Catálogos de materiais e serviços.
+6. Fornecedores e pesquisa de preços, conforme as necessidades prioritárias.
+
+A ordem poderá ser ajustada após avaliar os endpoints, suas dependências e a disponibilidade dos dados.
+
+**Resultado esperado:** o sistema começará a receber e armazenar dados oficiais.
+
+## Fase 5 — Motor de coleta
+
+Implementar:
+
+- Planejamento das consultas.
+- Paginação.
+- Atualização incremental, quando suportada.
+- Deduplicação.
+- Reprocessamento.
+- Tratamento de erros.
+- Registro de execução.
+- Consolidação de consultas compatíveis.
+
+**Resultado esperado:** as coletas serão automatizadas, rastreáveis e mais eficientes.
+
+## Fase 6 — Distribuição e consultas
+
+Implementar:
+
+- Controle de acesso aos registros.
+- Consultas da matriz.
+- Consultas das filiais.
+- Filtros por município e UASG.
+- Pesquisas por contratação e item.
+- Indicadores operacionais.
+- Relatórios de acompanhamento.
+
+**Resultado esperado:** os dados estarão disponíveis aos usuários autorizados.
+
+## Fase 7 — Expansão analítica
+
+Após estabilizar a coleta, acrescentar:
+
+- Comparação de preços.
+- Análises por fornecedor.
+- Análises por categoria de material ou serviço.
+- Evolução temporal.
+- Identificação de padrões e anomalias.
+- Indicadores comparativos entre unidades, quando autorizados.
+- Alertas baseados em critérios configuráveis.
+
+Essas funcionalidades analíticas deverão distinguir os fatos publicados pela fonte de eventuais cálculos, estimativas ou alertas gerados pelo sistema.
+
+---
+
+# 26. Decisões que precisam ser confirmadas antes do desenvolvimento
+
+A arquitetura está estruturada, mas alguns pontos devem ser definidos formalmente.
+
+| Decisão | Recomendação |
+|---|---|
+| Uma filial poderá acompanhar mais de um município? | Sim, prever essa possibilidade desde o início |
+| Uma UASG poderá ser monitorada por várias filiais? | Sim, desde que a matriz autorize |
+| A matriz definirá parâmetros padrão? | Sim |
+| A filial poderá alterar parâmetros? | Somente quando houver permissão explícita |
+| A coleta será feita individualmente por filial? | Não como regra; usar um planejador central |
+| Os registros serão duplicados para cada filial? | Não; preferir base central com controle de acesso |
+| O histórico será apagado quando uma UASG deixar de ser monitorada? | Não automaticamente |
+| A coleta usará os mesmos filtros em todos os endpoints? | Não; respeitar os parâmetros de cada serviço |
+| A associação município–UASG será presumida? | Não; deverá ser baseada em dados oficiais validados |
+| A configuração terá histórico? | Sim |
+| Os dados terão rastreabilidade? | Sim, sempre que possível |
+| A implantação será feita de uma só vez? | Não; seguir fases progressivas |
+
+---
+
+# 27. Síntese da arquitetura recomendada
+
+A arquitetura do sistema será organizada em cinco grandes componentes.
+
+**1. Gestão organizacional**
+
+Responsável pela organização, matriz, filiais, usuários, perfis e permissões.
+
+**2. Gestão territorial e administrativa**
+
+Responsável pelo cadastro de municípios, pelo catálogo central de UASGs e pelas associações entre municípios, filiais e UASGs.
+
+**3. Gestão de configurações**
+
+Responsável pelos parâmetros globais, padrões da matriz, configurações das filiais, herança, exceções e histórico.
+
+**4. Integração e coleta**
+
+Responsável pela comunicação com as APIs oficiais, pelo planejamento das requisições, pela validação, pela atualização dos registros e pelo tratamento de falhas.
+
+**5. Dados e consultas**
+
+Responsável pelo armazenamento central, pelos relacionamentos entre as entidades, pelo controle de acesso e pela disponibilização de consultas e indicadores.
+
+A estrutura central será:
+
+```text
+ORGANIZAÇÃO
+    |
+    +-- MATRIZ
+    |     |
+    |     +-- Define padrões e permissões
+    |     +-- Administra filiais
+    |     +-- Acompanha as coletas
+    |
+    +-- FILIAIS
+          |
+          +-- Selecionam municípios
+          +-- Recebem UASGs disponíveis
+          +-- Monitoram UASGs autorizadas
+          +-- Utilizam parâmetros permitidos
+                         |
+                         v
+                MOTOR CENTRAL DE COLETA
+                         |
+                         v
+                API COMPRAS.GOV.BR
+                         |
+                         v
+                BASE CENTRAL DE DADOS
+                         |
+                         v
+                CONSULTAS AUTORIZADAS
+```
+
+## Conclusão
+
+O princípio central do projeto é separar **quem administra, o que será monitorado, como os dados serão coletados e quem poderá consultá-los**.
+
+A matriz administra a estrutura e define as políticas. As filiais recebem seus municípios e selecionam as UASGs autorizadas. Os parâmetros estabelecem quais dados serão coletados. O motor central consulta a API, valida e armazena os registros, enquanto o controle de acesso determina quais informações cada unidade poderá visualizar.
+
+Essa arquitetura permite ampliar o número de organizações, filiais, municípios, UASGs e módulos de dados sem precisar duplicar os registros públicos nem reconstruir a estrutura organizacional a cada expansão.
+
+**Antes de transformar o modelo conceitual em um modelo físico de banco de dados, a etapa técnica mais importante será validar os campos, as chaves e os filtros de cada endpoint no Swagger oficial do Compras.gov.br.** Isso permitirá confirmar os relacionamentos reais e evitar que o banco interno dependa de associações que a fonte oficial não garante.

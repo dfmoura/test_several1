@@ -76,6 +76,8 @@ class ClienteHttp:
                     raise RuntimeError(f"HTTP {resposta.status_code}")
                 self._dormir(_espera_status(resposta, tentativa))
                 continue
+            if resposta.status_code == 404:
+                raise RuntimeError("HTTP 404")
             if resposta.status_code >= 400:
                 raise RuntimeError(f"HTTP {resposta.status_code}")
             if resposta.status_code == 204 or not resposta.content:

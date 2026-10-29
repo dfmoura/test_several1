@@ -198,6 +198,31 @@ class OrcamentoInsumoEstoqueTest extends TestCase
         $this->assertSame('3"', OrcamentoInsumoEstoque::polegada('EMB TUBETE 3 POLEGADAS'));
     }
 
+    public function test_orc_tubete_fica_so_na_polegada_sem_sku(): void
+    {
+        $empresa = Empresa::query()->create([
+            'codigo' => 'EMP-INS7',
+            'razao_social' => 'Insumo 7',
+            'cnpj' => '00000000000787',
+            'situacao' => 'ATIVA',
+        ]);
+        $emb = $this->grupo('EMB-TUB', 'Tubetes', 'EMB');
+        $sku = $this->produto($empresa, 'EMB-TUB-001', 'EMB', $emb->id, 'TUBETE 3" 100MM C/LOGO');
+        $this->saldo($empresa, $sku, '50');
+
+        $out = app(OrcamentoInsumoEstoque::class)->aplicar($empresa, [
+            'tubete' => '3"',
+            'tubete_produto_id' => $sku->id,
+            'tubete_produto_codigo' => $sku->codigo,
+            'tubete_rotulo' => 'TUBETE 3" 100MM C/LOGO',
+        ]);
+
+        $this->assertSame('3"', $out['tubete']);
+        $this->assertNull($out['tubete_produto_id']);
+        $this->assertNull($out['tubete_produto_codigo']);
+        $this->assertNull($out['tubete_rotulo']);
+    }
+
     private function grupo(string $codigo, string $nome, string $familia): ProdutoGrupo
     {
         return ProdutoGrupo::query()->create([

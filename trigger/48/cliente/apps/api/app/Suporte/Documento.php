@@ -50,6 +50,54 @@ final class Documento
         return '***.'.substr($d, 3, 3).'.'.substr($d, 6, 3).'-**';
     }
 
+    /** Máscara de CPF/CNPJ público (QSA): reduz exposição em tela e prints. */
+    public static function mascararDocumentoPublico(string $valor): string
+    {
+        $d = self::soDigitos($valor);
+        if (strlen($d) === 11) {
+            return self::mascararCpf($d);
+        }
+        if (strlen($d) === 14) {
+            return substr($d, 0, 2).'.***/***/'.substr($d, 8, 4).'-**';
+        }
+
+        return $d !== '' ? '***' : '—';
+    }
+
+    public static function formatarCep(string $cep): string
+    {
+        $d = self::soDigitos($cep);
+        if (strlen($d) !== 8) {
+            return $d;
+        }
+
+        return substr($d, 0, 5).'-'.substr($d, 5, 3);
+    }
+
+    public static function formatarCnae(string $codigo): string
+    {
+        $d = self::soDigitos($codigo);
+        if (strlen($d) !== 7) {
+            return $codigo;
+        }
+
+        return substr($d, 0, 4).'-'.substr($d, 4, 1).'/'.substr($d, 5, 2);
+    }
+
+    /** DDD+número vindos da Receita (ex.: 1133334444). */
+    public static function formatarTelefoneReceita(string $valor): string
+    {
+        $d = self::soDigitos($valor);
+        if (strlen($d) === 10) {
+            return '('.substr($d, 0, 2).') '.substr($d, 2, 4).'-'.substr($d, 6, 4);
+        }
+        if (strlen($d) === 11) {
+            return '('.substr($d, 0, 2).') '.substr($d, 2, 5).'-'.substr($d, 7, 4);
+        }
+
+        return $d;
+    }
+
     private static function digitoCnpj(string $base): string
     {
         $pesos = strlen($base) === 12

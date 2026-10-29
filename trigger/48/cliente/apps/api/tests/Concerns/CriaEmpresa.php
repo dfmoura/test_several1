@@ -17,7 +17,7 @@ trait CriaEmpresa
     /**
      * @return array{0: Empresa, 1: Usuario}
      */
-    protected function empresaComSaldo(int $centavos = 50000): array
+    protected function empresaComSaldo(int $centavos = 100000): array
     {
         $n = $this->sequenciaEmpresa++;
         $empresa = Empresa::query()->create([
@@ -26,6 +26,7 @@ trait CriaEmpresa
             'nome_fantasia' => 'Empresa '.$n,
             'situacao_cadastral' => 'ATIVA',
             'dados_receita' => ['teste' => true],
+            'receita_atualizada_em' => now(),
             'status' => 'ATIVA',
             'criada_em' => now(),
         ]);

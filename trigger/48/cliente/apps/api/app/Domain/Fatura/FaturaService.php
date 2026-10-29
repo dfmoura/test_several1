@@ -52,12 +52,14 @@ class FaturaService
     public function liquidar(Fatura $fatura): bool
     {
         return DB::transaction(function () use ($fatura) {
+            // Carteira antes da fatura: mesma ordem da baixa PIX (crédito → liquidar).
+            $empresaId = (int) $fatura->empresa_id;
+            $this->carteira->travar($empresaId);
             $fatura = Fatura::query()->whereKey($fatura->id)->lockForUpdate()->firstOrFail();
             if ($fatura->status === 'LIQUIDADA') {
                 return true;
             }
 
-            $this->carteira->travar($fatura->empresa_id);
             $jaReserva = $this->jaMovimentado('consumo:fatura:'.$fatura->id.':reserva');
             $jaDisponivel = $this->jaMovimentado('consumo:fatura:'.$fatura->id.':disponivel');
             $restante = $fatura->valor_centavos - $jaReserva - $jaDisponivel;

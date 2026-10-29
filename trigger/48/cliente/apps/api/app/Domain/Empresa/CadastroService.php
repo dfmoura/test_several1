@@ -75,6 +75,7 @@ class CadastroService
                 'nome_fantasia' => $receita->nomeFantasia,
                 'situacao_cadastral' => $receita->situacao,
                 'dados_receita' => $receita->bruto,
+                'receita_atualizada_em' => now(),
                 'status' => 'AGUARDA_PIX',
                 'motivo' => null,
                 'criada_em' => now(),

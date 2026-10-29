@@ -19,6 +19,7 @@ class Empresa extends Model
         return [
             'dados_receita' => 'array',
             'criada_em' => 'datetime',
+            'receita_atualizada_em' => 'datetime',
         ];
     }
 

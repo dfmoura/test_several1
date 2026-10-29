@@ -1,0 +1,36 @@
+name: pesquisas-docker
+
+services:
+  pesquisas:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pesquisas-docker:local
+    container_name: pesquisas-http
+    restart: "no"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PORT: ${PORT:-18765}
+      CONTAINER_PORT: ${CONTAINER_PORT:-8080}
+      TOTAL_CONSULTAS: ${TOTAL_CONSULTAS:-20}
+      INTERVALO_SEGUNDOS: ${INTERVALO_SEGUNDOS:-3}
+      TIMEOUT_HTTP: ${TIMEOUT_HTTP:-15}
+      CONSULTA: ${CONSULTA:-Qual o patrimônio real de Flavio Bolsonaro?}
+      SEARCH_ENGINE: ${SEARCH_ENGINE:-bing}
+      SEARCH_BASE_URL: ${SEARCH_BASE_URL:-https://www.bing.com/search}
+    ports:
+      - "127.0.0.1:${PORT:-18765}:8080"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/status', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

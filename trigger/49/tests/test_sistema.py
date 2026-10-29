@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 from fastapi.testclient import TestClient
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 
 from app.agenda import ciclo, enfileirar_noite, processar_disponiveis
 from app.coleta import PaginaInterrompida, executar_faixa_a, upsert_contratacao
@@ -16,7 +16,17 @@ from app.escopo import sincronizar_registros
 from app.faixa_b import executar_faixa_b
 from app.http_oficial import ClienteHttp
 from app.main import app
-from app.models import AnotacaoInterna, AuditoriaAcesso, ColetaCursor, ColetaEtapa, ColetaJob, Contratacao, ContratacaoItem, Filial
+from app.models import (
+    AnotacaoInterna,
+    AuditoriaAcesso,
+    ColetaCursor,
+    ColetaEtapa,
+    ColetaJob,
+    Contratacao,
+    ContratacaoItem,
+    Filial,
+    ResultadoItem,
+)
 from app.regras import periodo_diario
 from app.tempo import FUSO, agora_utc
 from tests.fabrica import cnpj_valido_de, filial_uberlandia, gravar_uasg
@@ -439,15 +449,23 @@ class _Coleta:
                     "numeroControlePNCPCompra": "PNCP-NOITE",
                     "numeroItemPncp": pagina,
                     "descricaoResumida": f"item {pagina}",
+                    "descricaodetalhada": f"detalhe {pagina}",
+                    "quantidade": "2.5",
+                    "unidadeMedida": "UN",
+                    "valorUnitarioEstimado": "10.00",
+                    "valorTotal": "25.00",
+                    "materialOuServico": "M",
+                    "materialOuServicoNome": "Material",
+                    "situacaoCompraItemNome": "Homologado",
                     "temResultado": False,
                 }
             ],
             "totalPaginas": self.total,
         }
 
-    def resultados(self, numero):
-        self.chamadas.append(("resultados", numero))
-        return []
+    def resultados(self, *, uasg, inicio, fim, pagina, tamanho):
+        self.chamadas.append(("resultados", uasg, pagina, inicio, fim))
+        return {"resultado": [], "totalPaginas": 1}
 
     def catalogo(self, codigo, tipo):
         raise RuntimeError("catálogo indisponível")
@@ -493,8 +511,99 @@ def test_coleta_incremental_cursor_e_barreira():
         assert job.status == "ok"
         itens = db.scalars(select(ContratacaoItem)).all()
         assert {item.numero_item for item in itens} == {1, 2}
+        assert itens[0].unidade_medida == "UN"
+        assert itens[0].material_ou_servico == "Material"
+        assert itens[0].situacao_item == "Homologado"
         paginas = [c[1] for c in cliente.chamadas if c[0] == "itens"]
         assert paginas.count(1) == 1
+        restaurar_contexto(tokens)
+    finally:
+        db.close()
+
+
+def test_a4_retoma_resultados_apos_falha_http():
+    db = _db()
+    try:
+        uber = filial_uberlandia(db)
+        gravar_uasg(db, uber, "926922", "18431312000115")
+        tokens = definir_contexto(str(uber.id), master=False)
+        garantir_contexto(db)
+        upsert_contratacao(
+            db,
+            uber.id,
+            {
+                "numeroControlePNCP": "PNCP-RES-1",
+                "objetoCompra": "Compra 1",
+                "codigoModalidade": 6,
+                "modalidadeNome": "Dispensa",
+                "dataPublicacaoPncp": "2026-06-01",
+                "existeResultado": True,
+            },
+            "926922",
+        )
+        job = ColetaJob(
+            filial_id=uber.id,
+            faixa="A",
+            tipo="carga_inicial",
+            noite=date(2026, 10, 19),
+            status="pendente",
+        )
+        db.add(job)
+        db.flush()
+        for codigo in ("A1", "A2", "A3"):
+            db.add(ColetaEtapa(job_id=job.id, codigo=codigo, status="ok"))
+        db.commit()
+
+        class ClienteResultado:
+            def __init__(self):
+                self.n = 0
+
+            def uasgs(self, **kwargs):
+                return []
+
+            def contratacoes(self, **kwargs):
+                return {"resultado": [], "totalPaginas": 1}
+
+            def por_numero(self, _n):
+                return None
+
+            def itens(self, **kwargs):
+                return {"resultado": [], "totalPaginas": 1}
+
+            def resultados(self, *, uasg, inicio, fim, pagina, tamanho):
+                self.n += 1
+                if self.n == 1:
+                    raise RuntimeError("HTTP 429")
+                return {
+                    "resultado": [
+                        {
+                            "numeroControlePNCPCompra": "PNCP-RES-1",
+                            "numeroItemPncp": 1,
+                            "niFornecedor": "11222333000181",
+                            "nomeRazaoSocialFornecedor": "Fornecedor",
+                            "valorTotalHomologado": "9.50",
+                            "dataResultadoPncp": "2026-06-10",
+                        }
+                    ],
+                    "totalPaginas": 1,
+                }
+
+            def catalogo(self, *_a):
+                return None
+
+        cliente = ClienteResultado()
+        executar_faixa_a(db, job, cliente, hoje=date(2026, 10, 19))
+        db.refresh(job)
+        assert job.status == "continua_amanha"
+        assert int(db.scalar(select(func.count()).select_from(ResultadoItem)) or 0) == 0
+        job.chamadas = 0
+        job.status = "pendente"
+        job.motivo = ""
+        db.commit()
+        executar_faixa_a(db, job, cliente, hoje=date(2026, 10, 19))
+        db.refresh(job)
+        assert job.status == "ok"
+        assert int(db.scalar(select(func.count()).select_from(ResultadoItem)) or 0) >= 1
         restaurar_contexto(tokens)
     finally:
         db.close()
@@ -521,8 +630,8 @@ def test_faixa_b_recusa_sem_a_e_grava_nao_vinculado():
         tokens = definir_contexto(str(uber.id), master=False)
         executar_faixa_b(db, job_b, Bomba())
         db.refresh(job_b)
-        assert job_b.status == "erro"
-        assert "Faixa B" in job_b.motivo
+        assert job_b.status == "continua_amanha"
+        assert "Faixa A" in job_b.motivo
         job_a = ColetaJob(
             filial_id=uber.id, faixa="A", tipo="diario", noite=date(2026, 10, 18), status="ok"
         )
@@ -552,13 +661,29 @@ def test_faixa_b_recusa_sem_a_e_grava_nao_vinculado():
 
             def atas(self, **kwargs):
                 self.cnpjs.append(kwargs["cnpj_orgao"])
-                return {"data": [], "totalPaginas": 1}
+                return {
+                    "data": [
+                        {
+                            "numeroControlePNCPAta": "ATA-1",
+                            "numeroControlePNCPCompra": "PNCP-1",
+                            "objetoContratacao": "Ata de preços",
+                            "dataAssinatura": "2026-10-01",
+                            "codigoUnidadeOrgao": "926922",
+                        }
+                    ],
+                    "totalPaginas": 1,
+                }
 
         cliente = Ok()
         executar_faixa_b(db, job_b2, cliente, hoje=date(2026, 10, 18))
         db.refresh(job_b2)
         assert job_b2.status == "ok"
         assert "23497346000142" not in cliente.cnpjs
+        from app.models import AtaPncp
+
+        ata = db.scalar(select(AtaPncp).where(AtaPncp.numero_controle_pncp == "ATA-1"))
+        assert ata is not None
+        assert ata.objeto == "Ata de preços"
         job_a3 = ColetaJob(
             filial_id=uber.id, faixa="A", tipo="diario", noite=date(2026, 10, 17), status="ok"
         )
@@ -767,7 +892,7 @@ def test_ciclo_nao_dispara_cnpj():
         def itens(self, **kwargs):
             raise AssertionError("rede")
 
-        def resultados(self, _numero):
+        def resultados(self, **_kwargs):
             raise AssertionError("rede")
 
         def catalogo(self, _codigo, _tipo):

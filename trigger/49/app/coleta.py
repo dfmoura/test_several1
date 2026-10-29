@@ -50,11 +50,16 @@ def configuracao(db: Session) -> ConfiguracaoAgenda:
     return cfg
 
 
-def _decimal(valor: object) -> Decimal | None:
+def _decimal(valor: object, casas: str = "0.01") -> Decimal | None:
     if valor is None or valor == "":
         return None
     try:
-        return Decimal(str(valor)).quantize(Decimal("0.01"))
+        texto = str(valor).strip().replace("R$", "").strip()
+        if "," in texto and "." in texto:
+            texto = texto.replace(".", "").replace(",", ".")
+        elif "," in texto:
+            texto = texto.replace(",", ".")
+        return Decimal(texto).quantize(Decimal(casas))
     except (InvalidOperation, ValueError):
         return None
 
@@ -197,8 +202,21 @@ def upsert_item(db: Session, tenant_id: uuid.UUID, bruto: dict) -> None:
     if db.scalar(select(Contratacao.id).where(Contratacao.numero_controle_pncp == numero)) is None:
         return
     agora = agora_utc()
+    material = str(bruto.get("materialOuServicoNome") or bruto.get("materialOuServico") or "").strip()
+    if not material:
+        material = "serviço" if str(bruto.get("materialOuServico") or "").upper().startswith("S") else "material"
     valores = {
         "descricao": str(bruto.get("descricaoResumida") or bruto.get("descricaodetalhada") or ""),
+        "descricao_detalhada": str(
+            bruto.get("descricaodetalhada") or bruto.get("descricaoDetalhada") or ""
+        ),
+        "quantidade": _decimal(bruto.get("quantidade"), "0.0001"),
+        "unidade_medida": str(bruto.get("unidadeMedida") or "")[:40],
+        "valor_unitario": _decimal(
+            bruto.get("valorUnitarioEstimado") or bruto.get("valorUnitario"), "0.0001"
+        ),
+        "material_ou_servico": material[:20],
+        "situacao_item": str(bruto.get("situacaoCompraItemNome") or bruto.get("situacaoItem") or "")[:120],
         "tem_resultado": bool(bruto.get("temResultado")),
         "cod_item_catalogo": str(bruto.get("codItemCatalogo") or ""),
         "tipo_catalogo": "servico" if str(bruto.get("materialOuServico") or "").upper().startswith("S") else "material",
@@ -228,9 +246,22 @@ def upsert_item(db: Session, tenant_id: uuid.UUID, bruto: dict) -> None:
     db.flush()
 
 
-def upsert_resultado(db: Session, tenant_id: uuid.UUID, numero: str, numero_item: int, bruto: dict) -> None:
+def upsert_resultado(db: Session, tenant_id: uuid.UUID, bruto: dict) -> None:
+    numero = str(
+        bruto.get("numeroControlePNCPCompra")
+        or bruto.get("numeroControlePNCP")
+        or bruto.get("idContratacaoPNCP")
+        or ""
+    ).strip()
+    numero_item = _int(bruto.get("numeroItemPncp") or bruto.get("numeroItem"))
+    if not numero or numero_item is None:
+        return
+    if db.scalar(select(Contratacao.id).where(Contratacao.numero_controle_pncp == numero)) is None:
+        return
     ni = "".join(ch for ch in str(bruto.get("niFornecedor") or bruto.get("codFornecedor") or "") if ch.isdigit())
-    data_resultado = _data(bruto.get("dataResultado"))
+    data_resultado = _data(
+        bruto.get("dataResultadoPncp") or bruto.get("dataResultado") or bruto.get("dataInclusaoPncp")
+    )
     agora = agora_utc()
     candidatos = db.scalars(
         select(ResultadoItem).where(
@@ -316,21 +347,25 @@ def _executar_faixa_a(db: Session, job: ColetaJob, cliente, *, hoje: date | None
     except OrcamentoEstourado:
         job.status = "continua_amanha"
         job.motivo = "Orçamento da noite esgotado. Continua amanhã do cursor."
+        job.noite = hoje
         job.terminado_em = agora_utc()
         db.commit()
         return
     except PaginaInterrompida as exc:
         job.status = "continua_amanha"
         job.motivo = (
-            f"Itens interrompidos na página {exc.pagina}. "
-            "Faixa B não começa nesta noite."
+            f"Coleta pausada no cursor {exc.pagina}. "
+            "Continua na próxima janela. Faixa B não começa nesta noite."
         )
+        job.noite = hoje
         job.terminado_em = agora_utc()
         db.commit()
         return
     except Exception as exc:
-        job.status = "erro"
+        # Falha transitória da API federal: pausa e retoma, não abandona a carga.
+        job.status = "continua_amanha"
         job.motivo = exc.__class__.__name__
+        job.noite = hoje
         job.terminado_em = agora_utc()
         db.commit()
         return
@@ -438,29 +473,43 @@ def _a3(db, job, filial, cliente, cfg, hoje: date) -> None:
 
 
 def _a4(db, job, filial, cliente, cfg) -> None:
-    itens = db.scalars(select(ContratacaoItem).where(ContratacaoItem.tem_resultado.is_(True))).all()
-    contratacoes = {
-        c.numero_controle_pncp: c
-        for c in db.scalars(select(Contratacao).where(Contratacao.existe_resultado.is_(True))).all()
-    }
-    vistos: set[str] = set()
-    for item in itens:
-        if item.numero_controle_pncp in vistos:
-            continue
-        vistos.add(item.numero_controle_pncp)
-        _consumir(job, cfg)
-        for bruto in cliente.resultados(item.numero_controle_pncp) or []:
-            if isinstance(bruto, dict):
-                numero_item = _int(bruto.get("numeroItemPncp") or bruto.get("numeroItem")) or item.numero_item
-                upsert_resultado(db, filial.id, item.numero_controle_pncp, numero_item, bruto)
-    for numero in contratacoes:
-        if numero in vistos:
-            continue
-        _consumir(job, cfg)
-        for bruto in cliente.resultados(numero) or []:
-            if isinstance(bruto, dict):
-                numero_item = _int(bruto.get("numeroItemPncp") or bruto.get("numeroItem")) or 0
-                upsert_resultado(db, filial.id, numero, numero_item, bruto)
+    """Resultados por UASG e janela de 90 dias — mesmo padrão do Compras.gov no sistema 23."""
+    inicio, fim = _periodo_job(job, cfg, agora_utc().date())
+    uasgs = uasgs_coletaveis(db, filial.id)
+    if not uasgs:
+        _etapa(db, job, "A4", "ok", "Nenhuma UASG aderida.")
+        return
+    for uasg in uasgs:
+        for bloco_ini, bloco_fim in _janelas(inicio, fim, JANELA_ITENS_DIAS):
+            cursor = _cursor(db, filial.id, uasg.codigo_uasg, "resultados", bloco_ini, bloco_fim)
+            pagina = cursor.pagina if cursor else 1
+            tamanho = cursor.tamanho_pagina if cursor else PAGINA_ITENS
+            while True:
+                _gravar_cursor(
+                    db, filial.id, uasg.codigo_uasg, "resultados", bloco_ini, bloco_fim, pagina, tamanho
+                )
+                db.commit()
+                _consumir(job, cfg)
+                try:
+                    payload = cliente.resultados(
+                        uasg=uasg.codigo_uasg,
+                        inicio=bloco_ini,
+                        fim=bloco_fim,
+                        pagina=pagina,
+                        tamanho=tamanho,
+                    )
+                except OrcamentoEstourado:
+                    raise
+                except Exception as exc:
+                    _etapa(db, job, "A4", "incompleta", f"Cursor na página {pagina}.")
+                    raise PaginaInterrompida(pagina) from exc
+                for bruto in payload.get("resultado") or []:
+                    if isinstance(bruto, dict):
+                        upsert_resultado(db, filial.id, bruto)
+                total = int(payload.get("totalPaginas") or 1)
+                if pagina >= total:
+                    break
+                pagina += 1
     _etapa(db, job, "A4", "ok")
 
 
@@ -518,6 +567,13 @@ def _abrir_faixa_b(db: Session, job: ColetaJob) -> None:
                 status="pendente",
             )
         )
+        return
+    # Se B ficou em erro/pausa enquanto A era refeita, reabre sem criar job duplicado.
+    if existe.status in {"erro", "continua_amanha", "parcial"}:
+        existe.status = "pendente"
+        existe.chamadas = 0
+        existe.motivo = ""
+        existe.terminado_em = None
 
 
 def preserva_anotacao(db: Session, tenant_id: uuid.UUID, chave: str) -> str | None:

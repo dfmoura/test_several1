@@ -41,8 +41,8 @@ class _SemRede:
     def itens(self, **_kwargs):
         return {"resultado": [], "totalPaginas": 1}
 
-    def resultados(self, _numero):
-        return []
+    def resultados(self, **_kwargs):
+        return {"resultado": [], "totalPaginas": 1}
 
     def catalogo(self, _codigo, _tipo):
         return None
@@ -66,7 +66,7 @@ def main() -> None:
         try:
             ciclo(db, faixa_a, faixa_b, cd)
         except Exception:
-            log.error("Ciclo de coleta não concluído")
+            log.exception("Ciclo de coleta não concluído")
         finally:
             db.close()
         for _ in range(20):

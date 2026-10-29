@@ -1,0 +1,15 @@
+.venv
+.git
+.gitignore
+.pytest_cache
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+.env
+data
+tests
+*.md
+!requirements.txt
+.cursor
+agent-transcripts

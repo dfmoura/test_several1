@@ -22,8 +22,10 @@ function periodoDaUrl() {
   const q = new URLSearchParams(location.search);
   const hoje = new Date();
   const ano = hoje.getFullYear();
+  // Janela ampla no primeiro acesso: atas/contratos PNCP costumam ter assinatura
+  // em anos anteriores mesmo com vigência atual.
   return {
-    de: q.get("de") || `${ano}-01-01`,
+    de: q.get("de") || `${ano - 2}-01-01`,
     ate: q.get("ate") || `${ano}-12-31`,
   };
 }
@@ -47,6 +49,11 @@ function atalho12() {
   const ini = new Date(fim);
   ini.setFullYear(ini.getFullYear() - 1);
   definirPeriodo(iso(ini), iso(fim));
+}
+
+function atalhoAmplo() {
+  const ano = new Date().getFullYear();
+  definirPeriodo(`${ano - 2}-01-01`, `${ano}-12-31`);
 }
 
 function queryPeriodo() {
@@ -135,6 +142,7 @@ function barraPeriodo() {
     <div class="acoes">
       <button type="button" id="atalho-ano">Ano corrente</button>
       <button type="button" id="atalho-12">12 meses</button>
+      <button type="button" id="atalho-amplo">Últimos 3 anos</button>
     </div>
     <form id="form-periodo" class="filtros">
       <label>De <input name="de" type="date" value="${esc(p.de)}" required></label>
@@ -222,6 +230,7 @@ async function opcoesObservador(selecionado, cidade) {
 function ligarPeriodo() {
   document.getElementById("atalho-ano")?.addEventListener("click", atalhoAno);
   document.getElementById("atalho-12")?.addEventListener("click", atalho12);
+  document.getElementById("atalho-amplo")?.addEventListener("click", atalhoAmplo);
   document.getElementById("form-periodo")?.addEventListener("submit", (ev) => {
     ev.preventDefault();
     const dados = new FormData(ev.target);
@@ -349,6 +358,8 @@ async function telaPainel(main) {
     ${corpo.vazio ? `<p class="vazio">${esc(corpo.vazio)}</p>` : ""}
     <div class="cartoes">
       ${cartao("Contratações", corpo.contratacoes)}
+      ${cartao("Itens", corpo.itens ?? "—")}
+      ${cartao("Resultados", corpo.resultados ?? "—")}
       ${cartao("Valor estimado", corpo.valor_estimado)}
       ${cartao("Valor homologado", corpo.valor_homologado)}
       ${cartao("Contratos", corpo.contratos)}
@@ -470,22 +481,29 @@ async function telaDetalhe(main, id, opcoes) {
       [
         ["Item", (r) => esc(r.numero_item)],
         ["Descrição", (r) => esc(r.descricao)],
-        ["Valor", (r) => esc(r.valor_total)],
+        ["Tipo", (r) => esc(r.material_ou_servico)],
+        ["Qtd", (r) => esc(r.quantidade)],
+        ["Unidade", (r) => esc(r.unidade_medida)],
+        ["Unitário", (r) => esc(r.valor_unitario)],
+        ["Total", (r) => esc(r.valor_total)],
+        ["Situação", (r) => esc(r.situacao_item)],
         ["Fornecedor", (r) => esc(r.nome_fornecedor)],
       ],
       corpo.itens,
     )}
-    <h3>Resultados</h3>
-    ${tabela(
-      [
-        ["Item", (r) => esc(r.numero_item)],
-        ["Fornecedor", (r) => esc(r.nome_fornecedor)],
-        ["NI", (r) => esc(r.ni_fornecedor)],
-        ["Valor", (r) => esc(r.valor)],
-        ["Data", (r) => esc(r.data_resultado)],
-      ],
-      corpo.resultados,
-    )}`;
+    <h3>Resultados homologados</h3>
+    ${corpo.resultados && corpo.resultados.length
+      ? tabela(
+        [
+          ["Item", (r) => esc(r.numero_item)],
+          ["Fornecedor", (r) => esc(r.nome_fornecedor)],
+          ["NI", (r) => esc(r.ni_fornecedor)],
+          ["Valor", (r) => esc(r.valor)],
+          ["Data", (r) => esc(r.data_resultado)],
+        ],
+        corpo.resultados,
+      )
+      : `<p class="vazio">Ainda sem resultado homologado gravado para esta contratação.</p>`}`;
   ligarAbas();
   document.getElementById("voltar").addEventListener("click", () => { location.hash = `${prefixo}contratacoes`; });
   const form = document.getElementById("form-acompanhamento");
@@ -820,6 +838,8 @@ async function telaDrill(main, id) {
     ${corpo.vazio ? `<p class="vazio">${esc(corpo.vazio)}</p>` : ""}
     <div class="cartoes">
       ${cartao("Contratações", corpo.contratacoes)}
+      ${cartao("Itens", corpo.itens ?? "—")}
+      ${cartao("Resultados", corpo.resultados ?? "—")}
       ${cartao("Valor estimado", corpo.valor_estimado)}
       ${cartao("Valor homologado", corpo.valor_homologado)}
       ${cartao("Contratos", corpo.contratos)}

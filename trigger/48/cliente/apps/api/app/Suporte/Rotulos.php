@@ -31,7 +31,7 @@ final class Rotulos
         'APROVADA' => 'Aprovada',
         'EM_EXECUCAO' => 'Em execução',
         'AGUARDANDO_VALIDACAO' => 'Aguardando validação',
-        'APRESENTADA' => 'Validada',
+        'APRESENTADA' => 'Aguardando liquidação',
         'CONCLUIDA' => 'Concluída',
         'RECUSADA_CLIENTE' => 'Recusada',
         'RECUSADA_TRIGGER' => 'Não aceita',

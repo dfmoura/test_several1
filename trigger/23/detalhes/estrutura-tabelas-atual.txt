@@ -1,0 +1,1990 @@
+==============================================================================
+ESTRUTURA ATUAL DE TABELAS DO SISTEMA
+==============================================================================
+Fonte: /home/dfmoura/Documents/test_several1/trigger/23/data/licitacoes.db
+Gerado em: 2026-10-21 10:01:55
+Total de tabelas: 37
+
+------------------------------------------------------------------------------
+ÍNDICE DE TABELAS
+------------------------------------------------------------------------------
+  agendamento_config                                1 linhas
+  agendamento_execucao                            104 linhas
+  compras_contratacao_itens                     12083 linhas
+  compras_contratacao_resultados                10510 linhas
+  compras_contratacoes                           1992 linhas
+  compras_fornecedores                           2237 linhas
+  compras_itens_catalogo                         4261 linhas
+  compras_orgaos                                    1 linhas
+  compras_pgc_itens                                 0 linhas
+  compras_precos_praticados                         0 linhas
+  compras_sync_meta                                 8 linhas
+  compras_uasgs                                     8 linhas
+  ia_provedor                                       5 linhas
+  ia_provedores                                     0 linhas
+  licitacoes                                        0 linhas
+  modalidades_consolidadas                         12 linhas
+  modalidades_vinculos                             16 linhas
+  observadores                                      1 linhas
+  orgaos_consolidados                               8 linhas
+  orgaos_vinculos                                  16 linhas
+  pbi_contrato_responsaveis                     34510 linhas
+  pbi_contratos                                  1586 linhas
+  pbi_fornecedores                               2711 linhas
+  pbi_orgaos                                       14 linhas
+  pbi_papeis                                        6 linhas
+  pbi_pessoas                                    2088 linhas
+  pbi_processos_licitatorios                     2420 linhas
+  powerbi_contratos                                 0 linhas
+  powerbi_gestores_fiscais                          0 linhas
+  powerbi_licitacoes                                0 linhas
+  proposta_analise_preco                           35 linhas
+  sessoes                                           0 linhas
+  sistema_config                                    1 linhas
+  sistema_raiz                                      1 linhas
+  sistema_uasgs_municipio                          34 linhas
+  sistema_unidades_compradoras                      8 linhas
+  usuarios                                          4 linhas
+
+==============================================================================
+DETALHE POR TABELA (colunas, PK, FK, índices)
+==============================================================================
+
+##############################################################################
+# TABELA: agendamento_config
+##############################################################################
+
+-- DDL
+CREATE TABLE agendamento_config (
+	id INTEGER NOT NULL, 
+	ativo BOOLEAN NOT NULL, 
+	hora INTEGER NOT NULL, 
+	minuto INTEGER NOT NULL, 
+	fuso VARCHAR(64) NOT NULL, 
+	incluir_coleta BOOLEAN NOT NULL, 
+	incluir_cnpjs BOOLEAN NOT NULL, 
+	ultima_chave_dia VARCHAR(10), 
+	atualizado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, incluir_mercado_ia BOOLEAN DEFAULT 0, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  ativo                                         BOOLEAN                    1                            0
+  2  hora                                          INTEGER                    1                            0
+  3  minuto                                        INTEGER                    1                            0
+  4  fuso                                          VARCHAR(64)                1                            0
+  5  incluir_coleta                                BOOLEAN                    1                            0
+  6  incluir_cnpjs                                 BOOLEAN                    1                            0
+  7  ultima_chave_dia                              VARCHAR(10)                0                            0
+  8  atualizado_em                                 DATETIME                   1  CURRENT_TIMESTAMP         0
+  9  incluir_mercado_ia                            BOOLEAN                    0  0                         0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  (nenhum explícito além da PK)
+
+##############################################################################
+# TABELA: agendamento_execucao
+##############################################################################
+
+-- DDL
+CREATE TABLE agendamento_execucao (
+	id INTEGER NOT NULL, 
+	origem VARCHAR(20) NOT NULL, 
+	ok BOOLEAN, 
+	fase VARCHAR(40) NOT NULL, 
+	resumo VARCHAR(500), 
+	log_json TEXT, 
+	detalhes_json TEXT, 
+	iniciado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	finalizado_em DATETIME, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  origem                                        VARCHAR(20)                1                            0
+  2  ok                                            BOOLEAN                    0                            0
+  3  fase                                          VARCHAR(40)                1                            0
+  4  resumo                                        VARCHAR(500)               0                            0
+  5  log_json                                      TEXT                       0                            0
+  6  detalhes_json                                 TEXT                       0                            0
+  7  iniciado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+  8  finalizado_em                                 DATETIME                   0                            0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  (nenhum explícito além da PK)
+
+##############################################################################
+# TABELA: compras_contratacao_itens
+##############################################################################
+
+-- DDL
+CREATE TABLE compras_contratacao_itens (
+	id INTEGER NOT NULL, 
+	id_compra_item VARCHAR(50) NOT NULL, 
+	id_compra VARCHAR(40) NOT NULL, 
+	contratacao_id INTEGER, 
+	numero_controle_pncp_compra VARCHAR(80), 
+	numero_item_pncp INTEGER, 
+	numero_item_compra INTEGER, 
+	numero_grupo INTEGER, 
+	descricao_resumida TEXT, 
+	descricao_detalhada TEXT, 
+	material_ou_servico VARCHAR(5), 
+	material_ou_servico_nome VARCHAR(40), 
+	codigo_classe INTEGER, 
+	codigo_grupo INTEGER, 
+	cod_item_catalogo INTEGER, 
+	item_catalogo_id INTEGER, 
+	unidade_medida VARCHAR(40), 
+	orcamento_sigiloso BOOLEAN, 
+	item_categoria_nome VARCHAR(120), 
+	criterio_julgamento_nome VARCHAR(80), 
+	situacao_compra_item_nome VARCHAR(80), 
+	tipo_beneficio_nome VARCHAR(80), 
+	quantidade VARCHAR(40), 
+	valor_unitario_estimado VARCHAR(80), 
+	valor_total VARCHAR(80), 
+	tem_resultado BOOLEAN, 
+	cod_fornecedor VARCHAR(20), 
+	nome_fornecedor VARCHAR(200), 
+	quantidade_resultado VARCHAR(40), 
+	valor_unitario_resultado VARCHAR(80), 
+	valor_total_resultado VARCHAR(80), 
+	data_resultado VARCHAR(40), 
+	dados_pncp_json TEXT, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(contratacao_id) REFERENCES compras_contratacoes (id), 
+	FOREIGN KEY(item_catalogo_id) REFERENCES compras_itens_catalogo (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  id_compra_item                                VARCHAR(50)                1                            0
+  2  id_compra                                     VARCHAR(40)                1                            0
+  3  contratacao_id                                INTEGER                    0                            0
+  4  numero_controle_pncp_compra                   VARCHAR(80)                0                            0
+  5  numero_item_pncp                              INTEGER                    0                            0
+  6  numero_item_compra                            INTEGER                    0                            0
+  7  numero_grupo                                  INTEGER                    0                            0
+  8  descricao_resumida                            TEXT                       0                            0
+  9  descricao_detalhada                           TEXT                       0                            0
+ 10  material_ou_servico                           VARCHAR(5)                 0                            0
+ 11  material_ou_servico_nome                      VARCHAR(40)                0                            0
+ 12  codigo_classe                                 INTEGER                    0                            0
+ 13  codigo_grupo                                  INTEGER                    0                            0
+ 14  cod_item_catalogo                             INTEGER                    0                            0
+ 15  item_catalogo_id                              INTEGER                    0                            0
+ 16  unidade_medida                                VARCHAR(40)                0                            0
+ 17  orcamento_sigiloso                            BOOLEAN                    0                            0
+ 18  item_categoria_nome                           VARCHAR(120)               0                            0
+ 19  criterio_julgamento_nome                      VARCHAR(80)                0                            0
+ 20  situacao_compra_item_nome                     VARCHAR(80)                0                            0
+ 21  tipo_beneficio_nome                           VARCHAR(80)                0                            0
+ 22  quantidade                                    VARCHAR(40)                0                            0
+ 23  valor_unitario_estimado                       VARCHAR(80)                0                            0
+ 24  valor_total                                   VARCHAR(80)                0                            0
+ 25  tem_resultado                                 BOOLEAN                    0                            0
+ 26  cod_fornecedor                                VARCHAR(20)                0                            0
+ 27  nome_fornecedor                               VARCHAR(200)               0                            0
+ 28  quantidade_resultado                          VARCHAR(40)                0                            0
+ 29  valor_unitario_resultado                      VARCHAR(80)                0                            0
+ 30  valor_total_resultado                         VARCHAR(80)                0                            0
+ 31  data_resultado                                VARCHAR(40)                0                            0
+ 32  dados_pncp_json                               TEXT                       0                            0
+ 33  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  item_catalogo_id -> compras_itens_catalogo.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  contratacao_id -> compras_contratacoes.id  (on_update=NO ACTION, on_delete=NO ACTION)
+
+-- ÍNDICES
+  [INDEX] ix_compras_contratacao_itens_contratacao_id (contratacao_id) origin=c
+         CREATE INDEX ix_compras_contratacao_itens_contratacao_id ON compras_contratacao_itens (contratacao_id)
+  [UNIQUE] uq_compra_item_id (id_compra_item) origin=c
+         CREATE UNIQUE INDEX uq_compra_item_id ON compras_contratacao_itens (id_compra_item)
+  [INDEX] ix_compras_contratacao_itens_id_compra (id_compra) origin=c
+         CREATE INDEX ix_compras_contratacao_itens_id_compra ON compras_contratacao_itens (id_compra)
+  [INDEX] ix_compras_contratacao_itens_item_catalogo_id (item_catalogo_id) origin=c
+         CREATE INDEX ix_compras_contratacao_itens_item_catalogo_id ON compras_contratacao_itens (item_catalogo_id)
+
+##############################################################################
+# TABELA: compras_contratacao_resultados
+##############################################################################
+
+-- DDL
+CREATE TABLE compras_contratacao_resultados (
+	id INTEGER NOT NULL, 
+	id_compra VARCHAR(40) NOT NULL, 
+	id_compra_item VARCHAR(50) NOT NULL, 
+	contratacao_item_id INTEGER, 
+	fornecedor_id INTEGER, 
+	sequencial_resultado INTEGER, 
+	ni_fornecedor VARCHAR(14), 
+	nome_razao_social_fornecedor VARCHAR(200), 
+	ordem_classificacao_srp INTEGER, 
+	quantidade_homologada VARCHAR(40), 
+	valor_unitario_homologado VARCHAR(80), 
+	valor_total_homologado VARCHAR(80), 
+	situacao_compra_item_resultado_nome VARCHAR(80), 
+	porte_fornecedor_nome VARCHAR(80), 
+	data_resultado_pncp VARCHAR(40), 
+	percentual_desconto VARCHAR(40), 
+	dados_resultado_json TEXT, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(contratacao_item_id) REFERENCES compras_contratacao_itens (id), 
+	FOREIGN KEY(fornecedor_id) REFERENCES compras_fornecedores (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  id_compra                                     VARCHAR(40)                1                            0
+  2  id_compra_item                                VARCHAR(50)                1                            0
+  3  contratacao_item_id                           INTEGER                    0                            0
+  4  fornecedor_id                                 INTEGER                    0                            0
+  5  sequencial_resultado                          INTEGER                    0                            0
+  6  ni_fornecedor                                 VARCHAR(14)                0                            0
+  7  nome_razao_social_fornecedor                  VARCHAR(200)               0                            0
+  8  ordem_classificacao_srp                       INTEGER                    0                            0
+  9  quantidade_homologada                         VARCHAR(40)                0                            0
+ 10  valor_unitario_homologado                     VARCHAR(80)                0                            0
+ 11  valor_total_homologado                        VARCHAR(80)                0                            0
+ 12  situacao_compra_item_resultado_nome           VARCHAR(80)                0                            0
+ 13  porte_fornecedor_nome                         VARCHAR(80)                0                            0
+ 14  data_resultado_pncp                           VARCHAR(40)                0                            0
+ 15  percentual_desconto                           VARCHAR(40)                0                            0
+ 16  dados_resultado_json                          TEXT                       0                            0
+ 17  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  fornecedor_id -> compras_fornecedores.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  contratacao_item_id -> compras_contratacao_itens.id  (on_update=NO ACTION, on_delete=NO ACTION)
+
+-- ÍNDICES
+  [UNIQUE] uq_compra_resultado_item_seq (id_compra_item, sequencial_resultado) origin=c
+         CREATE UNIQUE INDEX uq_compra_resultado_item_seq ON compras_contratacao_resultados (id_compra_item, sequencial_resultado)
+  [INDEX] ix_compras_contratacao_resultados_contratacao_item_id (contratacao_item_id) origin=c
+         CREATE INDEX ix_compras_contratacao_resultados_contratacao_item_id ON compras_contratacao_resultados (contratacao_item_id)
+  [INDEX] ix_compras_contratacao_resultados_id_compra (id_compra) origin=c
+         CREATE INDEX ix_compras_contratacao_resultados_id_compra ON compras_contratacao_resultados (id_compra)
+  [INDEX] ix_compras_contratacao_resultados_id_compra_item (id_compra_item) origin=c
+         CREATE INDEX ix_compras_contratacao_resultados_id_compra_item ON compras_contratacao_resultados (id_compra_item)
+  [INDEX] ix_compras_contratacao_resultados_fornecedor_id (fornecedor_id) origin=c
+         CREATE INDEX ix_compras_contratacao_resultados_fornecedor_id ON compras_contratacao_resultados (fornecedor_id)
+
+##############################################################################
+# TABELA: compras_contratacoes
+##############################################################################
+
+-- DDL
+CREATE TABLE compras_contratacoes (
+	id INTEGER NOT NULL, 
+	id_compra VARCHAR(40), 
+	uasg_id INTEGER, 
+	chave_compra VARCHAR(40) NOT NULL, 
+	numero_controle_pncp VARCHAR(80), 
+	ano_compra_pncp INTEGER, 
+	sequencial_compra_pncp INTEGER, 
+	unidade_compradora VARCHAR(10) NOT NULL, 
+	unidade_nome VARCHAR(200) NOT NULL, 
+	ano INTEGER NOT NULL, 
+	numero VARCHAR(40), 
+	modalidade_codigo VARCHAR(10), 
+	modalidade_descricao VARCHAR(120), 
+	objeto TEXT, 
+	situacao_lista VARCHAR(200), 
+	processo VARCHAR(80), 
+	orgao_entidade_cnpj VARCHAR(20), 
+	orgao_subrogado_cnpj VARCHAR(20), 
+	codigo_orgao INTEGER, 
+	orgao_entidade_razao_social VARCHAR(200), 
+	orgao_subrogado_razao_social VARCHAR(200), 
+	orgao_entidade_esfera_id VARCHAR(5), 
+	orgao_subrogado_esfera_id VARCHAR(5), 
+	orgao_entidade_poder_id VARCHAR(5), 
+	orgao_subrogado_poder_id VARCHAR(5), 
+	unidade_subrogada_codigo_unidade VARCHAR(10), 
+	unidade_orgao_nome_unidade VARCHAR(200), 
+	unidade_subrogada_nome_unidade VARCHAR(200), 
+	unidade_orgao_uf_sigla VARCHAR(2), 
+	unidade_subrogada_uf_sigla VARCHAR(2), 
+	unidade_orgao_municipio_nome VARCHAR(120), 
+	unidade_subrogada_municipio_nome VARCHAR(120), 
+	unidade_orgao_codigo_ibge INTEGER, 
+	unidade_subrogada_codigo_ibge INTEGER, 
+	modalidade_id_pncp INTEGER, 
+	srp BOOLEAN, 
+	modo_disputa_id_pncp INTEGER, 
+	codigo_modo_disputa INTEGER, 
+	modo_disputa_nome_pncp VARCHAR(120), 
+	amparo_legal_codigo_pncp INTEGER, 
+	amparo_legal_nome VARCHAR(200), 
+	amparo_legal_descricao TEXT, 
+	existe_resultado BOOLEAN, 
+	orcamento_sigiloso_codigo INTEGER, 
+	orcamento_sigiloso_descricao VARCHAR(200), 
+	situacao_compra_id_pncp INTEGER, 
+	situacao_compra_nome_pncp VARCHAR(200), 
+	tipo_instrumento_convocatorio_codigo_pncp INTEGER, 
+	tipo_instrumento_convocatorio_nome VARCHAR(200), 
+	contratacao_excluida BOOLEAN, 
+	informacao_complementar TEXT, 
+	valor_total_estimado VARCHAR(80), 
+	valor_total_homologado VARCHAR(80), 
+	data_inclusao_pncp VARCHAR(40), 
+	data_atualizacao_pncp VARCHAR(40), 
+	data_publicacao_pncp VARCHAR(40), 
+	data_abertura_proposta_pncp VARCHAR(40), 
+	data_encerramento_proposta_pncp VARCHAR(40), 
+	link_pncp TEXT, 
+	dados_pncp_json TEXT, 
+	url_acompanhamento TEXT, 
+	data_divulgacao_pncp VARCHAR(40), 
+	situacao_pncp VARCHAR(200), 
+	inicio_recebimento_propostas VARCHAR(40), 
+	fim_recebimento_propostas VARCHAR(40), 
+	id_contratacao_pncp VARCHAR(80), 
+	observador_id INTEGER, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(uasg_id) REFERENCES compras_uasgs (id), 
+	FOREIGN KEY(observador_id) REFERENCES observadores (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  id_compra                                     VARCHAR(40)                0                            0
+  2  uasg_id                                       INTEGER                    0                            0
+  3  chave_compra                                  VARCHAR(40)                1                            0
+  4  numero_controle_pncp                          VARCHAR(80)                0                            0
+  5  ano_compra_pncp                               INTEGER                    0                            0
+  6  sequencial_compra_pncp                        INTEGER                    0                            0
+  7  unidade_compradora                            VARCHAR(10)                1                            0
+  8  unidade_nome                                  VARCHAR(200)               1                            0
+  9  ano                                           INTEGER                    1                            0
+ 10  numero                                        VARCHAR(40)                0                            0
+ 11  modalidade_codigo                             VARCHAR(10)                0                            0
+ 12  modalidade_descricao                          VARCHAR(120)               0                            0
+ 13  objeto                                        TEXT                       0                            0
+ 14  situacao_lista                                VARCHAR(200)               0                            0
+ 15  processo                                      VARCHAR(80)                0                            0
+ 16  orgao_entidade_cnpj                           VARCHAR(20)                0                            0
+ 17  orgao_subrogado_cnpj                          VARCHAR(20)                0                            0
+ 18  codigo_orgao                                  INTEGER                    0                            0
+ 19  orgao_entidade_razao_social                   VARCHAR(200)               0                            0
+ 20  orgao_subrogado_razao_social                  VARCHAR(200)               0                            0
+ 21  orgao_entidade_esfera_id                      VARCHAR(5)                 0                            0
+ 22  orgao_subrogado_esfera_id                     VARCHAR(5)                 0                            0
+ 23  orgao_entidade_poder_id                       VARCHAR(5)                 0                            0
+ 24  orgao_subrogado_poder_id                      VARCHAR(5)                 0                            0
+ 25  unidade_subrogada_codigo_unidade              VARCHAR(10)                0                            0
+ 26  unidade_orgao_nome_unidade                    VARCHAR(200)               0                            0
+ 27  unidade_subrogada_nome_unidade                VARCHAR(200)               0                            0
+ 28  unidade_orgao_uf_sigla                        VARCHAR(2)                 0                            0
+ 29  unidade_subrogada_uf_sigla                    VARCHAR(2)                 0                            0
+ 30  unidade_orgao_municipio_nome                  VARCHAR(120)               0                            0
+ 31  unidade_subrogada_municipio_nome              VARCHAR(120)               0                            0
+ 32  unidade_orgao_codigo_ibge                     INTEGER                    0                            0
+ 33  unidade_subrogada_codigo_ibge                 INTEGER                    0                            0
+ 34  modalidade_id_pncp                            INTEGER                    0                            0
+ 35  srp                                           BOOLEAN                    0                            0
+ 36  modo_disputa_id_pncp                          INTEGER                    0                            0
+ 37  codigo_modo_disputa                           INTEGER                    0                            0
+ 38  modo_disputa_nome_pncp                        VARCHAR(120)               0                            0
+ 39  amparo_legal_codigo_pncp                      INTEGER                    0                            0
+ 40  amparo_legal_nome                             VARCHAR(200)               0                            0
+ 41  amparo_legal_descricao                        TEXT                       0                            0
+ 42  existe_resultado                              BOOLEAN                    0                            0
+ 43  orcamento_sigiloso_codigo                     INTEGER                    0                            0
+ 44  orcamento_sigiloso_descricao                  VARCHAR(200)               0                            0
+ 45  situacao_compra_id_pncp                       INTEGER                    0                            0
+ 46  situacao_compra_nome_pncp                     VARCHAR(200)               0                            0
+ 47  tipo_instrumento_convocatorio_codigo_pncp     INTEGER                    0                            0
+ 48  tipo_instrumento_convocatorio_nome            VARCHAR(200)               0                            0
+ 49  contratacao_excluida                          BOOLEAN                    0                            0
+ 50  informacao_complementar                       TEXT                       0                            0
+ 51  valor_total_estimado                          VARCHAR(80)                0                            0
+ 52  valor_total_homologado                        VARCHAR(80)                0                            0
+ 53  data_inclusao_pncp                            VARCHAR(40)                0                            0
+ 54  data_atualizacao_pncp                         VARCHAR(40)                0                            0
+ 55  data_publicacao_pncp                          VARCHAR(40)                0                            0
+ 56  data_abertura_proposta_pncp                   VARCHAR(40)                0                            0
+ 57  data_encerramento_proposta_pncp               VARCHAR(40)                0                            0
+ 58  link_pncp                                     TEXT                       0                            0
+ 59  dados_pncp_json                               TEXT                       0                            0
+ 60  url_acompanhamento                            TEXT                       0                            0
+ 61  data_divulgacao_pncp                          VARCHAR(40)                0                            0
+ 62  situacao_pncp                                 VARCHAR(200)               0                            0
+ 63  inicio_recebimento_propostas                  VARCHAR(40)                0                            0
+ 64  fim_recebimento_propostas                     VARCHAR(40)                0                            0
+ 65  id_contratacao_pncp                           VARCHAR(80)                0                            0
+ 66  observador_id                                 INTEGER                    0                            0
+ 67  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  observador_id -> observadores.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  uasg_id -> compras_uasgs.id  (on_update=NO ACTION, on_delete=NO ACTION)
+
+-- ÍNDICES
+  [INDEX] ix_compra_numero_controle_pncp (numero_controle_pncp) origin=c
+         CREATE INDEX ix_compra_numero_controle_pncp ON compras_contratacoes (numero_controle_pncp)
+  [UNIQUE] uq_compra_id_compra (id_compra) origin=c
+         CREATE UNIQUE INDEX uq_compra_id_compra ON compras_contratacoes (id_compra)
+  [INDEX] ix_compras_contratacoes_observador_id (observador_id) origin=c
+         CREATE INDEX ix_compras_contratacoes_observador_id ON compras_contratacoes (observador_id)
+  [INDEX] ix_compras_contratacoes_uasg_id (uasg_id) origin=c
+         CREATE INDEX ix_compras_contratacoes_uasg_id ON compras_contratacoes (uasg_id)
+  [INDEX] ix_compras_contratacoes_id_compra (id_compra) origin=c
+         CREATE INDEX ix_compras_contratacoes_id_compra ON compras_contratacoes (id_compra)
+
+##############################################################################
+# TABELA: compras_fornecedores
+##############################################################################
+
+-- DDL
+CREATE TABLE compras_fornecedores (
+	id INTEGER NOT NULL, 
+	ni_fornecedor VARCHAR(14) NOT NULL, 
+	cnpj VARCHAR(14), 
+	cpf VARCHAR(11), 
+	nome_razao_social_fornecedor VARCHAR(200), 
+	porte_empresa_id INTEGER, 
+	porte_empresa_nome VARCHAR(80), 
+	natureza_juridica_id INTEGER, 
+	natureza_juridica_nome VARCHAR(120), 
+	codigo_cnae INTEGER, 
+	nome_cnae VARCHAR(200), 
+	uf_sigla VARCHAR(2), 
+	nome_municipio VARCHAR(120), 
+	ativo BOOLEAN, 
+	habilitado_licitar BOOLEAN, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, nome_fantasia VARCHAR(200), codigo_municipio_ibge INTEGER, de_uberlandia BOOLEAN, situacao_cadastral VARCHAR(80), cep VARCHAR(12), logradouro VARCHAR(200), numero_endereco VARCHAR(40), bairro VARCHAR(120), qsa_json TEXT, cnpj_dados_json TEXT, cnpj_enriquecido_em DATETIME, compras_gov_dados_json TEXT, compras_gov_enriquecido_em DATETIME, fonte_razao_social VARCHAR(20), 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  ni_fornecedor                                 VARCHAR(14)                1                            0
+  2  cnpj                                          VARCHAR(14)                0                            0
+  3  cpf                                           VARCHAR(11)                0                            0
+  4  nome_razao_social_fornecedor                  VARCHAR(200)               0                            0
+  5  porte_empresa_id                              INTEGER                    0                            0
+  6  porte_empresa_nome                            VARCHAR(80)                0                            0
+  7  natureza_juridica_id                          INTEGER                    0                            0
+  8  natureza_juridica_nome                        VARCHAR(120)               0                            0
+  9  codigo_cnae                                   INTEGER                    0                            0
+ 10  nome_cnae                                     VARCHAR(200)               0                            0
+ 11  uf_sigla                                      VARCHAR(2)                 0                            0
+ 12  nome_municipio                                VARCHAR(120)               0                            0
+ 13  ativo                                         BOOLEAN                    0                            0
+ 14  habilitado_licitar                            BOOLEAN                    0                            0
+ 15  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+ 16  nome_fantasia                                 VARCHAR(200)               0                            0
+ 17  codigo_municipio_ibge                         INTEGER                    0                            0
+ 18  de_uberlandia                                 BOOLEAN                    0                            0
+ 19  situacao_cadastral                            VARCHAR(80)                0                            0
+ 20  cep                                           VARCHAR(12)                0                            0
+ 21  logradouro                                    VARCHAR(200)               0                            0
+ 22  numero_endereco                               VARCHAR(40)                0                            0
+ 23  bairro                                        VARCHAR(120)               0                            0
+ 24  qsa_json                                      TEXT                       0                            0
+ 25  cnpj_dados_json                               TEXT                       0                            0
+ 26  cnpj_enriquecido_em                           DATETIME                   0                            0
+ 27  compras_gov_dados_json                        TEXT                       0                            0
+ 28  compras_gov_enriquecido_em                    DATETIME                   0                            0
+ 29  fonte_razao_social                            VARCHAR(20)                0                            0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [UNIQUE] uq_compras_fornecedor_ni (ni_fornecedor) origin=c
+         CREATE UNIQUE INDEX uq_compras_fornecedor_ni ON compras_fornecedores (ni_fornecedor)
+
+##############################################################################
+# TABELA: compras_itens_catalogo
+##############################################################################
+
+-- DDL
+CREATE TABLE compras_itens_catalogo (
+	id INTEGER NOT NULL, 
+	tipo_item VARCHAR(10) NOT NULL, 
+	codigo_item_catalogo INTEGER NOT NULL, 
+	descricao TEXT, 
+	codigo_grupo INTEGER, 
+	codigo_classe INTEGER, 
+	codigo_pdm INTEGER, 
+	secao_servico INTEGER, 
+	divisao_servico INTEGER, 
+	subclasse_servico INTEGER, 
+	status VARCHAR(40), 
+	dados_json TEXT, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  tipo_item                                     VARCHAR(10)                1                            0
+  2  codigo_item_catalogo                          INTEGER                    1                            0
+  3  descricao                                     TEXT                       0                            0
+  4  codigo_grupo                                  INTEGER                    0                            0
+  5  codigo_classe                                 INTEGER                    0                            0
+  6  codigo_pdm                                    INTEGER                    0                            0
+  7  secao_servico                                 INTEGER                    0                            0
+  8  divisao_servico                               INTEGER                    0                            0
+  9  subclasse_servico                             INTEGER                    0                            0
+ 10  status                                        VARCHAR(40)                0                            0
+ 11  dados_json                                    TEXT                       0                            0
+ 12  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [UNIQUE] uq_compras_catalogo_tipo_cod (tipo_item, codigo_item_catalogo) origin=c
+         CREATE UNIQUE INDEX uq_compras_catalogo_tipo_cod ON compras_itens_catalogo (tipo_item, codigo_item_catalogo)
+
+##############################################################################
+# TABELA: compras_orgaos
+##############################################################################
+
+-- DDL
+CREATE TABLE compras_orgaos (
+	id INTEGER NOT NULL, 
+	codigo_orgao INTEGER NOT NULL, 
+	cnpj_cpf_orgao VARCHAR(20), 
+	nome_orgao VARCHAR(200), 
+	esfera VARCHAR(20), 
+	poder VARCHAR(20), 
+	status_orgao BOOLEAN, 
+	codigo_orgao_superior INTEGER, 
+	nome_orgao_superior VARCHAR(200), 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	data_hora_movimento VARCHAR(40), 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  codigo_orgao                                  INTEGER                    1                            0
+  2  cnpj_cpf_orgao                                VARCHAR(20)                0                            0
+  3  nome_orgao                                    VARCHAR(200)               0                            0
+  4  esfera                                        VARCHAR(20)                0                            0
+  5  poder                                         VARCHAR(20)                0                            0
+  6  status_orgao                                  BOOLEAN                    0                            0
+  7  codigo_orgao_superior                         INTEGER                    0                            0
+  8  nome_orgao_superior                           VARCHAR(200)               0                            0
+  9  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+ 10  data_hora_movimento                           VARCHAR(40)                0                            0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [UNIQUE] uq_compras_orgao_codigo (codigo_orgao) origin=c
+         CREATE UNIQUE INDEX uq_compras_orgao_codigo ON compras_orgaos (codigo_orgao)
+
+##############################################################################
+# TABELA: compras_pgc_itens
+##############################################################################
+
+-- DDL
+CREATE TABLE compras_pgc_itens (
+	id INTEGER NOT NULL, 
+	orgao VARCHAR(20) NOT NULL, 
+	ano_pca_projeto_compra INTEGER NOT NULL, 
+	codigo_uasg VARCHAR(10), 
+	uasg_id INTEGER, 
+	tipo_item VARCHAR(10), 
+	codigo_item_catalogo INTEGER, 
+	item_catalogo_id INTEGER, 
+	numero_item_pncp INTEGER, 
+	ordem_dfd INTEGER, 
+	descricao_item_catalogo TEXT, 
+	quantidade_item VARCHAR(40), 
+	valor_unitario_item VARCHAR(80), 
+	valor_total_item VARCHAR(80), 
+	titulo_projeto_compra TEXT, 
+	descricao_objeto_dfd TEXT, 
+	data_hora_publicacao_pncp VARCHAR(40), 
+	status_contratacao_execucao VARCHAR(80), 
+	dados_pgc_json TEXT, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(uasg_id) REFERENCES compras_uasgs (id), 
+	FOREIGN KEY(item_catalogo_id) REFERENCES compras_itens_catalogo (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  orgao                                         VARCHAR(20)                1                            0
+  2  ano_pca_projeto_compra                        INTEGER                    1                            0
+  3  codigo_uasg                                   VARCHAR(10)                0                            0
+  4  uasg_id                                       INTEGER                    0                            0
+  5  tipo_item                                     VARCHAR(10)                0                            0
+  6  codigo_item_catalogo                          INTEGER                    0                            0
+  7  item_catalogo_id                              INTEGER                    0                            0
+  8  numero_item_pncp                              INTEGER                    0                            0
+  9  ordem_dfd                                     INTEGER                    0                            0
+ 10  descricao_item_catalogo                       TEXT                       0                            0
+ 11  quantidade_item                               VARCHAR(40)                0                            0
+ 12  valor_unitario_item                           VARCHAR(80)                0                            0
+ 13  valor_total_item                              VARCHAR(80)                0                            0
+ 14  titulo_projeto_compra                         TEXT                       0                            0
+ 15  descricao_objeto_dfd                          TEXT                       0                            0
+ 16  data_hora_publicacao_pncp                     VARCHAR(40)                0                            0
+ 17  status_contratacao_execucao                   VARCHAR(80)                0                            0
+ 18  dados_pgc_json                                TEXT                       0                            0
+ 19  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  item_catalogo_id -> compras_itens_catalogo.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  uasg_id -> compras_uasgs.id  (on_update=NO ACTION, on_delete=NO ACTION)
+
+-- ÍNDICES
+  [UNIQUE] uq_compras_pgc_chave (orgao, ano_pca_projeto_compra, codigo_uasg, codigo_item_catalogo, numero_item_pncp, ordem_dfd) origin=c
+         CREATE UNIQUE INDEX uq_compras_pgc_chave ON compras_pgc_itens (orgao, ano_pca_projeto_compra, codigo_uasg, codigo_item_catalogo, numero_item_pncp, ordem_dfd)
+  [INDEX] ix_compras_pgc_itens_item_catalogo_id (item_catalogo_id) origin=c
+         CREATE INDEX ix_compras_pgc_itens_item_catalogo_id ON compras_pgc_itens (item_catalogo_id)
+  [INDEX] ix_compras_pgc_itens_uasg_id (uasg_id) origin=c
+         CREATE INDEX ix_compras_pgc_itens_uasg_id ON compras_pgc_itens (uasg_id)
+
+##############################################################################
+# TABELA: compras_precos_praticados
+##############################################################################
+
+-- DDL
+CREATE TABLE compras_precos_praticados (
+	id INTEGER NOT NULL, 
+	tipo_item VARCHAR(10) NOT NULL, 
+	id_item_compra VARCHAR(50) NOT NULL, 
+	id_compra VARCHAR(40), 
+	codigo_item_catalogo INTEGER, 
+	codigo_uasg VARCHAR(10), 
+	item_catalogo_id INTEGER, 
+	uasg_id INTEGER, 
+	fornecedor_id INTEGER, 
+	preco_unitario VARCHAR(80), 
+	quantidade VARCHAR(40), 
+	data_compra VARCHAR(40), 
+	data_resultado VARCHAR(40), 
+	modalidade VARCHAR(40), 
+	municipio VARCHAR(120), 
+	estado VARCHAR(2), 
+	nome_fornecedor VARCHAR(200), 
+	ni_fornecedor VARCHAR(14), 
+	dados_preco_json TEXT, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(item_catalogo_id) REFERENCES compras_itens_catalogo (id), 
+	FOREIGN KEY(uasg_id) REFERENCES compras_uasgs (id), 
+	FOREIGN KEY(fornecedor_id) REFERENCES compras_fornecedores (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  tipo_item                                     VARCHAR(10)                1                            0
+  2  id_item_compra                                VARCHAR(50)                1                            0
+  3  id_compra                                     VARCHAR(40)                0                            0
+  4  codigo_item_catalogo                          INTEGER                    0                            0
+  5  codigo_uasg                                   VARCHAR(10)                0                            0
+  6  item_catalogo_id                              INTEGER                    0                            0
+  7  uasg_id                                       INTEGER                    0                            0
+  8  fornecedor_id                                 INTEGER                    0                            0
+  9  preco_unitario                                VARCHAR(80)                0                            0
+ 10  quantidade                                    VARCHAR(40)                0                            0
+ 11  data_compra                                   VARCHAR(40)                0                            0
+ 12  data_resultado                                VARCHAR(40)                0                            0
+ 13  modalidade                                    VARCHAR(40)                0                            0
+ 14  municipio                                     VARCHAR(120)               0                            0
+ 15  estado                                        VARCHAR(2)                 0                            0
+ 16  nome_fornecedor                               VARCHAR(200)               0                            0
+ 17  ni_fornecedor                                 VARCHAR(14)                0                            0
+ 18  dados_preco_json                              TEXT                       0                            0
+ 19  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  fornecedor_id -> compras_fornecedores.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  uasg_id -> compras_uasgs.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  item_catalogo_id -> compras_itens_catalogo.id  (on_update=NO ACTION, on_delete=NO ACTION)
+
+-- ÍNDICES
+  [INDEX] ix_compras_precos_praticados_item_catalogo_id (item_catalogo_id) origin=c
+         CREATE INDEX ix_compras_precos_praticados_item_catalogo_id ON compras_precos_praticados (item_catalogo_id)
+  [UNIQUE] uq_compras_preco_tipo_item (tipo_item, id_item_compra, id_compra, ni_fornecedor, data_compra) origin=c
+         CREATE UNIQUE INDEX uq_compras_preco_tipo_item ON compras_precos_praticados (tipo_item, id_item_compra, id_compra, ni_fornecedor, data_compra)
+  [INDEX] ix_compras_precos_praticados_uasg_id (uasg_id) origin=c
+         CREATE INDEX ix_compras_precos_praticados_uasg_id ON compras_precos_praticados (uasg_id)
+  [INDEX] ix_compras_precos_praticados_fornecedor_id (fornecedor_id) origin=c
+         CREATE INDEX ix_compras_precos_praticados_fornecedor_id ON compras_precos_praticados (fornecedor_id)
+
+##############################################################################
+# TABELA: compras_sync_meta
+##############################################################################
+
+-- DDL
+CREATE TABLE compras_sync_meta (
+	id INTEGER NOT NULL, 
+	modulo VARCHAR(40) NOT NULL, 
+	ultima_sync_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	contadores_json TEXT, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  modulo                                        VARCHAR(40)                1                            0
+  2  ultima_sync_em                                DATETIME                   1  CURRENT_TIMESTAMP         0
+  3  contadores_json                               TEXT                       0                            0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [UNIQUE] uq_compras_sync_modulo (modulo) origin=c
+         CREATE UNIQUE INDEX uq_compras_sync_modulo ON compras_sync_meta (modulo)
+
+##############################################################################
+# TABELA: compras_uasgs
+##############################################################################
+
+-- DDL
+CREATE TABLE compras_uasgs (
+	id INTEGER NOT NULL, 
+	codigo_uasg VARCHAR(10) NOT NULL, 
+	orgao_id INTEGER, 
+	nome_uasg VARCHAR(200), 
+	sigla_uf VARCHAR(2), 
+	codigo_municipio_ibge INTEGER, 
+	nome_municipio_ibge VARCHAR(120), 
+	cnpj_cpf_orgao VARCHAR(20), 
+	status_uasg BOOLEAN, 
+	uso_sisg BOOLEAN, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	data_hora_movimento VARCHAR(40), 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(orgao_id) REFERENCES compras_orgaos (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  codigo_uasg                                   VARCHAR(10)                1                            0
+  2  orgao_id                                      INTEGER                    0                            0
+  3  nome_uasg                                     VARCHAR(200)               0                            0
+  4  sigla_uf                                      VARCHAR(2)                 0                            0
+  5  codigo_municipio_ibge                         INTEGER                    0                            0
+  6  nome_municipio_ibge                           VARCHAR(120)               0                            0
+  7  cnpj_cpf_orgao                                VARCHAR(20)                0                            0
+  8  status_uasg                                   BOOLEAN                    0                            0
+  9  uso_sisg                                      BOOLEAN                    0                            0
+ 10  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+ 11  data_hora_movimento                           VARCHAR(40)                0                            0
+
+-- FOREIGN KEYS
+  orgao_id -> compras_orgaos.id  (on_update=NO ACTION, on_delete=NO ACTION)
+
+-- ÍNDICES
+  [UNIQUE] uq_compras_uasg_codigo (codigo_uasg) origin=c
+         CREATE UNIQUE INDEX uq_compras_uasg_codigo ON compras_uasgs (codigo_uasg)
+  [INDEX] ix_compras_uasgs_orgao_id (orgao_id) origin=c
+         CREATE INDEX ix_compras_uasgs_orgao_id ON compras_uasgs (orgao_id)
+
+##############################################################################
+# TABELA: ia_provedor
+##############################################################################
+
+-- DDL
+CREATE TABLE ia_provedor (
+	id INTEGER NOT NULL, 
+	nome VARCHAR(120) NOT NULL, 
+	provedor VARCHAR(40) NOT NULL, 
+	base_url VARCHAR(500), 
+	modelo VARCHAR(120), 
+	api_key_criptografada TEXT NOT NULL, 
+	api_key_mascara VARCHAR(40) NOT NULL, 
+	prioridade INTEGER NOT NULL, 
+	ativo BOOLEAN NOT NULL, 
+	ultimo_teste_em DATETIME, 
+	ultimo_teste_ok BOOLEAN, 
+	ultimo_teste_msg VARCHAR(300), 
+	criado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	atualizado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  nome                                          VARCHAR(120)               1                            0
+  2  provedor                                      VARCHAR(40)                1                            0
+  3  base_url                                      VARCHAR(500)               0                            0
+  4  modelo                                        VARCHAR(120)               0                            0
+  5  api_key_criptografada                         TEXT                       1                            0
+  6  api_key_mascara                               VARCHAR(40)                1                            0
+  7  prioridade                                    INTEGER                    1                            0
+  8  ativo                                         BOOLEAN                    1                            0
+  9  ultimo_teste_em                               DATETIME                   0                            0
+ 10  ultimo_teste_ok                               BOOLEAN                    0                            0
+ 11  ultimo_teste_msg                              VARCHAR(300)               0                            0
+ 12  criado_em                                     DATETIME                   1  CURRENT_TIMESTAMP         0
+ 13  atualizado_em                                 DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [INDEX] ix_ia_provedor_ativo_prio (ativo, prioridade) origin=c
+         CREATE INDEX ix_ia_provedor_ativo_prio ON ia_provedor (ativo, prioridade)
+
+##############################################################################
+# TABELA: ia_provedores
+##############################################################################
+
+-- DDL
+CREATE TABLE ia_provedores (
+	id INTEGER NOT NULL, 
+	nome VARCHAR(120) NOT NULL, 
+	provedor VARCHAR(40) NOT NULL, 
+	base_url VARCHAR(300), 
+	modelo VARCHAR(120) NOT NULL, 
+	api_key_cipher TEXT NOT NULL, 
+	api_key_hint VARCHAR(12), 
+	prioridade INTEGER NOT NULL, 
+	ativo BOOLEAN NOT NULL, 
+	ultimo_ok_em DATETIME, 
+	ultimo_erro VARCHAR(500), 
+	criado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	atualizado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  nome                                          VARCHAR(120)               1                            0
+  2  provedor                                      VARCHAR(40)                1                            0
+  3  base_url                                      VARCHAR(300)               0                            0
+  4  modelo                                        VARCHAR(120)               1                            0
+  5  api_key_cipher                                TEXT                       1                            0
+  6  api_key_hint                                  VARCHAR(12)                0                            0
+  7  prioridade                                    INTEGER                    1                            0
+  8  ativo                                         BOOLEAN                    1                            0
+  9  ultimo_ok_em                                  DATETIME                   0                            0
+ 10  ultimo_erro                                   VARCHAR(500)               0                            0
+ 11  criado_em                                     DATETIME                   1  CURRENT_TIMESTAMP         0
+ 12  atualizado_em                                 DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  (nenhum explícito além da PK)
+
+##############################################################################
+# TABELA: licitacoes
+##############################################################################
+
+-- DDL
+CREATE TABLE licitacoes (
+	id INTEGER NOT NULL, 
+	empresa_codigo VARCHAR(4) NOT NULL, 
+	empresa_nome VARCHAR(200) NOT NULL, 
+	ano INTEGER NOT NULL, 
+	processo VARCHAR(80) NOT NULL, 
+	modalidade VARCHAR(80), 
+	descricao_edital TEXT, 
+	data_abertura VARCHAR(40), 
+	habilitacao TEXT, 
+	julgamento VARCHAR(40), 
+	homologacao VARCHAR(40), 
+	situacao VARCHAR(80), 
+	local_abertura TEXT, 
+	data_visita_tecnica VARCHAR(40), 
+	responsavel_visita_tecnica VARCHAR(200), 
+	local_saida_visita_tecnica TEXT, 
+	detalhe_url TEXT, 
+	valor_estimado VARCHAR(80), 
+	observador_id INTEGER, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(observador_id) REFERENCES observadores (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  empresa_codigo                                VARCHAR(4)                 1                            0
+  2  empresa_nome                                  VARCHAR(200)               1                            0
+  3  ano                                           INTEGER                    1                            0
+  4  processo                                      VARCHAR(80)                1                            0
+  5  modalidade                                    VARCHAR(80)                0                            0
+  6  descricao_edital                              TEXT                       0                            0
+  7  data_abertura                                 VARCHAR(40)                0                            0
+  8  habilitacao                                   TEXT                       0                            0
+  9  julgamento                                    VARCHAR(40)                0                            0
+ 10  homologacao                                   VARCHAR(40)                0                            0
+ 11  situacao                                      VARCHAR(80)                0                            0
+ 12  local_abertura                                TEXT                       0                            0
+ 13  data_visita_tecnica                           VARCHAR(40)                0                            0
+ 14  responsavel_visita_tecnica                    VARCHAR(200)               0                            0
+ 15  local_saida_visita_tecnica                    TEXT                       0                            0
+ 16  detalhe_url                                   TEXT                       0                            0
+ 17  valor_estimado                                VARCHAR(80)                0                            0
+ 18  observador_id                                 INTEGER                    0                            0
+ 19  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  observador_id -> observadores.id  (on_update=NO ACTION, on_delete=NO ACTION)
+
+-- ÍNDICES
+  [INDEX] ix_licitacoes_observador_id (observador_id) origin=c
+         CREATE INDEX ix_licitacoes_observador_id ON licitacoes (observador_id)
+  [UNIQUE] uq_lic_empresa_processo_ano (empresa_codigo, processo, ano) origin=c
+         CREATE UNIQUE INDEX uq_lic_empresa_processo_ano ON licitacoes (empresa_codigo, processo, ano)
+
+##############################################################################
+# TABELA: modalidades_consolidadas
+##############################################################################
+
+-- DDL
+CREATE TABLE modalidades_consolidadas (
+	id INTEGER NOT NULL, 
+	nome VARCHAR(200) NOT NULL, 
+	codigo_pncp INTEGER, 
+	observacoes TEXT, 
+	ativo BOOLEAN NOT NULL, 
+	criado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	atualizado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  nome                                          VARCHAR(200)               1                            0
+  2  codigo_pncp                                   INTEGER                    0                            0
+  3  observacoes                                   TEXT                       0                            0
+  4  ativo                                         BOOLEAN                    1                            0
+  5  criado_em                                     DATETIME                   1  CURRENT_TIMESTAMP         0
+  6  atualizado_em                                 DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  (nenhum explícito além da PK)
+
+##############################################################################
+# TABELA: modalidades_vinculos
+##############################################################################
+
+-- DDL
+CREATE TABLE modalidades_vinculos (
+	id INTEGER NOT NULL, 
+	modalidade_consolidada_id INTEGER NOT NULL, 
+	fonte VARCHAR(20) NOT NULL, 
+	chave VARCHAR(200) NOT NULL, 
+	rotulo VARCHAR(200), 
+	criado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(modalidade_consolidada_id) REFERENCES modalidades_consolidadas (id) ON DELETE CASCADE
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  modalidade_consolidada_id                     INTEGER                    1                            0
+  2  fonte                                         VARCHAR(20)                1                            0
+  3  chave                                         VARCHAR(200)               1                            0
+  4  rotulo                                        VARCHAR(200)               0                            0
+  5  criado_em                                     DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  modalidade_consolidada_id -> modalidades_consolidadas.id  (on_update=NO ACTION, on_delete=CASCADE)
+
+-- ÍNDICES
+  [INDEX] ix_modalidades_vinculos_fonte (fonte) origin=c
+         CREATE INDEX ix_modalidades_vinculos_fonte ON modalidades_vinculos (fonte)
+  [INDEX] ix_modalidades_vinculos_modalidade_consolidada_id (modalidade_consolidada_id) origin=c
+         CREATE INDEX ix_modalidades_vinculos_modalidade_consolidada_id ON modalidades_vinculos (modalidade_consolidada_id)
+  [UNIQUE] uq_modalidade_vinculo_fonte_chave (fonte, chave) origin=c
+         CREATE UNIQUE INDEX uq_modalidade_vinculo_fonte_chave ON modalidades_vinculos (fonte, chave)
+
+##############################################################################
+# TABELA: observadores
+##############################################################################
+
+-- DDL
+CREATE TABLE observadores (
+	id INTEGER NOT NULL, 
+	nome VARCHAR(200) NOT NULL, 
+	email VARCHAR(200), 
+	telefone VARCHAR(40), 
+	ativo BOOLEAN NOT NULL, 
+	criado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  nome                                          VARCHAR(200)               1                            0
+  2  email                                         VARCHAR(200)               0                            0
+  3  telefone                                      VARCHAR(40)                0                            0
+  4  ativo                                         BOOLEAN                    1                            0
+  5  criado_em                                     DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  (nenhum explícito além da PK)
+
+##############################################################################
+# TABELA: orgaos_consolidados
+##############################################################################
+
+-- DDL
+CREATE TABLE orgaos_consolidados (
+	id INTEGER NOT NULL, 
+	nome VARCHAR(200) NOT NULL, 
+	sigla VARCHAR(40), 
+	observacoes TEXT, 
+	ativo BOOLEAN NOT NULL, 
+	criado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	atualizado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  nome                                          VARCHAR(200)               1                            0
+  2  sigla                                         VARCHAR(40)                0                            0
+  3  observacoes                                   TEXT                       0                            0
+  4  ativo                                         BOOLEAN                    1                            0
+  5  criado_em                                     DATETIME                   1  CURRENT_TIMESTAMP         0
+  6  atualizado_em                                 DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  (nenhum explícito além da PK)
+
+##############################################################################
+# TABELA: orgaos_vinculos
+##############################################################################
+
+-- DDL
+CREATE TABLE orgaos_vinculos (
+	id INTEGER NOT NULL, 
+	orgao_consolidado_id INTEGER NOT NULL, 
+	fonte VARCHAR(20) NOT NULL, 
+	chave VARCHAR(200) NOT NULL, 
+	rotulo VARCHAR(200), 
+	criado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(orgao_consolidado_id) REFERENCES orgaos_consolidados (id) ON DELETE CASCADE
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  orgao_consolidado_id                          INTEGER                    1                            0
+  2  fonte                                         VARCHAR(20)                1                            0
+  3  chave                                         VARCHAR(200)               1                            0
+  4  rotulo                                        VARCHAR(200)               0                            0
+  5  criado_em                                     DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  orgao_consolidado_id -> orgaos_consolidados.id  (on_update=NO ACTION, on_delete=CASCADE)
+
+-- ÍNDICES
+  [INDEX] ix_orgaos_vinculos_orgao_consolidado_id (orgao_consolidado_id) origin=c
+         CREATE INDEX ix_orgaos_vinculos_orgao_consolidado_id ON orgaos_vinculos (orgao_consolidado_id)
+  [INDEX] ix_orgaos_vinculos_fonte (fonte) origin=c
+         CREATE INDEX ix_orgaos_vinculos_fonte ON orgaos_vinculos (fonte)
+  [UNIQUE] uq_orgao_vinculo_fonte_chave (fonte, chave) origin=c
+         CREATE UNIQUE INDEX uq_orgao_vinculo_fonte_chave ON orgaos_vinculos (fonte, chave)
+
+##############################################################################
+# TABELA: pbi_contrato_responsaveis
+##############################################################################
+
+-- DDL
+CREATE TABLE pbi_contrato_responsaveis (
+	id INTEGER NOT NULL, 
+	contrato_id INTEGER, 
+	pessoa_id INTEGER NOT NULL, 
+	papel_id INTEGER, 
+	orgao_id INTEGER, 
+	fornecedor_id INTEGER, 
+	ano_contrato INTEGER NOT NULL, 
+	dt_assinatura VARCHAR(40), 
+	dt_fim VARCHAR(40), 
+	dt_inicio VARCHAR(40), 
+	nr_contrato VARCHAR(40) NOT NULL, 
+	objeto_contrato TEXT, 
+	dados_csv_json TEXT, 
+	observador_id INTEGER, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(contrato_id) REFERENCES pbi_contratos (id), 
+	FOREIGN KEY(pessoa_id) REFERENCES pbi_pessoas (id), 
+	FOREIGN KEY(papel_id) REFERENCES pbi_papeis (id), 
+	FOREIGN KEY(orgao_id) REFERENCES pbi_orgaos (id), 
+	FOREIGN KEY(fornecedor_id) REFERENCES pbi_fornecedores (id), 
+	FOREIGN KEY(observador_id) REFERENCES observadores (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  contrato_id                                   INTEGER                    0                            0
+  2  pessoa_id                                     INTEGER                    1                            0
+  3  papel_id                                      INTEGER                    0                            0
+  4  orgao_id                                      INTEGER                    0                            0
+  5  fornecedor_id                                 INTEGER                    0                            0
+  6  ano_contrato                                  INTEGER                    1                            0
+  7  dt_assinatura                                 VARCHAR(40)                0                            0
+  8  dt_fim                                        VARCHAR(40)                0                            0
+  9  dt_inicio                                     VARCHAR(40)                0                            0
+ 10  nr_contrato                                   VARCHAR(40)                1                            0
+ 11  objeto_contrato                               TEXT                       0                            0
+ 12  dados_csv_json                                TEXT                       0                            0
+ 13  observador_id                                 INTEGER                    0                            0
+ 14  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  observador_id -> observadores.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  fornecedor_id -> pbi_fornecedores.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  orgao_id -> pbi_orgaos.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  papel_id -> pbi_papeis.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  pessoa_id -> pbi_pessoas.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  contrato_id -> pbi_contratos.id  (on_update=NO ACTION, on_delete=NO ACTION)
+
+-- ÍNDICES
+  [INDEX] ix_pbi_contrato_responsaveis_fornecedor_id (fornecedor_id) origin=c
+         CREATE INDEX ix_pbi_contrato_responsaveis_fornecedor_id ON pbi_contrato_responsaveis (fornecedor_id)
+  [INDEX] ix_pbi_contrato_responsaveis_observador_id (observador_id) origin=c
+         CREATE INDEX ix_pbi_contrato_responsaveis_observador_id ON pbi_contrato_responsaveis (observador_id)
+  [INDEX] ix_pbi_contrato_responsaveis_pessoa_id (pessoa_id) origin=c
+         CREATE INDEX ix_pbi_contrato_responsaveis_pessoa_id ON pbi_contrato_responsaveis (pessoa_id)
+  [INDEX] ix_pbi_contrato_responsaveis_orgao_id (orgao_id) origin=c
+         CREATE INDEX ix_pbi_contrato_responsaveis_orgao_id ON pbi_contrato_responsaveis (orgao_id)
+  [INDEX] ix_pbi_contrato_responsaveis_ano_contrato (ano_contrato) origin=c
+         CREATE INDEX ix_pbi_contrato_responsaveis_ano_contrato ON pbi_contrato_responsaveis (ano_contrato)
+  [UNIQUE] uq_pbi_resp_chave (ano_contrato, nr_contrato, orgao_id, papel_id, pessoa_id, dt_inicio, fornecedor_id) origin=c
+         CREATE UNIQUE INDEX uq_pbi_resp_chave ON pbi_contrato_responsaveis (ano_contrato, nr_contrato, orgao_id, papel_id, pessoa_id, dt_inicio, fornecedor_id)
+  [INDEX] ix_pbi_contrato_responsaveis_contrato_id (contrato_id) origin=c
+         CREATE INDEX ix_pbi_contrato_responsaveis_contrato_id ON pbi_contrato_responsaveis (contrato_id)
+  [INDEX] ix_pbi_contrato_responsaveis_nr_contrato (nr_contrato) origin=c
+         CREATE INDEX ix_pbi_contrato_responsaveis_nr_contrato ON pbi_contrato_responsaveis (nr_contrato)
+  [INDEX] ix_pbi_contrato_responsaveis_papel_id (papel_id) origin=c
+         CREATE INDEX ix_pbi_contrato_responsaveis_papel_id ON pbi_contrato_responsaveis (papel_id)
+
+##############################################################################
+# TABELA: pbi_contratos
+##############################################################################
+
+-- DDL
+CREATE TABLE pbi_contratos (
+	id INTEGER NOT NULL, 
+	orgao_id INTEGER NOT NULL, 
+	fornecedor_id INTEGER, 
+	processo_id INTEGER, 
+	ano_contrato INTEGER NOT NULL, 
+	ano_processo INTEGER, 
+	ds_objeto_contrato TEXT, 
+	dt_assinatura VARCHAR(40), 
+	nr_aditivo VARCHAR(20), 
+	nr_contrato VARCHAR(40) NOT NULL, 
+	nr_parcela VARCHAR(20), 
+	processo VARCHAR(80), 
+	vr_inicial VARCHAR(80), 
+	fonte_ano_coleta INTEGER NOT NULL, 
+	dados_csv_json TEXT, 
+	observador_id INTEGER, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(orgao_id) REFERENCES pbi_orgaos (id), 
+	FOREIGN KEY(fornecedor_id) REFERENCES pbi_fornecedores (id), 
+	FOREIGN KEY(processo_id) REFERENCES pbi_processos_licitatorios (id), 
+	FOREIGN KEY(observador_id) REFERENCES observadores (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  orgao_id                                      INTEGER                    1                            0
+  2  fornecedor_id                                 INTEGER                    0                            0
+  3  processo_id                                   INTEGER                    0                            0
+  4  ano_contrato                                  INTEGER                    1                            0
+  5  ano_processo                                  INTEGER                    0                            0
+  6  ds_objeto_contrato                            TEXT                       0                            0
+  7  dt_assinatura                                 VARCHAR(40)                0                            0
+  8  nr_aditivo                                    VARCHAR(20)                0                            0
+  9  nr_contrato                                   VARCHAR(40)                1                            0
+ 10  nr_parcela                                    VARCHAR(20)                0                            0
+ 11  processo                                      VARCHAR(80)                0                            0
+ 12  vr_inicial                                    VARCHAR(80)                0                            0
+ 13  fonte_ano_coleta                              INTEGER                    1                            0
+ 14  dados_csv_json                                TEXT                       0                            0
+ 15  observador_id                                 INTEGER                    0                            0
+ 16  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  observador_id -> observadores.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  processo_id -> pbi_processos_licitatorios.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  fornecedor_id -> pbi_fornecedores.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  orgao_id -> pbi_orgaos.id  (on_update=NO ACTION, on_delete=NO ACTION)
+
+-- ÍNDICES
+  [UNIQUE] uq_pbi_ctr_chave (ano_contrato, orgao_id, nr_contrato, nr_aditivo, nr_parcela, processo) origin=c
+         CREATE UNIQUE INDEX uq_pbi_ctr_chave ON pbi_contratos (ano_contrato, orgao_id, nr_contrato, nr_aditivo, nr_parcela, processo)
+  [INDEX] ix_pbi_contratos_ano_contrato (ano_contrato) origin=c
+         CREATE INDEX ix_pbi_contratos_ano_contrato ON pbi_contratos (ano_contrato)
+  [INDEX] ix_pbi_contratos_processo (processo) origin=c
+         CREATE INDEX ix_pbi_contratos_processo ON pbi_contratos (processo)
+  [INDEX] ix_pbi_contratos_fornecedor_id (fornecedor_id) origin=c
+         CREATE INDEX ix_pbi_contratos_fornecedor_id ON pbi_contratos (fornecedor_id)
+  [INDEX] ix_pbi_contratos_observador_id (observador_id) origin=c
+         CREATE INDEX ix_pbi_contratos_observador_id ON pbi_contratos (observador_id)
+  [INDEX] ix_pbi_contratos_processo_id (processo_id) origin=c
+         CREATE INDEX ix_pbi_contratos_processo_id ON pbi_contratos (processo_id)
+  [INDEX] ix_pbi_contratos_orgao_id (orgao_id) origin=c
+         CREATE INDEX ix_pbi_contratos_orgao_id ON pbi_contratos (orgao_id)
+  [INDEX] ix_pbi_contratos_ano_processo (ano_processo) origin=c
+         CREATE INDEX ix_pbi_contratos_ano_processo ON pbi_contratos (ano_processo)
+  [INDEX] ix_pbi_contratos_fonte_ano_coleta (fonte_ano_coleta) origin=c
+         CREATE INDEX ix_pbi_contratos_fonte_ano_coleta ON pbi_contratos (fonte_ano_coleta)
+
+##############################################################################
+# TABELA: pbi_fornecedores
+##############################################################################
+
+-- DDL
+CREATE TABLE pbi_fornecedores (
+	id INTEGER NOT NULL, 
+	razao_social VARCHAR(200) NOT NULL, 
+	PRIMARY KEY (id), 
+	UNIQUE (razao_social)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  razao_social                                  VARCHAR(200)               1                            0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [UNIQUE] sqlite_autoindex_pbi_fornecedores_1 (razao_social) origin=u
+
+##############################################################################
+# TABELA: pbi_orgaos
+##############################################################################
+
+-- DDL
+CREATE TABLE pbi_orgaos (
+	id INTEGER NOT NULL, 
+	nome VARCHAR(200) NOT NULL, 
+	PRIMARY KEY (id), 
+	UNIQUE (nome)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  nome                                          VARCHAR(200)               1                            0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [UNIQUE] sqlite_autoindex_pbi_orgaos_1 (nome) origin=u
+
+##############################################################################
+# TABELA: pbi_papeis
+##############################################################################
+
+-- DDL
+CREATE TABLE pbi_papeis (
+	id INTEGER NOT NULL, 
+	descricao VARCHAR(120) NOT NULL, 
+	PRIMARY KEY (id), 
+	UNIQUE (descricao)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  descricao                                     VARCHAR(120)               1                            0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [UNIQUE] sqlite_autoindex_pbi_papeis_1 (descricao) origin=u
+
+##############################################################################
+# TABELA: pbi_pessoas
+##############################################################################
+
+-- DDL
+CREATE TABLE pbi_pessoas (
+	id INTEGER NOT NULL, 
+	nome VARCHAR(200) NOT NULL, 
+	PRIMARY KEY (id), 
+	UNIQUE (nome)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  nome                                          VARCHAR(200)               1                            0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [UNIQUE] sqlite_autoindex_pbi_pessoas_1 (nome) origin=u
+
+##############################################################################
+# TABELA: pbi_processos_licitatorios
+##############################################################################
+
+-- DDL
+CREATE TABLE pbi_processos_licitatorios (
+	id INTEGER NOT NULL, 
+	orgao_id INTEGER NOT NULL, 
+	ano_processo INTEGER NOT NULL, 
+	chave VARCHAR(80), 
+	ds_habilitacao TEXT, 
+	dt_abertura VARCHAR(40), 
+	dt_habilitacao VARCHAR(40), 
+	dt_homologacao VARCHAR(40), 
+	dt_julgamento VARCHAR(40), 
+	modalidade VARCHAR(120) NOT NULL, 
+	objeto TEXT, 
+	processo VARCHAR(80) NOT NULL, 
+	situacao VARCHAR(120), 
+	solicitante VARCHAR(200), 
+	valor_licitacao VARCHAR(80), 
+	fonte_ano_coleta INTEGER NOT NULL, 
+	dados_csv_json TEXT, 
+	observador_id INTEGER, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(orgao_id) REFERENCES pbi_orgaos (id), 
+	FOREIGN KEY(observador_id) REFERENCES observadores (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  orgao_id                                      INTEGER                    1                            0
+  2  ano_processo                                  INTEGER                    1                            0
+  3  chave                                         VARCHAR(80)                0                            0
+  4  ds_habilitacao                                TEXT                       0                            0
+  5  dt_abertura                                   VARCHAR(40)                0                            0
+  6  dt_habilitacao                                VARCHAR(40)                0                            0
+  7  dt_homologacao                                VARCHAR(40)                0                            0
+  8  dt_julgamento                                 VARCHAR(40)                0                            0
+  9  modalidade                                    VARCHAR(120)               1                            0
+ 10  objeto                                        TEXT                       0                            0
+ 11  processo                                      VARCHAR(80)                1                            0
+ 12  situacao                                      VARCHAR(120)               0                            0
+ 13  solicitante                                   VARCHAR(200)               0                            0
+ 14  valor_licitacao                               VARCHAR(80)                0                            0
+ 15  fonte_ano_coleta                              INTEGER                    1                            0
+ 16  dados_csv_json                                TEXT                       0                            0
+ 17  observador_id                                 INTEGER                    0                            0
+ 18  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  observador_id -> observadores.id  (on_update=NO ACTION, on_delete=NO ACTION)
+  orgao_id -> pbi_orgaos.id  (on_update=NO ACTION, on_delete=NO ACTION)
+
+-- ÍNDICES
+  [INDEX] ix_pbi_processos_licitatorios_orgao_id (orgao_id) origin=c
+         CREATE INDEX ix_pbi_processos_licitatorios_orgao_id ON pbi_processos_licitatorios (orgao_id)
+  [UNIQUE] uq_pbi_proc_ano_org_proc_mod (ano_processo, orgao_id, processo, modalidade) origin=c
+         CREATE UNIQUE INDEX uq_pbi_proc_ano_org_proc_mod ON pbi_processos_licitatorios (ano_processo, orgao_id, processo, modalidade)
+  [INDEX] ix_pbi_processos_licitatorios_ano_processo (ano_processo) origin=c
+         CREATE INDEX ix_pbi_processos_licitatorios_ano_processo ON pbi_processos_licitatorios (ano_processo)
+  [INDEX] ix_pbi_processos_licitatorios_fonte_ano_coleta (fonte_ano_coleta) origin=c
+         CREATE INDEX ix_pbi_processos_licitatorios_fonte_ano_coleta ON pbi_processos_licitatorios (fonte_ano_coleta)
+  [INDEX] ix_pbi_processos_licitatorios_situacao (situacao) origin=c
+         CREATE INDEX ix_pbi_processos_licitatorios_situacao ON pbi_processos_licitatorios (situacao)
+  [INDEX] ix_pbi_processos_licitatorios_observador_id (observador_id) origin=c
+         CREATE INDEX ix_pbi_processos_licitatorios_observador_id ON pbi_processos_licitatorios (observador_id)
+
+##############################################################################
+# TABELA: powerbi_contratos
+##############################################################################
+
+-- DDL
+CREATE TABLE powerbi_contratos (
+	id INTEGER NOT NULL, 
+	ano_contrato INTEGER NOT NULL, 
+	ano_processo INTEGER, 
+	ds_objeto_contrato TEXT, 
+	dt_assinatura VARCHAR(40), 
+	empresa VARCHAR(200) NOT NULL, 
+	nm_pessoa VARCHAR(200), 
+	nr_aditivo VARCHAR(20), 
+	nr_contrato VARCHAR(40) NOT NULL, 
+	nr_parcela VARCHAR(20), 
+	processo VARCHAR(80), 
+	vr_inicial VARCHAR(80), 
+	fonte_ano_coleta INTEGER NOT NULL, 
+	dados_csv_json TEXT, 
+	observador_id INTEGER, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(observador_id) REFERENCES observadores (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  ano_contrato                                  INTEGER                    1                            0
+  2  ano_processo                                  INTEGER                    0                            0
+  3  ds_objeto_contrato                            TEXT                       0                            0
+  4  dt_assinatura                                 VARCHAR(40)                0                            0
+  5  empresa                                       VARCHAR(200)               1                            0
+  6  nm_pessoa                                     VARCHAR(200)               0                            0
+  7  nr_aditivo                                    VARCHAR(20)                0                            0
+  8  nr_contrato                                   VARCHAR(40)                1                            0
+  9  nr_parcela                                    VARCHAR(20)                0                            0
+ 10  processo                                      VARCHAR(80)                0                            0
+ 11  vr_inicial                                    VARCHAR(80)                0                            0
+ 12  fonte_ano_coleta                              INTEGER                    1                            0
+ 13  dados_csv_json                                TEXT                       0                            0
+ 14  observador_id                                 INTEGER                    0                            0
+ 15  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  observador_id -> observadores.id  (on_update=NO ACTION, on_delete=NO ACTION)
+
+-- ÍNDICES
+  [INDEX] ix_powerbi_contratos_observador_id (observador_id) origin=c
+         CREATE INDEX ix_powerbi_contratos_observador_id ON powerbi_contratos (observador_id)
+  [INDEX] ix_powerbi_contratos_ano_processo (ano_processo) origin=c
+         CREATE INDEX ix_powerbi_contratos_ano_processo ON powerbi_contratos (ano_processo)
+  [INDEX] ix_powerbi_contratos_ano_contrato (ano_contrato) origin=c
+         CREATE INDEX ix_powerbi_contratos_ano_contrato ON powerbi_contratos (ano_contrato)
+  [INDEX] ix_powerbi_contratos_fonte_ano_coleta (fonte_ano_coleta) origin=c
+         CREATE INDEX ix_powerbi_contratos_fonte_ano_coleta ON powerbi_contratos (fonte_ano_coleta)
+  [INDEX] ix_powerbi_contratos_empresa (empresa) origin=c
+         CREATE INDEX ix_powerbi_contratos_empresa ON powerbi_contratos (empresa)
+  [INDEX] ix_powerbi_contratos_processo (processo) origin=c
+         CREATE INDEX ix_powerbi_contratos_processo ON powerbi_contratos (processo)
+  [UNIQUE] uq_pbi_con_chave (ano_contrato, empresa, nr_contrato, nr_aditivo, nr_parcela, processo) origin=c
+         CREATE UNIQUE INDEX uq_pbi_con_chave ON powerbi_contratos (ano_contrato, empresa, nr_contrato, nr_aditivo, nr_parcela, processo)
+
+##############################################################################
+# TABELA: powerbi_gestores_fiscais
+##############################################################################
+
+-- DDL
+CREATE TABLE powerbi_gestores_fiscais (
+	id INTEGER NOT NULL, 
+	ano_contrato INTEGER NOT NULL, 
+	ds_orgao VARCHAR(200), 
+	ds_papeis VARCHAR(120), 
+	dt_assinatura VARCHAR(40), 
+	dt_fim VARCHAR(40), 
+	dt_inicio VARCHAR(40), 
+	fornecedor VARCHAR(200), 
+	nm_pessoa_papel VARCHAR(200) NOT NULL, 
+	nr_contrato VARCHAR(40) NOT NULL, 
+	objeto_contrato TEXT, 
+	dados_csv_json TEXT, 
+	observador_id INTEGER, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(observador_id) REFERENCES observadores (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  ano_contrato                                  INTEGER                    1                            0
+  2  ds_orgao                                      VARCHAR(200)               0                            0
+  3  ds_papeis                                     VARCHAR(120)               0                            0
+  4  dt_assinatura                                 VARCHAR(40)                0                            0
+  5  dt_fim                                        VARCHAR(40)                0                            0
+  6  dt_inicio                                     VARCHAR(40)                0                            0
+  7  fornecedor                                    VARCHAR(200)               0                            0
+  8  nm_pessoa_papel                               VARCHAR(200)               1                            0
+  9  nr_contrato                                   VARCHAR(40)                1                            0
+ 10  objeto_contrato                               TEXT                       0                            0
+ 11  dados_csv_json                                TEXT                       0                            0
+ 12  observador_id                                 INTEGER                    0                            0
+ 13  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  observador_id -> observadores.id  (on_update=NO ACTION, on_delete=NO ACTION)
+
+-- ÍNDICES
+  [INDEX] ix_powerbi_gestores_fiscais_fornecedor (fornecedor) origin=c
+         CREATE INDEX ix_powerbi_gestores_fiscais_fornecedor ON powerbi_gestores_fiscais (fornecedor)
+  [INDEX] ix_powerbi_gestores_fiscais_ano_contrato (ano_contrato) origin=c
+         CREATE INDEX ix_powerbi_gestores_fiscais_ano_contrato ON powerbi_gestores_fiscais (ano_contrato)
+  [INDEX] ix_powerbi_gestores_fiscais_observador_id (observador_id) origin=c
+         CREATE INDEX ix_powerbi_gestores_fiscais_observador_id ON powerbi_gestores_fiscais (observador_id)
+  [INDEX] ix_powerbi_gestores_fiscais_ds_papeis (ds_papeis) origin=c
+         CREATE INDEX ix_powerbi_gestores_fiscais_ds_papeis ON powerbi_gestores_fiscais (ds_papeis)
+  [UNIQUE] uq_pbi_gest_chave (ano_contrato, nr_contrato, ds_orgao, ds_papeis, nm_pessoa_papel, dt_inicio, fornecedor) origin=c
+         CREATE UNIQUE INDEX uq_pbi_gest_chave ON powerbi_gestores_fiscais (ano_contrato, nr_contrato, ds_orgao, ds_papeis, nm_pessoa_papel, dt_inicio, fornecedor)
+  [INDEX] ix_powerbi_gestores_fiscais_nr_contrato (nr_contrato) origin=c
+         CREATE INDEX ix_powerbi_gestores_fiscais_nr_contrato ON powerbi_gestores_fiscais (nr_contrato)
+  [INDEX] ix_powerbi_gestores_fiscais_ds_orgao (ds_orgao) origin=c
+         CREATE INDEX ix_powerbi_gestores_fiscais_ds_orgao ON powerbi_gestores_fiscais (ds_orgao)
+
+##############################################################################
+# TABELA: powerbi_licitacoes
+##############################################################################
+
+-- DDL
+CREATE TABLE powerbi_licitacoes (
+	id INTEGER NOT NULL, 
+	ano_processo INTEGER NOT NULL, 
+	chave VARCHAR(80), 
+	processo VARCHAR(80) NOT NULL, 
+	modalidade VARCHAR(120) NOT NULL, 
+	objeto TEXT, 
+	solicitante VARCHAR(200), 
+	empresa VARCHAR(200) NOT NULL, 
+	situacao VARCHAR(120), 
+	ds_habilitacao TEXT, 
+	dt_abertura VARCHAR(40), 
+	dt_habilitacao VARCHAR(40), 
+	dt_julgamento VARCHAR(40), 
+	dt_homologacao VARCHAR(40), 
+	valor_licitacao VARCHAR(80), 
+	fonte_ano_coleta INTEGER NOT NULL, 
+	dados_csv_json TEXT, 
+	observador_id INTEGER, 
+	coletado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(observador_id) REFERENCES observadores (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  ano_processo                                  INTEGER                    1                            0
+  2  chave                                         VARCHAR(80)                0                            0
+  3  processo                                      VARCHAR(80)                1                            0
+  4  modalidade                                    VARCHAR(120)               1                            0
+  5  objeto                                        TEXT                       0                            0
+  6  solicitante                                   VARCHAR(200)               0                            0
+  7  empresa                                       VARCHAR(200)               1                            0
+  8  situacao                                      VARCHAR(120)               0                            0
+  9  ds_habilitacao                                TEXT                       0                            0
+ 10  dt_abertura                                   VARCHAR(40)                0                            0
+ 11  dt_habilitacao                                VARCHAR(40)                0                            0
+ 12  dt_julgamento                                 VARCHAR(40)                0                            0
+ 13  dt_homologacao                                VARCHAR(40)                0                            0
+ 14  valor_licitacao                               VARCHAR(80)                0                            0
+ 15  fonte_ano_coleta                              INTEGER                    1                            0
+ 16  dados_csv_json                                TEXT                       0                            0
+ 17  observador_id                                 INTEGER                    0                            0
+ 18  coletado_em                                   DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  observador_id -> observadores.id  (on_update=NO ACTION, on_delete=NO ACTION)
+
+-- ÍNDICES
+  [INDEX] ix_powerbi_licitacoes_fonte_ano_coleta (fonte_ano_coleta) origin=c
+         CREATE INDEX ix_powerbi_licitacoes_fonte_ano_coleta ON powerbi_licitacoes (fonte_ano_coleta)
+  [INDEX] ix_powerbi_licitacoes_situacao (situacao) origin=c
+         CREATE INDEX ix_powerbi_licitacoes_situacao ON powerbi_licitacoes (situacao)
+  [INDEX] ix_powerbi_licitacoes_ano_processo (ano_processo) origin=c
+         CREATE INDEX ix_powerbi_licitacoes_ano_processo ON powerbi_licitacoes (ano_processo)
+  [UNIQUE] uq_pbi_lic_ano_emp_proc_mod (ano_processo, empresa, processo, modalidade) origin=c
+         CREATE UNIQUE INDEX uq_pbi_lic_ano_emp_proc_mod ON powerbi_licitacoes (ano_processo, empresa, processo, modalidade)
+  [INDEX] ix_powerbi_licitacoes_observador_id (observador_id) origin=c
+         CREATE INDEX ix_powerbi_licitacoes_observador_id ON powerbi_licitacoes (observador_id)
+  [INDEX] ix_powerbi_licitacoes_empresa (empresa) origin=c
+         CREATE INDEX ix_powerbi_licitacoes_empresa ON powerbi_licitacoes (empresa)
+
+##############################################################################
+# TABELA: proposta_analise_preco
+##############################################################################
+
+-- DDL
+CREATE TABLE proposta_analise_preco (
+	id INTEGER NOT NULL, 
+	item_id INTEGER NOT NULL, 
+	id_compra_item VARCHAR(80), 
+	prompt_versao VARCHAR(40) NOT NULL, 
+	prompt_enviado TEXT NOT NULL, 
+	provedor_id INTEGER, 
+	provedor_nome VARCHAR(120), 
+	provedor_tipo VARCHAR(40), 
+	modelo VARCHAR(120), 
+	resposta_texto TEXT, 
+	resposta_json TEXT, 
+	status VARCHAR(20) NOT NULL, 
+	erro TEXT, 
+	usuario_id INTEGER, 
+	criado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	finalizado_em DATETIME, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  item_id                                       INTEGER                    1                            0
+  2  id_compra_item                                VARCHAR(80)                0                            0
+  3  prompt_versao                                 VARCHAR(40)                1                            0
+  4  prompt_enviado                                TEXT                       1                            0
+  5  provedor_id                                   INTEGER                    0                            0
+  6  provedor_nome                                 VARCHAR(120)               0                            0
+  7  provedor_tipo                                 VARCHAR(40)                0                            0
+  8  modelo                                        VARCHAR(120)               0                            0
+  9  resposta_texto                                TEXT                       0                            0
+ 10  resposta_json                                 TEXT                       0                            0
+ 11  status                                        VARCHAR(20)                1                            0
+ 12  erro                                          TEXT                       0                            0
+ 13  usuario_id                                    INTEGER                    0                            0
+ 14  criado_em                                     DATETIME                   1  CURRENT_TIMESTAMP         0
+ 15  finalizado_em                                 DATETIME                   0                            0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [INDEX] ix_proposta_analise_preco_item_id (item_id) origin=c
+         CREATE INDEX ix_proposta_analise_preco_item_id ON proposta_analise_preco (item_id)
+  [INDEX] ix_proposta_analise_preco_item_criado (item_id, criado_em) origin=c
+         CREATE INDEX ix_proposta_analise_preco_item_criado ON proposta_analise_preco (item_id, criado_em)
+
+##############################################################################
+# TABELA: sessoes
+##############################################################################
+
+-- DDL
+CREATE TABLE sessoes (
+	id INTEGER NOT NULL, 
+	token VARCHAR(64) NOT NULL, 
+	usuario_id INTEGER NOT NULL, 
+	criado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	expira_em DATETIME NOT NULL, 
+	ultimo_acesso DATETIME, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(usuario_id) REFERENCES usuarios (id) ON DELETE CASCADE
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  token                                         VARCHAR(64)                1                            0
+  2  usuario_id                                    INTEGER                    1                            0
+  3  criado_em                                     DATETIME                   1  CURRENT_TIMESTAMP         0
+  4  expira_em                                     DATETIME                   1                            0
+  5  ultimo_acesso                                 DATETIME                   0                            0
+
+-- FOREIGN KEYS
+  usuario_id -> usuarios.id  (on_update=NO ACTION, on_delete=CASCADE)
+
+-- ÍNDICES
+  [UNIQUE] uq_sessoes_token (token) origin=c
+         CREATE UNIQUE INDEX uq_sessoes_token ON sessoes (token)
+  [INDEX] ix_sessoes_usuario_id (usuario_id) origin=c
+         CREATE INDEX ix_sessoes_usuario_id ON sessoes (usuario_id)
+
+##############################################################################
+# TABELA: sistema_config
+##############################################################################
+
+-- DDL
+CREATE TABLE sistema_config (
+	id INTEGER NOT NULL, 
+	ano_inicial_coleta INTEGER, 
+	setup_concluido BOOLEAN NOT NULL, 
+	atualizado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  ano_inicial_coleta                            INTEGER                    0                            0
+  2  setup_concluido                               BOOLEAN                    1                            0
+  3  atualizado_em                                 DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  (nenhum explícito além da PK)
+
+##############################################################################
+# TABELA: sistema_raiz
+##############################################################################
+
+-- DDL
+CREATE TABLE sistema_raiz (
+	id INTEGER NOT NULL, 
+	cnpj VARCHAR(14) NOT NULL, 
+	razao_social VARCHAR(300), 
+	nome_fantasia VARCHAR(300), 
+	situacao_cadastral VARCHAR(80), 
+	natureza_juridica VARCHAR(200), 
+	porte VARCHAR(80), 
+	codigo_cnae INTEGER, 
+	nome_cnae VARCHAR(300), 
+	codigo_municipio_ibge INTEGER, 
+	nome_municipio VARCHAR(120), 
+	uf VARCHAR(2), 
+	cep VARCHAR(12), 
+	logradouro VARCHAR(200), 
+	numero VARCHAR(30), 
+	bairro VARCHAR(120), 
+	fonte_cnpj VARCHAR(40), 
+	cnpj_dados_json TEXT, 
+	enriquecido_em DATETIME, 
+	cadastrado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	atualizado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  cnpj                                          VARCHAR(14)                1                            0
+  2  razao_social                                  VARCHAR(300)               0                            0
+  3  nome_fantasia                                 VARCHAR(300)               0                            0
+  4  situacao_cadastral                            VARCHAR(80)                0                            0
+  5  natureza_juridica                             VARCHAR(200)               0                            0
+  6  porte                                         VARCHAR(80)                0                            0
+  7  codigo_cnae                                   INTEGER                    0                            0
+  8  nome_cnae                                     VARCHAR(300)               0                            0
+  9  codigo_municipio_ibge                         INTEGER                    0                            0
+ 10  nome_municipio                                VARCHAR(120)               0                            0
+ 11  uf                                            VARCHAR(2)                 0                            0
+ 12  cep                                           VARCHAR(12)                0                            0
+ 13  logradouro                                    VARCHAR(200)               0                            0
+ 14  numero                                        VARCHAR(30)                0                            0
+ 15  bairro                                        VARCHAR(120)               0                            0
+ 16  fonte_cnpj                                    VARCHAR(40)                0                            0
+ 17  cnpj_dados_json                               TEXT                       0                            0
+ 18  enriquecido_em                                DATETIME                   0                            0
+ 19  cadastrado_em                                 DATETIME                   1  CURRENT_TIMESTAMP         0
+ 20  atualizado_em                                 DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [UNIQUE] uq_sistema_raiz_cnpj (cnpj) origin=c
+         CREATE UNIQUE INDEX uq_sistema_raiz_cnpj ON sistema_raiz (cnpj)
+
+##############################################################################
+# TABELA: sistema_uasgs_municipio
+##############################################################################
+
+-- DDL
+CREATE TABLE sistema_uasgs_municipio (
+	id INTEGER NOT NULL, 
+	codigo_uasg VARCHAR(10) NOT NULL, 
+	nome_uasg VARCHAR(300), 
+	sigla_uf VARCHAR(2), 
+	codigo_municipio_ibge INTEGER, 
+	nome_municipio_ibge VARCHAR(120), 
+	cnpj_cpf_orgao VARCHAR(14), 
+	status_uasg BOOLEAN, 
+	sincronizado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  codigo_uasg                                   VARCHAR(10)                1                            0
+  2  nome_uasg                                     VARCHAR(300)               0                            0
+  3  sigla_uf                                      VARCHAR(2)                 0                            0
+  4  codigo_municipio_ibge                         INTEGER                    0                            0
+  5  nome_municipio_ibge                           VARCHAR(120)               0                            0
+  6  cnpj_cpf_orgao                                VARCHAR(14)                0                            0
+  7  status_uasg                                   BOOLEAN                    0                            0
+  8  sincronizado_em                               DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [UNIQUE] uq_sistema_uasg_municipio_codigo (codigo_uasg) origin=c
+         CREATE UNIQUE INDEX uq_sistema_uasg_municipio_codigo ON sistema_uasgs_municipio (codigo_uasg)
+
+##############################################################################
+# TABELA: sistema_unidades_compradoras
+##############################################################################
+
+-- DDL
+CREATE TABLE sistema_unidades_compradoras (
+	id INTEGER NOT NULL, 
+	codigo VARCHAR(10) NOT NULL, 
+	nome VARCHAR(200) NOT NULL, 
+	ativo BOOLEAN NOT NULL, 
+	ordem INTEGER NOT NULL, 
+	criado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	atualizado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  codigo                                        VARCHAR(10)                1                            0
+  2  nome                                          VARCHAR(200)               1                            0
+  3  ativo                                         BOOLEAN                    1                            0
+  4  ordem                                         INTEGER                    1                            0
+  5  criado_em                                     DATETIME                   1  CURRENT_TIMESTAMP         0
+  6  atualizado_em                                 DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [UNIQUE] uq_sistema_unidade_codigo (codigo) origin=c
+         CREATE UNIQUE INDEX uq_sistema_unidade_codigo ON sistema_unidades_compradoras (codigo)
+
+##############################################################################
+# TABELA: usuarios
+##############################################################################
+
+-- DDL
+CREATE TABLE usuarios (
+	id INTEGER NOT NULL, 
+	username VARCHAR(80) NOT NULL, 
+	senha_hash VARCHAR(200) NOT NULL, 
+	papel VARCHAR(20) NOT NULL, 
+	ativo BOOLEAN NOT NULL, 
+	criado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	atualizado_em DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+-- COLUNAS
+cid  nome                                          tipo                 notnull  default                   pk
+--------------------------------------------------------------------------------------------------------------
+  0  id                                            INTEGER                    1                            1
+  1  username                                      VARCHAR(80)                1                            0
+  2  senha_hash                                    VARCHAR(200)               1                            0
+  3  papel                                         VARCHAR(20)                1                            0
+  4  ativo                                         BOOLEAN                    1                            0
+  5  criado_em                                     DATETIME                   1  CURRENT_TIMESTAMP         0
+  6  atualizado_em                                 DATETIME                   1  CURRENT_TIMESTAMP         0
+
+-- FOREIGN KEYS
+  (nenhuma)
+
+-- ÍNDICES
+  [UNIQUE] uq_usuarios_username (username) origin=c
+         CREATE UNIQUE INDEX uq_usuarios_username ON usuarios (username)
+
+==============================================================================
+RELACIONAMENTOS (resumo FK)
+==============================================================================
+  compras_contratacao_itens.contratacao_id  -->  compras_contratacoes.id
+  compras_contratacao_itens.item_catalogo_id  -->  compras_itens_catalogo.id
+  compras_contratacao_resultados.contratacao_item_id  -->  compras_contratacao_itens.id
+  compras_contratacao_resultados.fornecedor_id  -->  compras_fornecedores.id
+  compras_contratacoes.observador_id  -->  observadores.id
+  compras_contratacoes.uasg_id  -->  compras_uasgs.id
+  compras_pgc_itens.item_catalogo_id  -->  compras_itens_catalogo.id
+  compras_pgc_itens.uasg_id  -->  compras_uasgs.id
+  compras_precos_praticados.fornecedor_id  -->  compras_fornecedores.id
+  compras_precos_praticados.item_catalogo_id  -->  compras_itens_catalogo.id
+  compras_precos_praticados.uasg_id  -->  compras_uasgs.id
+  compras_uasgs.orgao_id  -->  compras_orgaos.id
+  licitacoes.observador_id  -->  observadores.id
+  modalidades_vinculos.modalidade_consolidada_id  -->  modalidades_consolidadas.id
+  orgaos_vinculos.orgao_consolidado_id  -->  orgaos_consolidados.id
+  pbi_contrato_responsaveis.contrato_id  -->  pbi_contratos.id
+  pbi_contrato_responsaveis.fornecedor_id  -->  pbi_fornecedores.id
+  pbi_contrato_responsaveis.observador_id  -->  observadores.id
+  pbi_contrato_responsaveis.orgao_id  -->  pbi_orgaos.id
+  pbi_contrato_responsaveis.papel_id  -->  pbi_papeis.id
+  pbi_contrato_responsaveis.pessoa_id  -->  pbi_pessoas.id
+  pbi_contratos.fornecedor_id  -->  pbi_fornecedores.id
+  pbi_contratos.observador_id  -->  observadores.id
+  pbi_contratos.orgao_id  -->  pbi_orgaos.id
+  pbi_contratos.processo_id  -->  pbi_processos_licitatorios.id
+  pbi_processos_licitatorios.observador_id  -->  observadores.id
+  pbi_processos_licitatorios.orgao_id  -->  pbi_orgaos.id
+  powerbi_contratos.observador_id  -->  observadores.id
+  powerbi_gestores_fiscais.observador_id  -->  observadores.id
+  powerbi_licitacoes.observador_id  -->  observadores.id
+  sessoes.usuario_id  -->  usuarios.id
+
+==============================================================================
+FIM
+==============================================================================

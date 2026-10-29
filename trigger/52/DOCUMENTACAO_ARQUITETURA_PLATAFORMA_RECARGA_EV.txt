@@ -1,0 +1,882 @@
+================================================================================
+DOCUMENTACAO DE ARQUITETURA E PRODUTO
+Plataforma de Liberacao e Cobranca de Recarga para Veiculos Eletricos
+================================================================================
+
+Classificacao      : Documento mestre de decisao (Architecture Decision Record
+                     + Product/Engineering Spec)
+Versao             : 1.2
+Data               : 2026-10-28
+Status             : Aprovado para direcao de implementacao
+Escopo             : Documentacao estrategica e tecnica — sem codigo
+Hardware-alvo      : Livoltek linha AC/DC comercial (OCPP 1.6J)
+Pagamentos         : Inter (API Pix cob imediata + Cobranca Bolepix V3)
+                     + Stripe (PaymentIntents / Refunds)
+Refs provedores    : https://developers.inter.co/references/pix
+                     https://developers.inter.co/references/cobranca-bolepix
+                     https://docs.stripe.com/api
+Cliente movel      : Kotlin (Android; evolucao KMP se iOS for requisito)
+CSMS               : Proprio (construir)
+Cobranca           : Motor de tarifas dinamico
+Posicionamento     : CPO (nossas estacoes) — NAO marketplace/EMSP nacional
+
+Elaborado sob criterio de excelencia em:
+  - Arquitetura de software e sistemas distribuidos
+  - Engenharia de produto e UX de servicos fisicos digitais
+  - Seguranca (pagamentos, IoT/OCPP, API, LGPD)
+  - Dados, conciliacao e observabilidade operacional
+  - Operacao de infraestrutura critica (CPO / e-mobility)
+
+Principio deste documento:
+  Em toda bifurcacao, RECOMENDAR e DECIDIR o melhor caminho.
+  Ambiguidades sao resolvidas com default profissional explicito.
+  Itens ainda dependentes de bancada ficam como gate de qualidade,
+  nao como indecisao de arquitetura.
+
+
+================================================================================
+1. SUMARIO EXECUTIVO
+================================================================================
+
+1.1 Problema
+  Operar estacoes Livoltek comerciais com jornada self-service:
+  escolher carga ? pagar ? confirmar recebimento ? liberar equipamento
+  ? medir energia ? encerrar ? conciliar/estornar — com seguranca
+  de nivel financeiro e confiabilidade de infraestrutura critica.
+
+1.2 Decisao de solucao (caminho unico recomendado)
+  Construir uma plataforma vertical propria composta por:
+
+    [A] App Kotlin (experiencia do motorista)
+    [B] Backend de negocio (sessoes, tarifas dinamicas, pagamentos)
+    [C] CSMS OCPP 1.6J proprio (unico canal de comando ao hardware)
+    [D] Painel admin (operacao, precos, suporte, conciliacao)
+    [E] Camada de dados + observabilidade + auditoria imutavel
+
+  O carregador NUNCA e controlado diretamente pelo app.
+  O app NUNCA libera carga com base em “tela de sucesso” de pagamento.
+  Somente o backend, apos webhook criptograficamente verificado,
+  solicita RemoteStart ao CSMS.
+
+1.3 Por que este caminho (e nao alternativas)
+  - My Livoltek / Bluetooth: inadequado para cobranca publica e escala.
+  - SaaS CSMS de terceiro: acelera, mas reduz controle do elo critico
+    pagamento?liberacao e do motor de tarifa; rejeitado em favor de
+    CSMS proprio apos decisao do produto.
+  - App falando OCPP: inseguro, fragil e operacionalmente incorreto.
+  - Free charging / AUTO start: proibido em producao cobrada.
+
+1.4 Resultado esperado
+  Plataforma CPO completa, auditavel, com UX clara no ponto fisico,
+  precos dinamicos, PIX + cartao, e liberacao deterministica do
+  equipamento Livoltek via OCPP.
+
+
+================================================================================
+2. DECISOES FECHADAS (ADR — Architecture Decision Records)
+================================================================================
+
+ADR-001  Hardware
+  Decisao : Linha Livoltek AC/DC COMERCIAL (nao Atom residencial puro).
+  Motivo  : OCPP 1.6J, CMS URL configuravel, RemoteStart/QR/RFID
+            alinhados a operacao cobrada.
+  Acao    : Anotar modelo exato + SN + firmware em cada instalacao;
+            nao muda a arquitetura.
+
+ADR-002  Canal com o equipamento
+  Decisao : OCPP 1.6J JSON via CSMS proprio (WebSocket seguro).
+  Motivo  : Padrao da industria; suportado pelo material Livoltek;
+            caminho de evolucao para OCPP 2.0.1 quando firmware maduro.
+  Rejeita : Controle BLE remoto, automacao do app fabricante, relays
+            fisicos nao documentados.
+
+ADR-003  CSMS
+  Decisao : CONSTRUIR CSMS proprio (nao SaaS).
+  Motivo  : Controle total do fluxo pago?liberar, MeterValues para
+            tarifa dinamica, auditoria unica, sem lock-in do elo critico.
+  Tradeoff: Mais engenharia inicial; compensado por soberania operacional.
+
+ADR-004  App cliente
+  Decisao : Kotlin (Android nativo primeiro).
+  Motivo  : Excelente para UX offline-tolerant, Push, Camera/QR,
+            performance e manutenibilidade em time BR.
+  Evolucao: Se iOS for requisito comercial firme, Kotlin Multiplatform
+            para dominio compartilhado (rede/sessao/pagamentos UI-agnostic);
+            UI iOS nativa ou Compose Multiplatform — decidir na Fase 2
+            sem reescrever regras de negocio.
+  Rejeita : App so PWA como unico cliente em posto (QR PWA pode existir
+            como canal auxiliar, nao como unico).
+
+ADR-005  Backend de negocio
+  Decisao : API propria (recomendacao de stack na secao 6).
+  Motivo  : Separar “dinheiro e regras” de “protocolo OCPP”.
+  Regra   : Backend de negocio e a unica autoridade de cobranca;
+            CSMS e a unica autoridade de comando eletrico.
+
+ADR-006  Pagamentos (provedores configurados)
+  Decisao : Dual-provider via adaptadores no backend de negocio:
+            (A) Banco Inter — canal PIX BR primario
+            (B) Stripe — cartao / metodos Stripe (e opcional PIX Stripe
+                so se negocio exigir; default = Inter para PIX)
+  Motivo  : PIX = padrao BR de conversao; Stripe = cartao, turistas e
+            metodos adicionais com API madura (PaymentIntents/Refunds).
+  Regra   : Confirmacao somente por webhook verificado + idempotencia.
+            Nunca confiar no client. App nao guarda secrets Inter/Stripe.
+  Aderencia Inter (escolha de produto API):
+            DEFAULT MVP (pre-pago de sessao, TTL minutos):
+              API Pix — Cobranca Imediata
+              https://developers.inter.co/references/pix
+              PUT/POST /pix/v2/cob  (calendario.expiracao em segundos)
+              Webhook Pix + devolucao PUT /pix/{e2eid}/devolucao/{id}
+            Complementar / cenarios com vencimento por DATA ou boleto:
+              API Cobranca V3 Bolepix
+              https://developers.inter.co/references/cobranca-bolepix
+              POST /cobranca/v3/cobrancas  (Boleto+Pix; situacao RECEBIDO)
+              NAO e o default da liberacao de recarga: vencimento e por
+              data (mesmo dia ate ~19h59), e a propria doc Inter indica
+              PIX-only via API Pix — nao via Bolepix sozinho.
+  Aderencia Stripe:
+            https://docs.stripe.com/api
+            PaymentIntents (criar/confirmar) + Webhooks
+            (payment_intent.succeeded / .payment_failed / .canceled)
+            + Refunds API (estorno total/parcial pos-sessao).
+            Fase 2: Authorization hold + Capture (requires_capture)
+            se pos-pago for habilitado (ver 7.5).
+  Correlacao : provider_ref + nosso payment_id + session_id (P4).
+               Inter cob: txid / codigoSolicitacao / seuNumero.
+               Stripe: payment_intent id (pi_…).
+
+ADR-007  Modelo comercial
+  Decisao : Motor de tarifas DINAMICO.
+  Motivo  : Postos reais mudam preco por horario, estacao, campanha,
+            potencia e estrategia; um modo fixo envelhece em semanas.
+  Default MVP do motor (ainda dinamico):
+            - Tarifas versionadas por estacao
+            - Modos: R$/kWh | R$/min | credito em valor (pre-pago)
+            - Faixa horaria
+            - Politicas de estorno/timeout configuraveis
+
+ADR-008  Seguranca
+  Decisao : Nivel “financeiro + IoT critico” (defense in depth).
+  Defaults obrigatorios na secao 8. Nao negociar perfil OCPP 1
+            em producao.
+
+ADR-009  Gate de qualidade
+  Decisao : Nenhum pagamento real em producao antes do plano de teste
+            RemoteStart + MeterValues PASS (ver arquivo irmao
+            PLANO_TESTE_REMOTE_START_METERVALUES.txt).
+
+ADR-010  Posicionamento de produto (CPO vs marketplace)
+  Decisao : Somos CPO — operamos e cobramos as NOSSAS estacoes Livoltek
+            via app + CSMS proprio. NAO somos agregador/EMSP nacional
+            (tipo Tupi) no MVP nem no nucleo.
+  Motivo  : Negocios diferentes. Marketplace = mapa de milhares de
+            pontos de terceiros + carteira + roaming. Nosso nucleo =
+            pagamento soberano + liberacao OCPP do parque proprio.
+  Regra   : O app lista somente charge points cadastrados no NOSSO CSMS.
+  Futuro  : “Aparecer no Tupi/outros mapas” = integracao OUTBOUND
+            (exportar nossos pontos para o marketplace deles), fora do
+            nucleo. Detalhe em secao 4.3 e no arquivo Tupi.
+
+
+================================================================================
+3. PRINCIPIOS DE ENGENHARIA (NAO NEGOCIAVEIS)
+================================================================================
+
+P1  Separacao de responsabilidades
+    App = experiencia. Backend negocio = dinheiro e regras.
+    CSMS = protocolo e energia. Nunca misturar.
+
+P2  Autoridade no servidor
+    Qualquer acao que mova dinheiro ou energia e decidida no servidor.
+
+P3  Idempotencia
+    Todo webhook e todo RemoteStart tem chave idempotente.
+    Pagar uma vez = no maximo uma sessao autorizada.
+
+P4  Auditoria ponta a ponta
+    payment_id ? session_id ? ocpp_transaction_id ? meter_start/stop.
+    Trilha imutavel (append-only) para disputa e conciliacao.
+
+P5  Fail closed
+    Duvida sobre pagamento, identidade da estacao ou saude OCPP
+    ? NAO libera. Prefere estornar a energizar sem certeza.
+
+P6  Observabilidade primeiro
+    Sem metrica/log/trace do elo OCPP, a plataforma e cega.
+    Heartbeat ausente = estacao indisponivel para venda.
+
+P7  UX fisica honesta
+    O usuario deve entender em 5 segundos: onde pluguar, quanto paga,
+    o que fazer apos pagar, como parar, o que acontece se falhar.
+
+P8  Dados minimos (LGPD)
+    Coletar so o necessario; base legal clara; retencao definida;
+    pagamento tokenizado via provedores.
+
+
+================================================================================
+4. ARQUITETURA LOGICA (VISAO ESPECIALISTA)
+================================================================================
+
+4.1 Como funciona (em uma frase)
+  Aplicativo do motorista ligado ao NOSSO servidor; o servidor fala
+  OCPP com a rede de carregadores e efetua as liberacoes.
+  O app NAO fala com o carregador. O carregador NAO depende do
+  My Livoltek para este produto.
+
+4.2 Fluxo ponta a ponta (resumo)
+
+  1. Equipamento aponta CMS URL para o CSMS proprio (por charge point).
+  2. Motorista no app escolhe posto/tomada (ou le QR) e paga.
+  3. Webhook de pagamento confirmado no backend de negocio.
+  4. Backend pede RemoteStart ao CSMS (API interna).
+  5. CSMS libera o connector; MeterValues alimentam cobranca dinamica.
+  6. Stop / limite / falha ? conciliacao e estorno conforme politica.
+
+4.3 Diagrama logico
+
+  +------------------+
+  | App Kotlin       |  UX motorista (mapa do NOSSO parque, QR,
+  | (+ PWA QR opcional) checkout, sessao ao vivo)
+  +--------+---------+
+           | HTTPS + auth (mTLS app?API opcional em fase avancada)
+           v
+  +------------------+     +-------------------------------+
+  | API de Negocio   |---->| Inter API Pix (/pix/v2/cob)   |
+  | Sessoes/Tarifas/ |     |   DEFAULT pre-pago sessao     |
+  | Pagamentos/Admin |---->| Inter Cobranca V3 (Bolepix)   |
+  |  PaymentAdapter  |     |   vencimento/boleto (nao MVP) |
+  |  (Inter|Stripe)  |---->| Stripe API (PaymentIntents +  |
+  +--------+---------+     |   Refunds + Webhooks)         |
+           |               +-------------------------------+
+           |
+           | API interna privada (rede fechada / service mesh)
+           v
+  +------------------+
+  | CSMS OCPP 1.6J   |  WebSocket(s) persistente(s) com charge points
+  | (servidor proprio)|  = “a rede” onde liberamos energia
+  +--------+---------+
+           |
+           v
+  +------------------+
+  | Livoltek AC/DC   |  Um a um: cada identity OCPP cadastrado
+  | comercial        |  e comissionado (ver 4.5 e secao 9)
+  +------------------+
+
+  Lateral: Data Platform (OLTP + outbox + warehouse analitico leve)
+            Observability (logs, metrics, traces, alertas)
+            Identity (usuarios motorista + operadores)
+
+4.4 CPO proprio vs marketplace (Tupi e similares) — DECISAO
+
+  Papel                         Quem e quem
+  ---------------------------   ------------------------------------------
+  CPO (nos)                     Dono/operador das estacoes; CSMS; cobranca
+  EMSP / marketplace (Tupi)     App do motorista com mapa agregado nacional
+  Catalogo no mapa deles        Ponto so listado (informacao); sem liberar
+  “Conectada” (ex. Tupi Conecta) Ponto integrado; da para iniciar/pagar la
+
+  O que NAO acontece ao “vincular” a um marketplace:
+    - Nosso app NAO passa a mostrar todos os carregadores do mercado.
+    - Nao herdamos inventário Shell/BYD/etc. automatico.
+
+  O que ACONTECE se no futuro exportarmos para o Tupi (outbound):
+    - Nossas estacoes passam a aparecer/liberar NO APP DELES.
+    - Motorista paga na carteira deles; comando chega ao hardware
+      conforme contrato/bridge acordado.
+    - Continua sendo cadastro/associacao por equipamento (ou lote
+      de IDs), nunca “liga o sistema e sobe o Brasil inteiro”.
+
+  Referencia UX/competitiva: ANALISE_COMPETITIVA_TUPI_INCREMENTOS.txt
+  (secao “Como funciona o marketplace”).
+
+4.5 Vinculo de equipamento = manual / por identity (regra operacional)
+
+  Cada carregador (Charge Point Identity OCPP) entra de forma explicita:
+
+    A) Cadastro no NOSSO CSMS (identity, connectors, site, tarifa)
+    B) No hardware: CMS URL + identity + security profile
+    C) Validacao Boot/Heartbeat + plano de teste
+    D) Abrir para venda no admin
+
+  Pode haver onboarding em lote (planilha/API com varios IDs), mas a
+  logica permanece: cada identity precisa estar cadastrado e autorizado.
+  Nao existe descoberta magica de eletropostos de terceiros no nosso app.
+
+4.6 Dominios (bounded contexts)
+
+  D1 Identidade e acesso        — motoristas, operadores, papeis
+  D2 Catalogo de ativos         — sites, charge points, connectors, SN/FW
+  D3 Tarifas dinamicas          — regras, vigencia, simulacao de preco
+  D4 Checkout e pagamentos      — intents PIX/Stripe, webhooks, estornos
+  D5 Sessoes de recarga         — maquina de estados negocio
+  D6 CSMS / OCPP                — protocolo, RemoteStart/Stop, meters
+  D7 Conciliacao e financeiro   — ledger, divergencias, exportacao
+  D8 Suporte e operacao         — tickets, remote diagnostics read-only
+  D9 Analytics                  — ocupacao, conversao, falhas, margem
+
+4.7 Maquina de estados da sessao (negocio) — DECIDIDA
+
+  CREATED
+    ? AWAITING_PAYMENT
+    ? PAYMENT_EXPIRED (estorno N/A / cancelamento)
+    ? PAID
+    ? START_REQUESTED          (CSMS RemoteStart enviado)
+    ? START_FAILED              ? REFUND_PENDING ? REFUNDED
+    ? PREPARING                 (aguardando plug / handshake veiculo)
+    ? CHARGING
+    ? STOP_REQUESTED
+    ? COMPLETED                 ? SETTLED (conciliado)
+    ? ABORTED_TIMEOUT           ? REFUND_FULL ou REFUND_PARTIAL
+    ? FAULTED                   ? politica de estorno + alerta ops
+
+  Regra de ouro: so PAID pode ir a START_REQUESTED.
+  Estacao offline no CSMS: bloqueia AWAITING_PAYMENT (fail closed).
+
+
+================================================================================
+5. JORNADA UX (MELHOR CAMINHO PRATICO)
+================================================================================
+
+5.1 Principios UX para posto fisico
+  - Uma acao primaria por tela.
+  - Linguagem humana (“Pague para liberar a carga”), nao jargao OCPP.
+  - Feedback continuo apos o PIX (evita “paguei e nada aconteceu”).
+  - QR na estacao = deep link direto no connector certo (menos erro).
+  - Estado da pistola/conector visivel (livre / ocupado / offline / falha).
+  - Acessibilidade: contraste alto, tipografia grande sob sol, alvos de toque.
+  - Modo “ja estou no posto” priorizado sobre mapa (mapa e secundario no MVP).
+
+5.2 Fluxo feliz (decidido)
+
+  1. Usuario abre app ou scaneia QR do connector.
+  2. Ve preco DINAMICO vigente (modo + valor + estimativa).
+  3. Escolhe credito (valor) OU confirma modo kWh/tempo com teto.
+  4. Paga PIX (preferencial BR) ou Stripe.
+  5. Tela “Confirmando pagamento…” (polling/websocket de sessao).
+  6. “Liberado — conecte o veiculo” OU “Iniciando…” se ja plugado.
+  7. Sessao ao vivo: kWh, potencia, saldo restante, tempo.
+  8. Parar no app / no veiculo / no equipamento ? recibo.
+  9. Se sobrar credito pre-pago: estorno ou credito em conta
+     (DECISAO DEFAULT: estorno automatico PIX/Stripe quando API permitir;
+      senao credito em wallet interno — configurar por operacao).
+
+5.3 Fluxos de falha (UX obrigatoria)
+
+  - PIX expirou ? mensagem clara + botao novo pagamento.
+  - Pagou e estacao falhou RemoteStart ? “Vamos estornar” + protocolo
+    suporte + SLA interno.
+  - Timeout sem plug ? countdown visivel + estorno.
+  - Estacao offline ? nao oferece checkout (“Indisponivel”).
+
+5.4 Admin UX (operador)
+  - Mapa/lista de saude das estacoes (verde/vermelho por heartbeat).
+  - Editor de tarifas com simulador (“agora nesta estacao custaria X”).
+  - Timeline da sessao (pagamento + OCPP events).
+  - Acao suporte: RemoteStop emergencial (auditado), nunca “energia livre”
+    sem trilha.
+
+
+================================================================================
+6. STACK E PADROES RECOMENDADOS (DECISOES)
+================================================================================
+
+6.1 Cliente
+  - Kotlin + Jetpack Compose
+  - Arquitetura: UI ? ViewModel ? Domain UseCases ? Data (repository)
+  - Rede: Ktor ou Retrofit + OkHttp; certificate pinning em producao
+  - Estado remoto de sessao: WebSocket ou SSE apos pagamento
+  - QR: CameraX + ML Kit / ZXing
+  - Secrets: nenhum key de Inter/Stripe no app (so publishable keys
+    Stripe se necessario; PIX vem do backend)
+
+6.2 API de negocio (DECISAO)
+  - Kotlin (Ktor ou Spring Boot) OU TypeScript (NestJS) —
+    DECISÃO FINAL RECOMENDADA: Kotlin no backend de negocio
+    quando o time for o mesmo do app (um dominio, menos contexto
+    switch, compartilhamento de DTOs via OpenAPI).
+    Alternativa aceitavel: NestJS se o time backend for fortemente TS.
+  - API REST + OpenAPI; eventos internos via outbox pattern
+  - Auth motorista: OAuth2/OIDC (Auth0/Keycloak/Cognito) ou JWT proprio
+    com refresh rotation — DECISÃO: OIDC gerenciado (menos risco)
+  - Auth servico CSMS?API: mTLS ou JWT de servico em rede privada
+
+6.3 CSMS (DECISAO)
+  - Servico dedicado (processo separado da API de cobranca)
+  - OCPP 1.6J JSON over WebSocket
+  - Persistencia de conexoes charge point, transactions, meter values
+  - API interna gRPC ou REST privada: Start, Stop, GetStatus, GetMeter
+  - Base de referencia para acelerar: estudar SteVe / CitrineOS /
+    implementacoes maduras — SEM virar dependencia SaaS; fork ou
+    implementacao controlada pelo time
+  - Security profile producao: minimo 2; alvo 3 (TLS); 4 (mTLS) quando
+    o parque e o processo de certificados estiverem prontos
+
+6.4 Dados
+  - PostgreSQL como sistema de registro (sessoes, tarifas, pagamentos,
+    charge points)
+  - Redis: locks idempotentes, rate limit, presencia de sessao
+  - Object storage: recibos PDF / exports
+  - Outbox + worker para webhooks outbound e jobs de estorno
+  - Warehouse leve (BigQuery/ClickHouse/Postgres analitico) na Fase 2
+  - Nunca apagar eventos OCPP/pagamento — soft retention policy
+
+6.5 Infra
+  - Containers (Docker) + orquestracao (Kubernetes ou ECS)
+  - DECISÃO MVP infra: um cloud primario (AWS ou GCP) —
+    recomendacao AWS se ja houver Inter/Stripe webhooks e VPC madura;
+    GCP igualmente valido. Escolher UM e padronizar.
+  - CSMS em subnet privada com NLB/WAF na borda WebSocket
+  - Secrets Manager / Vault
+  - Backup PITR do Postgres; drill de restore trimestral
+  - Multi-AZ desde o dia 1 do CSMS (queda = posto parado)
+
+6.6 Observabilidade
+  - OpenTelemetry traces atravessando API ? CSMS ? correlacao session_id
+  - Metricas: heartbeat lag, RemoteStart success rate, time-to-charging,
+    webhook lag PIX/Stripe, refund rate, connector occupancy
+  - Alertas: charge point offline, RemoteStart fail spike, pagamento
+    sem start, divergencia meter
+
+
+================================================================================
+7. COBRANCA DINAMICA (DESENHO DECIDIDO)
+================================================================================
+
+7.1 Conceito
+  Tarifa = documento versionado, imutavel apos publicado.
+  Sessao grava o tariff_version_id usado (preco “congelado” no checkout
+  para transparencia; reavaliacao so se politica explicitar).
+
+7.2 Campos minimos de uma tarifa
+  - station_id / connector_group
+  - mode: ENERGY_KWH | TIME_MINUTE | PREPAID_AMOUNT | HYBRID
+  - unit_price + currency BRL
+  - time_windows (opcional)
+  - session_fee (opcional)
+  - min_amount / max_amount
+  - idle_fee apos completo (Fase 2 — decide se aplica)
+  - refund_policy_id
+  - valid_from / valid_to
+  - priority (resolucao quando varias batem)
+
+7.3 Resolucao de preco (algoritmo default)
+  1. Filtrar tarifas ativas para o connector no instante T
+  2. Aplicar janela horaria
+  3. Maior priority vence; empate ? mais especifica (connector > station)
+  4. Simular estimativa para UI
+  5. Persistir snapshot na sessao
+
+7.4 Pre-pago (recomendado como default de risco)
+  Usuario paga valor V.
+  Durante CHARGING, custo acumulado C(t) pela tarifa snapshot.
+  Se C(t) >= V ? RemoteStop ? SETTLED (consumo = V; sem sobra).
+  Se termina antes ? refund V - C (politica) ou wallet credit.
+
+7.5 Pos-pago / captura Stripe
+  Permitido so com Authorization hold + Capture no valor final,
+  e apenas se risco de fraude/chargeback estiver coberto.
+  DECISAO MVP: priorizar pre-pago PIX (Inter API Pix); Stripe
+  checkout pre-pago via PaymentIntent; holds (requires_capture)
+  na Fase 2.
+
+7.6 Adaptadores de cobranca — mapeamento as APIs configuradas (DECIDIDO)
+--------------------------------------------------------------------------------
+O dominio D4 (Checkout e pagamentos) expoe uma interface unica
+PaymentPort. Cada provedor e um adaptador. A maquina de estados
+(4.7) fala so em eventos de negocio; o adaptador traduz API externa.
+
+  PaymentPort (interno)
+    createIntent(session, amount, ttl, method)
+    cancelIntent(provider_ref)          // expiracao / desistencia
+    refund(provider_ref, amount?)       // total ou parcial
+    handleWebhook(raw, headers) -> PaymentEvent
+
+  PaymentEvent (interno, apos validacao)
+    INTENT_CREATED | PAID | EXPIRED | CANCELED | REFUND_SUCCEEDED
+    | REFUND_FAILED
+
+  Mapeamento estado sessao <- evento:
+    AWAITING_PAYMENT  <- INTENT_CREATED
+    PAID              <- PAID  (unico gatilho de RemoteStart)
+    PAYMENT_EXPIRED   <- EXPIRED | CANCELED sem PAID
+    REFUND_*          <- REFUND_*
+
+--- 7.6.1 Inter API Pix (DEFAULT — pre-pago de sessao) ---
+  Ref: https://developers.inter.co/references/pix
+  Base prod : https://cdpj.partners.bancointer.com.br/pix/v2
+  Base sand : (sandbox Inter UAT correspondente)
+
+  createIntent
+    PUT ou POST /cob  (cobranca imediata)
+    calendario.expiracao = TTL da sessao em segundos (ex. 300–900)
+    valor.original = credito pre-pago (BRL)
+    txid = chave estavel ligada a payment_id (idempotencia)
+    Resposta: pixCopiaECola / loc / status ATIVA -> UI QR / copia-cola
+
+  Confirmacao PAID
+    Webhook de Pix Cobranca (PUT /webhook/{chave}) OU
+    consulta GET /cob/{txid} / GET /pix/{e2eid}
+    Nunca marcar PAID so por redirect/polling do app sem prova no PSP
+
+  cancelIntent (nao pago)
+    Revisao/expiracao natural por calendario.expiracao;
+    se API permitir revisao (PATCH /cob/{txid}) para REMOVIDA, usar
+
+  refund
+    PUT /pix/{e2eid}/devolucao/{id}  (valor total ou parcial)
+    id de devolucao = chave idempotente nossa (ex. refund_{payment_id}_n)
+    Usar apos START_FAILED, ABORTED_TIMEOUT, sobra de credito SETTLED
+
+  Escopos OAuth tipicos: cob.write, cob.read, pix.read, pix.write
+  (confirmar na aplicacao Inter PJ configurada)
+
+--- 7.6.2 Inter Cobranca V3 / Bolepix (complementar — NAO default sessao) ---
+  Ref: https://developers.inter.co/references/cobranca-bolepix
+  Base prod : https://cdpj.partners.bancointer.com.br/cobranca/v3
+  Base sand : https://cdpj-sandbox.partners.uatinter.co/cobranca/v3
+
+  Quando usar:
+    - Cobranca com vencimento por DATA (boleto + Pix no mesmo titulo)
+    - Conciliacao/sumario operacional (GET /cobrancas, /cobrancas/sumario)
+    - PDF do titulo (GET /cobrancas/{codigoSolicitacao}/pdf)
+  Quando NAO usar como default da liberacao EV:
+    - Doc Inter: nao da para formasRecebimento = so PIX; PIX-only
+      deve ir pela API Pix (7.6.1)
+    - dataVencimento e dia (YYYY-MM-DD); mesmo dia limitado a ~19h59
+    - Nao modela TTL de minutos da tela “pague para liberar”
+
+  createIntent (se canal Bolepix habilitado por regra de negocio)
+    POST /cobrancas
+    seuNumero <= 15 chars  (= correlacao curta com payment/session)
+    valorNominal, dataVencimento, pagador
+    formasRecebimento default BOLETO+PIX
+    Retorno async: codigoSolicitacao; callback webhook com pixCopiaECola
+    Idempotencia Inter (~30 min): seuNumero+valor+vencimento+cpfCnpj
+
+  Confirmacao PAID
+    Webhook PUT /cobrancas/webhook  (callbacks: pagos, cancelados, expirados)
+    situacao RECEBIDO (+ valorTotalRecebido, origemRecebimento, txid)
+    Retries Inter se nosso endpoint falhar: 20/30/60/120 min (ate 4x)
+    Fallback: GET /cobrancas/{codigoSolicitacao}
+
+  cancelIntent
+    POST /cobrancas/{codigoSolicitacao}/cancelar
+
+  refund
+    Bolepix nao e o caminho primario de devolucao parcial de sessao;
+    preferir API Pix devolucao quando o recebimento foi Pix (e2eid),
+    ou politica de wallet/ajuste manual documentada no ledger (10.1)
+
+  Escopos: boleto-cobranca.read / boleto-cobranca.write
+  Sandbox: POST /cobrancas/{codigoSolicitacao}/pagar  (pagarCom PIX|BOLETO)
+
+--- 7.6.3 Stripe (cartao / metodos Stripe — pre-pago MVP) ---
+  Ref: https://docs.stripe.com/api
+  Base: https://api.stripe.com
+
+  createIntent
+    POST /v1/payment_intents
+    amount em centavos BRL, currency=brl
+    metadata: session_id, payment_id, connector_id
+    Idempotency-Key HTTP = payment_id
+    Client secret so para confirmacao no app (Payment Sheet / SDK);
+    secret key nunca no client
+
+  Confirmacao PAID
+    Webhook event payment_intent.succeeded
+    (opcionalmente charge.succeeded como sinal auxiliar — fonte de
+     verdade da sessao = PaymentIntent succeeded)
+    Verificar assinatura Stripe-Signature (endpoint secret)
+    Ignorar eventos de modo teste em prod e vice-versa
+
+  Falha / cancelamento
+    payment_intent.payment_failed -> manter/retentar AWAITING_PAYMENT
+    payment_intent.canceled -> PAYMENT_EXPIRED / CANCELED
+    Expirar intent nao pago alinhado ao TTL do checkout
+
+  refund
+    POST /v1/refunds  com payment_intent=pi_…  (+ amount parcial opcional)
+    Escutar refund.created / refund.failed / charge.refunded
+    Idempotency-Key no create refund
+
+  Fase 2 (pos-pago): capture_method=manual -> requires_capture;
+    Capture no valor C(t) ao Stop; cancel do hold se timeout sem carga
+
+--- 7.6.4 Contrato unico de persistencia (obrigatorio) ---
+  payment (
+    payment_id, session_id, provider [INTER_PIX|INTER_BOLEPIX|STRIPE],
+    provider_ref, secondary_refs {txid, e2eid, codigoSolicitacao,
+    seuNumero, charge_id}, amount, currency, status, raw_event_ids[]
+  )
+  Todo RemoteStart exige payment.status=PAID e provider_ref nao nulo.
+  Conciliacao diaria: extrato/sumario Inter + Stripe Balance/Payouts
+  vs ledger interno (10.1).
+
+
+================================================================================
+8. SEGURANCA ULTRA (PADRAO EXIGIDO)
+================================================================================
+
+8.1 Ameacas principais
+  - Liberacao sem pagamento / replay de webhook
+  - App adulterado chamando start
+  - Charge point falso (rogue) no CSMS
+  - Sequestro de sessao / IDOR entre usuarios
+  - Vazamento de PII e dados de pagamento
+  - DDoS no endpoint OCPP
+  - Insider abuse no admin (RemoteStart manual indevido)
+
+8.2 Controles obrigatorios (producao)
+
+  Pagamentos
+    [ ] Validacao de assinatura / autenticidade webhook Inter e Stripe
+    [ ] Idempotency-Key: Stripe (pi_/refund); Inter txid / seuNumero /
+        id de devolucao
+    [ ] Estado PAID so via worker de webhook (ou poll PSP apos sinal);
+        nunca via redirect do app
+    [ ] Segredo OAuth Inter + Stripe secret key so em vault (server)
+    [ ] Webhook URLs HTTPS dedicadas por provedor
+        (/webhooks/inter/pix, /webhooks/inter/bolepix, /webhooks/stripe)
+    [ ] Reconciliacao diaria automatica com extratos / sumario Inter
+        + Stripe
+
+  API
+    [ ] TLS 1.2+; HSTS
+    [ ] Auth OIDC; RBAC admin
+    [ ] Rate limit por usuario/IP/device
+    [ ] Certificate pinning no app
+    [ ] Soft delete + IDOR tests automatizados em sessoes
+
+  OCPP / CSMS
+    [ ] Allowlist de Charge Point Identity cadastrados
+    [ ] Auth Basic ou certificado; rejeitar identity desconhecido
+    [ ] TLS no WebSocket (wss)
+    [ ] Timeout de autorizacao pos-PAID (ex. 5–10 min sem Charging
+        ? abort + refund)
+    [ ] RemoteStart apenas de servico interno autenticado
+    [ ] Admin RemoteStop/Start com MFA + motivo + audit log
+
+  App
+    [ ] Sem secrets de adquirencia
+    [ ] Root/jailbreak detection como sinal (nao unica defesa)
+    [ ] Ofuscacao razoavel; Play Integrity / App Attest quando iOS
+
+  Dados / LGPD
+    [ ] Inventario de dados pessoais
+    [ ] Criptografia at-rest (Postgres/disks)
+    [ ] Retencao e anonimizacao
+    [ ] DPA com Inter, Stripe, cloud
+
+  Operacao
+    [ ] Segregacao de funcoes (quem publica tarifa ? quem acessa vault)
+    [ ] Bastion / VPN para admin
+    [ ] Pentest antes do go-live publico
+    [ ] Runbook de incidente (pagamento sem carga, carga sem pagamento)
+
+
+================================================================================
+9. INTEGRACAO LIVOLTEK (OPERACAO)
+================================================================================
+
+9.1 Comissionamento padrao (por estacao / por charge point)
+  Regra: vinculo e SEMPRE por equipamento (identity OCPP). Ver 4.5.
+  Nao ha “ligar a rede e importar o mercado”.
+
+  1. Cadastrar charge point no CSMS (identity, connectors, site)
+  2. No equipamento: CMS Enable, CMS URL wss://…, identity, security
+  3. Connect Server; validar BootNotification + Heartbeat
+  4. Desabilitar free/AUTO start
+  5. Configurar MeterValueSampleInterval (ex. 30–60 s) e measurands
+     de energia
+  6. Rodar plano de teste (arquivo irmao) ate PASS
+  7. Publicar tarifa dinamica + abrir para venda no admin
+
+  Lote: permitido via planilha/API com N identities — cada linha ainda
+  passa pelos passos acima (ou equivalente automatizado com checklist).
+
+9.2 Mensagens OCPP criticas
+  BootNotification, Heartbeat, StatusNotification,
+  Authorize (se usado), StartTransaction, MeterValues,
+  StopTransaction, RemoteStartTransaction, RemoteStopTransaction,
+  ChangeConfiguration / GetConfiguration (ops)
+
+9.3 Dual connector
+  Sempre endereçar connectorId explicitamente.
+  Checkout do QR deve embedar station + connector.
+
+
+================================================================================
+10. DADOS, CONCILIACAO E INTELIGENCIA
+================================================================================
+
+10.1 Ledger interno (DECISAO)
+  Cada movimento financeiro gera lancamento:
+    PAYMENT_CAPTURED, REFUND_ISSUED, SESSION_CONSUMED, ADJUSTMENT
+  Sessoes apontam para lancamentos; relatorios batem com Inter/Stripe.
+
+10.2 Metricas de produto (north stars)
+  - Taxa de sessoes COMPLETED / PAID
+  - Tempo mediano PAID ? CHARGING
+  - Taxa de estorno por falha tecnica
+  - Uptime por connector
+  - Receita / kWh e ocupacao
+
+10.3 Qualidade de dados
+  Contratos de evento versionados.
+  Testes de invariante: nunca CHARGING sem PAID;
+  nunca dois RemoteStart ativos no mesmo connector.
+
+
+================================================================================
+11. ROADMAP DE ENTREGA (MELHOR SEQUENCIA)
+================================================================================
+
+Fase 0 — Fundacao (gate)
+  CSMS minimo + 1 charge point Livoltek + plano de teste PASS
+  (T01–T06, T10 no minimo)
+
+Fase 1 — MVP comercial fechado (piloto)
+  App Kotlin: QR ? tarifa dinamica ? Inter API Pix (cob imediata)
+    ? sessao ao vivo ? recibo (PaymentPort 7.6)
+  Admin: estacoes, tarifas, sessoes, estornos
+  Stripe PaymentIntents em paralelo ou logo apos PIX Inter estavel
+  Bolepix V3 so se surgir requisito de boleto/vencimento por data
+  Observabilidade basica + runbooks
+
+Fase 2 — Endurecimento
+  Security profile OCPP 3/4, pentest, idle fee, multi-estacao,
+  wallet credito, iOS/KMP se houver demanda, analytics
+
+Fase 3 — Escala
+  Multi-tenant/CPO, EV HUB/DLM se necessario, OCPP 2.0.1,
+  automacao fiscal, SLA comercial
+
+
+================================================================================
+12. ORGANIZACAO DO TIME (MODELO RECOMENDADO)
+================================================================================
+
+  - Tech Lead / Arquiteto (dono dos ADRs e gates)
+  - Eng. Backend (API negocio + pagamentos)
+  - Eng. CSMS/IoT (OCPP, comissionamento, estabilidade)
+  - Eng. Mobile Kotlin (UX posto + resiliencia)
+  - Eng. Dados / Platform (ledger, pipelines, metricas)
+  - Design UX (jornada fisica + admin)
+  - Sec / DevOps (parte-time no MVP; full antes do publico)
+  - Operacao de campo (comissionamento Livoltek)
+
+  Regra: ninguem mergeia RemoteStart “facil” no app.
+  Code owners no CSMS e no modulo de pagamentos.
+
+
+================================================================================
+13. CRITERIOS DE ACEITE DO SISTEMA (DEFINITION OF DONE)
+================================================================================
+
+  DoD-1  Estacao offline nao vende.
+  DoD-2  Webhook PIX/Stripe invalido nao muda estado.
+  DoD-3  PAID sem Charging em T minutos ? abort + refund automatico.
+  DoD-4  Toda sessao COMPLETED tem meterStart/Stop e valor conciliado.
+  DoD-5  Trilha auditavel payment ? ocpp_transaction completa.
+  DoD-6  Tarifa usada na sessao e snapshot imutavel legivel no recibo.
+  DoD-7  Admin sensivel exige MFA; acoes destrutivas auditadas.
+  DoD-8  Plano de teste hardware PASS no parque piloto.
+  DoD-9  RTO/RPO do CSMS documentados e testados (restore).
+  DoD-10 UX de falha coberta (sem beco sem saida apos pagar).
+
+
+================================================================================
+14. RISCOS RESIDUAIS E MITIGACAO
+================================================================================
+
+  Risco: MeterValues insuficientes no FW
+    Mitigacao: ChangeConfiguration; se inviavel, MVP em TIME/PREPAID
+    com medicao best-effort e transparencia ao usuario — mas priorizar
+    ENERGY_KWH apos T05 PASS.
+
+  Risco: Complexidade do CSMS proprio
+    Mitigacao: Fase 0 enxuta; API interna estrita; nao construir EMS
+    completo antes do dinheiro circular.
+
+  Risco: Estorno PIX com regras bancarias
+    Mitigacao: politicas e UX de wallet fallback; testes com valores
+    pequenos em homologacao Inter.
+
+  Risco: Dual gun / corrida de checkout
+    Mitigacao: lock do connector no AWAITING_PAYMENT com TTL.
+
+
+================================================================================
+15. VEREDITO FINAL
+================================================================================
+
+O melhor caminho pratico e profissional para este produto e:
+
+  App Kotlin
+    + API de negocio (pagamentos Inter/Stripe, tarifas dinamicas,
+      maquina de estados de sessao)
+    + CSMS OCPP 1.6J PROPRIO (unico comando ao Livoltek comercial)
+    + Admin operacional
+    + Seguranca defense-in-depth e auditoria financeira
+    + Gate de bancada obrigatorio antes de dinheiro real
+
+Qualquer atalho que faca o app controlar o carregador, confie no
+client para “pago”, use free charging, ou terceirize o elo critico
+sem API soberana — e rejeitado por este documento.
+
+Proximos artefatos naturais (quando autorizado a executar):
+  - OpenAPI da API de negocio (incl. PaymentPort + webhooks)
+  - Spec dos adaptadores Inter Pix / Bolepix / Stripe (contratos 7.6)
+  - Especificacao de eventos OCPP tratados pelo CSMS
+  - Wireframes UX do fluxo de posto
+  - Execucao do PLANO_TESTE_REMOTE_START_METERVALUES.txt
+
+
+================================================================================
+16. DOCUMENTOS RELACIONADOS (MESMO WORKSPACE) — INDICE
+================================================================================
+
+  DOCUMENTACAO_ARQUITETURA_PLATAFORMA_RECARGA_EV.txt  (este arquivo)
+    — documento MESTRE: ADRs, arquitetura, CPO vs marketplace, comissionamento
+
+  ANALISE_APP_LIBERACAO_RECARGA_EV.txt
+    — analise inicial a partir do material Livoltek + decisoes registradas
+
+  ANALISE_COMPETITIVA_TUPI_INCREMENTOS.txt
+    — UX Tupi + o que adotar; como funciona o marketplace (catalogo vs
+      conectada; vinculo por equipamento; nao herdamos o mapa deles)
+
+  PLANO_TESTE_REMOTE_START_METERVALUES.txt
+    — gate de hardware (RemoteStart + MeterValues) por charge point
+
+  Material fabricante:
+    01 - Livoltek-20261026T215802Z-1-001/
+
+
+================================================================================
+HISTORICO
+================================================================================
+
+  2026-10-26  Analise tecnica inicial do material Livoltek
+  2026-10-26  Decisao: familia AC/DC comercial
+  2026-10-27  Decisao: CSMS proprio (SaaS descartado)
+  2026-10-27  Decisao: cobranca dinamica
+  2026-10-27  Plano de teste criado
+  2026-10-27  Decisao: app Kotlin + plataforma soberana
+  2026-10-27  Este documento mestre v1.0 (decisoes consolidadas)
+  2026-10-28  v1.1 - confirma: app -> servidor proprio -> rede OCPP
+              -> liberacao; ADR-010 CPO (nao marketplace); secoes
+              4.1-4.5 (fluxo, Tupi/marketplace, vinculo por equipamento);
+              indice de documentos atualizado
+  2026-10-28  v1.2 - ADR-006 + secao 7.6: mapeamento aderente as APIs
+              configuradas Inter (Pix cob imediata DEFAULT; Bolepix V3
+              complementar) e Stripe (PaymentIntents + Refunds +
+              Webhooks); refs oficiais no cabecalho; checklist seguranca
+              de webhooks por provedor
+
+
+================================================================================
+FIM DA DOCUMENTACAO
+================================================================================

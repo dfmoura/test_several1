@@ -799,6 +799,7 @@ export function OrcamentoFormPage() {
       return null;
     }
     if (!item.medida.trim()) return `${prefix}Informe a medida.`;
+    if (!item.tubete.trim()) return `${prefix}Selecione o tubete (polegada).`;
     if (item.largura_cm <= 0 || item.puxada_cm <= 0) {
       return `${prefix}Largura e puxada devem ser > 0.`;
     }
@@ -1862,36 +1863,37 @@ export function OrcamentoFormPage() {
                 />
               </div>
               <div className="form-group">
-                <InsumoSkuCombobox
-                  slot="tubete"
-                  label="Tubete *"
-                  disabled={!canWrite}
-                  hint="Embalagem com tubete e saldo. A caixa é escolhida na ordem, antes de faturar."
-                  value={
-                    form.tubete || form.tubete_rotulo
-                      ? {
-                          id: form.tubete_produto_id === '' ? 0 : form.tubete_produto_id,
-                          codigo: form.tubete_produto_codigo,
-                          descricao: form.tubete_rotulo || form.tubete,
-                          unidade: '',
-                          saldo: '',
-                          grupo: '',
-                          tarifa: form.tubete || null,
-                        }
-                      : null
-                  }
-                  onChange={(sku) => {
-                    if (!sku || sku.id < 1) return;
-                    const polegada = (sku.tarifa || sku.descricao).slice(0, 32);
+                <label>Tubete *</label>
+                <select
+                  value={form.tubete}
+                  onChange={(e) => {
                     setForm((prev) => ({
                       ...prev,
-                      tubete: polegada,
-                      tubete_produto_id: sku.id,
-                      tubete_produto_codigo: sku.codigo,
-                      tubete_rotulo: sku.descricao,
+                      tubete: e.target.value,
+                      tubete_produto_id: '',
+                      tubete_produto_codigo: '',
+                      tubete_rotulo: '',
                     }));
                   }}
-                />
+                  disabled={!canWrite}
+                  required
+                >
+                  <option value="">Selecione a polegada</option>
+                  {(() => {
+                    const base = catalog?.tubetes ?? ['1"', '1" 1/2', '3"'];
+                    const opcoes =
+                      form.tubete && !base.includes(form.tubete) ? [form.tubete, ...base] : base;
+                    return opcoes.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ));
+                  })()}
+                </select>
+                <p className="field-note">
+                  Núcleo comercial por polegada. A peça física e a baixa ficam fora do orçamento; a
+                  caixa é escolhida na ordem, antes de faturar.
+                </p>
               </div>
               <div className="form-group">
                 <label>Col. rebobinação</label>
@@ -2297,8 +2299,8 @@ export function OrcamentoFormPage() {
                         papel: itemForm.papel,
                         acabamento: itemForm.acabamento,
                         maquina: itemForm.maquina,
-                        tubete: itemForm.tubete_rotulo || itemForm.tubete,
-                        tubete_rotulo: itemForm.tubete_rotulo,
+                        tubete: itemForm.tubete,
+                        tubete_rotulo: itemForm.tubete_rotulo || null,
                         etiq_por_rolo: itemForm.etiq_por_rolo,
                         modelos: itemForm.modelos,
                         colunas: itemForm.colunas,
@@ -2370,7 +2372,7 @@ export function OrcamentoFormPage() {
                     papel: form.papel,
                     acabamento: form.acabamento,
                     maquina: form.maquina,
-                    tubete: form.tubete_rotulo || form.tubete,
+                    tubete: form.tubete,
                     etiq_por_rolo: form.etiq_por_rolo,
                     modelos: form.modelos,
                     colunas: form.colunas,

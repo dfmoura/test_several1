@@ -31,15 +31,28 @@ class FluxoFinanceiroTest extends AreaTestCase
         app(DemandaService::class)->abrir($empresa, $usuario, $this->pedido());
     }
 
-    public function test_aprovar_nao_liquida_e_a_validacao_cobra_a_diferenca(): void
+    public function test_aprovar_nao_exige_cobertura_cheia(): void
     {
-        [$empresa, $usuario] = $this->empresaComSaldo(50000);
+        [$empresa, $usuario] = $this->empresaComSaldo(100000);
+        $demanda = app(DemandaService::class)->abrir($empresa, $usuario, $this->pedido());
+        $this->propor($demanda, 150000);
+        app(DemandaService::class)->aprovar($demanda, $usuario, '127.0.0.1');
+
+        $this->assertSame('APROVADA', $demanda->fresh()->status);
+        $this->assertSame(0, $empresa->carteira->fresh()->disponivel_centavos);
+        $this->assertSame(100000, $empresa->carteira->fresh()->reservado_centavos);
+        $this->assertSame(0, Fatura::query()->count());
+    }
+
+    public function test_aprovacao_nao_consome_e_validacao_liquida(): void
+    {
+        [$empresa, $usuario] = $this->empresaComSaldo(150000);
         $demanda = $this->ateAprovada($empresa, $usuario, 150000);
 
         $this->assertSame('APROVADA', $demanda->fresh()->status);
         $this->assertNull($demanda->fatura);
-        $this->assertSame(0, $empresa->carteira->fresh()->disponivel_centavos);
-        $this->assertSame(50000, $empresa->carteira->fresh()->reservado_centavos);
+        $this->assertSame(50000, $empresa->carteira->fresh()->disponivel_centavos);
+        $this->assertSame(100000, $empresa->carteira->fresh()->reservado_centavos);
         $this->assertSame(0, Fatura::query()->count());
 
         $operador = $this->operador();
@@ -48,34 +61,85 @@ class FluxoFinanceiroTest extends AreaTestCase
 
         $this->assertSame('AGUARDANDO_VALIDACAO', $demanda->fresh()->status);
         $this->assertSame(0, Fatura::query()->count());
-        $this->assertSame(50000, $empresa->carteira->fresh()->reservado_centavos);
+
+        $fatura = app(DemandaService::class)->validarEntrega($demanda->fresh(), $usuario);
+
+        $empresa->carteira->refresh();
+        $this->assertSame('LIQUIDADA', $fatura->status);
+        $this->assertSame('CONCLUIDA', $demanda->fresh()->status);
+        $this->assertSame(0, $fatura->complemento_centavos);
+        $this->assertSame(0, $empresa->carteira->disponivel_centavos);
+        $this->assertSame(0, $empresa->carteira->reservado_centavos);
+        $this->assertSame(150000, $empresa->carteira->consumido_centavos);
+    }
+
+    public function test_validacao_cobra_pix_da_diferenca(): void
+    {
+        [$empresa, $usuario] = $this->empresaComSaldo(100000);
+        $demanda = $this->ateAprovada($empresa, $usuario, 150000);
+        $this->assertSame(0, $empresa->carteira->fresh()->disponivel_centavos);
+        $this->assertSame(100000, $empresa->carteira->fresh()->reservado_centavos);
+
+        $operador = $this->operador();
+        app(DemandaService::class)->iniciarExecucao($demanda, $operador->id);
+        app(DemandaService::class)->apresentar($demanda, $operador->id, 'Entrega pronta para validar.');
 
         $fatura = app(DemandaService::class)->validarEntrega($demanda->fresh(), $usuario);
 
         $this->assertSame('ABERTA', $fatura->status);
         $this->assertSame('APRESENTADA', $demanda->fresh()->status);
-        $this->assertSame(100000, $fatura->complemento_centavos);
-        $this->assertSame(50000, $empresa->carteira->fresh()->reservado_centavos);
+        $this->assertSame(50000, $fatura->complemento_centavos);
 
         $pix = CobrancaPix::query()->where('fatura_id', $fatura->id)->where('status', 'ATIVA')->first();
         $this->assertNotNull($pix);
-        $this->assertSame(100000, $pix->valor_centavos);
+        $this->assertSame(50000, $pix->valor_centavos);
 
-        app(BaixaPix::class)->confirmar($pix->txid, 'E2ECOMPLEMENTO123456789012345678', 100000);
-        app(BaixaPix::class)->confirmar($pix->txid, 'E2ECOMPLEMENTO123456789012345678', 100000);
+        app(BaixaPix::class)->confirmar($pix->txid, 'E2ECOMPLEMENTO123456789012345678', 50000);
+        app(BaixaPix::class)->confirmar($pix->txid, 'E2ECOMPLEMENTO123456789012345678', 50000);
 
         $empresa->carteira->refresh();
         $this->assertSame('CONCLUIDA', $demanda->fresh()->status);
         $this->assertSame('LIQUIDADA', $fatura->fresh()->status);
-        $this->assertSame(0, $empresa->carteira->disponivel_centavos);
-        $this->assertSame(0, $empresa->carteira->reservado_centavos);
-        $this->assertSame(150000, $empresa->carteira->consumido_centavos);
         $this->assertSame(1, MovimentoSaldo::query()->where('tipo', 'CREDITO_COMPLEMENTO')->count());
+        $this->assertSame(150000, $empresa->carteira->consumido_centavos);
+    }
+
+    public function test_validar_entrega_exige_confirmacao_do_valor(): void
+    {
+        [$empresa, $usuario] = $this->empresaComSaldo(150000);
+        $demanda = $this->ateAprovada($empresa, $usuario, 150000);
+        $operador = $this->operador();
+        app(DemandaService::class)->iniciarExecucao($demanda, $operador->id);
+        app(DemandaService::class)->apresentar($demanda, $operador->id, 'Entrega pronta para validar.');
+
+        $this->entrarComo($usuario, $empresa)
+            ->from(route('demandas.mostrar', $demanda->codigo))
+            ->post(route('demandas.validar', $demanda->codigo), [
+                '_token' => session()->token(),
+                'confirmar_valor' => '1.000,00',
+            ])
+            ->assertRedirect(route('demandas.mostrar', $demanda->codigo))
+            ->assertSessionHasErrors('confirmar_valor');
+
+        $this->assertSame('AGUARDANDO_VALIDACAO', $demanda->fresh()->status);
+        $this->assertSame(0, Fatura::query()->count());
+
+        $this->entrarComo($usuario, $empresa)
+            ->from(route('demandas.mostrar', $demanda->codigo))
+            ->post(route('demandas.validar', $demanda->codigo), [
+                '_token' => session()->token(),
+                'confirmar_valor' => '1.500,00',
+            ])
+            ->assertRedirect(route('demandas.mostrar', $demanda->codigo))
+            ->assertSessionHas('ok');
+
+        $this->assertSame('CONCLUIDA', $demanda->fresh()->status);
+        $this->assertSame('LIQUIDADA', Fatura::query()->first()->status);
     }
 
     public function test_fatura_usa_o_valor_congelado_na_aprovacao(): void
     {
-        [$empresa, $usuario] = $this->empresaComSaldo(50000);
+        [$empresa, $usuario] = $this->empresaComSaldo(150000);
         $demanda = $this->ateAprovada($empresa, $usuario, 150000);
         Proposta::query()->where('demanda_id', $demanda->id)->where('status', 'APROVADA')->update(['valor_centavos' => 999999]);
 
@@ -94,30 +158,31 @@ class FluxoFinanceiroTest extends AreaTestCase
         $fatura = app(DemandaService::class)->validarEntrega($demanda->fresh(), $usuario);
 
         $this->assertSame(150000, $fatura->valor_centavos);
-        $this->assertSame(100000, $fatura->complemento_centavos);
+        $this->assertSame(0, $fatura->complemento_centavos);
+        $this->assertSame('LIQUIDADA', $fatura->status);
     }
 
     public function test_recusa_da_trigger_devolve_e_a_terceira_do_cliente_consome(): void
     {
-        [$empresa, $usuario] = $this->empresaComSaldo(50000);
+        [$empresa, $usuario] = $this->empresaComSaldo(100000);
         $demanda = app(DemandaService::class)->abrir($empresa, $usuario, $this->pedido());
         app(DemandaService::class)->recusarTrigger($demanda, $this->operador()->id, 'Fora do que a Trigger executa agora.');
-        $this->assertSame(50000, $empresa->carteira->fresh()->disponivel_centavos);
+        $this->assertSame(100000, $empresa->carteira->fresh()->disponivel_centavos);
         $this->assertSame('RECUSADA_TRIGGER', $demanda->fresh()->status);
 
         foreach ([1, 2] as $vez) {
             $aberta = app(DemandaService::class)->abrir($empresa->fresh(), $usuario, $this->pedido());
-            $this->propor($aberta, 80000);
+            $this->propor($aberta, 120000);
             app(DemandaService::class)->recusarCliente($aberta, $usuario, 'O escopo ainda não atende o que precisamos.');
             $this->assertSame('RECUSADA_CLIENTE', $aberta->fresh()->status);
         }
-        $this->assertSame(50000, $empresa->carteira->fresh()->disponivel_centavos);
+        $this->assertSame(100000, $empresa->carteira->fresh()->disponivel_centavos);
 
         $terceira = app(DemandaService::class)->abrir($empresa->fresh(), $usuario, $this->pedido());
-        $this->propor($terceira, 80000);
+        $this->propor($terceira, 120000);
         app(DemandaService::class)->recusarCliente($terceira, $usuario, 'Ainda não é o escopo que queremos contratar.');
         $this->assertSame(0, $empresa->carteira->fresh()->disponivel_centavos);
-        $this->assertSame(50000, $empresa->carteira->fresh()->consumido_centavos);
+        $this->assertSame(100000, $empresa->carteira->fresh()->consumido_centavos);
         $this->assertTrue(
             MovimentoSaldo::query()->where('observacao', 'ANALISE_NAO_CONTRATADA')->exists()
         );
@@ -125,7 +190,7 @@ class FluxoFinanceiroTest extends AreaTestCase
 
     public function test_ajuste_unico_nao_abate_e_a_nova_apresentacao_volta_a_aguardar(): void
     {
-        [$empresa, $usuario] = $this->empresaComSaldo(50000);
+        [$empresa, $usuario] = $this->empresaComSaldo(150000);
         $demanda = $this->ateAprovada($empresa, $usuario, 150000);
         $operador = $this->operador();
         app(DemandaService::class)->iniciarExecucao($demanda, $operador->id);
@@ -138,7 +203,8 @@ class FluxoFinanceiroTest extends AreaTestCase
         $this->assertNull($demanda->validacao_ate);
         $this->assertSame(1, $demanda->ajustes_usados);
         $this->assertSame(0, Fatura::query()->count());
-        $this->assertSame(50000, $empresa->carteira->fresh()->reservado_centavos);
+        $this->assertSame(100000, $empresa->carteira->fresh()->reservado_centavos);
+        $this->assertSame(50000, $empresa->carteira->fresh()->disponivel_centavos);
 
         app(DemandaService::class)->apresentar($demanda, $operador->id, 'Entrega com o mês fechado.');
         $demanda->refresh();
@@ -160,8 +226,8 @@ class FluxoFinanceiroTest extends AreaTestCase
     {
         Carbon::setTestNow(Carbon::parse('2026-10-09 12:00:00', 'America/Sao_Paulo'));
         try {
-            [$empresa, $usuario] = $this->empresaComSaldo(50000);
-            $demanda = $this->ateAprovada($empresa, $usuario, 50000);
+            [$empresa, $usuario] = $this->empresaComSaldo(100000);
+            $demanda = $this->ateAprovada($empresa, $usuario, 100000);
             $operador = $this->operador();
             app(DemandaService::class)->iniciarExecucao($demanda, $operador->id);
             app(DemandaService::class)->apresentar($demanda, $operador->id, 'Entrega no prazo.');
@@ -182,7 +248,7 @@ class FluxoFinanceiroTest extends AreaTestCase
             $this->assertSame('CONCLUIDA', $demanda->fresh()->status);
             $this->assertSame('LIQUIDADA', Fatura::query()->first()->status);
             $this->assertSame(0, $empresa->carteira->fresh()->reservado_centavos);
-            $this->assertSame(50000, $empresa->carteira->fresh()->consumido_centavos);
+            $this->assertSame(100000, $empresa->carteira->fresh()->consumido_centavos);
         } finally {
             Carbon::setTestNow();
         }
@@ -190,16 +256,16 @@ class FluxoFinanceiroTest extends AreaTestCase
 
     public function test_proposta_vencida_devolve_a_reserva(): void
     {
-        [$empresa, $usuario] = $this->empresaComSaldo(50000);
+        [$empresa, $usuario] = $this->empresaComSaldo(100000);
         $demanda = app(DemandaService::class)->abrir($empresa, $usuario, $this->pedido());
-        $proposta = $this->propor($demanda, 90000);
+        $proposta = $this->propor($demanda, 120000);
         $proposta->valida_ate = now()->subMinute();
         $proposta->save();
 
         app(RotinaDiaria::class)->executar();
 
         $this->assertSame('EXPIRADA', $demanda->fresh()->status);
-        $this->assertSame(50000, $empresa->carteira->fresh()->disponivel_centavos);
+        $this->assertSame(100000, $empresa->carteira->fresh()->disponivel_centavos);
     }
 
     public function test_webhook_credita_uma_vez_e_o_driver_falso_nao_aceita_aviso(): void
@@ -230,7 +296,7 @@ class FluxoFinanceiroTest extends AreaTestCase
 
     public function test_movimento_de_saldo_nao_pode_ser_alterado(): void
     {
-        [$empresa] = $this->empresaComSaldo(50000);
+        [$empresa] = $this->empresaComSaldo(100000);
         $movimento = MovimentoSaldo::query()->where('empresa_id', $empresa->id)->first();
         $this->expectException(QueryException::class);
         $movimento->update(['valor_centavos' => 1]);

@@ -1,0 +1,29 @@
+# Override de produção (Lightsail) — sem bind-mount do código-fonte.
+#
+# Uso recomendado:
+#   export DOMAIN=observatorio.exemplo.org
+#   export APP_HOST_PORT=          # não publicar 8096; só Caddy
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+#     --profile https up -d --build
+#
+# Se o Compose reclamar de APP_HOST_PORT vazio, use a forma longa:
+#   ports removidos manualmente no host ou publique só para admin:
+#   APP_HOST_PORT=127.0.0.1:8096
+
+services:
+  app:
+    volumes:
+      - ./data:/app/data
+    environment:
+      - APP_PORT=8096
+      - AUTH_COOKIE_SECURE=${AUTH_COOKIE_SECURE:-auto}
+      - AUTH_SESSION_IDLE_MINUTOS=${AUTH_SESSION_IDLE_MINUTOS:-30}
+      - AUTH_SESSION_DIAS=${AUTH_SESSION_DIAS:-7}
+      - AUTH_BOOTSTRAP_USERNAME=${AUTH_BOOTSTRAP_USERNAME:-}
+      - AUTH_BOOTSTRAP_PASSWORD=${AUTH_BOOTSTRAP_PASSWORD:-}
+      - COLETA_SCHEDULER=${COLETA_SCHEDULER:-0}
+      - APP_VERSION=${APP_VERSION:-0.9.0}
+      - CNPJ_PUBLICO_POS_COLETA_LIMIT=${CNPJ_PUBLICO_POS_COLETA_LIMIT:-300}
+      - CNPJ_PUBLICO_POS_COLETA_MAX_SEC=${CNPJ_PUBLICO_POS_COLETA_MAX_SEC:-900}
+      - CNPJ_PUBLICO_POS_COLETA_ATE_HORA=${CNPJ_PUBLICO_POS_COLETA_ATE_HORA:-06:00}
+      - CNPJ_PUBLICO_POS_COLETA_DESCANSO_SEC=${CNPJ_PUBLICO_POS_COLETA_DESCANSO_SEC:-60}

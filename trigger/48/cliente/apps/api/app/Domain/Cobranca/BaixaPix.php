@@ -85,8 +85,9 @@ class BaixaPix
                 null,
             );
 
+            // Carteira já está sob lock do movimentar acima; liquidar mantém carteira → fatura.
             if ($cobranca->fatura_id) {
-                $fatura = $cobranca->fatura()->lockForUpdate()->first();
+                $fatura = $cobranca->fatura;
                 if ($fatura && $fatura->status === 'ABERTA') {
                     $this->faturas->liquidar($fatura);
                 }

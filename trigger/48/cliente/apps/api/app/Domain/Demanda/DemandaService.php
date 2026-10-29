@@ -269,6 +269,20 @@ class DemandaService
                 'criado_por' => $operadorId,
                 'criado_em' => now(),
             ]);
+            $aprovada = Proposta::query()
+                ->where('demanda_id', $demanda->id)
+                ->where('status', 'APROVADA')
+                ->first();
+            $plano = PropostaEtapas::textoMarco(is_array($aprovada?->etapas) ? $aprovada->etapas : []);
+            if ($plano !== null) {
+                Marco::query()->create([
+                    'demanda_id' => $demanda->id,
+                    'texto' => $plano,
+                    'visivel_ao_cliente' => true,
+                    'criado_por' => $operadorId,
+                    'criado_em' => now(),
+                ]);
+            }
             $this->avisarCliente($demanda, 'execucao_iniciada', 'Execução iniciada', 'A Trigger começou a executar '.$demanda->codigo.'.');
         });
     }

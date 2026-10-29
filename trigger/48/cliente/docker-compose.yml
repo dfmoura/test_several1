@@ -30,6 +30,8 @@ services:
     environment: &app_env
       DB_HOST: postgres
       MIGRATE_ON_BOOT: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,6 +57,8 @@ services:
       <<: *app_env
       MIGRATE_ON_BOOT: "false"
     command: ["cliente-worker"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       app:
         condition: service_healthy

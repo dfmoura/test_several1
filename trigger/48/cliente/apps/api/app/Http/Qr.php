@@ -11,6 +11,7 @@ class Qr
     {
         $opcoes = new QROptions([
             'outputType' => QRCode::OUTPUT_MARKUP_SVG,
+            'outputBase64' => false,
             'scale' => 6,
             'svgAddXmlHeader' => false,
         ]);

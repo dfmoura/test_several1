@@ -1,0 +1,104 @@
+# Unidades com Observatório Social do Brasil (OSB) filiado
+# Fonte unidades/presidentes: https://www.osbrasil.org.br/mapa-sistema-osb/
+# CNPJ: consulta web + validação Receita Federal (minhareceita.org) em 2026-10-22
+# Mapa 2025 – Abrangência informada: 10 estados | 72 unidades | +100 cidades
+
+## SÃO PAULO (SP) — 8 unidades
+AMERICANA – SP | Presidente: Joseval Cia | CNPJ: 29.708.295/0001-37
+ARAÇATUBA – SP | Presidente: João Antônio Veschi | CNPJ: 34.309.033/0001-30
+FRANCA – SP | Presidente: Agenor Gado | CNPJ: 29.530.491/0001-64
+LIMEIRA – SP | Presidente: Raul Soares Groppo | CNPJ: 28.723.340/0001-60
+PINDAMONHANGABA – SP | Presidente: Laureano Guerreiro | CNPJ: 30.197.903/0001-75
+SÃO CAETANO DO SUL – SP | Presidente: Renato Alisson de Souza | CNPJ: 21.535.056/0001-10
+SÃO PAULO – SP | Presidente: Marco Aurelio Ferrari | CNPJ: 24.779.354/0001-44
+SOROCABA – SP | Presidente: Elias Magurno Correa | CNPJ: 24.297.791/0001-21
+
+## RIO GRANDE DO SUL (RS) — 8 unidades
+BENTO GONÇALVES – RS | Presidente: Samara Andrade | CNPJ: 26.883.202/0001-12
+CACHOEIRINHA – RS | Presidente: Claudia Garcia | CNPJ: 26.798.630/0001-47
+CARAZINHO – RS | Presidente: Douglas Müller | CNPJ: 54.459.229/0001-18
+CAXIAS DO SUL – RS | Presidente: Gilnei Lafuente | CNPJ: 24.203.661/0001-82
+FARROUPILHA – RS | Presidente: José Magagnin | CNPJ: 29.365.750/0001-49
+GRAVATAÍ/GLORINHA – RS | Presidente: João Bento Cabral Cabral dos Santos | CNPJ: 24.727.575/0001-79
+GUAÍBA – RS | Presidente: Hilarion Freitas de Freitas | CNPJ: 27.462.109/0001-05
+SÃO LEOPOLDO – RS | Presidente: João Darzone de Melo Rodrigues Junior | CNPJ: 28.308.712/0001-91
+
+## SANTA CATARINA (SC) — 19 unidades
+BALNEÁRIO CAMBORIÚ – SC | Presidente: Paulo Roberto Maurici | CNPJ: 19.259.394/0001-25
+BLUMENAU – SC | Presidente: Edegard M. Tarouco | CNPJ: 19.532.366/0001-30
+BRUSQUE – SC | Presidente: Evandro Carlos Gevaerd | CNPJ: 13.572.365/0001-32
+CAÇADOR – SC | Presidente: Simone Raquel Soletti | CNPJ: 19.769.451/0001-16
+CHAPECÓ – SC | Presidente: Fernando Ioris | CNPJ: 23.226.105/0001-69
+CRICIÚMA – SC | Presidente: Moacir Dagostin | CNPJ: 20.980.122/0001-07
+FLORIANÓPOLIS – SC | Presidente: Rafael Novaes | CNPJ: 11.306.002/0001-20
+GASPAR – SC | Presidente: Edemar Enio Wieser | CNPJ: 61.831.858/0001-92
+INDAIAL – SC | Presidente: Rogério Artur Ehrat | CNPJ: 21.880.618/0001-63
+ITAJAÍ – SC | Presidente: Ricardo Collyer | CNPJ: 10.575.325/0001-56
+JAGUARUNA – SC | Presidente: João Simão | CNPJ: 35.759.350/0001-10
+JOINVILLE – SC | Presidente: André Luiz Horski | CNPJ: 29.028.126/0001-56
+LAGES – SC | Presidente: Giovani F. Colpani | CNPJ: 17.054.654/0001-09
+PINHALZINHO – SC | Presidente: Marcos Pretto | CNPJ: 28.479.570/0001-25
+POMERODE – SC | Presidente: Jorge Alfredo Hoge | CNPJ: 29.217.088/0001-80
+RIO DO SUL – SC | Presidente: Uiara Ramos Uller | CNPJ: 21.715.323/0001-31
+RIO NEGRINHO – SC | Presidente: Angelo Fostinoni Neto | CNPJ: 33.155.973/0001-59
+TIMBÓ – SC | Presidente: Raquel Zanolla | CNPJ: 39.963.515/0001-22
+TUBARÃO – SC | Presidente: Isaac Ghizoni Tonon | CNPJ: 17.023.992/0001-75
+
+## PARANÁ (PR) — 20 unidades
+ARAPONGAS – PR | Presidente: Odivan Bortolotto | CNPJ: 19.533.718/0001-71
+ARARUNA – PR | Presidente: Vinicius Antunes Pereira | CNPJ: 44.138.603/0001-20
+ASSIS CHATEAUBRIAND – PR | Presidente: José Roberto Sozza Junior | CNPJ: 14.263.220/0001-12
+CAMPO MOURÃO – PR | Presidente: Gregorio Kravchynchy Nunes | CNPJ: 09.096.212/0001-99
+CAMPOS GERAIS – PR | Presidente: Murilo Coelho Pires de Almeida | CNPJ: 11.822.041/0001-80
+CASCAVEL – PR | Presidente: Jackson Marcel Sêkula | CNPJ: 10.561.395/0001-55
+FOZ DO IGUAÇU – PR | Presidente: Jaime Nelson Nascimento | CNPJ: 11.210.703/0001-60
+FRANCISCO BELTRÃO – PR | Presidente: Marcelo de Campos | CNPJ: 10.323.812/0001-21
+GOIOERÊ – PR | Presidente: Beto Cavalcante | CNPJ: 11.322.249/0001-30
+IRATI – PR | Presidente: Gerson Musial | CNPJ: 17.764.186/0001-58
+JANDAIA DO SUL – PR | Presidente: Alfredo Ricciard | CNPJ: 31.394.827/0001-50
+MANDAGUARI – PR | Presidente: Izaura Valério | CNPJ: 07.426.981/0001-82
+MATINHOS – PR | Presidente: Edmilson Fernando Dalla Vecchia Ribas | CNPJ: 24.576.547/0001-06
+MEDIANEIRA – PR | Presidente: Alexandre Bernartt Baggio | CNPJ: 12.644.846/0001-43
+PALOTINA – PR | Presidente: Mário César Locatelli | CNPJ: 25.349.385/0001-28
+PARANAGUÁ – PR | Presidente: Luciano Costa Brazil | CNPJ: 21.375.111/0001-52
+PARANAVAÍ – PR | Presidente: Henrique Gerez Grolli | CNPJ: 10.703.678/0001-94
+PATO BRANCO – PR | Presidente: Celso Palagi | CNPJ: 29.537.666/0001-65
+SÃO MATEUS DO SUL – PR | Presidente: Júlio César Nezgoda | CNPJ: 39.648.087/0001-43
+TOLEDO – PR | Presidente: Claci Martignoni | CNPJ: 10.600.188/0001-62
+
+## BAHIA (BA) — 4 unidades
+BARREIRAS – BA | Presidente: André Vielmo | CNPJ: 23.333.634/0001-61
+CAIRU – BA | Presidente: Ana Paula Campos | CNPJ: 36.599.779/0001-50
+PORTO SEGURO – BA | Presidente: Laura Ramallo | CNPJ: 22.616.761/0001-05
+SANTO ANTÔNIO DE JESUS – BA | Presidente: Maria da Conceição Vilas Boas Santiago | CNPJ: 14.900.574/0001-20
+
+## RIO DE JANEIRO (RJ) — 2 unidades
+BARRA MANSA – RJ | Presidente: Vivaldo Moreira Ramos | CNPJ: 29.259.375/0001-52
+REGIÃO DOS LAGOS – RJ | Presidente: Felipe Serpa | CNPJ: 26.411.666/0001-26
+
+## MINAS GERAIS (MG) — 6 unidades
+ITABIRA – MG | Presidente: Jenisse Maria Guimarães Lanza | CNPJ: 29.767.697/0001-02
+PARÁ DE MINAS – MG | Presidente: Dilene Marta Vieira | CNPJ: 26.562.646/0001-56
+PATOS DE MINAS – MG | Presidente: Peterson Gandolfi | CNPJ: 49.344.763/0001-49
+SETE LAGOAS – MG | Presidente: Benjamin Sebastião de Oliveira Júnior / Juarez Antônio Avelar Fernandino | CNPJ: 28.662.700/0001-60
+TEÓFILO OTONI – MG | Presidente: Dário de Souza Lima | CNPJ: 58.980.508/0001-83
+UBERLÂNDIA – MG | Presidente: Marco Aurelio Freitas Santos | CNPJ: 23.497.346/0001-42
+
+## MATO GROSSO DO SUL (MS) — 1 unidade
+CAMPO GRANDE – MS | Presidente: Erickson Carlos Lagoin | CNPJ: 13.912.286/0001-23
+
+## MARANHÃO (MA) — 1 unidade
+SÃO LUÍS – MA | Presidente: Socorro Silva | CNPJ: 40.513.279/0001-21
+
+## DISTRITO FEDERAL (DF) — 1 unidade
+BRASÍLIA – DF | Presidente: Welder Rodrigues | CNPJ: 19.802.464/0001-40
+
+## TOCANTINS (TO) — 1 unidade
+PALMAS – TO | Presidente: Leonel dos Santos Vaz | CNPJ: 22.508.183/0001-93
+
+---
+TOTAL: 71 unidades com CNPJ validado (razão social contendo Observatório Social)
+Notas:
+- CAMPOS GERAIS – PR: razão social "Observatório Social do Brasil - Seção Campos Gerais" (sede em Ponta Grossa/PR).
+- REGIÃO DOS LAGOS – RJ: razão social "Observatório Social do Brasil - São Pedro da Aldeia e Região dos Lagos".
+- Sete Lagoas – MG aparece duplicada no mapa (dois presidentes); um único CNPJ.

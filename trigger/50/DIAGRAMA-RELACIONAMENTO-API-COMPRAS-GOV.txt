@@ -1,0 +1,482 @@
+================================================================================
+  MODELO DE RELACIONAMENTO ENTRE MÓDULOS
+  API Dados Abertos — Compras.gov.br (OpenAPI 3.1 · v1.0.0)
+================================================================================
+
+Fonte oficial : https://dadosabertos.compras.gov.br/swagger-ui/index.html
+Especificação : https://dadosabertos.compras.gov.br/v3/api-docs
+Base URL      : https://dadosabertos.compras.gov.br
+Contexto      : Integração para acompanhamento de licitações e contratações
+                públicas (Observatório Social do Brasil — Uberlândia/MG)
+
+Módulos analisados neste documento:
+  01 — CATÁLOGO - MATERIAL          (CATMAT)
+  02 — CATÁLOGO - SERVIÇO           (CATSER)
+  03 — PESQUISA DE PREÇO            (Preços Praticados)
+  04 — PGC                          (Planejamento e Gerenciamento de Contratações)
+  05 — UASG                         (Unidades Administrativas de Serviços Gerais)
+  07 — CONTRATAÇÕES                 (Lei 14.133/2021 · PNCP)
+  10 — FORNECEDOR                   (Cadastro de fornecedores)
+
+
+================================================================================
+1. VISÃO ARQUITETURAL — CAMADAS LÓGICAS
+================================================================================
+
+A API organiza-se em três camadas funcionais que se complementam no ciclo de
+vida da contratação pública. A separação abaixo representa o melhor modelo de
+relacionamento para modelagem de dados, integração e análise.
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ CAMADA 1 — DOMÍNIO DE REFERÊNCIA (Master Data)                          │
+  │                                                                         │
+  │   [05 UASG] ──► Órgão / Unidade compradora / CNPJ / IBGE / UF           │
+  │   [01 CATMAT] ──► Grupo → Classe → PDM → Item (codigoItem)             │
+  │   [02 CATSER] ──► Seção → Divisão → Grupo → Classe → Subclasse → Item │
+  │   [10 FORNECEDOR] ──► CNPJ/CPF · CNAE · Porte · Natureza jurídica      │
+  └─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ FKs de referência
+                                    ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ CAMADA 2 — PLANEJAMENTO (Ex-ante)                                       │
+  │                                                                         │
+  │   [04 PGC] ──► PCA / DFD / Projeto de Compra                           │
+  │                Vincula órgão + UASG + item de catálogo + quantidades   │
+  │                Publicação PNCP do planejamento anual                    │
+  └─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ materialização da demanda
+                                    ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ CAMADA 3 — EXECUÇÃO E RESULTADO (Ex-post)                               │
+  │                                                                         │
+  │   [07 CONTRATAÇÕES]  Lei 14.133/2021  ──► PNCP (regime vigente)        │
+  │   [03 PESQUISA PREÇO]                 ──► Evidência de mercado           │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+2. DIAGRAMA ENTIDADE-RELACIONAMENTO (ER) — MODELO CONCEITUAL
+================================================================================
+
+Legenda:
+  PK  = Chave primária lógica
+  FK  = Chave estrangeira / campo de junção entre módulos
+  (1) = cardinalidade um
+  (N) = cardinalidade muitos
+  ──► = relacionamento direcional de dependência
+
+
+                    ┌──────────────────────┐
+                    │    ORGAO (05-UASG)   │
+                    │──────────────────────│
+                    │ PK codigoOrgao       │
+                    │    cnpjCpfOrgao      │
+                    │    esfera / poder    │
+                    └──────────┬───────────┘
+                               │ (1)
+                               │ possui
+                               ▼ (N)
+                    ┌──────────────────────┐
+                    │    UASG (05-UASG)    │
+                    │──────────────────────│
+                    │ PK codigoUasg        │
+                    │ FK codigoOrgao       │
+                    │    cnpjCpfOrgao      │
+                    │ FK codigoMunicipioIbge│
+                    │    siglaUf           │
+                    └──────────┬───────────┘
+                               │
+              ┌────────────────┴────────────────┐
+              │                                 │
+              ▼                                 ▼
+   ┌────────────────┐              ┌─────────────────┐
+   │ PGC (04)       │              │ CONTRATACAO     │
+   │────────────────│              │ (07)            │
+   │ FK orgao       │              │─────────────────│
+   │ FK codigoUasg  │              │ PK idCompra     │
+   │ FK codigoItem  │              │ FK unidadeOrgao │
+   │    Catalogo    │              │    CodigoUnidade│
+   │    tipoItem    │              │    (=codigoUasg)│
+   │    (Mat/Serv)  │              │ FK orgaoEntidade│
+   │ anoPcaProjeto  │              │    Cnpj         │
+   └───────┬────────┘              │ numeroControle  │
+           │                       │    PNCP         │
+           │                       └────────┬────────┘
+           │                                │ (1)
+           │                                │ possui
+           │                                ▼ (N)
+           │                       ┌─────────────────┐
+           │                       │ ITEM_CONTRAT.   │
+           │                       │ (07)            │
+           │                       │─────────────────│
+           │                       │ PK idCompraItem │
+           │                       │ FK idCompra     │
+           │                       │ FK codItem      │
+           │                       │    Catalogo     │
+           │                       │ FK codFornecedor│
+           │                       └────────┬────────┘
+           │                                │ (1)──(N)
+           │                                ▼
+           │                       ┌─────────────────┐
+           │                       │ RESULTADO_ITEM  │
+           │                       │ (07)            │
+           │                       │─────────────────│
+           │                       │ FK idCompraItem │
+           │                       │ FK niFornecedor │
+           │                       │    (= CNPJ do   │
+           │                       │    fornecedor   │
+           │                       │    homologado)  │
+           │                       │    valorHomolog.│
+           │                       └────────┬────────┘
+           │                                │
+           ▼                                ▼
+┌──────────────────────────────────────────────────────────────┐
+│              CATÁLOGO UNIFICADO (01 + 02)                    │
+│──────────────────────────────────────────────────────────────│
+│  MATERIAL (CATMAT)              SERVIÇO (CATSER)             │
+│  PK codigoItem                  PK codigoServico             │
+│  FK codigoPdm                   FK hierarquia CPC            │
+│  FK codigoClasse                (secao→divisao→grupo→        │
+│  FK codigoGrupo                  classe→subclasse)           │
+│  codigoItem = codigoItemCatalogo em transações               │
+└───────────────────────────────┬──────────────────────────────┘
+                                │
+                                ▼
+                    ┌──────────────────────┐
+                    │ PESQUISA PREÇO (03)  │
+                    │──────────────────────│
+                    │ FK codigoItemCatalogo│
+                    │ FK codigoUasg        │
+                    │ FK idCompra          │
+                    │ FK idCompraItem      │
+                    │ FK niFornecedor      │
+                    │    precoUnitario     │
+                    │    dataCompra        │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │ FORNECEDOR (10)      │
+                    │──────────────────────│
+                    │ PK cnpj / cpf        │
+                    │    (niFornecedor)    │
+                    │    razaoSocial       │
+                    │    porte / CNAE      │
+                    └──────────────────────┘
+
+
+================================================================================
+3. DIAGRAMA DE FLUXO DO CICLO DE VIDA DA CONTRATAÇÃO
+================================================================================
+
+Representa a sequência temporal ideal e os pontos de integração entre módulos.
+
+
+  ANO N — PLANEJAMENTO
+  ───────────────────
+  [05 UASG] identifica órgão/unidade compradora (ex.: codigoUasg = 926922 PMU)
+       │
+       ▼
+  [04 PGC] registra PCA/DFD/Projeto de Compra
+       │    • orgao + codigoUasg + anoPcaProjetoCompra
+       │    • codigoItemCatalogo (Material ou Serviço)
+       │    • quantidadeItem · valorUnitarioItem · valorTotalItem
+       │    • dataHoraPublicacaoPncp (vínculo com PNCP)
+       │
+       ▼
+  [01/02 CATÁLOGO] enriquece descrição técnica do item planejado
+       │    • classificação hierárquica (grupo/classe/PDM ou seção/grupo)
+       │    • unidade de fornecimento / natureza da despesa
+
+
+  ANO N — EXECUÇÃO (Lei 14.133/2021 · PNCP)
+  ──────────────────────────────────────────
+  [07 CONTRATAÇÕES] publica processo no PNCP
+       │    • idCompra (PK transacional)
+       │    • numeroControlePNCP = {cnpj}-{sequencial}-{ano}
+       │    • unidadeOrgaoCodigoUnidade → FK codigoUasg
+       │    • orgaoEntidadeCnpj → FK cnpjCpfOrgao
+       │    • processo · modalidade · objetoCompra · datas PNCP
+       │
+       ├──► [07 ITENS] idCompraItem · codItemCatalogo · materialOuServico
+       │
+       └──► [07 RESULTADO] fornecedor homologado apresenta CNPJ
+                 │    • niFornecedor = CNPJ do fornecedor homologado
+                 │    • valorUnitarioHomologado
+                 │
+                 ▼
+            [10 FORNECEDOR] cadastro mestre por CNPJ (niFornecedor)
+
+
+  TRANSVERSAL — EVIDÊNCIA DE PREÇO DE MERCADO
+  ────────────────────────────────────────────
+  [03 PESQUISA PREÇO] consolida preços praticados em compras reais
+       │    • Entrada obrigatória: codigoItemCatalogo (CATMAT ou CATSER)
+       │    • Cruza com execução via idCompra + idCompraItem
+       │    • Cruza com comprador via codigoUasg / codigoMunicipio
+       │    • Cruza com fornecedor via niFornecedor
+       │
+       └──► Suporta análise de economicidade e auditoria social
+
+
+================================================================================
+4. MATRIZ DE CHAVES DE INTEGRAÇÃO (JOIN KEYS)
+================================================================================
+
+┌────────────────────────────┬──────────────┬────────────────────────────────────────────┐
+│ Campo de integração        │ Tipo         │ Módulos que compartilham                   │
+├────────────────────────────┼──────────────┼────────────────────────────────────────────┤
+│ codigoUasg                 │ STRING       │ 05 ↔ 04 ↔ 07 ↔ 03                         │
+│ codigoOrgao                │ INTEGER      │ 05 ↔ 04 ↔ 07 ↔ 03                         │
+│ cnpjCpfOrgao               │ STRING       │ 05 ↔ 07 ↔ 04 (orgao)                      │
+│ codigoMunicipioIbge        │ INTEGER      │ 05 ↔ 07 ↔ 03 (filtro geográfico)          │
+│ codigoItem / codigoServico │ INTEGER      │ 01/02 ↔ 04 ↔ 07 ↔ 03                      │
+│ codigoItemCatalogo         │ INTEGER      │ 01/02 ↔ 03 ↔ 04 (alias transacional)      │
+│ idCompra                   │ STRING       │ 07 ↔ 03                                   │
+│ idCompraItem               │ STRING       │ 07 ↔ 03                                   │
+│ numeroControlePNCP         │ STRING       │ 07 ↔ 04 (publicação planejamento/execução)│
+│ niFornecedor (CNPJ/CPF)    │ STRING       │ 07 ↔ 03 ↔ 10                              │
+│ cnpj / cpf                 │ STRING       │ 10 (PK cadastro fornecedor)                │
+│ modalidade                 │ INTEGER      │ 07 ↔ 03                                   │
+│ processo                   │ STRING       │ 07 ↔ sistemas locais (portal PMU)         │
+└────────────────────────────┴──────────────┴────────────────────────────────────────────┘
+
+Observação técnica:
+  • Em 07-CONTRATAÇÕES, unidadeOrgaoCodigoUnidade equivale a codigoUasg.
+  • Em 03-PESQUISA-PREÇO, idCompra pode ser INTEGER (material) ou STRING
+    (serviço) — normalizar tipo na camada de integração (ETL).
+  • [07 CONTRATAÇÕES] é a fonte autoritativa de execução no regime vigente
+    (Lei 14.133/2021 / PNCP).
+
+
+================================================================================
+5. HIERARQUIAS INTERNAS DOS CATÁLOGOS (01 e 02)
+================================================================================
+
+CATMAT — Material (01)
+──────────────────────
+  Grupo (codigoGrupo)
+    └── Classe (codigoClasse)
+          └── PDM — Padrão Descritivo de Material (codigoPdm)
+                └── Item (codigoItem)  ◄── PK usada em transações
+                      ├── Características
+                      ├── Unidade de fornecimento
+                      └── Natureza da despesa
+
+
+CATSER — Serviço (02)
+─────────────────────
+  Seção (codigoSecao)
+    └── Divisão (codigoDivisao)
+          └── Grupo (codigoGrupo)
+                └── Classe (codigoClasse)
+                      └── Subclasse (codigoSubclasse)
+                            └── Item/Serviço (codigoServico)  ◄── PK transacional
+                                  ├── Unidade de medida
+                                  └── Natureza da despesa
+
+
+Regra de modelagem:
+  Na camada de integração, unificar 01 e 02 em entidade ITEM_CATALOGO:
+    • tipo_item ∈ {'Material', 'Servico'}
+    • codigo_item_catalogo = codigoItem (mat) | codigoServico (serv)
+    • materialOuServico em 07-CONTRATAÇÕES confirma o tipo
+
+
+================================================================================
+6. MODELO DE DADOS RECOMENDADO (STAR SCHEMA / INTEGRAÇÃO)
+================================================================================
+
+Para consumo analítico profissional (DW, API interna, painéis de observação
+social), recomenda-se o seguinte arranjo dimensional:
+
+
+  DIM_ORGAO          ◄── 05-UASG (consultarOrgao)
+  DIM_UASG           ◄── 05-UASG (consultarUasg)
+  DIM_FORNECEDOR     ◄── 10-FORNECEDOR
+  DIM_ITEM_MATERIAL  ◄── 01-CATMAT (consultarItemMaterial)
+  DIM_ITEM_SERVICO   ◄── 02-CATSER (consultarItemServico)
+  DIM_MODALIDADE     ◄── domínio local + códigos 07/03
+
+  FACT_PGC_PLANEJAMENTO     ◄── 04-PGC (consultarPgcDetalhe)
+  FACT_CONTRATACAO_PNCP     ◄── 07-CONTRATAÇÕES (consultarContratacoes)
+  FACT_ITEM_CONTRATACAO     ◄── 07-CONTRATAÇÕES (consultarItens)
+  FACT_RESULTADO_ITEM       ◄── 07-CONTRATAÇÕES (consultarResultadoItens)
+  FACT_PRECO_PRATICADO      ◄── 03-PESQUISA-PREÇO (consultarMaterial / Servico)
+
+
+Relacionamentos do modelo dimensional:
+
+  FACT_* ──► DIM_UASG          via codigoUasg
+  FACT_* ──► DIM_ORGAO         via codigoOrgao / cnpjCpfOrgao
+  FACT_* ──► DIM_FORNECEDOR    via niFornecedor = cnpj|cpf
+  FACT_* ──► DIM_ITEM_*        via codigoItemCatalogo
+  FACT_PGC ──► FACT_CONTRATACAO via orgao + UASG + item + ano (match probabilístico)
+  FACT_PRECO ──► FACT_CONTRATACAO via idCompra + idCompraItem (match determinístico)
+
+
+================================================================================
+7. DIAGRAMA DE DEPENDÊNCIA ENTRE MÓDULOS
+================================================================================
+
+Indica ordem recomendada de carga/sync e dependências de referência.
+
+
+  Nível 0 (sem dependência — carregar primeiro)
+  ─────────────────────────────────────────────
+      [05 UASG]
+      [01 CATÁLOGO MATERIAL]
+      [02 CATÁLOGO SERVIÇO]
+      [10 FORNECEDOR]
+
+  Nível 1 (depende de catálogo + UASG)
+  ────────────────────────────────────
+      [04 PGC] ──────► requer: 05, 01/02
+
+  Nível 2 (depende de UASG; enriquece com catálogo e fornecedor)
+  ──────────────────────────────────────────────────────────────
+      [07 CONTRATAÇÕES] ──► requer: 05
+
+  Nível 3 (depende de execução + catálogo)
+  ───────────────────────────────────────
+      [03 PESQUISA PREÇO] ──► requer: 01/02 (codigoItemCatalogo)
+                              opcional: 05, 07 (idCompra), 10 (niFornecedor)
+
+
+  Mapa de dependência (grafo):
+
+      01 ─────┐
+              ├──► 04 ──► (planejamento publicado no PNCP)
+      02 ─────┤
+              │
+      05 ─────┼──► 07 ──► itens ──► resultados ──► 10
+              │         │
+              │         └──────────────────────────┐
+              │                                    ▼
+      01/02 ───────────────────────────────► 03 ◄── 10
+      05 ──────────────────────────────────► 03
+
+
+================================================================================
+8. ENDPOINTS PRINCIPAIS POR MÓDULO (REFERÊNCIA RÁPIDA)
+================================================================================
+
+01 CATÁLOGO MATERIAL
+  GET /modulo-material/1_consultarGrupoMaterial
+  GET /modulo-material/2_consultarClasseMaterial
+  GET /modulo-material/3_consultarPdmMaterial
+  GET /modulo-material/4_consultarItemMaterial          ◄── principal
+  GET /modulo-material/5_consultarMaterialNaturezaDespesa
+  GET /modulo-material/6_consultarMaterialUnidadeFornecimento
+  GET /modulo-material/7_consultarMaterialCaracteristicas
+
+02 CATÁLOGO SERVIÇO
+  GET /modulo-servico/1_consultarSecaoServico … 8_consultarNaturezaDespesaServico
+  GET /modulo-servico/6_consultarItemServico            ◄── principal
+
+03 PESQUISA DE PREÇO
+  GET /modulo-pesquisa-preco/1_consultarMaterial          ◄── por codigoItemCatalogo
+  GET /modulo-pesquisa-preco/2_consultarMaterialDetalhe
+  GET /modulo-pesquisa-preco/3_consultarServico
+  GET /modulo-pesquisa-preco/4_consultarServicoDetalhe
+
+04 PGC
+  GET /modulo-pgc/1_consultarPgcDetalhe                   ◄── por orgao + ano
+  GET /modulo-pgc/2_consultarPgcDetalheCatalogo           ◄── por tipo Material/Servico
+  GET /modulo-pgc/3_consultarPgcAgregacao                 ◄── visão consolidada
+
+05 UASG
+  GET /modulo-uasg/1_consultarUasg                        ◄── principal
+  GET /modulo-uasg/2_consultarOrgao
+
+07 CONTRATAÇÕES (Lei 14.133 / PNCP)
+  GET /modulo-contratacoes/1_consultarContratacoes_PNCP_14133
+  GET /modulo-contratacoes/2_consultarItensContratacoes_PNCP_14133
+  GET /modulo-contratacoes/3_consultarResultadoItensContratacoes_PNCP_14133
+
+10 FORNECEDOR
+  GET /modulo-fornecedor/1_consultarFornecedor            ◄── por cnpj/cpf
+
+
+================================================================================
+9. APLICAÇÃO AO CONTEXTO UBERLÂNDIA (OBSERVATÓRIO SOCIAL)
+================================================================================
+
+Filtros geográficos e organizacionais sugeridos para integração com o projeto
+local (trigger/15 — licitações PMU e autarquias):
+
+  1. Obter UASGs locais via [05]:
+       siglaUf=MG + codigoMunicipioIbge=3170206 (Uberlândia)
+       ou codigoUasg direto (ex.: 926922 PMU, 926287 DMAE, 929301 IPREMU…)
+
+  2. Contratações via [07]:
+       unidadeOrgaoCodigoUnidade = codigoUasg
+       dataPublicacaoPncp no período de interesse
+       (endpoint já utilizado pelo módulo compras_pncp.py do projeto)
+
+  3. Planejamento anual via [04]:
+       orgao=<CNPJ órgão> + anoPcaProjetoCompra
+       cruzar codigoItemCatalogo com itens efetivamente contratados em [07]
+
+  4. Análise de preço via [03]:
+       codigoItemCatalogo dos itens de [07]
+       filtrar codigoMunicipio=3170206 ou codigoUasg local
+
+  5. Perfil de fornecedor via [10]:
+       niFornecedor obtido em [07]/[03] → consultarFornecedor(cnpj|cpf)
+
+
+================================================================================
+10. REGRAS DE QUALIDADE E GOVERNANÇA DE DADOS
+================================================================================
+
+  • Cardinalidade: toda CONTRATAÇÃO (07) possui 1..N ITENS; cada ITEM pode ter
+    0..N RESULTADOS (quando temResultado = true).
+
+  • Unicidade: idCompra é a chave soberana para compras; numeroControlePNCP é
+    a chave de negócio publicada no Portal Nacional de Contratações Públicas.
+
+  • Catálogo: sempre resolver codigoItemCatalogo em [01] ou [02] antes de
+    interpretar descrições em [03], [04] e [07].
+
+  • Fornecedor homologado: em [07 RESULTADO], o fornecedor homologado deve
+    apresentar o CNPJ em niFornecedor; normalizar (14 dígitos CNPJ, 11 dígitos
+    CPF) antes do join com [10].
+
+  • Paginação: todos os endpoints usam pagina/tamanhoPagina — implementar
+    consumo iterativo com rate limiting (recomendado: delay entre requisições).
+
+  • Atualização incremental: campos dataAtualizacaoPncp (07) e
+    dataHoraAtualizacao* (demais módulos) permitem sync delta.
+
+
+================================================================================
+11. RESUMO EXECUTIVO
+================================================================================
+
+O melhor relacionamento entre os módulos da API Compras.gov.br segue o ciclo:
+
+    UASG (quem compra)
+      → PGC (o que se planeja comprar, com item de catálogo)
+        → CONTRATAÇÕES (como se licita/contrata — Lei 14.133/2021)
+          → ITENS + RESULTADOS (o que foi adquirido e por quanto)
+            → FORNECEDOR (quem vendeu)
+              ↔ PESQUISA DE PREÇO (evidência de mercado e benchmark)
+
+Os catálogos CATMAT (01) e CATSER (02) são a espinha dorsal semântica: todo
+item planejado (PGC), cotado (Pesquisa de Preço) e contratado (Contratações)
+referencia codigoItemCatalogo.
+
+A UASG (05) é o eixo organizacional: conecta órgão público, unidade compradora,
+município (IBGE) e todas as transações operacionais.
+
+[07 CONTRATAÇÕES] é a fonte autoritativa de execução no regime vigente,
+integrada ao PNCP e à Lei 14.133/2021.
+
+================================================================================
+Documento gerado em: 2026-07-08
+Atualizado em      : 2026-07-10  (fornecedor homologado apresenta CNPJ)
+Baseado em         : OpenAPI 3.1 — API Compras.gov.br v1.0.0
+================================================================================
