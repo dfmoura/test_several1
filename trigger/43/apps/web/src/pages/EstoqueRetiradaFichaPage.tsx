@@ -51,7 +51,7 @@ export function EstoqueRetiradaFichaPage() {
 
   useEffect(() => {
     if (!op) return;
-    document.title = `Retirada ${op.codigo}`;
+    document.title = `A buscar · volumes ${op.codigo}`;
     return () => {
       document.title = brandDocumentTitle();
     };
@@ -69,7 +69,7 @@ export function EstoqueRetiradaFichaPage() {
             Voltar à lista
           </button>
           <span className="ficha-toolbar-hint">
-            Folha do estoque · o que pegar e onde · retrato A4 · sem preço
+            A buscar · volumes · local e volume a volume (FEFO) · retrato A4 · sem preço
           </span>
         </div>
         <button type="button" className="btn btn-primary" disabled={!op} onClick={() => window.print()}>

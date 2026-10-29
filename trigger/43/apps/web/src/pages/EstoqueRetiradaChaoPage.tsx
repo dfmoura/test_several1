@@ -49,7 +49,7 @@ export function EstoqueRetiradaChaoPage() {
             href={`/estoque/retiradas/${op.id}/ficha`}
             onClick={(e) => onAbrirFichaClick(e, `/estoque/retiradas/${op.id}/ficha`)}
           >
-            Ficha para o estoque
+            Retirada · volumes
           </a>
         ) : null}
         {op ? <span className="pick-toolbar__ref">{op.codigo}</span> : null}

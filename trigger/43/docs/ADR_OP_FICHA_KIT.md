@@ -111,6 +111,18 @@ Um satélite paisagem A4 substitui as duas rotas acima. Toolbar: **Impressão e 
 |------|------|----------|
 | `/ordens-producao/:id/ficha-chao` | PCP / chão (`producao.ler`) | Identidade (1×) → Impressão · máquina (bloco completo) → Acabamento · rebobinação (**só exclusivos**: colunas reb., etiq/rolo, rolos, m/rolo) |
 
-Rotas antigas `ficha-impressao` e `ficha-acabamento` redirecionam para `ficha-chao`. Sem repetir Item / metragem / acabamento / tubete / saída na banda de rebobinação (já na impressão na mesma folha). Grão = planilha do PED (`pedidoFichaPlanilha`) escopada ao **item da OP**. Sem gate de `SAIDA_PRODUCAO`. Sem alterar `/ficha` (flexo + kit) nem `/ficha-materiais`.
+Rotas antigas `ficha-impressao` e `ficha-acabamento` redirecionam para `ficha-chao`. Sem repetir Item / metragem / acabamento / tubete / saída na banda de rebobinação (já na impressão na mesma folha). Grão = planilha do PED (`pedidoFichaPlanilha`) escopada ao **item da OP**. Sem gate de `SAIDA_PRODUCAO`. Sem alterar `/ficha` (flexo + kit) nem `/ficha-materiais`. Sem kit nem volumes na ficha-chao.
+
+## Emenda 2026-10-29b — três papéis impressos (máquina × prateleira × handoff)
+
+Volumes físicos (local · volume · levar · validade, FEFO) **não** entram em `/ficha-chao` nem em `/ficha-materiais`.
+
+| Rota | Quem | Momento | Grão |
+|------|------|---------|------|
+| `/ordens-producao/:id/ficha-chao` | PCP / máquina (`producao.ler`) | sempre | identidade + impressão + rebobinação |
+| `/estoque/retiradas/:id/ficha` | Almoxarifado (`estoque.ler`) | **antes** de confirmar | **A buscar · volumes** — volume a volume (FEFO); checkbox Levado |
+| `/ordens-producao/:id/ficha-materiais` | handoff (`producao.ler`) | **depois** de `SAIDA_PRODUCAO` | SKU/qtde já baixados; **sem** local/volume |
+
+Toolbar da OP: **Retirada · volumes** aponta para a pick ticket de Estoque quando há kit e `estoque.ler`. Confirmar saída continua só em Estoque · **A buscar** (sem segundo writer).
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX).
