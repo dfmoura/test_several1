@@ -4467,6 +4467,14 @@ table.data-table td.acoes {
   padding: 0.4rem 0.85rem;
 }
 
+/* Rail de posição Item 1…N (form / detalhe / resultado) — ativo alinhado a orc-result-tabs */
+.orc-modo-tabs.orc-modo-tabs-itens button.active {
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: none;
+}
+
 .orc-modo-tabs.orc-modo-tabs-entrega {
   max-width: 40rem;
   flex-wrap: wrap;

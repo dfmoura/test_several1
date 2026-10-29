@@ -1230,6 +1230,11 @@ export function cloneOrcFormItem(source: OrcForm, catalog: OrcCatalogo | null): 
   };
 }
 
+/** Job novo em branco com cabeçalho do documento (ADR_ORC_ITENS: Adicionar ≠ Duplicar). */
+export function blankOrcFormItem(headerSource: OrcForm, catalog: OrcCatalogo | null): OrcForm {
+  return syncHeaderAcrossItens([defaultOrcForm(catalog)], headerSource)[0];
+}
+
 /** Reconstrói o result de UI com itens+totais a partir do show (ADR_ORC_ITENS). */
 export function calculoComItensDoOrcamento(
   result: OrcamentoResult | null | undefined,

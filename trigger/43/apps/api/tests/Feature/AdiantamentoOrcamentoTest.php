@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Services\Cadastros\NaturezaGerencialService;
 use App\Services\Financeiro\AdiantamentoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -394,6 +395,61 @@ class AdiantamentoOrcamentoTest extends TestCase
         $show2->assertOk();
         $this->assertSame('RECORRENTE_LIMPO', $show2->json('data.politica_comercial.perfil'));
         $this->assertFalse($show2->json('data.politica_comercial.exige_sinal'));
+    }
+
+    public function test_throttle_adiantamento_nao_bloqueia_show(): void
+    {
+        Cache::flush();
+        $token = $this->criarEEnviar();
+        $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
+            'acao' => 'APROVAR',
+            'faixa_index' => 0,
+            'nome_cliente' => 'Ana Nova',
+        ])->assertOk();
+
+        $path = "/api/v1/publico/orcamentos/{$token}/adiantamento";
+        for ($i = 0; $i < 30; $i++) {
+            $this->getJson($path)->assertOk();
+        }
+        $limited = $this->getJson($path);
+        $limited->assertStatus(429);
+        $this->assertSame('RATE_LIMIT', $limited->json('code'));
+        $this->assertStringContainsString('Aguarde', (string) $limited->json('message'));
+
+        $this->getJson("/api/v1/publico/orcamentos/{$token}")->assertOk();
+        Cache::flush();
+    }
+
+    public function test_throttle_publico_isola_por_ip_forwarded(): void
+    {
+        Cache::flush();
+        $token = $this->criarEEnviar();
+        $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
+            'acao' => 'APROVAR',
+            'faixa_index' => 0,
+            'nome_cliente' => 'Ana Nova',
+        ])->assertOk();
+
+        $path = "/api/v1/publico/orcamentos/{$token}/adiantamento";
+        $proxy = ['REMOTE_ADDR' => '172.18.0.10'];
+
+        for ($i = 0; $i < 30; $i++) {
+            $this->withServerVariables($proxy)
+                ->withHeader('X-Forwarded-For', '203.0.113.10')
+                ->getJson($path)
+                ->assertOk();
+        }
+        $this->withServerVariables($proxy)
+            ->withHeader('X-Forwarded-For', '203.0.113.10')
+            ->getJson($path)
+            ->assertStatus(429);
+
+        $this->withServerVariables($proxy)
+            ->withHeader('X-Forwarded-For', '203.0.113.20')
+            ->getJson($path)
+            ->assertOk();
+
+        Cache::flush();
     }
 
     private function seedHistoricoPedido(): void

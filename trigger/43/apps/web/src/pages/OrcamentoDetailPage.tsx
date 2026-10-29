@@ -951,7 +951,7 @@ export function OrcamentoDetailPage() {
                 Cada guia mostra faca, especificação e composição daquele item.
               </p>
               <div
-                className="orc-modo-tabs orc-modo-tabs-sub"
+                className="orc-modo-tabs orc-modo-tabs-sub orc-modo-tabs-itens"
                 role="tablist"
                 aria-label="Itens deste orçamento"
                 style={{ marginBottom: '0.85rem' }}

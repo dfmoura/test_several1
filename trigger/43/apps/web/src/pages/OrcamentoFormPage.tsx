@@ -39,6 +39,7 @@ import {
   CORES_OPCOES,
   ajustarMatrizFaixaTotal,
   aplicarQuantidadeModeloMatriz,
+  blankOrcFormItem,
   cloneOrcFormItem,
   defaultOrcForm,
   descricaoFilmeAcabamento,
@@ -333,7 +334,7 @@ export function OrcamentoFormPage() {
 
   const adicionarPosicao = () => {
     if (itens.length >= 20) return;
-    const novo = cloneOrcFormItem(form, catalog);
+    const novo = blankOrcFormItem(form, catalog);
     setItens((prev) => [...prev, novo]);
     setRotulos((prev) => [...prev, null]);
     setAtivo(itens.length);
@@ -1401,7 +1402,7 @@ export function OrcamentoFormPage() {
               </div>
             </div>
             <div
-              className="orc-modo-tabs orc-modo-tabs-sub"
+              className="orc-modo-tabs orc-modo-tabs-sub orc-modo-tabs-itens"
               role="tablist"
               aria-label="Itens do orçamento"
               style={{ marginTop: '0.75rem' }}

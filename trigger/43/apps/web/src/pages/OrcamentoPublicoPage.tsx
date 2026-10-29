@@ -98,7 +98,11 @@ function PixPanel({
         onSimulado(res.data.adiantamento);
       }
     } catch (e) {
-      setSimErro(e instanceof ApiError ? e.message : 'Não foi possível confirmar o pagamento.');
+      if (e instanceof ApiError && e.status === 429) {
+        setSimErro('Muitas tentativas. Aguarde alguns segundos e tente novamente.');
+      } else {
+        setSimErro(e instanceof ApiError ? e.message : 'Não foi possível confirmar o pagamento.');
+      }
     } finally {
       setSimulando(false);
     }
@@ -220,6 +224,8 @@ export function OrcamentoPublicoPage() {
           if (e instanceof ApiError && (e.status === 410 || e.status === 404)) {
             setIndisponivel(true);
             setErro(e.message);
+          } else if (e instanceof ApiError && e.status === 429) {
+            setErro('Muitas tentativas. Aguarde alguns segundos e atualize a página.');
           } else {
             setErro(e instanceof Error ? e.message : 'Falha ao carregar a proposta');
           }
@@ -238,22 +244,56 @@ export function OrcamentoPublicoPage() {
     const adi = adiantamentoLive ?? decidido.adiantamento;
     if (!adi || adi.pago) return;
 
-    const id = window.setInterval(() => {
-      void (async () => {
-        try {
-          const res = await api.publicGet<{
-            data: { adiantamento: OrcamentoAdiantamentoPublico | null };
-          }>(`/publico/orcamentos/${token}/adiantamento`);
-          if (res.data.adiantamento) {
-            setAdiantamentoLive(res.data.adiantamento);
-          }
-        } catch {
-          /* ignore */
-        }
-      })();
-    }, 6000);
+    let cancelled = false;
+    let delayMs = 8000;
+    let timer: number | undefined;
 
-    return () => window.clearInterval(id);
+    const poll = () => {
+      if (cancelled) return;
+      timer = window.setTimeout(() => {
+        void (async () => {
+          if (cancelled) return;
+          if (document.visibilityState === 'hidden') {
+            poll();
+            return;
+          }
+          try {
+            const res = await api.publicGet<{
+              data: { adiantamento: OrcamentoAdiantamentoPublico | null };
+            }>(`/publico/orcamentos/${token}/adiantamento`);
+            if (cancelled) return;
+            if (res.data.adiantamento) {
+              setAdiantamentoLive(res.data.adiantamento);
+              if (res.data.adiantamento.pago) return;
+            }
+            delayMs = 8000;
+          } catch (e) {
+            if (e instanceof ApiError && e.status === 429) {
+              delayMs = Math.min(delayMs * 2, 60000);
+            }
+          }
+          poll();
+        })();
+      }, delayMs);
+    };
+
+    const onVis = () => {
+      if (document.visibilityState === 'visible' && timer !== undefined) {
+        window.clearTimeout(timer);
+        timer = undefined;
+        delayMs = Math.min(delayMs, 8000);
+        poll();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVis);
+    poll();
+
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [token, decidido, adiantamentoLive]);
 
   const empresaNome = useMemo(() => {
@@ -283,6 +323,9 @@ export function OrcamentoPublicoPage() {
 
   const mensagemFalha = (e: unknown, fallback: string) => {
     if (e instanceof ApiError) {
+      if (e.status === 429) {
+        return 'Muitas tentativas. Aguarde alguns segundos e tente novamente.';
+      }
       const detalhe = e.details ? Object.values(e.details).flat().find(Boolean) : undefined;
       return detalhe || e.message || fallback;
     }

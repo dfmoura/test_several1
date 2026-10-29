@@ -8,6 +8,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +39,16 @@ return Application::configure(basePath: dirname(__DIR__))
         // Auth por Bearer token (Sanctum personal access) — sem cookie/CSRF SPA.
         // Não usar statefulApi(): ele exige X-XSRF-TOKEN nas origens de SANCTUM_STATEFUL_DOMAINS.
 
+        // App só recebe tráfego via nginx/Caddy (Docker/Lightsail). Sem isto,
+        // $request->ip() = IP do proxy e o throttle público vira balde da instalação.
+        $middleware->trustProxies(
+            at: ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO,
+        );
+
         $middleware->alias([
             'empresa.context' => SetEmpresaContext::class,
             'plataforma.operador' => EnsurePlatformOperator::class,
@@ -65,5 +76,19 @@ return Application::configure(basePath: dirname(__DIR__))
                 'message' => $mensagem,
                 'code' => $codigo ?: 'NAO_AUTENTICADO',
             ], 401);
+        });
+
+        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            $retryAfter = (int) ($e->getHeaders()['Retry-After'] ?? 60);
+
+            return response()->json([
+                'message' => 'Muitas tentativas. Aguarde alguns segundos e tente novamente.',
+                'code' => 'RATE_LIMIT',
+                'retry_after' => $retryAfter,
+            ], 429, $e->getHeaders());
         });
     })->create();

@@ -9,6 +9,9 @@ use App\Services\Fiscal\Dfe\SefazNfeDistribuicaoClient;
 use App\Services\Fiscal\Sefaz\FakeNfeSefazClient;
 use App\Services\Fiscal\Sefaz\NfeSefazClient;
 use App\Services\Fiscal\Sefaz\SefazNfeClient;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\Sanctum;
@@ -52,6 +55,38 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return app(SessaoAcessoService::class)->recusarTokenSeInativo($accessToken);
+        });
+
+        // Limiters nomeados: chave inclui o nome → show/polling/decidir não compartilham balde
+        // (o throttle:N,1 anônimo usa só domínio|IP e somava tudo).
+        $this->configurePublicoOrcamentoRateLimiters();
+    }
+
+    private function configurePublicoOrcamentoRateLimiters(): void
+    {
+        RateLimiter::for('publico-orc-show', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
+
+        // Polling PIX (~8s + backoff); margem para 1–2 abas sem engolir o show.
+        RateLimiter::for('publico-orc-adiantamento', function (Request $request) {
+            return Limit::perMinute(30)->by($request->ip());
+        });
+
+        RateLimiter::for('publico-orc-decidir', function (Request $request) {
+            return Limit::perMinute(20)->by($request->ip());
+        });
+
+        RateLimiter::for('publico-orc-simular-pix', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
+        RateLimiter::for('publico-orc-modelo', function (Request $request) {
+            return Limit::perMinute(30)->by($request->ip());
+        });
+
+        RateLimiter::for('publico-orc-arte', function (Request $request) {
+            return Limit::perMinute(120)->by($request->ip());
         });
     }
 }

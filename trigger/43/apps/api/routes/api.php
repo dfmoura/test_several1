@@ -80,29 +80,29 @@ Route::prefix('v1')->group(function () {
         Route::get('/publico/consulta/cep/{cep}', [ConsultaController::class, 'cep']);
     });
 
-    // Link de aprovação do cliente (token; sem login). Throttle anti-abuso.
-    Route::middleware('throttle:60,1')->group(function () {
-        Route::get('/publico/orcamentos/{token}', [OrcamentoPublicoController::class, 'show'])
-            ->where('token', '[A-Za-z0-9_-]{20,128}');
-        Route::get('/publico/orcamentos/{token}/adiantamento', [OrcamentoPublicoController::class, 'adiantamento'])
-            ->where('token', '[A-Za-z0-9_-]{20,128}');
-        Route::post('/publico/orcamentos/{token}/simular-pagamento-pix', [OrcamentoPublicoController::class, 'simularPagamento'])
-            ->where('token', '[A-Za-z0-9_-]{20,128}')
-            ->middleware('throttle:10,1');
-        Route::post('/publico/orcamentos/{token}/decidir', [OrcamentoPublicoController::class, 'decidir'])
-            ->where('token', '[A-Za-z0-9_-]{20,128}')
-            ->middleware('throttle:20,1');
-        Route::post('/publico/orcamentos/{token}/modelos/decidir', [OrcamentoPublicoController::class, 'decidirModelo'])
-            ->where('token', '[A-Za-z0-9_-]{20,128}')
-            ->middleware('throttle:30,1');
-        Route::get('/publico/orcamentos/{token}/arte/{empresa}/{arquivo}', [OrcamentoPublicoController::class, 'arte'])
-            ->where([
-                'token' => '[A-Za-z0-9_-]{20,128}',
-                'empresa' => '[0-9]+',
-                'arquivo' => '[0-9a-fA-F\\-]+\\.(svg|png|jpe?g|webp)',
-            ])
-            ->middleware('throttle:120,1');
-    });
+    // Link de aprovação / pagamento (token; sem login). Limiters nomeados (AppServiceProvider).
+    Route::get('/publico/orcamentos/{token}', [OrcamentoPublicoController::class, 'show'])
+        ->where('token', '[A-Za-z0-9_-]{20,128}')
+        ->middleware('throttle:publico-orc-show');
+    Route::get('/publico/orcamentos/{token}/adiantamento', [OrcamentoPublicoController::class, 'adiantamento'])
+        ->where('token', '[A-Za-z0-9_-]{20,128}')
+        ->middleware('throttle:publico-orc-adiantamento');
+    Route::post('/publico/orcamentos/{token}/simular-pagamento-pix', [OrcamentoPublicoController::class, 'simularPagamento'])
+        ->where('token', '[A-Za-z0-9_-]{20,128}')
+        ->middleware('throttle:publico-orc-simular-pix');
+    Route::post('/publico/orcamentos/{token}/decidir', [OrcamentoPublicoController::class, 'decidir'])
+        ->where('token', '[A-Za-z0-9_-]{20,128}')
+        ->middleware('throttle:publico-orc-decidir');
+    Route::post('/publico/orcamentos/{token}/modelos/decidir', [OrcamentoPublicoController::class, 'decidirModelo'])
+        ->where('token', '[A-Za-z0-9_-]{20,128}')
+        ->middleware('throttle:publico-orc-modelo');
+    Route::get('/publico/orcamentos/{token}/arte/{empresa}/{arquivo}', [OrcamentoPublicoController::class, 'arte'])
+        ->where([
+            'token' => '[A-Za-z0-9_-]{20,128}',
+            'empresa' => '[0-9]+',
+            'arquivo' => '[0-9a-fA-F\\-]+\\.(svg|png|jpe?g|webp)',
+        ])
+        ->middleware('throttle:publico-orc-arte');
 
     // Validação de saque ASAAS — URL distinta (registrar antes do {provider}).
     Route::post('/webhooks/bancarios/asaas/autorizar-saque', WebhookAsaasAutorizacaoSaqueController::class)
