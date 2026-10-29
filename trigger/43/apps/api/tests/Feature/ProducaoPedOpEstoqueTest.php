@@ -460,7 +460,7 @@ class ProducaoPedOpEstoqueTest extends TestCase
         );
     }
 
-    public function test_conclusao_bloqueia_perda_total_do_papel_mesmo_com_emb_consumindo(): void
+    public function test_conclusao_bloqueia_perda_total_do_papel(): void
     {
         Sanctum::actingAs($this->comercial);
         $h = ['X-Empresa-Id' => (string) $this->empresa->id];
@@ -468,9 +468,11 @@ class ProducaoPedOpEstoqueTest extends TestCase
 
         $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
         $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
-        $tubete = collect($show->json('data.materiais'))->firstWhere('componente', 'TUBETE');
         $this->assertNotNull($papel);
-        $this->assertNotNull($tubete, 'Fixture deve casar tubete para este cenário');
+        $this->assertNull(
+            collect($show->json('data.materiais'))->firstWhere('componente', 'TUBETE'),
+            'Tubete não entra no kit/estoque da OP'
+        );
 
         EstoqueSaldo::query()->updateOrCreate(
             ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
@@ -480,30 +482,17 @@ class ProducaoPedOpEstoqueTest extends TestCase
                 'custo_medio' => '10.000000',
             ],
         );
-        EstoqueSaldo::query()->updateOrCreate(
-            ['empresa_id' => $this->empresa->id, 'produto_id' => (int) $tubete['produto']['id']],
-            [
-                'qtde' => bcadd((string) $tubete['qtde_planejada'], '50.0000', 4),
-                'unidade' => 'UN',
-                'custo_medio' => '1.000000',
-            ],
-        );
 
         $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
             'material_id' => $papel['id'],
-        ])->assertOk();
-        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
-            'material_id' => $tubete['id'],
         ])->assertOk();
 
         $mats = collect(
             $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}")->json('data.materiais')
         );
         $papelReq = (string) $mats->firstWhere('id', $papel['id'])['qtde_requisitada'];
-        $tubeteReq = (string) $mats->firstWhere('id', $tubete['id'])['qtde_requisitada'];
 
         $qtdeBoa = bcmul((string) $pedido->itens()->first()->qtde_pedida, '0.90', 4);
-        // Perda 100% no papel; tubete “consome” tudo (retorno/perda 0) — ainda deve bloquear.
         $fail = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/concluir", [
             'qtde_boa' => $qtdeBoa,
             'qtde_refugo' => '0',
@@ -513,20 +502,18 @@ class ProducaoPedOpEstoqueTest extends TestCase
                     'qtde_retorno' => '0',
                     'qtde_perda' => $papelReq,
                 ],
-                [
-                    'material_id' => $tubete['id'],
-                    'qtde_retorno' => '0',
-                    'qtde_perda' => '0',
-                ],
             ],
         ]);
         $fail->assertStatus(422);
         $blob = (string) $fail->json('message').json_encode($fail->json('errors'));
+        // Sem tubete no kit, perda 100% do papel = consumo zero (bloqueio correto).
         $this->assertTrue(
-            str_contains($blob, 'MP/papel') || str_contains($blob, 'substrato') || str_contains($blob, 'material de produção'),
+            str_contains($blob, 'Consumo zero')
+                || str_contains($blob, 'MP/papel')
+                || str_contains($blob, 'substrato')
+                || str_contains($blob, 'material de produção'),
             $blob
         );
-        $this->assertTrue(bccomp($tubeteReq, '0', 4) > 0);
         $this->assertFalse(
             EstoqueMovimento::query()
                 ->where('ordem_producao_id', $opId)

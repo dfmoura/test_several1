@@ -339,13 +339,17 @@ function apontadosDaTela(op: OrdemProducao, presentes: Set<string>): ApontadoGui
     ...(op.disponibilidade?.componentes_nao_casados ?? []),
     ...(op.disponibilidade?.guia_apontada ?? []),
   ];
-  return lista.filter((a) => !presentes.has((a.componente ?? '').trim().toUpperCase()));
+  return lista.filter((a) => {
+    const comp = (a.componente ?? '').trim().toUpperCase();
+    return comp !== 'TUBETE' && !presentes.has(comp);
+  });
 }
 
 export function fichaSaidaEstoque(op: OrdemProducao): FichaSaidaGrupo[] {
   const map = new Map<string, OrdemProducaoMaterial[]>();
   for (const m of op.materiais ?? []) {
     const key = (m.componente ?? 'OUTRO').trim().toUpperCase() || 'OUTRO';
+    if (key === 'TUBETE') continue;
     const arr = map.get(key) ?? [];
     arr.push(m);
     map.set(key, arr);

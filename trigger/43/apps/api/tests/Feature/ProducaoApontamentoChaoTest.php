@@ -31,7 +31,7 @@ class ProducaoApontamentoChaoTest extends TestCase
 
     private OrdemProducao $op;
 
-    private OrdemProducaoMaterial $matTubete;
+    private OrdemProducaoMaterial $matCaixa;
 
     protected function setUp(): void
     {
@@ -64,7 +64,7 @@ class ProducaoApontamentoChaoTest extends TestCase
             'empresa_id' => $this->empresa->id,
             'codigo' => 'EMB-TUB-APT',
             'familia' => 'EMB',
-            'descricao_fiscal' => 'TUBETE APONTAR',
+            'descricao_fiscal' => 'CAIXA APONTAR',
             'unidade_comercial' => 'UN',
             'unidade_interna' => 'UN',
             'fator_conversao' => '1',
@@ -138,7 +138,7 @@ class ProducaoApontamentoChaoTest extends TestCase
             'qtde_planejada' => '100.0000',
         ]);
 
-        $this->matTubete = OrdemProducaoMaterial::query()->create([
+        $this->matCaixa = OrdemProducaoMaterial::query()->create([
             'empresa_id' => $this->empresa->id,
             'ordem_producao_id' => $this->op->id,
             'produto_id' => $emb->id,
@@ -148,7 +148,7 @@ class ProducaoApontamentoChaoTest extends TestCase
             'qtde_retorno' => '0',
             'qtde_perda' => '0',
             'unidade' => 'UN',
-            'componente' => 'TUBETE',
+            'componente' => 'CAIXA',
             'ordem' => 1,
         ]);
 
@@ -196,7 +196,7 @@ class ProducaoApontamentoChaoTest extends TestCase
 
         $req = $this->withHeaders($this->h())->postJson(
             "/api/v1/ordens-producao/{$this->op->id}/requisitar",
-            ['material_id' => $this->matTubete->id]
+            ['material_id' => $this->matCaixa->id]
         );
         $req->assertOk();
 
@@ -237,7 +237,7 @@ class ProducaoApontamentoChaoTest extends TestCase
                 'qtde_refugo' => '0',
                 'materiais' => [
                     [
-                        'material_id' => $this->matTubete->id,
+                        'material_id' => $this->matCaixa->id,
                         'qtde_retorno' => '0',
                         'qtde_perda' => '0',
                     ],

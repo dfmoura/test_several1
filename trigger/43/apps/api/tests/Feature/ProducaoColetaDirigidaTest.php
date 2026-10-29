@@ -43,7 +43,7 @@ class ProducaoColetaDirigidaTest extends TestCase
 
     private OrdemProducaoMaterial $matPapel;
 
-    private OrdemProducaoMaterial $matTubete;
+    private OrdemProducaoMaterial $matCaixa;
 
     private EstoqueLote $loteVencido;
 
@@ -94,9 +94,9 @@ class ProducaoColetaDirigidaTest extends TestCase
 
         $this->emb = Produto::query()->create([
             'empresa_id' => $this->empresa->id,
-            'codigo' => 'EMB-TUB-COL',
+            'codigo' => 'EMB-CX-COL',
             'familia' => 'EMB',
-            'descricao_fiscal' => 'TUBETE 3"',
+            'descricao_fiscal' => 'CAIXA 500x300x300',
             'unidade_comercial' => 'UN',
             'unidade_interna' => 'UN',
             'fator_conversao' => '1',
@@ -187,7 +187,7 @@ class ProducaoColetaDirigidaTest extends TestCase
             'ordem' => 1,
         ]);
 
-        $this->matTubete = OrdemProducaoMaterial::query()->create([
+        $this->matCaixa = OrdemProducaoMaterial::query()->create([
             'empresa_id' => $this->empresa->id,
             'ordem_producao_id' => $this->op->id,
             'produto_id' => $this->emb->id,
@@ -197,7 +197,7 @@ class ProducaoColetaDirigidaTest extends TestCase
             'qtde_retorno' => '0',
             'qtde_perda' => '0',
             'unidade' => 'UN',
-            'componente' => 'TUBETE',
+            'componente' => 'CAIXA',
             'ordem' => 2,
         ]);
 
@@ -282,9 +282,9 @@ class ProducaoColetaDirigidaTest extends TestCase
         $candidatoIds = collect($papel['retirada']['candidatos'])->pluck('lote_id')->all();
         $this->assertContains($this->loteSemValidade->id, $candidatoIds);
 
-        $tubete = collect($show->json('data.materiais'))->firstWhere('componente', 'TUBETE');
-        $this->assertFalse($tubete['retirada']['controla_lote']);
-        $this->assertSame([], $tubete['retirada']['volumes']);
+        $caixa = collect($show->json('data.materiais'))->firstWhere('componente', 'CAIXA');
+        $this->assertFalse($caixa['retirada']['controla_lote']);
+        $this->assertSame([], $caixa['retirada']['volumes']);
     }
 
     public function test_estoque_confirmar_pendentes_baixa_tudo_com_fefo(): void
@@ -297,9 +297,9 @@ class ProducaoColetaDirigidaTest extends TestCase
         $ok->assertOk();
 
         $papel = collect($ok->json('data.materiais'))->firstWhere('id', $this->matPapel->id);
-        $tubete = collect($ok->json('data.materiais'))->firstWhere('id', $this->matTubete->id);
+        $caixa = collect($ok->json('data.materiais'))->firstWhere('id', $this->matCaixa->id);
         $this->assertFalse($papel['pendente']);
-        $this->assertFalse($tubete['pendente']);
+        $this->assertFalse($caixa['pendente']);
         $this->assertSame('220.0000', (string) $papel['qtde_requisitada']);
         $this->assertSame('0.0000', (string) $this->loteVencido->fresh()->qtde);
         $this->assertSame('0.0000', (string) $this->loteVigente->fresh()->qtde);
@@ -492,25 +492,25 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->assertSame('100.0000', $res->json('data.volumes.0.qtde_retirar'));
     }
 
-    public function test_tubete_rejeita_quantidade_fracionada_e_aceita_inteira(): void
+    public function test_caixa_rejeita_quantidade_fracionada_e_aceita_inteira(): void
     {
         Sanctum::actingAs($this->user);
 
         $fail = $this->withHeaders($this->h())->postJson(
             "/api/v1/ordens-producao/{$this->op->id}/requisitar",
-            ['material_id' => $this->matTubete->id, 'qtde' => '3.3333']
+            ['material_id' => $this->matCaixa->id, 'qtde' => '3.3333']
         );
         $fail->assertStatus(422);
         $this->assertStringContainsString('inteira', (string) $fail->json('message').json_encode($fail->json('errors')));
-        $this->assertSame(0, bccomp((string) $this->matTubete->fresh()->qtde_requisitada, '0', 4));
+        $this->assertSame(0, bccomp((string) $this->matCaixa->fresh()->qtde_requisitada, '0', 4));
         $this->assertSame('50.0000', (string) EstoqueSaldo::query()->where('produto_id', $this->emb->id)->value('qtde'));
 
         $ok = $this->withHeaders($this->h())->postJson(
             "/api/v1/ordens-producao/{$this->op->id}/requisitar",
-            ['material_id' => $this->matTubete->id, 'qtde' => '4']
+            ['material_id' => $this->matCaixa->id, 'qtde' => '4']
         );
         $ok->assertOk();
-        $this->assertSame('4.0000', (string) $this->matTubete->fresh()->qtde_requisitada);
+        $this->assertSame('4.0000', (string) $this->matCaixa->fresh()->qtde_requisitada);
         $this->assertSame('46.0000', (string) EstoqueSaldo::query()->where('produto_id', $this->emb->id)->value('qtde'));
     }
 
@@ -521,7 +521,7 @@ class ProducaoColetaDirigidaTest extends TestCase
         $fail = $this->withHeaders($this->h())->postJson(
             "/api/v1/ordens-producao/{$this->op->id}/requisitar",
             [
-                'material_id' => $this->matTubete->id,
+                'material_id' => $this->matCaixa->id,
                 'volumes' => [
                     ['lote_id' => $this->loteVencido->id, 'qtde' => '4.0000'],
                 ],
@@ -559,7 +559,7 @@ class ProducaoColetaDirigidaTest extends TestCase
                             ['lote_id' => $this->loteVigente->id, 'qtde' => '120.0000'],
                         ],
                     ],
-                    ['material_id' => $this->matTubete->id],
+                    ['material_id' => $this->matCaixa->id],
                 ],
             ]
         );
@@ -624,7 +624,7 @@ class ProducaoColetaDirigidaTest extends TestCase
                             ['lote_id' => $this->loteVigente->id, 'qtde' => '120.0000'],
                         ],
                     ],
-                    ['material_id' => $this->matTubete->id],
+                    ['material_id' => $this->matCaixa->id],
                 ],
             ]
         )->assertOk();
@@ -685,7 +685,7 @@ class ProducaoColetaDirigidaTest extends TestCase
 
         $extra = Produto::query()->create([
             'empresa_id' => $this->empresa->id,
-            'codigo' => 'EMB-CX-COL',
+            'codigo' => 'EMB-CX-EXTRA',
             'familia' => 'EMB',
             'descricao_fiscal' => 'Caixa extra',
             'unidade_comercial' => 'UN',
@@ -712,7 +712,7 @@ class ProducaoColetaDirigidaTest extends TestCase
             ]
         );
         $ok->assertOk();
-        $linha = collect($ok->json('data.materiais'))->firstWhere('produto.codigo', 'EMB-CX-COL');
+        $linha = collect($ok->json('data.materiais'))->firstWhere('produto.codigo', 'EMB-CX-EXTRA');
         $this->assertNotNull($linha);
         $this->assertFalse($linha['pendente']);
         $this->assertSame('2.0000', $linha['qtde_requisitada']);
@@ -746,7 +746,7 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->withHeaders($this->h())->getJson('/api/v1/estoque/retiradas')->assertForbidden();
         $this->withHeaders($this->h())
             ->postJson("/api/v1/estoque/retiradas/{$this->op->id}/confirmar", [
-                'linhas' => [['material_id' => $this->matTubete->id]],
+                'linhas' => [['material_id' => $this->matCaixa->id]],
             ])
             ->assertForbidden();
     }
@@ -934,7 +934,7 @@ class ProducaoColetaDirigidaTest extends TestCase
 
         $this->withHeaders($this->h())->postJson(
             "/api/v1/ordens-producao/{$this->op->id}/escolha",
-            ['material_id' => $this->matTubete->id, 'produto_id' => $this->mp->id],
+            ['material_id' => $this->matCaixa->id, 'produto_id' => $this->mp->id],
         )->assertStatus(422);
     }
 

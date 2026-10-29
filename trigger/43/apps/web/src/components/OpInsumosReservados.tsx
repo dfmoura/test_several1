@@ -407,18 +407,26 @@ function colunasVolume(args: {
  * Insumos já apontados no kit da ordem, grupo a grupo.
  * Cada item escolhido fica numa linha, dentro da largura do cartão.
  * Bobina: o que a ordem precisa em m² e metro linear, abatido pela escolha.
- * Tubete e caixa sem lote: escolha entre os SKUs da polegada ou da medida aprovada.
+ * Caixa sem lote: escolha entre os SKUs da medida aprovada.
+ * Tubete não entra no kit/estoque da OP — polegada fica na ficha; baixa é manual depois.
  */
+function materiaisDoKit(linhas: OrdemProducaoMaterial[] | undefined): OrdemProducaoMaterial[] {
+  return (linhas ?? []).filter((m) => (m.componente ?? '').trim().toUpperCase() !== 'TUBETE');
+}
+
 export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) {
-  const materiais = op.materiais;
-  const grupos = useMemo(() => agrupar(materiais ?? []), [materiais]);
+  const materiais = useMemo(() => materiaisDoKit(op.materiais), [op.materiais]);
+  const grupos = useMemo(() => agrupar(materiais), [materiais]);
   const apontados = useMemo(() => {
-    const tem = new Set((materiais ?? []).map((m) => (m.componente ?? '').trim().toUpperCase()));
+    const tem = new Set(materiais.map((m) => (m.componente ?? '').trim().toUpperCase()));
     const lista: ApontadoGuia[] = [
       ...(op.disponibilidade?.componentes_nao_casados ?? []),
       ...(op.disponibilidade?.guia_apontada ?? []),
     ];
-    return lista.filter((a) => !tem.has((a.componente ?? '').trim().toUpperCase()));
+    return lista.filter((a) => {
+      const comp = (a.componente ?? '').trim().toUpperCase();
+      return comp !== 'TUBETE' && !tem.has(comp);
+    });
   }, [materiais, op.disponibilidade]);
   const assinatura = useMemo(
     () =>

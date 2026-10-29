@@ -146,6 +146,7 @@ function qtdeSaidaFisica(m: OrdemProducaoMaterial, ordem: OrdemProducao): string
 /** Só linhas com saída lógica — o que pode sair fisicamente. */
 export function insumosComSaidaLogica(ordem: OrdemProducao): OpFichaMateriaisInsumo[] {
   const linhas = (ordem.materiais ?? [])
+    .filter((m) => (m.componente ?? '').trim().toUpperCase() !== 'TUBETE')
     .filter(materialComSaidaLogica)
     .sort((a, b) => {
       const ca = ordemComponente(a.componente ?? '');

@@ -333,7 +333,7 @@ class OpBomFaixaDoItemTest extends TestCase
         $this->assertSame($legado->id, $caixaLegado['produto_id']);
     }
 
-    public function test_tubete_da_op_nasce_inteiro(): void
+    public function test_tubete_nao_vira_material_da_op(): void
     {
         $empresa = Empresa::query()->create([
             'codigo' => 'EMP-BOM5',
@@ -363,46 +363,8 @@ class OpBomFaixaDoItemTest extends TestCase
                 'faixa' => ['quantidade' => 10000, 'rolos' => 10000 / 3000],
             ],
         ]));
-        $tubete = collect($diag['linhas'])->firstWhere('componente', 'TUBETE');
-        $this->assertNotNull($tubete);
-        $this->assertSame($sku->id, $tubete['produto_id']);
-        $this->assertSame('4.0000', $tubete['qtde']);
-        $this->assertSame('UN', $tubete['unidade']);
 
-        $exato = app(OpBomDeriver::class)->diagnostico($empresa, new Pedido([
-            'snapshot' => ['input' => []],
-        ]), new PedidoItem([
-            'especificacao' => [
-                'tubete' => '3"',
-                'etiq_por_rolo' => 1000,
-                'tubete_produto_id' => $sku->id,
-                'faixa' => ['quantidade' => 7000, 'rolos' => 7.0000002],
-            ],
-        ]));
-        $this->assertSame('7.0000', collect($exato['linhas'])->firstWhere('componente', 'TUBETE')['qtde']);
-
-        $semEtiq = app(OpBomDeriver::class)->diagnostico($empresa, new Pedido([
-            'snapshot' => ['input' => []],
-        ]), new PedidoItem([
-            'especificacao' => [
-                'tubete' => '1"',
-                'faixa' => ['rolos' => 2.4],
-            ],
-        ]));
-        $semEtiqLinha = collect($semEtiq['linhas'])->concat($semEtiq['nao_casados'])->firstWhere('componente', 'TUBETE');
-        $this->assertNotNull($semEtiqLinha);
-        $this->assertSame('3.0000', $semEtiqLinha['qtde']);
-
-        $roloCheio = app(OpBomDeriver::class)->diagnostico($empresa, new Pedido([
-            'snapshot' => ['input' => []],
-        ]), new PedidoItem([
-            'especificacao' => [
-                'tubete' => '1"',
-                'faixa' => ['rolos' => 5],
-            ],
-        ]));
-        $roloCheioLinha = collect($roloCheio['linhas'])->concat($roloCheio['nao_casados'])->firstWhere('componente', 'TUBETE');
-        $this->assertNotNull($roloCheioLinha);
-        $this->assertSame('5.0000', $roloCheioLinha['qtde']);
+        $this->assertNull(collect($diag['linhas'])->firstWhere('componente', 'TUBETE'));
+        $this->assertNull(collect($diag['nao_casados'])->firstWhere('componente', 'TUBETE'));
     }
 }

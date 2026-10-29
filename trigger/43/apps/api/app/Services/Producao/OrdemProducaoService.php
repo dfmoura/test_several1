@@ -409,6 +409,11 @@ class OrdemProducaoService
                     'complementar' => ['Requisite a saída planejada antes de complementar.'],
                 ]);
             }
+            if (strtoupper((string) $matPendente->componente) === 'TUBETE') {
+                throw ValidationException::withMessages([
+                    'material_id' => ['Tubete não sai pelo kit da ordem. A baixa é manual, por pacote.'],
+                ]);
+            }
             $produtoId = (int) $matPendente->produto_id;
             $matPendente->loadMissing('produto:id,controla_lote,grupo_id');
             $compEscolha = strtoupper((string) $matPendente->componente);
@@ -674,6 +679,10 @@ class OrdemProducaoService
             ->get()
             ->reject(function (OrdemProducaoMaterial $mat): bool {
                 $comp = strtoupper((string) $mat->componente);
+                // Tubete fora do kit/baixa da OP — pacote = ajuste manual depois.
+                if ($comp === 'TUBETE') {
+                    return true;
+                }
 
                 return (int) $mat->produto_id <= 0 && in_array($comp, ['PAPEL', 'ACABAMENTO'], true);
             })
@@ -1745,7 +1754,11 @@ class OrdemProducaoService
                 ->keyBy('produto_id');
 
         $linhasComFaltante = 0;
-        $materiais = $o->materiais->map(function (OrdemProducaoMaterial $m) use ($empresa, $o, $saldos, &$linhasComFaltante) {
+        // Tubete: polegada na ficha; fora do kit/estoque da OP (baixa manual por pacote).
+        $materiais = $o->materiais
+            ->filter(fn (OrdemProducaoMaterial $m) => strtoupper(trim((string) $m->componente)) !== 'TUBETE')
+            ->values()
+            ->map(function (OrdemProducaoMaterial $m) use ($empresa, $o, $saldos, &$linhasComFaltante) {
             $pendente = $m->saida_movimento_id === null
                 || bccomp((string) $m->qtde_requisitada, '0', PadraoDecimal::SCALE_QTY) <= 0;
             $disponivel = $saldos->get((int) $m->produto_id)

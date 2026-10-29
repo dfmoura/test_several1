@@ -1153,12 +1153,15 @@ class ProducaoColetaService
         $aRetirar = [];
         $aEntregar = [];
         foreach ($ops as $op) {
+            // Tubete fora da fila do chão — baixa por pacote é manual (não empenho da OP).
             $pendentes = $op->materiais->filter(
                 fn (OrdemProducaoMaterial $m) => $m->saida_movimento_id === null
+                    && strtoupper(trim((string) $m->componente)) !== 'TUBETE'
                     && bccomp((string) $m->qtde_planejada, '0', PadraoDecimal::SCALE_QTY) > 0
             );
             $baixados = $op->materiais->filter(
                 fn (OrdemProducaoMaterial $m) => $m->saida_movimento_id !== null
+                    && strtoupper(trim((string) $m->componente)) !== 'TUBETE'
             );
 
             $card = $this->cardFila($op, $pendentes->count(), $baixados->count());
@@ -1212,7 +1215,12 @@ class ProducaoColetaService
             ->where('empresa_id', $empresa->id)
             ->whereIn('status', OrdemProducao::STATUSES_ABERTOS)
             ->whereHas('materiais', function ($m) {
-                $m->whereNull('saida_movimento_id')->where('qtde_planejada', '>', 0);
+                $m->whereNull('saida_movimento_id')
+                    ->where('qtde_planejada', '>', 0)
+                    ->where(function ($q) {
+                        $q->whereNull('componente')
+                            ->orWhereRaw('UPPER(TRIM(componente)) <> ?', ['TUBETE']);
+                    });
             })
             ->count();
     }
@@ -1224,7 +1232,11 @@ class ProducaoColetaService
             ->whereIn('status', OrdemProducao::STATUSES_ABERTOS)
             ->whereNull('insumos_entregues_em')
             ->whereHas('materiais', function ($m) {
-                $m->whereNotNull('saida_movimento_id');
+                $m->whereNotNull('saida_movimento_id')
+                    ->where(function ($q) {
+                        $q->whereNull('componente')
+                            ->orWhereRaw('UPPER(TRIM(componente)) <> ?', ['TUBETE']);
+                    });
             })
             ->count();
     }

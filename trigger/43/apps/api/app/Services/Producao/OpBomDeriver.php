@@ -117,41 +117,9 @@ class OpBomDeriver
             }
         }
 
-        if ($ctx['tubete'] !== '' && $ctx['rolos'] > 0) {
-            $rotuloTubete = $ctx['tubete_rotulo'] !== '' ? $ctx['tubete_rotulo'] : $ctx['tubete'];
-            $qtdeTubete = $this->qtdeTubetes($ctx);
-            $tubeteSku = $this->produtoDoSnapshot($empresa, $ctx['tubete_produto_id']);
-            if ($ctx['tubete_produto_id'] > 0 && ! $tubeteSku) {
-                $naoCasados[] = [
-                    'componente' => 'TUBETE',
-                    'origem_texto' => $rotuloTubete,
-                    'qtde' => $qtdeTubete,
-                    'unidade' => 'UN',
-                    'motivo' => 'Tubete escolhido no orçamento não está ativo nesta empresa.',
-                ];
-            } else {
-                $match = $tubeteSku ?: $this->matchTubete($empresa, $ctx['tubete'], $usedProdutoIds);
-                if ($match) {
-                    $out[] = [
-                        'produto_id' => (int) $match->id,
-                        'qtde' => $qtdeTubete,
-                        'unidade' => (string) ($match->unidade_interna ?: 'UN'),
-                        'componente' => 'TUBETE',
-                        'origem_texto' => $rotuloTubete,
-                        'match_score' => $tubeteSku ? 10 : (int) ($match->getAttribute('_score') ?? 0),
-                    ];
-                    $usedProdutoIds[] = (int) $match->id;
-                } else {
-                    $naoCasados[] = [
-                        'componente' => 'TUBETE',
-                        'origem_texto' => $rotuloTubete,
-                        'qtde' => $qtdeTubete,
-                        'unidade' => 'UN',
-                        'motivo' => 'Nenhum SKU de tubete (EMB) casado nesta empresa.',
-                    ];
-                }
-            }
-        }
+        // Tubete: polegada fica no snapshot/ficha de impressão. Não vira linha de material
+        // da OP nem baixa automática — consumo por pacote é ajuste manual depois
+        // (ADR_CADASTRO_INSUMO_VOLUME · ORC só diâmetro).
 
         if ($ctx['caixas'] > 0) {
             $match = $this->matchCaixa($empresa, $ctx['caixa_medida'], $usedProdutoIds);
@@ -341,43 +309,6 @@ class OpBomDeriver
         return PadraoDecimal::roundHalfUp((string) $qtde, PadraoDecimal::SCALE_QTY);
     }
 
-    /**
-     * Tubete é peça. O rolo comercial (qtd ÷ etiq/rolo) pode ser fração;
-     * a ordem leva o teto: o último rolo parcial ainda usa um tubete inteiro.
-     *
-     * @param  array{quantidade: int, etiq_por_rolo: int, rolos: float}  $ctx
-     */
-    private function qtdeTubetes(array $ctx): string
-    {
-        $q = (int) $ctx['quantidade'];
-        $etiq = (int) $ctx['etiq_por_rolo'];
-        if ($q > 0 && $etiq > 0) {
-            $n = intdiv($q, $etiq) + ($q % $etiq > 0 ? 1 : 0);
-
-            return PadraoDecimal::roundHalfUp((string) $n, PadraoDecimal::SCALE_QTY);
-        }
-
-        return $this->qtdePecasDeRolos((float) $ctx['rolos']);
-    }
-
-    /**
-     * Teto do rolo gravado, quando a quantidade e a etiqueta por rolo não estão no pedido.
-     * Folga de 1e-6 para ruído de float não criar um tubete a mais.
-     */
-    private function qtdePecasDeRolos(float $rolos): string
-    {
-        if ($rolos <= 0) {
-            return PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);
-        }
-        $base = (int) floor($rolos + 1e-6);
-        $n = ($rolos - $base) > 1e-6 ? $base + 1 : $base;
-        if ($n < 1) {
-            $n = 1;
-        }
-
-        return PadraoDecimal::roundHalfUp((string) $n, PadraoDecimal::SCALE_QTY);
-    }
-
     private function inteiroContagem(mixed $value): int
     {
         if ($value === null || $value === '' || is_bool($value)) {
@@ -436,51 +367,6 @@ class OpBomDeriver
         }
 
         return mb_strtoupper($nome, 'UTF-8') !== 'REBOBINAÇÃO';
-    }
-
-    /**
-     * @param  list<int>  $excludeIds
-     */
-    private function matchTubete(Empresa $empresa, string $tubete, array $excludeIds): ?Produto
-    {
-        $norm = $this->normalize($tubete);
-        // Extrai polegadas: 3", 1 1/2", 1.5
-        $candidatos = Produto::query()
-            ->where('empresa_id', $empresa->id)
-            ->where('situacao', 'ATIVO')
-            ->where('familia', 'EMB')
-            ->where(function ($q) {
-                $q->where('codigo', 'like', 'EMB-TUB%')
-                    ->orWhere('descricao_fiscal', 'like', '%TUBETE%');
-            })
-            ->when($excludeIds !== [], fn ($q) => $q->whereNotIn('id', $excludeIds))
-            ->get(['id', 'codigo', 'descricao_fiscal', 'descricao_comercial', 'unidade_interna', 'familia', 'atributos', 'fator_conversao']);
-
-        $best = null;
-        $bestScore = 0;
-        foreach ($candidatos as $p) {
-            $hay = $this->normalize(($p->codigo ?? '').' '.($p->descricao_fiscal ?? ''));
-            $score = 0;
-            if (str_contains($hay, 'TUBETE')) {
-                $score += 2;
-            }
-            // Match de polegadas normalizado (3 → 3, 1 1/2 → 1 1/2)
-            $needleInch = preg_replace('/[^0-9\/ ]/', '', $norm) ?? '';
-            $needleInch = trim(preg_replace('/\s+/', ' ', $needleInch) ?? '');
-            if ($needleInch !== '' && str_contains($hay, $needleInch)) {
-                $score += 8;
-            }
-            if ($norm !== '' && str_contains($hay, $norm)) {
-                $score += 5;
-            }
-            if ($score > $bestScore) {
-                $bestScore = $score;
-                $p->setAttribute('_score', $score);
-                $best = $p;
-            }
-        }
-
-        return $bestScore >= 5 ? $best : null;
     }
 
     /**
