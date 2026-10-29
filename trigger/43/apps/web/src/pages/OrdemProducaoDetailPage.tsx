@@ -10,7 +10,6 @@ import { api, type OrdemProducao, type Pedido } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
-import { podeVerFichaMateriais } from '../lib/opFichaMateriais';
 import { opStatusLabel } from '../lib/producaoUi';
 
 export function OrdemProducaoDetailPage() {
@@ -126,29 +125,6 @@ export function OrdemProducaoDetailPage() {
             >
               Impressão e acabamento
             </a>
-            {hasPermission('estoque.ler') && (op.materiais?.length ?? 0) > 0 ? (
-              <a
-                href={`/estoque/retiradas/${op.id}/ficha`}
-                className="btn btn-secondary btn-sm"
-                onClick={(e) =>
-                  onAbrirFichaClick(e, `/estoque/retiradas/${op.id}/ficha`)
-                }
-                title="Papel para a prateleira · local e volume a volume"
-              >
-                Retirada · volumes
-              </a>
-            ) : null}
-            {podeVerFichaMateriais(op) ? (
-              <a
-                href={`/ordens-producao/${op.id}/ficha-materiais`}
-                className="btn btn-secondary btn-sm"
-                onClick={(e) =>
-                  onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha-materiais`)
-                }
-              >
-                Materiais · retirada
-              </a>
-            ) : null}
           </>
         ) : null}
       </div>

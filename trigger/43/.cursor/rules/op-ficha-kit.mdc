@@ -20,9 +20,8 @@ OP = o que produzir + kit + fechar
 - 1 kit por OP.
 - Bobina da lista = grupo do catálogo. Outro grupo só com motivo. Etiqueta com papel no snapshot só fecha depois que o papel saiu.
 - Ficha impressa = ordem de flexo: impressão, quanto rodar, kit, conferência. Sem preço, rpm, hora ou guia do ORC. Tela da ordem repete a mesma leitura numa linha.
-- Satélite paisagem (sem R$, sem kit): **Impressão e acabamento** (`/ficha-chao`) — identidade + impressão + rebobinação (só exclusivos).
-- Pick ticket de prateleira: **Retirada · volumes** (`/estoque/retiradas/:id/ficha`) — Local · Volume · Levar · Validade (FEFO); link na toolbar da OP com kit + `estoque.ler`.
-- **Materiais · retirada** (`/ficha-materiais`) só após saída — checklist SKU/qtde; sem local/volume.
+- Satélite paisagem único (`/ficha-chao`): **Impressão e acabamento** — identidade + impressão + rebobinação (só exclusivos) + **Retirada · prateleira** (Levado · Local · Volume · Material · Levar · Validade). Um botão na toolbar da OP.
+- Rotas antigas de materiais/retirada/impressão/acabamento redirecionam para `ficha-chao`.
 
 ## Não faça
 
@@ -31,6 +30,6 @@ OP = o que produzir + kit + fechar
 - Reservar saldo sem ADR.
 - Juntar a baixa de prateleira com o fecho da ordem.
 - Recolocar o menu **Na máquina** ou a grade de consumo (saiu, rasgou, sobra, perda, usou) no fecho.
-- Meter volumes / FEFO / locais na ficha-chao ou em Materiais.
+- Recolocar botões separados **Retirada · volumes** / **Materiais · retirada** na toolbar da OP.
 
 Se a tarefa exigir violar isto → parar e citar `docs/ADR_OP_FICHA_KIT.md`.

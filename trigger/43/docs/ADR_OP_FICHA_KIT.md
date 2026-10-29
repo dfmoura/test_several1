@@ -111,18 +111,20 @@ Um satélite paisagem A4 substitui as duas rotas acima. Toolbar: **Impressão e 
 |------|------|----------|
 | `/ordens-producao/:id/ficha-chao` | PCP / chão (`producao.ler`) | Identidade (1×) → Impressão · máquina (bloco completo) → Acabamento · rebobinação (**só exclusivos**: colunas reb., etiq/rolo, rolos, m/rolo) |
 
-Rotas antigas `ficha-impressao` e `ficha-acabamento` redirecionam para `ficha-chao`. Sem repetir Item / metragem / acabamento / tubete / saída na banda de rebobinação (já na impressão na mesma folha). Grão = planilha do PED (`pedidoFichaPlanilha`) escopada ao **item da OP**. Sem gate de `SAIDA_PRODUCAO`. Sem alterar `/ficha` (flexo + kit) nem `/ficha-materiais`. Sem kit nem volumes na ficha-chao.
+Rotas antigas `ficha-impressao` e `ficha-acabamento` redirecionam para `ficha-chao`. Sem repetir Item / metragem / acabamento / tubete / saída na banda de rebobinação (já na impressão na mesma folha). Grão = planilha do PED (`pedidoFichaPlanilha`) escopada ao **item da OP**. Sem gate de `SAIDA_PRODUCAO`. Sem alterar `/ficha` (flexo + kit).
 
-## Emenda 2026-10-29b — três papéis impressos (máquina × prateleira × handoff)
+## Emenda 2026-10-29b — três papéis (histórico)
 
-Volumes físicos (local · volume · levar · validade, FEFO) **não** entram em `/ficha-chao` nem em `/ficha-materiais`.
+Separava máquina / pick ticket / materiais. Substituída pela emenda 2026-10-29c (um papel).
 
-| Rota | Quem | Momento | Grão |
-|------|------|---------|------|
-| `/ordens-producao/:id/ficha-chao` | PCP / máquina (`producao.ler`) | sempre | identidade + impressão + rebobinação |
-| `/estoque/retiradas/:id/ficha` | Almoxarifado (`estoque.ler`) | **antes** de confirmar | **A buscar · volumes** — volume a volume (FEFO); checkbox Levado |
-| `/ordens-producao/:id/ficha-materiais` | handoff (`producao.ler`) | **depois** de `SAIDA_PRODUCAO` | SKU/qtde já baixados; **sem** local/volume |
+## Emenda 2026-10-29c — um papel: máquina + retirada
 
-Toolbar da OP: **Retirada · volumes** aponta para a pick ticket de Estoque quando há kit e `estoque.ler`. Confirmar saída continua só em Estoque · **A buscar** (sem segundo writer).
+Toolbar da OP: **Imprimir lista** + **Impressão e acabamento** apenas.
+
+| Rota | Quem | Conteúdo |
+|------|------|----------|
+| `/ordens-producao/:id/ficha-chao` | `producao.ler` ou `estoque.ler` | Identidade → Impressão → Acabamento (exclusivos) → **Retirada · prateleira** (Levado · Local · Volume · Material · Levar · Validade) |
+
+`ficha-materiais`, `ficha-impressao`, `ficha-acabamento` e `/estoque/retiradas/:id/ficha` redirecionam para `ficha-chao`. Confirmar saída continua só em Estoque · **A buscar** (ficha é guia; sem segundo writer). Sem prosa FEFO; tabela plana volume a volume.
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX).

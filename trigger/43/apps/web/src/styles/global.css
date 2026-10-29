@@ -10321,6 +10321,31 @@ tr.row-inactive td {
   min-width: 28mm;
 }
 
+/* Retirada · prateleira — Local/Volume âncoras da caminhada. */
+.ficha-sheet-op-chao .op-chao-th-check,
+.ficha-sheet-op-chao .op-chao-td-check {
+  width: 10mm;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.ficha-sheet-op-chao .op-chao-th-check {
+  font-size: 5.25pt;
+  font-weight: 600;
+}
+
+.ficha-sheet-op-chao .op-chao-local,
+.ficha-sheet-op-chao .op-chao-volume {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ficha-sheet-op-chao .op-chao-td-check .ficha-pick-check {
+  width: 3.6mm;
+  height: 3.6mm;
+}
+
 /* OP materiais · retirada — A4 paisagem. Satélite da ficha flexo retrato. */
 .ficha-sheet.ficha-sheet-op-materiais {
   width: 297mm;

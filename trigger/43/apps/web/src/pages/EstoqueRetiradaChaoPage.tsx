@@ -46,10 +46,10 @@ export function EstoqueRetiradaChaoPage() {
         {op ? (
           <a
             className="btn btn-secondary btn-sm"
-            href={`/estoque/retiradas/${op.id}/ficha`}
-            onClick={(e) => onAbrirFichaClick(e, `/estoque/retiradas/${op.id}/ficha`)}
+            href={`/ordens-producao/${op.id}/ficha-chao`}
+            onClick={(e) => onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha-chao`)}
           >
-            Retirada · volumes
+            Impressão e acabamento
           </a>
         ) : null}
         {op ? <span className="pick-toolbar__ref">{op.codigo}</span> : null}

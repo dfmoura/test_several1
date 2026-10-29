@@ -14,7 +14,9 @@ import {
   itemPedidoDaOp,
   linhaProducaoChao,
   linhasIdentidadeChao,
+  linhasRetiradaChao,
   opFichaChaoMeta,
+  type OpFichaChaoRetiradaLinha,
 } from '../lib/opFichaChao';
 import { textoMaquinaFlexo } from '../lib/opFichaFlexo';
 import type {
@@ -26,9 +28,8 @@ import { opStatusLabel } from '../lib/producaoUi';
 import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
 
 /**
- * Ficha de chão unificada da OP — Impressão + Acabamento (A4 paisagem).
- * Satélite da ficha flexo retrato. Identidade 1×; rebobinação só exclusivos.
- * Reusa grão da planilha do PED, escopado ao item da OP.
+ * Ficha de chão unificada — impressão, acabamento e retirada (A4 paisagem).
+ * Satélite da ficha flexo. Confirmar saída só na tela A buscar.
  */
 export type OrdemProducaoFichaChaoSheetProps = {
   ordem: OrdemProducao;
@@ -166,6 +167,42 @@ function TabelaAcabamento({ ln }: { ln: PedidoPlanilhaProducaoLinha }) {
   );
 }
 
+/** Caminhada na prateleira — volume a volume, seco. */
+function TabelaRetirada({ linhas }: { linhas: OpFichaChaoRetiradaLinha[] }) {
+  return (
+    <table className="ficha-table op-chao-table op-chao-table--retirada">
+      <thead>
+        <tr>
+          <th className="op-chao-th-check" scope="col">
+            Levado
+          </th>
+          <th scope="col">Local</th>
+          <th scope="col">Volume</th>
+          <th scope="col">Material</th>
+          <th className="ficha-td-num" scope="col">
+            Levar
+          </th>
+          <th scope="col">Validade</th>
+        </tr>
+      </thead>
+      <tbody>
+        {linhas.map((ln) => (
+          <tr key={ln.key}>
+            <td className="op-chao-td-check">
+              <span className="ficha-pick-check" aria-hidden />
+            </td>
+            <td className="op-chao-local">{dashCell(ln.local)}</td>
+            <td className="op-chao-volume">{dashCell(ln.volume)}</td>
+            <td>{dashCell(ln.material)}</td>
+            <td className="ficha-td-num">{dashCell(ln.levar)}</td>
+            <td>{dashCell(ln.validade)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export function OrdemProducaoFichaChaoSheet({
   ordem: o,
   pedido,
@@ -177,6 +214,7 @@ export function OrdemProducaoFichaChaoSheet({
   const item = itemPedidoDaOp(o, pedido);
   const identidade = pedido && item ? linhasIdentidadeChao(pedido, item) : [];
   const producao = pedido && item ? linhaProducaoChao(pedido, item) : null;
+  const retirada = linhasRetiradaChao(o);
   const spec = pedido && item ? specOperacional(pedido, item) : {};
   const maquina = textoMaquinaFlexo(spec);
   const pedCodigo = o.pedido?.codigo ?? pedido?.codigo ?? '—';
@@ -272,6 +310,15 @@ export function OrdemProducaoFichaChaoSheet({
         )}
       </FichaSection>
 
+      <FichaSection title={meta.secaoRetirada}>
+        <p className="op-chao-hint">{meta.hintRetirada}</p>
+        {retirada.length === 0 ? (
+          <p className="ficha-empty">Sem kit nesta ordem — nada a buscar na prateleira.</p>
+        ) : (
+          <TabelaRetirada linhas={retirada} />
+        )}
+      </FichaSection>
+
       <RegistroMetaStrip
         registro={{
           criado_por: o.criado_por,
@@ -284,7 +331,8 @@ export function OrdemProducaoFichaChaoSheet({
 
       <footer className="ficha-footer">
         <span>
-          Uso interno · {o.codigo} · impressão e acabamento · emitido por {emitidoPor}
+          Uso interno · {o.codigo} · impressão, acabamento e retirada · emitido por{' '}
+          {emitidoPor}
         </span>
         <TriggerAttribution
           variant="print"

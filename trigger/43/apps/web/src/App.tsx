@@ -74,7 +74,6 @@ import { EstoqueVolumesEtiquetasPage } from './pages/EstoqueVolumesEtiquetasPage
 import { EstoqueGuardarPage } from './pages/EstoqueGuardarPage';
 import { EstoqueRetiradasPage } from './pages/EstoqueRetiradasPage';
 import { EstoqueRetiradaChaoPage } from './pages/EstoqueRetiradaChaoPage';
-import { EstoqueRetiradaFichaPage } from './pages/EstoqueRetiradaFichaPage';
 import { EstoqueSeparacoesPage } from './pages/EstoqueSeparacoesPage';
 import { EstoqueSeparacaoChaoPage } from './pages/EstoqueSeparacaoChaoPage';
 import { EstoqueSeparacaoFichaPage } from './pages/EstoqueSeparacaoFichaPage';
@@ -87,7 +86,6 @@ import { OrdemProducaoDetailPage } from './pages/OrdemProducaoDetailPage';
 import { ProducaoApontamentosPage } from './pages/ProducaoApontamentosPage';
 import { ProducaoApontamentoChaoPage } from './pages/ProducaoApontamentoChaoPage';
 import { OrdemProducaoFichaPage } from './pages/OrdemProducaoFichaPage';
-import { OrdemProducaoFichaMateriaisPage } from './pages/OrdemProducaoFichaMateriaisPage';
 import { OrdemProducaoFichaChaoPage } from './pages/OrdemProducaoFichaChaoPage';
 import { PaEmbalagemEtiquetasPage } from './pages/PaEmbalagemEtiquetasPage';
 import { OrdemServicoDetailPage } from './pages/OrdemServicoDetailPage';
@@ -167,7 +165,7 @@ function RedirectFaturamentoLegado() {
   return <Navigate to="/faturamentos" replace />;
 }
 
-/** Rotas antigas ficha-impressao / ficha-acabamento → ficha-chao unificada. */
+/** Rotas legadas (impressão, acabamento, materiais, retirada) → ficha-chao unificada. */
 function RedirectOpFichaChaoLegado() {
   const { id } = useParams<{ id: string }>();
   if (id) return <Navigate to={`/ordens-producao/${id}/ficha-chao`} replace />;
@@ -956,22 +954,22 @@ export default function App() {
       />
 
       <Route
-        path="/ordens-producao/:id/ficha-materiais"
+        path="/ordens-producao/:id/ficha-chao"
         element={
           <ProtectedRoute>
-            <PermissionRoute permission="producao.ler">
-              <OrdemProducaoFichaMateriaisPage />
+            <PermissionRoute permission={['producao.ler', 'estoque.ler']}>
+              <OrdemProducaoFichaChaoPage />
             </PermissionRoute>
           </ProtectedRoute>
         }
       />
 
       <Route
-        path="/ordens-producao/:id/ficha-chao"
+        path="/ordens-producao/:id/ficha-materiais"
         element={
           <ProtectedRoute>
-            <PermissionRoute permission="producao.ler">
-              <OrdemProducaoFichaChaoPage />
+            <PermissionRoute permission={['producao.ler', 'estoque.ler']}>
+              <RedirectOpFichaChaoLegado />
             </PermissionRoute>
           </ProtectedRoute>
         }
@@ -981,7 +979,7 @@ export default function App() {
         path="/ordens-producao/:id/ficha-impressao"
         element={
           <ProtectedRoute>
-            <PermissionRoute permission="producao.ler">
+            <PermissionRoute permission={['producao.ler', 'estoque.ler']}>
               <RedirectOpFichaChaoLegado />
             </PermissionRoute>
           </ProtectedRoute>
@@ -992,7 +990,7 @@ export default function App() {
         path="/ordens-producao/:id/ficha-acabamento"
         element={
           <ProtectedRoute>
-            <PermissionRoute permission="producao.ler">
+            <PermissionRoute permission={['producao.ler', 'estoque.ler']}>
               <RedirectOpFichaChaoLegado />
             </PermissionRoute>
           </ProtectedRoute>
@@ -1003,8 +1001,8 @@ export default function App() {
         path="/estoque/retiradas/:id/ficha"
         element={
           <ProtectedRoute>
-            <PermissionRoute permission="estoque.ler">
-              <EstoqueRetiradaFichaPage />
+            <PermissionRoute permission={['estoque.ler', 'producao.ler']}>
+              <RedirectOpFichaChaoLegado />
             </PermissionRoute>
           </ProtectedRoute>
         }

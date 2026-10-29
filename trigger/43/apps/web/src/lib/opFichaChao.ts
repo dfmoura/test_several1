@@ -1,10 +1,10 @@
 /**
- * Grão da ficha de chão unificada da OP (Impressão + Acabamento) — só apresentação.
- * Satélite da ficha flexo retrato. Reusa a planilha do PED sem R$.
- * Sem persistir campo novo; sem alterar kit, materiais ou ficha flexo.
+ * Grão da ficha de chão unificada da OP — impressão, acabamento e retirada.
+ * Satélite da ficha flexo retrato. Sem R$. Sem writer (confirmação em A buscar).
  */
 import type { OrdemProducao, Pedido, PedidoItem } from './api';
 import { formatoLabel } from '../components/FacaShapeIcon';
+import { formatDate, formatDecimalBr } from './format';
 import { descricaoFromPedidoSpec } from './orcamentoPropostaItens';
 import {
   linhasComerciaisPlanilha,
@@ -13,7 +13,13 @@ import {
   type PedidoPlanilhaProducaoLinha,
   type PedidoPlanilhaVisual,
 } from './pedidoFichaPlanilha';
+import {
+  formatNecessidadeOp,
+  opKitLinhasOrdenadas,
+  volumesParaEscolha,
+} from './producaoPick';
 import { specOperacional } from './producaoFicha';
+import { opKitEstado, opKitNome, opKitOnde } from './producaoUi';
 import { saidaEtiquetaLabelCurto } from './saidaEtiqueta';
 
 export function itemPedidoDaOp(
@@ -60,20 +66,95 @@ export function linhaProducaoChao(
   return ln ?? null;
 }
 
+/** Linha plana para caminhada na prateleira (volume a volume). */
+export type OpFichaChaoRetiradaLinha = {
+  key: string;
+  local: string;
+  volume: string;
+  material: string;
+  levar: string;
+  validade: string;
+};
+
+function fmtLevar(qtde: number | string | null | undefined, unidade: string | null | undefined): string {
+  const n = Number(qtde);
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  const scale = Math.abs(n - Math.round(n)) < 1e-6 ? 0 : 2;
+  const q = formatDecimalBr(n, scale, { stripTrailingZeros: true });
+  const u = (unidade ?? '').trim();
+  return u ? `${q} ${u}` : q;
+}
+
+/**
+ * Volumes a pegar (FEFO) ou já baixados — uma linha por volume.
+ * Sem prosa; sem segundo writer.
+ */
+export function linhasRetiradaChao(ordem: OrdemProducao): OpFichaChaoRetiradaLinha[] {
+  const out: OpFichaChaoRetiradaLinha[] = [];
+  for (const m of opKitLinhasOrdenadas(ordem.materiais ?? [])) {
+    const estado = opKitEstado(m);
+    const nome = opKitNome(m);
+    const vols =
+      estado === 'ja_saiu'
+        ? (m.retirada?.volumes_baixados ?? [])
+        : volumesParaEscolha(m).filter((v) => Number(v.qtde_retirar) > 0 || v.sugerido);
+
+    if (vols.length === 0) {
+      if (estado === 'sem_estoque') {
+        out.push({
+          key: `${m.id}-sem`,
+          local: '—',
+          volume: '—',
+          material: nome,
+          levar: 'Sem saldo',
+          validade: '—',
+        });
+        continue;
+      }
+      const onde = opKitOnde(m);
+      out.push({
+        key: `${m.id}-saldo`,
+        local: onde === '—' ? 'Saldo' : onde,
+        volume: '—',
+        material: nome,
+        levar: formatNecessidadeOp(m, ordem),
+        validade: '—',
+      });
+      continue;
+    }
+
+    vols.forEach((v, i) => {
+      out.push({
+        key: `${m.id}-${v.lote_id ?? v.codigo ?? i}`,
+        local: (v.endereco?.codigo ?? '').trim() || '—',
+        volume: (v.codigo ?? '').trim() || '—',
+        material: nome,
+        levar: fmtLevar(v.qtde_retirar, v.unidade ?? m.unidade),
+        validade: v.data_validade ? formatDate(v.data_validade) : '—',
+      });
+    });
+  }
+  return out;
+}
+
 export function opFichaChaoMeta(): {
   titulo: string;
   docLabel: string;
   secaoImpressao: string;
   hintImpressao: string;
   secaoAcabamento: string;
+  secaoRetirada: string;
+  hintRetirada: string;
   toolbarHint: string;
 } {
   return {
     titulo: 'Impressão e acabamento',
-    docLabel: 'Ficha de chão · impressão e rebobinação',
+    docLabel: 'Ficha de chão · impressão, rebobinação e retirada',
     secaoImpressao: 'Impressão · máquina',
     hintImpressao: 'Largura do papel = largura × colunas de produção',
     secaoAcabamento: 'Acabamento · rebobinação',
-    toolbarHint: 'Impressão e acabamento · A4 paisagem · sem preço · chão',
+    secaoRetirada: 'Retirada · prateleira',
+    hintRetirada: 'Marque Levado. Confirme a saída na tela A buscar.',
+    toolbarHint: 'Impressão, acabamento e retirada · A4 paisagem · sem preço',
   };
 }
