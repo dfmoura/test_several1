@@ -84,6 +84,17 @@ export function OrdemProducaoDetailPage() {
 
   const itemPedido =
     pedido?.itens.find((i) => i.id === op?.pedido_item?.id) ?? null;
+  const necessidade = itemPedido?.necessidade ?? 'PRODUCAO';
+  const tipoKicker =
+    necessidade === 'REVENDA' ? 'Revenda' : necessidade === 'SERVICO' ? 'Serviço' : 'Etiqueta';
+  const temFichaEstruturada = Boolean(pedido && itemPedido);
+  // Etiqueta: a ficha abaixo já traz medida/papel/cores/acabamento/Q — o blob do PED é ruído.
+  // Revenda/Serviço: a descrição continua sendo a identidade do item.
+  const tituloItem =
+    temFichaEstruturada && tipoKicker === 'Etiqueta'
+      ? null
+      : (op?.pedido_item?.descricao ?? itemPedido?.descricao ?? '').trim() ||
+        (tipoKicker === 'Etiqueta' ? 'Etiqueta sob medida' : tipoKicker);
 
   return (
     <>
@@ -155,17 +166,8 @@ export function OrdemProducaoDetailPage() {
               className={`op-item-titulo${pedido && itemPedido ? ' op-item-titulo--liga' : ''}`}
             >
               <div className="op-item-titulo__texto">
-                <p className="op-item-titulo__kicker">
-                  {itemPedido?.necessidade === 'REVENDA'
-                    ? 'Revenda'
-                    : itemPedido?.necessidade === 'SERVICO'
-                      ? 'Serviço'
-                      : 'Etiqueta'}
-                </p>
-                <h2>
-                  {(op.pedido_item?.descricao ?? itemPedido?.descricao ?? '').trim() ||
-                    'Etiqueta sob medida'}
-                </h2>
+                <p className="op-item-titulo__kicker">{tipoKicker}</p>
+                {tituloItem ? <h2>{tituloItem}</h2> : null}
               </div>
               <StatusPill status={opStatusLabel(op.status)} />
             </header>

@@ -13447,6 +13447,14 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   color: #5b6b82;
 }
 
+/* Sem H2 (etiqueta com ficha estruturada): o kicker carrega o cabeçalho. */
+.op-item-titulo:not(:has(h2)) .op-item-titulo__kicker {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: var(--navy, #1a3568);
+}
+
 .op-item-titulo h2 {
   margin: 0;
   font-size: 1.25rem;
@@ -13457,6 +13465,11 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
 .op-item-titulo .status-pill {
   flex-shrink: 0;
   margin-top: 0.15rem;
+}
+
+.op-item-titulo:not(:has(h2)) .status-pill {
+  margin-top: 0;
+  align-self: center;
 }
 
 @media (max-width: 640px) {
