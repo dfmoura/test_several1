@@ -956,18 +956,22 @@ export function OrcamentoDetailPage() {
                 aria-label="Itens deste orçamento"
                 style={{ marginBottom: '0.85rem' }}
               >
-                {itensFicha.map((it, i) => (
-                  <button
-                    key={it.ordem}
-                    type="button"
-                    role="tab"
-                    aria-selected={itemFichaAba === i}
-                    className={itemFichaAba === i ? 'active' : ''}
-                    onClick={() => setItemFichaAba(i)}
-                  >
-                    {rotuloItemOrc(it.ordem, it.rotulo)}
-                  </button>
-                ))}
+                {itensFicha.map((it, i) => {
+                  const rotuloGuia = rotuloItemOrc(it.ordem, it.rotulo);
+                  return (
+                    <button
+                      key={it.ordem}
+                      type="button"
+                      role="tab"
+                      aria-selected={itemFichaAba === i}
+                      className={itemFichaAba === i ? 'active' : ''}
+                      title={rotuloGuia}
+                      onClick={() => setItemFichaAba(i)}
+                    >
+                      {rotuloGuia}
+                    </button>
+                  );
+                })}
               </div>
             </>
           ) : null}

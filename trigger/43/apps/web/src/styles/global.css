@@ -4467,7 +4467,25 @@ table.data-table td.acoes {
   padding: 0.4rem 0.85rem;
 }
 
-/* Rail de posição Item 1…N (form / detalhe / resultado) — ativo alinhado a orc-result-tabs */
+/* Rail de posição Item 1…N (form / detalhe / resultado) — ativo alinhado a orc-result-tabs.
+   Sobrescreve max-width/nowrap do -sub: rótulos longos ficam dentro da guia (ellipsis). */
+.orc-modo-tabs.orc-modo-tabs-itens {
+  max-width: 100%;
+  width: 100%;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.orc-modo-tabs.orc-modo-tabs-itens button {
+  flex: 0 1 auto;
+  max-width: min(18rem, 100%);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
 .orc-modo-tabs.orc-modo-tabs-itens button.active {
   background: var(--navy);
   color: #fff;

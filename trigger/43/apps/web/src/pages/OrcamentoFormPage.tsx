@@ -7,7 +7,7 @@ import type { FacaPosicaoCodigo } from '../lib/facaPosicao';
 import { SaidaEtiquetaPicker } from '../components/SaidaEtiquetaPicker';
 import type { SaidaEtiquetaCodigo } from '../lib/saidaEtiqueta';
 import { OrcamentoResultado } from '../components/OrcamentoResultado';
-import { buildItensResultadoUi } from '../lib/orcamentoResultadoItens';
+import { buildItensResultadoUi, rotuloItemOrc } from '../lib/orcamentoResultadoItens';
 import { PageHeader } from '../components/PageHeader';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
 import { RevendaSkuCombobox, type RevendaSkuOpcao } from '../components/RevendaSkuCombobox';
@@ -1407,20 +1407,23 @@ export function OrcamentoFormPage() {
               aria-label="Itens do orçamento"
               style={{ marginTop: '0.75rem' }}
             >
-              {itens.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  role="tab"
-                  aria-selected={ativo === i}
-                  className={ativo === i ? 'active' : ''}
-                  disabled={!canWrite && ativo !== i}
-                  onClick={() => selecionarPosicao(i)}
-                >
-                  Item {i + 1}
-                  {rotulos[i] ? ` · ${rotulos[i]}` : ''}
-                </button>
-              ))}
+              {itens.map((_, i) => {
+                const rotuloGuia = rotuloItemOrc(i + 1, rotulos[i]);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    role="tab"
+                    aria-selected={ativo === i}
+                    className={ativo === i ? 'active' : ''}
+                    disabled={!canWrite && ativo !== i}
+                    title={rotuloGuia}
+                    onClick={() => selecionarPosicao(i)}
+                  >
+                    {rotuloGuia}
+                  </button>
+                );
+              })}
             </div>
             <div className="form-group" style={{ marginTop: '0.75rem' }}>
               <label>Nome deste item (opcional)</label>

@@ -1392,21 +1392,25 @@ export function OrcamentoResultado({
         aria-label="Itens do resultado"
         style={{ marginBottom: '0.85rem' }}
       >
-        {itensUi.map((it, i) => (
-          <button
-            key={it.ordem}
-            type="button"
-            role="tab"
-            aria-selected={itemAba === i}
-            className={itemAba === i ? 'active' : ''}
-            onClick={() => {
-              setItemAba(i);
-              setFaixaDetalhe(0);
-            }}
-          >
-            {rotuloItemOrc(it.ordem, it.rotulo)}
-          </button>
-        ))}
+        {itensUi.map((it, i) => {
+          const rotuloGuia = rotuloItemOrc(it.ordem, it.rotulo);
+          return (
+            <button
+              key={it.ordem}
+              type="button"
+              role="tab"
+              aria-selected={itemAba === i}
+              className={itemAba === i ? 'active' : ''}
+              title={rotuloGuia}
+              onClick={() => {
+                setItemAba(i);
+                setFaixaDetalhe(0);
+              }}
+            >
+              {rotuloGuia}
+            </button>
+          );
+        })}
       </div>
     ) : null;
 
