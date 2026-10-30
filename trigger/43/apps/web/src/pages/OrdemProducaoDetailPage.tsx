@@ -123,7 +123,7 @@ export function OrdemProducaoDetailPage() {
                 onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha-chao`)
               }
             >
-              Impressão e acabamento
+              Ficha de chão
             </a>
           </>
         ) : null}

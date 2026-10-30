@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe stack local + SPA com ficha de chão unificada (Impressão e acabamento).
+# Sobe stack local + SPA com ficha de chão unificada (máquina + prateleira).
 # Uso (no host, com Docker): bash scripts/pronto-ficha-chao.sh
 #     ou: make pronto-ficha-chao
 set -euo pipefail
@@ -13,7 +13,7 @@ echo "ok"
 echo "== Stack up =="
 make up
 
-echo "== Rebuild SPA (ficha-chao unificada) =="
+echo "== Rebuild SPA (ficha de chão) =="
 make web-build
 
 echo "== Health =="
@@ -29,7 +29,7 @@ curl -sfS -o /dev/null -w "SPA HTTP %{http_code}\n" -m 10 http://localhost:8043/
 
 cat <<'EOF'
 
-Pronto para testar — ficha Impressão e acabamento
+Pronto para testar — Ficha de chão
   App:     http://localhost:8043
   Login:   http://localhost:8043/login
   OPs:     http://localhost:8043/ordens-producao
@@ -37,11 +37,11 @@ Pronto para testar — ficha Impressão e acabamento
 Roteiro
   1. Hard refresh (Ctrl+Shift+R)
   2. Ordens de produção → abrir uma OP de etiqueta
-  3. Toolbar: um botão "Impressão e acabamento" (não há mais Impressão e Acabamento separados)
-  4. Abrir a ficha: Identidade → Impressão · máquina → Acabamento · rebobinação (só exclusivos)
+  3. Toolbar: Imprimir lista + Ficha de chão
+  4. Abrir: Identidade → Impressão → Acabamento → Retirada · prateleira
   5. Imprimir / conferir paisagem A4
-  6. URLs antigas /ficha-impressao e /ficha-acabamento redirecionam para /ficha-chao
+  6. URLs antigas (impressão/acabamento/materiais/retirada) redirecionam para /ficha-chao
 
-Sem mexer em Imprimir lista (flexo) nem Materiais · retirada.
+Confirmar saída continua só em Estoque · A buscar.
 
 EOF

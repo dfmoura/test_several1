@@ -148,13 +148,13 @@ export function opFichaChaoMeta(): {
   toolbarHint: string;
 } {
   return {
-    titulo: 'Impressão e acabamento',
-    docLabel: 'Ficha de chão · impressão, rebobinação e retirada',
+    titulo: 'Ficha de chão',
+    docLabel: 'Impressão · rebobinação · retirada · A4 paisagem',
     secaoImpressao: 'Impressão · máquina',
     hintImpressao: 'Largura do papel = largura × colunas de produção',
     secaoAcabamento: 'Acabamento · rebobinação',
     secaoRetirada: 'Retirada · prateleira',
     hintRetirada: 'Marque Levado. Confirme a saída na tela A buscar.',
-    toolbarHint: 'Impressão, acabamento e retirada · A4 paisagem · sem preço',
+    toolbarHint: 'Máquina e prateleira · A4 paisagem · sem preço',
   };
 }

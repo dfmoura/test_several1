@@ -20,7 +20,7 @@ OP = o que produzir + kit + fechar
 - 1 kit por OP.
 - Bobina da lista = grupo do catálogo. Outro grupo só com motivo. Etiqueta com papel no snapshot só fecha depois que o papel saiu.
 - Ficha impressa = ordem de flexo: impressão, quanto rodar, kit, conferência. Sem preço, rpm, hora ou guia do ORC. Tela da ordem repete a mesma leitura numa linha.
-- Satélite paisagem único (`/ficha-chao`): **Impressão e acabamento** — identidade + impressão + rebobinação (só exclusivos) + **Retirada · prateleira** (Levado · Local · Volume · Material · Levar · Validade). Um botão na toolbar da OP.
+- Satélite paisagem único (`/ficha-chao`): botão **Ficha de chão** — identidade + impressão + rebobinação (só exclusivos) + **Retirada · prateleira** (Levado · Local · Volume · Material · Levar · Validade). Um botão na toolbar da OP.
 - Rotas antigas de materiais/retirada/impressão/acabamento redirecionam para `ficha-chao`.
 
 ## Não faça

@@ -105,7 +105,7 @@ Satélites paisagem da ficha flexo, sem preço e sem mexer no kit. (Substituída
 
 ## Emenda 2026-10-29 — ficha de chão unificada
 
-Um satélite paisagem A4 substitui as duas rotas acima. Toolbar: **Impressão e acabamento**.
+Um satélite paisagem A4 substitui as duas rotas acima. Toolbar: **Ficha de chão** (emenda 2026-10-29c).
 
 | Rota | Quem | Conteúdo |
 |------|------|----------|
@@ -119,7 +119,7 @@ Separava máquina / pick ticket / materiais. Substituída pela emenda 2026-10-29
 
 ## Emenda 2026-10-29c — um papel: máquina + retirada
 
-Toolbar da OP: **Imprimir lista** + **Impressão e acabamento** apenas.
+Toolbar da OP: **Imprimir lista** + **Ficha de chão** apenas.
 
 | Rota | Quem | Conteúdo |
 |------|------|----------|

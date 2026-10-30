@@ -331,8 +331,7 @@ export function OrdemProducaoFichaChaoSheet({
 
       <footer className="ficha-footer">
         <span>
-          Uso interno · {o.codigo} · impressão, acabamento e retirada · emitido por{' '}
-          {emitidoPor}
+          Uso interno · {o.codigo} · ficha de chão · emitido por {emitidoPor}
         </span>
         <TriggerAttribution
           variant="print"
