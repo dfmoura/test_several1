@@ -32,6 +32,7 @@ class DfeCaixaService
         ?string $ate = null,
     ): array {
         $query = DfeDocumento::query()
+            ->caixaNfe()
             ->where('empresa_id', $empresa->id)
             ->with(['ordemCompra:id,codigo,status'])
             ->orderByDesc('data_emissao')
@@ -163,7 +164,10 @@ class DfeCaixaService
             'ultima_sync_em' => optional($estado->ultima_sync_em)?->toIso8601String(),
             'primeira_hidratacao_completa' => (bool) $estado->primeira_hidratacao_completa,
             'ano_alvo_hidratacao' => $estado->ano_alvo_hidratacao,
-            'total_documentos' => DfeDocumento::query()->where('empresa_id', $empresa->id)->count(),
+            'total_documentos' => DfeDocumento::query()
+                ->caixaNfe()
+                ->where('empresa_id', $empresa->id)
+                ->count(),
         ];
     }
 

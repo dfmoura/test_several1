@@ -1,0 +1,74 @@
+diag-ambos-certos — 2026-10-30T15:00:34-03:00
+Workspace: /home/dfmoura/Documents/test_several1/trigger/43
+
+========================================================================
+LOCAL (http://localhost:8043)
+========================================================================
+Health: {"status":"ok","app":"FLEXOERP","stage":"local","env":"local","debug":true,"time":"2026-10-30T15:00:33-03:00","envio_proposta":{"email_auto":true,"mail_mailer":"smtp","mail_from_configurado":true,"mail_smtp_pronto":true,"whatsapp_auto":true,"viazap_configurado":true}}
+SPA JS: /assets/index-CCssY1on.js (currentYearRange → de=${y}-01-01 / ate=${y}-12-31)
+EMP: id=13 EMP-00001 (única com DF-e)
+dfe_documentos: 112 (deleted_at null); data_emissao NULL: 0
+Por mês: 2026-04:1  05:12  06:31  07:23  08:41  09:4  10:0
+MIN/MAX emissao: 2026-04-10 … 2026-09-11
+DfeCaixaService list 2026-01-01…2026-12-31: 112
+October 2026 dated: 0
+
+========================================================================
+CLOUD (https://flexoerp001.triggerti.com) — SPA deployed, stage UNCHANGED
+========================================================================
+Health: stage=homolog env=homolog (ERP_STAGE=homolog — NOT flipped)
+.env.aws: /home/ubuntu/flexoerp/.env.aws  APP_KEY=yes
+Deploy: SSH_KEY=… bash scripts/aws-deploy-web.sh
+  - local make web-build → dist index-CCssY1on.js
+  - rsync dist + pages (ComprasNfeDestinadasPage.tsx) + components
+  - remote: stage-web-context + compose build web + force-recreate web
+  - APP_KEY / ERP_STAGE / DB untouched
+
+SPA BEFORE: index-CSwLdUMV.js — only currentMonthRange (getMonth, no -01-01/-12-31)
+SPA AFTER:  index-CCssY1on.js — currentYearRange present (return {de:`${t}-01-01`, ate:`${t}-12-31`})
+
+EMPS: 13 EMP-00001 (docs), 14 EMP-00002 (0 docs)
+dfe_documentos TOTAL: 1021 (empresa_id=13 only)
+Por YEAR/MONTH (EMP13):
+  NULL data_emissao: 909
+  2026-05: 12
+  2026-06: 31
+  2026-07: 23
+  2026-08: 42
+  2026-09: 4
+  2026-10: 0   ← October NEW from SEFAZ: ZERO
+MIN/MAX (não-nulos): 2026-05-19 … 2026-09-04
+
+dfe_sync_estados EMP13:
+  ultimo_nsu=0 max_nsu=0 sync_status=IDLE
+  sync_mensagem="Sincronização concluída (Nenhum documento localizado)."
+  ultima_sync_em=2026-10-30 06:15:01  (homolog — fisco sem docs)
+
+API list EMP13:
+  de=2026-10-01 ate=2026-10-31 → 909  (includeNull: traz emissões NULL; 0 com data em out)
+  de=2026-01-01 ate=2026-12-31 → 1021
+  total_documentos (syncEstado) → 1021
+
+Nota: com includeNull, filtro só de outubro NÃO esvazia a caixa no cloud (909 nulls).
+Empty UI era sobretudo SPA antiga (mês) + percepção / hard-refresh; year default alinha com local
+e mostra as 112 com data mai–set + 909 sem data.
+
+October NEW notes SEFAZ: ainda 0 com data_emissao em out/2026.
+Próximo passo SEPARADO (não feito): ERP_STAGE=production + APP_ENV=production
+  (preservar APP_KEY, recreate app/queue/scheduler) para sync real — backups em
+  /home/ubuntu/flexoerp/backups existem.
+
+========================================================================
+TESTE USUÁRIO (30s) — AMBOS
+========================================================================
+LOCAL:
+  1. http://localhost:8043/compras/nfe-destinadas  (Ctrl+Shift+R)
+  2. Confirme De=2026-01-01 Até=2026-12-31 (default ano)
+  3. Filtrar se preciso → ~112 NF-e
+
+CLOUD:
+  1. https://flexoerp001.triggerti.com/compras/nfe-destinadas  (Ctrl+Shift+R obrigatório)
+  2. Confirme De=2026-01-01 Até=2026-12-31
+  3. Filtrar → ~1021 (muitas sem data_emissao; mai–set com data)
+  4. Não espere notas de outubro do fisco até promote production + sync SEFAZ
+

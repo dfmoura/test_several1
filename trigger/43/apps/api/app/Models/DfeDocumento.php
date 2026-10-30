@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToEmpresa;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -81,5 +82,32 @@ class DfeDocumento extends Model
     public function temXml(): bool
     {
         return filled($this->xml_path);
+    }
+
+    /**
+     * Caixa UX = NF-e (resNFe / procNFe). Eventos DF-e (ciência, cancelamento…)
+     * não têm vNF/emissão e poluem a lista com valor "—".
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeCaixaNfe(Builder $query): Builder
+    {
+        return $query->where(function (Builder $outer) {
+            $outer->whereNull('schema_dfe')
+                ->orWhere(function (Builder $inner) {
+                    $inner->where('schema_dfe', 'not like', '%Evento%')
+                        ->where('schema_dfe', 'not like', '%evento%');
+                });
+        });
+    }
+
+    public static function schemaEhEvento(?string $schema): bool
+    {
+        if ($schema === null || $schema === '') {
+            return false;
+        }
+
+        return str_contains(strtolower($schema), 'evento');
     }
 }

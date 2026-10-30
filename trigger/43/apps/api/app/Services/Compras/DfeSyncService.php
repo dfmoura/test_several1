@@ -250,6 +250,11 @@ class DfeSyncService
 
     private function persistirDoc(Empresa $empresa, DfeDocZip $doc): void
     {
+        // Eventos (resEvento / procEvento) avançam NSU no lote, mas não são NF-e da caixa.
+        if (DfeDocumento::schemaEhEvento($doc->schema)) {
+            return;
+        }
+
         $meta = $this->extrairMeta($doc);
         $chave = $meta['chave'];
 

@@ -15,6 +15,19 @@ export function currentMonthRange(now: Date = new Date()): PeriodoRange {
   };
 }
 
+/**
+ * Ano civil corrente (1º jan → 31 dez) — default das caixas DF-e / arquivo fiscal.
+ * Norma: ADR_CAIXA_DFE_NFE_DESTINADAS (1ª hidratação = ano corrente).
+ */
+export function currentYearRange(now: Date = new Date()): PeriodoRange {
+  const y = now.getFullYear();
+
+  return {
+    de: `${y}-01-01`,
+    ate: `${y}-12-31`,
+  };
+}
+
 export function appendPeriodo(params: URLSearchParams, de?: string, ate?: string): void {
   const d = de?.trim();
   const a = ate?.trim();

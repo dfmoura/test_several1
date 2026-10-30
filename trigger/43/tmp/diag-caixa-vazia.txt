@@ -1,0 +1,65 @@
+diag-caixa-vazia — 2026-10-30T14:52:49-03:00
+Workspace: /home/dfmoura/Documents/test_several1/trigger/43
+
+== LOCAL stack ==
+Health: stage=local status=ok (http://localhost:8043/api/v1/health)
+Containers Up: erp43_web, erp43_app, erp43_mysql (healthy), erp43_queue, erp43_scheduler
+
+== EMP ==
+Única EMP no banco: id=13 codigo=EMP-00001 CNPJ=01423183000110
+  razao_social=RLP ETIQUETAS AUTO ADESIVOS LTDA
+Docs importados amarrados só a empresa_id=13 (bate com EMP típica).
+
+== dfe_documentos (deleted_at IS NULL) ==
+Total (todas EMP): 112
+Por empresa_id: 13 → 112
+Soft-deleted EMP13: 0
+data_emissao NULL EMP13: 0
+MIN/MAX data_emissao EMP13: 2026-04-10 … 2026-09-11
+
+Por mês (EMP13):
+  2026-04: 1
+  2026-05: 12
+  2026-06: 31
+  2026-07: 23
+  2026-08: 41
+  2026-09: 4
+  2026-10: 0
+
+Sample ASC data_emissao: 2026-04-10 (nº 577305), 2026-05-19, 2026-05-20, 2026-05-21, 2026-05-22
+Sample DESC: 2026-09-11 (nº 9001), 2026-09-02×3, 2026-08-31
+
+== dfe_sync_estados EMP13 ==
+ultimo_nsu=000000000000001  max_nsu=000000000000001
+sync_status=IDLE
+sync_mensagem=Importação local de XML: 111 arquivo(s) na caixa (sync SEFAZ desligado em local).
+ultima_sync_em=2026-10-30T14:40:17-03:00
+primeira_hidratacao_completa=1  ano_alvo_hidratacao=2026
+API syncEstado.total_documentos=112
+
+== API list (DfeCaixaService) ==
+list(de=2026-10-01, ate=2026-10-31) → 0 docs
+list(de=2026-04-01, ate=2026-10-31) → 112 docs
+
+== UI default filter ==
+ComprasNfeDestinadasPage: useState(currentMonthRange())
+currentMonthRange() hoje (2026-10-30) → de=2026-10-01 ate=2026-10-31
+→ lista vazia ENQUANTO total_documentos=112
+Empty-state esperado (vazioPorPeriodo): "Nenhuma NF-e neste período. A caixa tem 112 documentos — ajuste De/Até e clique em Filtrar."
+
+October filter ALONE explains empty UI on local. Data is present; dates are Apr–Sep only.
+
+== CLOUD ==
+GET https://flexoerp001.triggerti.com/api/v1/health
+→ stage=homolog env=homolog (não production)
+Caixa vazia no cloud é esperada: homolog sem NF-e reais do fisco / sem import local dos XMLs.
+SSH/DB cloud não verificado (bloqueado / fora de escopo).
+
+== Fix local (30s) ==
+1. Abrir http://localhost:8043/compras/nfe-destinadas (EMP-00001)
+2. De = 2026-04-01
+3. Até = 2026-10-31
+4. Filtrar
+Deve listar 112 NF-e.
+
+Não precisa reimportar; não ligar sync SEFAZ em local.

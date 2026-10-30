@@ -103,6 +103,26 @@ class DfeCaixaTest extends TestCase
             'situacao' => DfeDocumento::SITUACAO_NOVA,
         ]);
 
+        // Eventos DF-e não entram na caixa (sem vNF / emissão).
+        DfeDocumento::query()->create([
+            'empresa_id' => $empresa->id,
+            'nsu' => '4',
+            'schema_dfe' => 'resEvento_v1.01.xsd',
+            'chave' => null,
+            'numero' => null,
+            'emit_nome' => null,
+            'data_emissao' => null,
+            'valor_total' => null,
+            'situacao' => DfeDocumento::SITUACAO_NOVA,
+        ]);
+        DfeDocumento::query()->create([
+            'empresa_id' => $empresa->id,
+            'nsu' => '5',
+            'schema_dfe' => 'procEventoNFe_v1.00.xsd',
+            'chave' => null,
+            'situacao' => DfeDocumento::SITUACAO_NOVA,
+        ]);
+
         Sanctum::actingAs($user);
 
         $lista = $this->withHeader('X-Empresa-Id', (string) $empresa->id)

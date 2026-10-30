@@ -44,17 +44,19 @@ Pronto para testar — Ficha planilha (Pedidos)
 Roteiro
   1. Hard refresh (Ctrl+Shift+R)
   2. Abrir PED-2026-PLAN01 → Ficha planilha
-  3. Conferir grade comercial (3 modelos: 5000 / 3000 / 2000):
-     - Quant. por modelo
-     - Medida / Largura / Puxada repetem em cada modelo
-     - Matriz R$ 340 rateada (170 / 102 / 68)
-     - Faca R$ 180 rateada (90 / 54 / 36)
-     - Comissão R$ 175 rateada (87,50 / 52,50 / 35)
-     - Sem colunas Frete / Desc. (só no fechamento)
-     - Vlr. rolo = taxa unitária (repete)
-     - Sub-Total = etiquetas do modelo (Σ R$ 3.500,00)
-     - Rodapé: Subtotal etiquetas + matriz + faca + artes · Total comercial R$ 4.170,00
-  4. Imprimir / Salvar PDF (A4 paisagem)
-  5. Fechamento: Frete R$ 120 (fora do total) · Desc. R$ 50 · Total do pedido
+  3. Comercial · etiqueta (3 modelos: 5000 / 3000 / 2000):
+     - Quant. por modelo; rodapé Quant. = 10.000
+     - Matriz R\$ 340 rateada (170 / 102 / 68) · total sob a coluna
+     - Arte (80 / 50 / 20) · total sob a coluna
+     - Faca R\$ 180 rateada (90 / 54 / 36) · total sob a coluna
+     - Comissão R\$ 175 rateada (87,50 / 52,50 / 35) · total sob a coluna
+     - Sub-Total = etiquetas do modelo (Σ R\$ 3.500,00) · permanece
+     - Coluna Total por linha (etiqueta+matriz+arte+faca); rodapé Total = R\$ 4.170,00
+     - Sem linhas "Total matriz" / "Total comercial" (só rodapé alinhado)
+     - Sem Frete / Desc. na grade (só no fechamento)
+  4. Produção: 3 linhas (1 por modelo); setup (metragem/m²/larg. papel…) só na 1ª;
+     Rolos rateados por modelo
+  5. Imprimir / Salvar PDF (A4 paisagem)
+  6. Fechamento: Frete R\$ 120 (fora do total) · Desc. R\$ 50 · Total do pedido
 
 EOF

@@ -1,6 +1,8 @@
 /**
  * Grão da ficha planilha do PED (A4 paisagem) — só apresentação.
- * Comercial: 1 linha por modelo. Produção: 1 linha por item de etiqueta.
+ * Comercial: 1 linha por modelo.
+ * Produção (planilha): 1 linha por modelo; setup de faixa só na 1ª linha do item.
+ * Produção (OP satélites): `linhasProducaoPlanilha` permanece 1 linha por item.
  * Não persiste campo novo e não altera FAT/OP/contrato retrato.
  */
 import type { Pedido, PedidoItem } from './api';
@@ -43,7 +45,13 @@ export type PedidoPlanilhaComercialLinha = {
   comissao: number | null;
   unitario: number | null;
   valorRolo: number | null;
+  /** Só valor etiqueta (rateio). */
   subtotal: number;
+  /**
+   * Subtotal + matriz + arte + faca (comissão já inclusa — não soma).
+   * Fecha no último do documento para espelhar `somaValores(itens)`.
+   */
+  totalLinha: number;
 };
 
 export type PedidoPlanilhaProducaoLinha = {
@@ -67,6 +75,12 @@ export type PedidoPlanilhaProducaoLinha = {
   /** Código canônico (SAIDA_*) para o badge; null → célula "—". */
   saidaCodigo: string | null;
   maquina: string | null;
+};
+
+/** Produção na planilha — grão modelo; setup de faixa só quando `primeiraDoItem`. */
+export type PedidoPlanilhaProducaoModeloLinha = PedidoPlanilhaProducaoLinha & {
+  modelo: string;
+  primeiraDoItem: boolean;
 };
 
 function money2(n: number): number {
@@ -140,10 +154,43 @@ function rateioOuNulo(total: number, pesos: number[]): Array<number | null> {
   return rateioFechado(total, pesos, 2);
 }
 
+/** Total de linha comercial: etiqueta + matriz + arte + faca (sem comissão). */
+export function totalLinhaComercial(ln: {
+  subtotal: number;
+  valorMatriz: number | null;
+  valorArte: number;
+  valorFaca: number | null;
+}): number {
+  return money2(
+    ln.subtotal +
+      (ln.valorMatriz ?? 0) +
+      (ln.valorArte > 0 ? ln.valorArte : 0) +
+      (ln.valorFaca ?? 0),
+  );
+}
+
+/**
+ * Fecha Σ totalLinha no `comercial` do PED (última linha absorve centavos).
+ */
+function fecharTotaisLinha(
+  linhas: PedidoPlanilhaComercialLinha[],
+  comercial: number,
+): PedidoPlanilhaComercialLinha[] {
+  if (linhas.length === 0) return linhas;
+  const soma = money2(linhas.reduce((acc, ln) => acc + ln.totalLinha, 0));
+  const delta = money2(comercial - soma);
+  if (Math.abs(delta) < 0.005) return linhas;
+  const last = linhas[linhas.length - 1]!;
+  return [
+    ...linhas.slice(0, -1),
+    { ...last, totalLinha: money2(last.totalLinha + delta) },
+  ];
+}
+
 /**
  * Linhas comerciais (etiqueta = por modelo).
  * Por modelo (repete / rateia): qtde, medida, largura, puxada, material, arte,
- * matriz, faca, comissão, subtotal (etiquetas). Vlr. rolo = taxa unitária.
+ * matriz, faca, comissão, subtotal (etiquetas), totalLinha.
  * Frete/desconto ficam no fechamento do documento — não na grade.
  */
 export function linhasComerciaisPlanilha(
@@ -167,7 +214,7 @@ export function linhasComerciaisPlanilha(
       const ln = linhas[i]!;
       const isFirstDoc = primeiraDoc;
       const isFirstItem = primeiraItem;
-      out.push({
+      const base = {
         key: `c-${ln.key}`,
         itemOrdem: ln.ordem,
         primeiraDoDocumento: isFirstDoc,
@@ -188,13 +235,17 @@ export function linhasComerciaisPlanilha(
         unitario: ln.unitario,
         valorRolo: ln.valorRolo,
         subtotal: ln.subtotal,
+      };
+      out.push({
+        ...base,
+        totalLinha: totalLinhaComercial(base),
       });
       primeiraDoc = false;
       primeiraItem = false;
     }
   }
 
-  return out;
+  return fecharTotaisLinha(out, money2(somaValores(itens)));
 }
 
 /** Totais de leitura da grade comercial — não recalcula preço travado. */
@@ -205,6 +256,8 @@ export type PedidoPlanilhaComercialTotais = {
   faca: number;
   artes: number;
   comissao: number;
+  /** Soma dos totalLinha (já fechada no comercial do PED). */
+  totalLinhas: number;
   /** `somaValores(itens)` — fonte de verdade do PED. */
   comercial: number;
 };
@@ -213,6 +266,7 @@ export function totaisComerciaisPlanilha(
   itens: PedidoItem[],
   linhas: PedidoPlanilhaComercialLinha[],
 ): PedidoPlanilhaComercialTotais {
+  const comercial = money2(somaValores(itens));
   return {
     quant: linhas.reduce((acc, ln) => acc + (ln.quant ?? 0), 0),
     subtotalEtiquetas: money2(linhas.reduce((acc, ln) => acc + ln.subtotal, 0)),
@@ -220,11 +274,12 @@ export function totaisComerciaisPlanilha(
     faca: money2(linhas.reduce((acc, ln) => acc + (ln.valorFaca ?? 0), 0)),
     artes: money2(linhas.reduce((acc, ln) => acc + (ln.valorArte > 0 ? ln.valorArte : 0), 0)),
     comissao: money2(linhas.reduce((acc, ln) => acc + (ln.comissao ?? 0), 0)),
-    comercial: money2(somaValores(itens)),
+    totalLinhas: money2(linhas.reduce((acc, ln) => acc + ln.totalLinha, 0)),
+    comercial,
   };
 }
 
-/** Linhas de produção — um por item de etiqueta (física da faixa). */
+/** Linhas de produção — um por item de etiqueta (física da faixa). Consumidores OP. */
 export function linhasProducaoPlanilha(
   pedido: Pedido,
   itens: PedidoItem[],
@@ -265,6 +320,65 @@ export function linhasProducaoPlanilha(
       maquina: base?.maquina ?? null,
     };
   });
+}
+
+/**
+ * Produção na ficha planilha — 1 linha por modelo.
+ * Setup de faixa (metragem, m², larg. papel, …) só na 1ª linha do item.
+ * Rolos: rateio por modelo já feito em `linhasEtiquetaDoItem`.
+ */
+export function linhasProducaoPlanilhaPorModelo(
+  pedido: Pedido,
+  itens: PedidoItem[],
+  visualOf: (item: PedidoItem) => PedidoPlanilhaVisual,
+): PedidoPlanilhaProducaoModeloLinha[] {
+  const out: PedidoPlanilhaProducaoModeloLinha[] = [];
+
+  for (const item of itens) {
+    const visual = visualOf(item);
+    const modelos = linhasEtiquetaDoItem(pedido, item, visual);
+    if (modelos.length === 0) continue;
+
+    const faixa = faixaDoItem(pedido, item);
+    const spec = specOperacional(pedido, item);
+    const saidaCodigo = strOrNull(spec.saida_etiqueta);
+    const trocaProduto = trocaProdutoDoItem(pedido, item);
+    const colunasReb = colunasRebobinacaoDoItem(pedido, item);
+    const first = modelos[0]!;
+    const colunas = first.colunas ?? null;
+    const largPapel = larguraPapelCm(first.larguraCm ?? null, colunas);
+    const metragem = numPositivo(faixa?.metragem);
+    const m2 = numPositivo(faixa?.m2);
+
+    for (let i = 0; i < modelos.length; i++) {
+      const ln = modelos[i]!;
+      const primeira = i === 0;
+      out.push({
+        key: `pm-${ln.key}`,
+        itemOrdem: item.ordem,
+        modelo: ln.modelo,
+        primeiraDoItem: primeira,
+        trocaProduto: primeira ? trocaProduto : null,
+        larguraPapelCm: primeira ? largPapel : null,
+        colunasProducao: primeira ? colunas : null,
+        metragemLinear: primeira ? metragem : null,
+        m2: primeira ? m2 : null,
+        acabamento: primeira ? (ln.acabamento ?? null) : null,
+        tubete: primeira ? (ln.tubete ?? null) : null,
+        colunasRebobinacao: primeira ? colunasReb : null,
+        etiqPorRolo: primeira ? (ln.etiqPorRolo ?? null) : null,
+        rolos: ln.rolos,
+        metrosPorRolo: primeira ? (ln.metrosPorRolo ?? null) : null,
+        formatoFaca: primeira ? (ln.faca ?? null) : null,
+        nFaca: primeira ? (ln.nFaca ?? null) : null,
+        z: primeira ? (ln.z ?? null) : null,
+        saidaCodigo: primeira ? saidaCodigo : null,
+        maquina: primeira ? (ln.maquina ?? null) : null,
+      });
+    }
+  }
+
+  return out;
 }
 
 /** Eco do fechamento (frete fora do total) — mesma semântica da ficha contrato. */

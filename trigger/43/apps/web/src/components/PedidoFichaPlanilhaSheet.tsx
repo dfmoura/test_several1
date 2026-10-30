@@ -24,7 +24,7 @@ import {
 import {
   fechamentoPlanilhaHint,
   linhasComerciaisPlanilha,
-  linhasProducaoPlanilha,
+  linhasProducaoPlanilhaPorModelo,
   totaisComerciaisPlanilha,
   type PedidoPlanilhaVisual,
 } from '../lib/pedidoFichaPlanilha';
@@ -105,14 +105,6 @@ function TabelaComercial({
 }) {
   const linhas = linhasComerciaisPlanilha(pedido, itens, (item) => visualOf(pedido, item));
   const totais = totaisComerciaisPlanilha(itens, linhas);
-  const mostraMatriz = totais.matriz > 0.004;
-  const mostraFaca = totais.faca > 0.004;
-  const mostraArtes = totais.artes > 0.004;
-  const mostraSubEtq =
-    mostraMatriz ||
-    mostraFaca ||
-    mostraArtes ||
-    Math.abs(totais.subtotalEtiquetas - totais.comercial) > 0.004;
 
   return (
     <table className="ficha-table ped-planilha-table ped-planilha-table--comercial">
@@ -135,6 +127,7 @@ function TabelaComercial({
           <th className="ficha-td-num">Vlr. unit.</th>
           <th className="ficha-td-num">Vlr. rolo</th>
           <th className="ficha-td-num">Sub-Total</th>
+          <th className="ficha-td-num">Total</th>
         </tr>
       </thead>
       <tbody>
@@ -159,49 +152,37 @@ function TabelaComercial({
             <td className="ficha-td-num">{fmtUnit(ln.unitario)}</td>
             <td className="ficha-td-num">{fmtMoney(ln.valorRolo)}</td>
             <td className="ficha-td-num">{formatCurrency(ln.subtotal)}</td>
+            <td className="ficha-td-num">{formatCurrency(ln.totalLinha)}</td>
           </tr>
         ))}
       </tbody>
       <tfoot>
-        {mostraSubEtq ? (
-          <tr className="ped-planilha-foot-detail">
-            <td colSpan={16} className="ficha-td-num">
-              Subtotal etiquetas · {fmtQtd(totais.quant)}
-            </td>
-            <td className="ficha-td-num">
-              {formatCurrency(totais.subtotalEtiquetas)}
-            </td>
-          </tr>
-        ) : null}
-        {mostraMatriz ? (
-          <tr className="ped-planilha-foot-detail">
-            <td colSpan={16} className="ficha-td-num">
-              Total matriz
-            </td>
-            <td className="ficha-td-num">{formatCurrency(totais.matriz)}</td>
-          </tr>
-        ) : null}
-        {mostraFaca ? (
-          <tr className="ped-planilha-foot-detail">
-            <td colSpan={16} className="ficha-td-num">
-              Total faca
-            </td>
-            <td className="ficha-td-num">{formatCurrency(totais.faca)}</td>
-          </tr>
-        ) : null}
-        {mostraArtes ? (
-          <tr className="ped-planilha-foot-detail">
-            <td colSpan={16} className="ficha-td-num">
-              Total artes
-            </td>
-            <td className="ficha-td-num">{formatCurrency(totais.artes)}</td>
-          </tr>
-        ) : null}
-        <tr>
-          <td colSpan={16} className="ficha-td-num">
-            Total comercial
-            {mostraSubEtq ? null : ` · ${fmtQtd(totais.quant)}`}
+        <tr className="ped-planilha-foot-totais">
+          <td>Totais</td>
+          <td className="ficha-td-num">{fmtQtd(totais.quant)}</td>
+          <td aria-hidden="true" />
+          <td aria-hidden="true" />
+          <td aria-hidden="true" />
+          <td aria-hidden="true" />
+          <td aria-hidden="true" />
+          <td aria-hidden="true" />
+          <td aria-hidden="true" />
+          <td className="ficha-td-num">
+            {totais.matriz > 0.004 ? formatCurrency(totais.matriz) : '—'}
           </td>
+          <td className="ficha-td-num">
+            {totais.artes > 0.004 ? formatCurrency(totais.artes) : '—'}
+          </td>
+          <td className="ficha-td-num">
+            {totais.faca > 0.004 ? formatCurrency(totais.faca) : '—'}
+          </td>
+          <td aria-hidden="true" />
+          <td className="ficha-td-num">
+            {totais.comissao > 0.004 ? formatCurrency(totais.comissao) : '—'}
+          </td>
+          <td aria-hidden="true" />
+          <td aria-hidden="true" />
+          <td className="ficha-td-num">{formatCurrency(totais.subtotalEtiquetas)}</td>
           <td className="ficha-td-num">
             <strong>{formatCurrency(totais.comercial)}</strong>
           </td>
@@ -218,13 +199,16 @@ function TabelaProducao({
   pedido: Pedido;
   itens: PedidoItem[];
 }) {
-  const linhas = linhasProducaoPlanilha(pedido, itens, (item) => visualOf(pedido, item));
+  const linhas = linhasProducaoPlanilhaPorModelo(pedido, itens, (item) =>
+    visualOf(pedido, item),
+  );
 
   return (
     <table className="ficha-table ped-planilha-table ped-planilha-table--producao">
       <thead>
         <tr>
           <th>Item</th>
+          <th>Modelo</th>
           <th>Troca prod.</th>
           <th className="ficha-td-num">Larg. papel</th>
           <th className="ficha-td-num">Col. prod.</th>
@@ -247,6 +231,7 @@ function TabelaProducao({
         {linhas.map((ln) => (
           <tr key={ln.key}>
             <td className="ficha-td-num">{ln.itemOrdem}</td>
+            <td>{dashCell(ln.modelo)}</td>
             <td>{dashCell(ln.trocaProduto)}</td>
             <td className="ficha-td-num">{fmtCm(ln.larguraPapelCm)}</td>
             <td className="ficha-td-num">{fmtQtd(ln.colunasProducao)}</td>
@@ -498,7 +483,8 @@ export function PedidoFichaPlanilhaSheet({
           </FichaSection>
           <FichaSection title="Produção">
             <p className="ped-planilha-hint">
-              Larg. papel = largura × colunas de produção
+              Uma linha por modelo · setup da faixa na 1ª linha do item · Larg.
+              papel = largura × colunas de produção
             </p>
             <TabelaProducao pedido={p} itens={grupos.etiquetas} />
           </FichaSection>

@@ -1,0 +1,93 @@
+diag-caixa-valor-setembro — 2026-10-30T15:07:19-03:00
+Workspace: /home/dfmoura/Documents/test_several1/trigger/43
+Cloud: https://flexoerp001.triggerti.com  EMP id=13 EMP-00001
+ERP_STAGE: homolog (não alterado)
+
+========================================================================
+1) SQL EVIDENCE (cloud EMP13)
+========================================================================
+Setembro 2026 (data_emissao 2026-09-01…09-30): 4 NF-e
+  id 972 nº 889513 valor=9831.61  schema=procNFe  xml=yes
+  id 973 nº 889523 valor=126873.55 schema=procNFe  xml=yes
+  id 990 nº 8815   valor=15.00    schema=procNFe  xml=yes
+  id 1016 nº 8834  valor=15.00    schema=resNFe   xml=NO (resumo vNF ok)
+  → nulls valor_total: 0 / zeros: 4 / zeros: 0
+
+Agosto 2026: n=42 nulls=0 filled=42 (1 sem xml)
+
+909 docs com data_emissao NULL:
+  444 schema=procEventoNFe_v1.00.xsd  valor NULL  xml NULL  chave NULL
+  465 schema=resEvento_v1.01.xsd      valor NULL  xml NULL  chave NULL
+  → NÃO são NF-e; são eventos DF-e (ciência/cancelamento/etc.)
+
+BY_SCHEMA total:
+  procNFe: 110 (valor sempre preenchido)
+  resNFe: 2 (valor preenchido; 1 sem xml)
+  procEvento: 444 (valor null)
+  resEvento: 465 (valor null)
+
+Coluna: valor_total decimal(15,2) nullable. Sem tem_xml column — usa xml_path.
+
+========================================================================
+2) COMO valor_total É PREENCHIDO
+========================================================================
+DfeSyncService::persistirDoc → extrairMeta:
+  - resNFe: lê vNF / dhEmi / CNPJ / xNome
+  - procNFe: NfeCompraExtractor extractCompra → valor_nf
+  - Eventos: extractor falha → meta vazia → row com valor/emissão NULL
+DfeImportXmlLocalService: valor de extractCompra (XML completo).
+Valor NÃO exige download XML se resNFe já trouxer vNF (caso id 1016).
+
+========================================================================
+3) UI
+========================================================================
+ComprasNfeDestinadasPage: d.valor_total != null ? formatCurrency(...) : '—'
+Não é bug de formatCurrency — null → "—". Sort usa Number(valor_total ?? 0).
+
+========================================================================
+4) ROOT CAUSE (ranked)
+========================================================================
+1. PRINCIPAL: lista da caixa incluía 909 eventos DF-e (resEvento/procEvento)
+   sem valor/emissão. Filtro ano (includeNull) misturava esses rows com NF-e
+   de set/2026 → aparência de "setembro sem valor".
+2. NÃO é: NF-e de setembro sem vNF (as 4 têm valor).
+3. NÃO é: bug UI de formatação.
+4. NÃO é: falta buscar XML nas 4 de setembro (3 já têm; 1 resNFe com vNF).
+5. Secundário futuro: notas OUTUBRO novas do fisco ainda precisam production+sync.
+
+========================================================================
+5) FIX APLICADO (sem flip ERP_STAGE)
+========================================================================
+Código:
+  - DfeDocumento::scopeCaixaNfe / schemaEhEvento — exclui schema *Evento*
+  - DfeCaixaService::list + syncEstado.total_documentos usam caixaNfe()
+  - DfeSyncService::persistirDoc ignora novos eventos (NSU do lote segue)
+  - Teste DfeCaixaTest cobre exclusão de eventos
+  - phpunit DfeCaixaTest: OK (3)
+
+Deploy cloud (bind-mount apps/api):
+  rsync DfeDocumento.php DfeCaixaService.php DfeSyncService.php DfeCaixaTest.php
+  php artisan optimize:clear
+  ERP_STAGE/APP_ENV/APP_KEY intactos
+
+Pós-fix cloud:
+  list year → 112 docs, NULL valor = 0
+  list set/2026 → 4 docs, todos com valor (15 / 15 / 9831.61 / 126873.55)
+  total_documentos → 112
+
+Ops opcional (não feito): soft-delete dos 909 eventos órfãos no DB.
+Não necessário para UX — já filtrados.
+
+========================================================================
+TESTE USUÁRIO
+========================================================================
+1. https://flexoerp001.triggerti.com/compras/nfe-destinadas (Ctrl+Shift+R)
+2. De=2026-01-01 Até=2026-12-31 → ~112 linhas; coluna Valor preenchida
+3. Filtrar set/2026 → 4 NF-e com valores acima
+4. Local: mesmo filtro de eventos após pull/restart app
+
+
+VERIFY_LOCAL 2026-10-30T15:08:02-03:00
+  optimize:clear OK | DfeCaixaTest OK (3/3)
+  EMP13 year 2026-01-01…12-31: n=112 null_valor=0 total_documentos=112 scopeCaixaNfe=yes
+  local health: stage=local | cloud health: stage=homolog status=ok

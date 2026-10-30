@@ -25,3 +25,18 @@ Sem alteração de código produto / NSU / sync SEFAZ em local.
 Sem promote cloud → production.
 
 VERIFY 2026-10-30T14:41:02-03:00 | health=ok stage=local | SPA=200 | erp43_web/app/mysql/queue/scheduler Up
+
+YEAR_DEFAULT_FIX 2026-10-30T14:57:59-03:00
+  SPA rebuild: make web-build → index-CCssY1on.js (chrome CSS ok)
+  ComprasNfeDestinadasPage defaults De/Até via currentYearRange (2026-01-01…2026-12-31)
+  health: {"status":"ok","app":"FLEXOERP","stage":"local","env":"local","debug":true,"time":"2026-10-30T14:57:59-03:00","envio_proposta":{"email_auto":true,"mail_mailer":"smtp","mail_from_configurado":true,"mail_smtp_pronto":true,"whatsapp_auto":true,"viazap_configurado":true}}
+  DfeCaixaService::list EMP13 de=2026-01-01 ate=2026-12-31 → count=112
+
+CLOUD_PROBE 2026-10-30 (SSH OK — no promote)
+  health: stage=homolog env=homolog
+  .env.aws: /home/ubuntu/flexoerp/.env.aws
+  ERP_STAGE=homolog APP_ENV=homolog APP_KEY=yes (no DFE_ keys)
+  containers: erp43_web/app/mysql/queue/scheduler Up
+  A1-like tables: 18; dfe_documentos (deleted_at null): 1021
+  backups present under /home/ubuntu/flexoerp/backups (incl. erp_mysql_pre_prod_*.sql.gz, flexoerp-pre-limpeza-20260910)
+  Recommend (manual): set ERP_STAGE=production + APP_ENV=production in .env.aws, recreate app/queue/scheduler preserving APP_KEY — only after confirming recent backup; do NOT auto-flip from agent.

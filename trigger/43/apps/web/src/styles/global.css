@@ -10168,9 +10168,19 @@ tr.row-inactive td {
   white-space: nowrap;
 }
 
-.ficha-sheet-ped-planilha .ped-planilha-table--comercial tfoot .ped-planilha-foot-detail td {
+/* Totais alinhados às colunas (Quant., matriz, arte, faca, comissão, Sub-Total, Total). */
+.ficha-sheet-ped-planilha .ped-planilha-table--comercial tfoot .ped-planilha-foot-totais td {
+  font-weight: 600;
+  border-top: 0.35mm solid var(--border, #c5ccd3);
+  padding-top: 0.85mm;
+  vertical-align: top;
+}
+
+.ficha-sheet-ped-planilha .ped-planilha-table--comercial tfoot .ped-planilha-foot-totais td:first-child {
   font-weight: 500;
   color: var(--text-muted, #5a6570);
+  text-align: left;
+  white-space: nowrap;
 }
 
 /* Revenda / serviço — grade curta; tipografia um pouco mais legível. */

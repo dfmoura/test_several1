@@ -23,7 +23,7 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDate } from '../lib/format';
-import { appendPeriodo, currentMonthRange } from '../lib/periodo';
+import { appendPeriodo, currentYearRange } from '../lib/periodo';
 import { useTableSort } from '../lib/useTableSort';
 
 const SORT = {
@@ -192,13 +192,13 @@ function CadastroStatusIcon({
 export function ComprasNfeDestinadasPage() {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
-  const mesAtual = currentMonthRange();
+  const anoCorrente = currentYearRange();
   const [docs, setDocs] = useState<DfeDocumento[]>([]);
   const [sync, setSync] = useState<DfeSyncEstado | null>(null);
   const [q, setQ] = useState('');
   const [situacao, setSituacao] = useState('');
-  const [de, setDe] = useState(mesAtual.de);
-  const [ate, setAte] = useState(mesAtual.ate);
+  const [de, setDe] = useState(anoCorrente.de);
+  const [ate, setAte] = useState(anoCorrente.ate);
   const [loading, setLoading] = useState(true);
   const [listaErro, setListaErro] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
