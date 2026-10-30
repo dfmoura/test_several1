@@ -1,7 +1,7 @@
 /**
  * Grão da ficha planilha do PED (A4 paisagem) — só apresentação.
  * Comercial: 1 linha por modelo.
- * Produção (planilha): 1 linha por modelo; setup de faixa só na 1ª linha do item.
+ * Produção (planilha): 1 linha por modelo; setup do item repete; Rolos rateados.
  * Produção (OP satélites): `linhasProducaoPlanilha` permanece 1 linha por item.
  * Não persiste campo novo e não altera FAT/OP/contrato retrato.
  */
@@ -324,8 +324,9 @@ export function linhasProducaoPlanilha(
 
 /**
  * Produção na ficha planilha — 1 linha por modelo.
- * Setup de faixa (metragem, m², larg. papel, …) só na 1ª linha do item.
- * Rolos: rateio por modelo já feito em `linhasEtiquetaDoItem`.
+ * Por modelo: Modelo + Rolos (rateio).
+ * Demais colunas = setup do item/faixa — **repetem** em cada modelo (planilha legível).
+ * m/rolo = etiq/rolo × puxada_cm ÷ 100 (rolo acabado, 1 pista; ≠ metragem bobina-mãe).
  */
 export function linhasProducaoPlanilhaPorModelo(
   pedido: Pedido,
@@ -349,31 +350,33 @@ export function linhasProducaoPlanilhaPorModelo(
     const largPapel = larguraPapelCm(first.larguraCm ?? null, colunas);
     const metragem = numPositivo(faixa?.metragem);
     const m2 = numPositivo(faixa?.m2);
+    /** Rolo acabado (1 pista) — mesmo parâmetro em todos os modelos do item. */
+    const metrosPorRolo = first.metrosPorRolo ?? null;
+    const etiqPorRolo = first.etiqPorRolo ?? null;
 
     for (let i = 0; i < modelos.length; i++) {
       const ln = modelos[i]!;
-      const primeira = i === 0;
       out.push({
         key: `pm-${ln.key}`,
         itemOrdem: item.ordem,
         modelo: ln.modelo,
-        primeiraDoItem: primeira,
-        trocaProduto: primeira ? trocaProduto : null,
-        larguraPapelCm: primeira ? largPapel : null,
-        colunasProducao: primeira ? colunas : null,
-        metragemLinear: primeira ? metragem : null,
-        m2: primeira ? m2 : null,
-        acabamento: primeira ? (ln.acabamento ?? null) : null,
-        tubete: primeira ? (ln.tubete ?? null) : null,
-        colunasRebobinacao: primeira ? colunasReb : null,
-        etiqPorRolo: primeira ? (ln.etiqPorRolo ?? null) : null,
+        primeiraDoItem: i === 0,
+        trocaProduto,
+        larguraPapelCm: largPapel,
+        colunasProducao: colunas,
+        metragemLinear: metragem,
+        m2,
+        acabamento: ln.acabamento ?? null,
+        tubete: ln.tubete ?? null,
+        colunasRebobinacao: colunasReb,
+        etiqPorRolo,
         rolos: ln.rolos,
-        metrosPorRolo: primeira ? (ln.metrosPorRolo ?? null) : null,
-        formatoFaca: primeira ? (ln.faca ?? null) : null,
-        nFaca: primeira ? (ln.nFaca ?? null) : null,
-        z: primeira ? (ln.z ?? null) : null,
-        saidaCodigo: primeira ? saidaCodigo : null,
-        maquina: primeira ? (ln.maquina ?? null) : null,
+        metrosPorRolo,
+        formatoFaca: ln.faca ?? null,
+        nFaca: ln.nFaca ?? null,
+        z: ln.z ?? null,
+        saidaCodigo,
+        maquina: ln.maquina ?? null,
       });
     }
   }

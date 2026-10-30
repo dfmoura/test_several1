@@ -219,7 +219,12 @@ function TabelaProducao({
           <th className="ficha-td-num">Col. reb.</th>
           <th className="ficha-td-num">Etiq/rolo</th>
           <th className="ficha-td-num">Rolos</th>
-          <th className="ficha-td-num">m/rolo</th>
+          <th
+            className="ficha-td-num"
+            title="Metros lineares do rolo acabado (1 pista): etiq/rolo × puxada_cm ÷ 100"
+          >
+            m/rolo
+          </th>
           <th>Formato faca</th>
           <th className="ficha-td-num">Nº faca</th>
           <th className="ficha-td-num">Z</th>
@@ -483,8 +488,8 @@ export function PedidoFichaPlanilhaSheet({
           </FichaSection>
           <FichaSection title="Produção">
             <p className="ped-planilha-hint">
-              Uma linha por modelo · setup da faixa na 1ª linha do item · Larg.
-              papel = largura × colunas de produção
+              Uma linha por modelo · setup do item repete · Larg. papel = largura ×
+              colunas · m/rolo = etiq/rolo × puxada ÷ 100 (rolo acabado)
             </p>
             <TabelaProducao pedido={p} itens={grupos.etiquetas} />
           </FichaSection>

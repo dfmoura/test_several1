@@ -54,8 +54,8 @@ Roteiro
      - Coluna Total por linha (etiqueta+matriz+arte+faca); rodapé Total = R\$ 4.170,00
      - Sem linhas "Total matriz" / "Total comercial" (só rodapé alinhado)
      - Sem Frete / Desc. na grade (só no fechamento)
-  4. Produção: 3 linhas (1 por modelo); setup (metragem/m²/larg. papel…) só na 1ª;
-     Rolos rateados por modelo
+  4. Produção: 3 linhas (1 por modelo); setup (metragem/m²/larg. papel/etiq/rolo/m/rolo…)
+     repete em cada modelo; Rolos rateados (ex. 5 / 3 / 2); m/rolo = 1000×5÷100 = 50
   5. Imprimir / Salvar PDF (A4 paisagem)
   6. Fechamento: Frete R\$ 120 (fora do total) · Desc. R\$ 50 · Total do pedido
 
