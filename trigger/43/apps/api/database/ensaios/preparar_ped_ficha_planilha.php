@@ -93,36 +93,58 @@ $espec = [
     'faixa_index' => 0,
 ];
 
+$codigoOrc = 'ORC-2026-PLAN01';
 $ped = Pedido::query()->where('empresa_id', $emp->id)->where('codigo', $codigoPed)->first();
 
 if ($ped === null) {
-    $numero = 99120;
-    while (Orcamento::query()->where('empresa_id', $emp->id)->where('ano', 2026)->where('numero', $numero)->exists()) {
-        $numero++;
-    }
-    $orc = Orcamento::query()->create([
-        'empresa_id' => $emp->id,
-        'ano' => 2026,
-        'numero' => $numero,
-        'codigo' => 'ORC-2026-PLAN01',
-        'versao' => 1,
-        'parceiro_id' => $par->id,
-        'cliente_nome' => $par->razao_social,
-        'status' => Orcamento::STATUS_APROVADO,
-        'financeiro_status' => AdiantamentoService::FIN_LIBERADO,
-        'cobra_matriz' => true,
-        'valor_matriz' => $valorMatriz,
-        'input_snapshot' => $input,
-        'result_snapshot' => [
+    $orc = Orcamento::query()
+        ->where('empresa_id', $emp->id)
+        ->where('codigo', $codigoOrc)
+        ->first();
+    if ($orc === null) {
+        $numero = 99120;
+        while (Orcamento::query()->where('empresa_id', $emp->id)->where('ano', 2026)->where('numero', $numero)->exists()) {
+            $numero++;
+        }
+        $orc = Orcamento::query()->create([
+            'empresa_id' => $emp->id,
+            'ano' => 2026,
+            'numero' => $numero,
+            'codigo' => $codigoOrc,
+            'versao' => 1,
+            'parceiro_id' => $par->id,
+            'cliente_nome' => $par->razao_social,
+            'status' => Orcamento::STATUS_APROVADO,
+            'financeiro_status' => AdiantamentoService::FIN_LIBERADO,
+            'cobra_matriz' => true,
+            'valor_matriz' => $valorMatriz,
+            'input_snapshot' => $input,
+            'result_snapshot' => [
+                'faixas' => [$faixa],
+                'valor_artes' => $valorArtes,
+                'valor_faca_nova' => $valorFaca,
+            ],
+            'prazo_entrega_dias' => 10,
+            'validade_dias' => 7,
+            'tolerancia_qtd_pct' => 20,
+            'observacao' => 'Ensaio Ficha planilha — 3 modelos.',
+        ]);
+    } else {
+        $orc->parceiro_id = $par->id;
+        $orc->cliente_nome = $par->razao_social;
+        $orc->status = Orcamento::STATUS_APROVADO;
+        $orc->financeiro_status = AdiantamentoService::FIN_LIBERADO;
+        $orc->cobra_matriz = true;
+        $orc->valor_matriz = $valorMatriz;
+        $orc->input_snapshot = $input;
+        $orc->result_snapshot = [
             'faixas' => [$faixa],
             'valor_artes' => $valorArtes,
             'valor_faca_nova' => $valorFaca,
-        ],
-        'prazo_entrega_dias' => 10,
-        'validade_dias' => 7,
-        'tolerancia_qtd_pct' => 20,
-        'observacao' => 'Ensaio Ficha planilha — 3 modelos.',
-    ]);
+        ];
+        $orc->observacao = 'Ensaio Ficha planilha — 3 modelos.';
+        $orc->save();
+    }
 
     $ped = Pedido::query()->create([
         'empresa_id' => $emp->id,
@@ -137,7 +159,7 @@ if ($ped === null) {
         'snapshot' => [
             'input' => $input,
             'faixa' => $faixa,
-            'orcamento_codigo' => 'ORC-2026-PLAN01',
+            'orcamento_codigo' => $codigoOrc,
             'orcamento_versao' => 1,
         ],
     ]);
@@ -165,10 +187,28 @@ if ($ped === null) {
     $ped->snapshot = [
         'input' => $input,
         'faixa' => $faixa,
-        'orcamento_codigo' => 'ORC-2026-PLAN01',
+        'orcamento_codigo' => $codigoOrc,
         'orcamento_versao' => 1,
     ];
     $ped->save();
+
+    $orc = Orcamento::query()->find($ped->orcamento_id)
+        ?? Orcamento::query()->where('empresa_id', $emp->id)->where('codigo', $codigoOrc)->first();
+    if ($orc !== null) {
+        $orc->input_snapshot = $input;
+        $orc->result_snapshot = [
+            'faixas' => [$faixa],
+            'valor_artes' => $valorArtes,
+            'valor_faca_nova' => $valorFaca,
+        ];
+        $orc->valor_matriz = $valorMatriz;
+        $orc->observacao = 'Ensaio Ficha planilha — 3 modelos.';
+        $orc->save();
+        if ((int) $ped->orcamento_id !== (int) $orc->id) {
+            $ped->orcamento_id = $orc->id;
+            $ped->save();
+        }
+    }
 
     $item = PedidoItem::query()->where('pedido_id', $ped->id)->orderBy('ordem')->first();
     if ($item === null) {

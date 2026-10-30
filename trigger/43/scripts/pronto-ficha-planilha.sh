@@ -50,11 +50,11 @@ Roteiro
      - Matriz R$ 340 rateada (170 / 102 / 68)
      - Faca R$ 180 rateada (90 / 54 / 36)
      - Comissão R$ 175 rateada (87,50 / 52,50 / 35)
-     - Frete R$ 120 e Desc. R$ 50 só na 1ª linha do documento
+     - Sem colunas Frete / Desc. (só no fechamento)
      - Vlr. rolo = taxa unitária (repete)
      - Sub-Total = etiquetas do modelo (Σ R$ 3.500,00)
      - Rodapé: Subtotal etiquetas + matriz + faca + artes · Total comercial R$ 4.170,00
   4. Imprimir / Salvar PDF (A4 paisagem)
-  5. Fechamento: frete fora do total; desconto no documento
+  5. Fechamento: Frete R$ 120 (fora do total) · Desc. R$ 50 · Total do pedido
 
 EOF

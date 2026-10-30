@@ -132,10 +132,8 @@ function TabelaComercial({
           <th className="ficha-td-num">Vlr. faca</th>
           <th className="ficha-td-num">Vlr. milh.</th>
           <th className="ficha-td-num">Comissão</th>
-          <th className="ficha-td-num">Frete</th>
           <th className="ficha-td-num">Vlr. unit.</th>
           <th className="ficha-td-num">Vlr. rolo</th>
-          <th className="ficha-td-num">Desc.</th>
           <th className="ficha-td-num">Sub-Total</th>
         </tr>
       </thead>
@@ -158,16 +156,8 @@ function TabelaComercial({
             <td className="ficha-td-num">{fmtMoney(ln.valorFaca)}</td>
             <td className="ficha-td-num">{fmtUnit(ln.valorMilheiro)}</td>
             <td className="ficha-td-num">{fmtMoney(ln.comissao)}</td>
-            <td className="ficha-td-num">
-              {ln.freteADefinir
-                ? 'a definir'
-                : ln.primeiraDoDocumento
-                  ? fmtMoney(ln.frete)
-                  : '—'}
-            </td>
             <td className="ficha-td-num">{fmtUnit(ln.unitario)}</td>
             <td className="ficha-td-num">{fmtMoney(ln.valorRolo)}</td>
-            <td className="ficha-td-num">{fmtMoney(ln.desconto)}</td>
             <td className="ficha-td-num">{formatCurrency(ln.subtotal)}</td>
           </tr>
         ))}
@@ -175,7 +165,7 @@ function TabelaComercial({
       <tfoot>
         {mostraSubEtq ? (
           <tr className="ped-planilha-foot-detail">
-            <td colSpan={18} className="ficha-td-num">
+            <td colSpan={16} className="ficha-td-num">
               Subtotal etiquetas · {fmtQtd(totais.quant)}
             </td>
             <td className="ficha-td-num">
@@ -185,7 +175,7 @@ function TabelaComercial({
         ) : null}
         {mostraMatriz ? (
           <tr className="ped-planilha-foot-detail">
-            <td colSpan={18} className="ficha-td-num">
+            <td colSpan={16} className="ficha-td-num">
               Total matriz
             </td>
             <td className="ficha-td-num">{formatCurrency(totais.matriz)}</td>
@@ -193,7 +183,7 @@ function TabelaComercial({
         ) : null}
         {mostraFaca ? (
           <tr className="ped-planilha-foot-detail">
-            <td colSpan={18} className="ficha-td-num">
+            <td colSpan={16} className="ficha-td-num">
               Total faca
             </td>
             <td className="ficha-td-num">{formatCurrency(totais.faca)}</td>
@@ -201,14 +191,14 @@ function TabelaComercial({
         ) : null}
         {mostraArtes ? (
           <tr className="ped-planilha-foot-detail">
-            <td colSpan={18} className="ficha-td-num">
+            <td colSpan={16} className="ficha-td-num">
               Total artes
             </td>
             <td className="ficha-td-num">{formatCurrency(totais.artes)}</td>
           </tr>
         ) : null}
         <tr>
-          <td colSpan={18} className="ficha-td-num">
+          <td colSpan={16} className="ficha-td-num">
             Total comercial
             {mostraSubEtq ? null : ` · ${fmtQtd(totais.quant)}`}
           </td>

@@ -12,13 +12,8 @@ import {
   somaValores,
   valorMatrizCobradoDoItem,
 } from './pedidoFichaContrato';
-import {
-  descontoDoPedido,
-  freteFechamentoDoPedido,
-  valorFreteInformadoDoPedido,
-} from './pedidoConfirmacao';
-import { modoComFrete, normalizarModoEntrega } from './orcamentoFrete';
-import { asPedidoSnap, faixaDoItem, snapInput, specOperacional } from './producaoFicha';
+import { freteFechamentoDoPedido } from './pedidoConfirmacao';
+import { faixaDoItem, specOperacional } from './producaoFicha';
 
 export type PedidoPlanilhaVisual = {
   saida: string | null;
@@ -28,7 +23,7 @@ export type PedidoPlanilhaVisual = {
 export type PedidoPlanilhaComercialLinha = {
   key: string;
   itemOrdem: number;
-  /** Primeira linha do documento — Frete/Desc. do cabeçalho. */
+  /** Primeira linha do documento (obs do PED quando o item não tem obs). */
   primeiraDoDocumento: boolean;
   /** Primeira linha do item (eco residual; medida/largura/puxada/material repetem). */
   primeiraDoItem: boolean;
@@ -44,12 +39,10 @@ export type PedidoPlanilhaComercialLinha = {
   valorArte: number;
   valorFaca: number | null;
   valorMilheiro: number | null;
+  /** Rateio por modelo (peso = qtde etiquetas); fecha no último. */
   comissao: number | null;
-  frete: number | null;
-  freteADefinir: boolean;
   unitario: number | null;
   valorRolo: number | null;
-  desconto: number | null;
   subtotal: number;
 };
 
@@ -117,19 +110,6 @@ function milheiroDeUnitario(unitario: number | null): number | null {
   return money2(unitario * 1000);
 }
 
-function freteDocumento(pedido: Pedido): { valor: number | null; aDefinir: boolean } {
-  const input = snapInput(pedido);
-  const faixa = asPedidoSnap(pedido.snapshot).faixa ?? {};
-  const modo = normalizarModoEntrega(
-    strOrNull(input.modo_entrega) ??
-      (typeof faixa.modo_entrega === 'string' ? faixa.modo_entrega : null),
-  );
-  if (!modoComFrete(modo)) return { valor: 0, aDefinir: false };
-  const valor = valorFreteInformadoDoPedido(pedido);
-  if (valor == null) return { valor: null, aDefinir: true };
-  return { valor: money2(valor), aDefinir: false };
-}
-
 function obsLinha(
   pedido: Pedido,
   item: PedidoItem,
@@ -164,15 +144,13 @@ function rateioOuNulo(total: number, pesos: number[]): Array<number | null> {
  * Linhas comerciais (etiqueta = por modelo).
  * Por modelo (repete / rateia): qtde, medida, largura, puxada, material, arte,
  * matriz, faca, comissão, subtotal (etiquetas). Vlr. rolo = taxa unitária.
- * Documento: frete/desconto só na 1ª linha.
+ * Frete/desconto ficam no fechamento do documento — não na grade.
  */
 export function linhasComerciaisPlanilha(
   pedido: Pedido,
   itens: PedidoItem[],
   visualOf: (item: PedidoItem) => PedidoPlanilhaVisual,
 ): PedidoPlanilhaComercialLinha[] {
-  const frete = freteDocumento(pedido);
-  const descontoDoc = descontoDoPedido(pedido);
   const out: PedidoPlanilhaComercialLinha[] = [];
   let primeiraDoc = true;
 
@@ -207,11 +185,8 @@ export function linhasComerciaisPlanilha(
         valorFaca: facas[i] ?? null,
         valorMilheiro: milheiroDeUnitario(ln.unitario),
         comissao: comissoes[i] ?? null,
-        frete: isFirstDoc ? frete.valor : null,
-        freteADefinir: isFirstDoc ? frete.aDefinir : false,
         unitario: ln.unitario,
         valorRolo: ln.valorRolo,
-        desconto: isFirstDoc ? (descontoDoc > 0.004 ? descontoDoc : 0) : null,
         subtotal: ln.subtotal,
       });
       primeiraDoc = false;
