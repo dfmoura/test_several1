@@ -31,14 +31,16 @@ estoque_mínimo (unidade_interna) × saldo × OC em trânsito
 ### B) Ajuste (contagem avulsa)
 
 ```
-Contagem → AJU- PENDENTE (motivo A01–A11 + checklist)
+Contagem → AJU- PENDENTE (motivo A01–A11 + checklist + local)
   → aprovação por outro usuário (estoque.aprovar)
   → MOV tipo AJUSTE → saldo via EstoqueSaldoWriter
+  → binding físico: endereco_id no volume/saldo
 ```
 
 - Quem solicita ≠ quem aprova (SoD).
 - Motivos canônicos do estudo 32; A04/A06/A07/A09 exigem complemento.
 - Sem inventário rotativo completo / recontagem cega nesta fatia (origem `CONTAGEM_AVULSA` pronta; INV_* reservados).
+- **Local obrigatório (emenda 2026-10-30):** todo MOV `AJUSTE` exige local físico (`estoque_enderecos` / `endereco_id`) amarrado no binding que o Writer grava — volumes novos (`lote_payload.*.endereco_id`), baixa com volume já localizado (ou `endereco_id` na linha), SKU sem volume (`estoque_ajustes.endereco_id` → `estoque_saldos.endereco_id` na aprovação). Contagem QR (`contagem_evidencia.endereco`) também satisfaz e persiste no AJU. Correção só de endereço continua no **Guardar** (sem AJU).
 
 ### Menu Compras (agora)
 
@@ -73,3 +75,4 @@ Ordens de compra · **A repor** · Estoque (com link **Ajustes**).
 3. Ajuste sem checklist / sem motivo codificado.
 4. Gerar OC automática sem confirmação humana.
 5. Reexibir NEC/COT no menu sem ADR nova.
+6. MOV `AJUSTE` sem local físico amarrado (`endereco_id` no volume ou no saldo SKU).

@@ -46,6 +46,7 @@ class EstoqueAjusteService
         $query = EstoqueAjuste::query()
             ->with([
                 'produto:id,codigo,descricao_fiscal,familia,unidade_interna,unidade_comercial,fator_conversao',
+                'endereco:id,codigo,nome',
                 'solicitadoPorUser:id,name',
                 'aprovadoPorUser:id,name',
                 'movimento:id,codigo,tipo',
@@ -164,6 +165,14 @@ class EstoqueAjusteService
             $usaPayload
         );
 
+        $enderecoId = $this->resolverEnderecoIdAjuste(
+            $empresa,
+            $produto,
+            $data,
+            $lotePayload,
+            $contagemEvidencia
+        );
+
         $ajuste = DB::transaction(function () use (
             $empresa,
             $produto,
@@ -176,7 +185,8 @@ class EstoqueAjusteService
             $meta,
             $lotePayload,
             $usaPayload,
-            $contagemEvidencia
+            $contagemEvidencia,
+            $enderecoId
         ) {
             if (is_array($lotePayload) && $this->payloadTemVolumeNovo($lotePayload)) {
                 $fila = $this->travarFilaVolume($empresa, $produto);
@@ -190,6 +200,7 @@ class EstoqueAjusteService
                 'empresa_id' => $empresa->id,
                 'codigo' => $codigo,
                 'produto_id' => $produto->id,
+                'endereco_id' => $enderecoId,
                 'lote_id' => $usaPayload ? null : (isset($data['lote_id']) ? (int) $data['lote_id'] : null),
                 'lote_codigo' => $usaPayload ? null : $this->nullIfEmpty($data['lote_codigo'] ?? null),
                 'lote_data_entrada' => $usaPayload ? null : ($data['lote_data_entrada'] ?? null),
@@ -260,6 +271,14 @@ class EstoqueAjusteService
             $diferenca
         );
 
+        $enderecoId = $this->resolverEnderecoIdAjuste(
+            $empresa,
+            $produto,
+            $data,
+            $lotePayload,
+            null
+        );
+
         $ajuste = DB::transaction(function () use (
             $empresa,
             $produto,
@@ -271,7 +290,8 @@ class EstoqueAjusteService
             $qtdeContada,
             $diferenca,
             $meta,
-            $lotePayload
+            $lotePayload,
+            $enderecoId
         ) {
             if (is_array($lotePayload) && $this->payloadTemVolumeNovo($lotePayload)) {
                 $fila = $this->travarFilaVolume($empresa, $produto);
@@ -285,6 +305,7 @@ class EstoqueAjusteService
                 'empresa_id' => $empresa->id,
                 'codigo' => $codigo,
                 'produto_id' => $produto->id,
+                'endereco_id' => $enderecoId,
                 'inventario_item_id' => $item->id,
                 'origem' => $origem,
                 'motivo_codigo' => $motivo['codigo'],
@@ -385,6 +406,10 @@ class EstoqueAjusteService
 
             $produto = Produto::query()->lockForUpdate()->findOrFail($ajuste->produto_id);
 
+            if (is_array($payload)) {
+                $this->aplicarEnderecoLinhasBaixa($empresa, $produto, $payload);
+            }
+
             $delta = (string) $ajuste->qtde_diferenca;
             $loteRef = $this->loteRefFromAjuste($ajuste);
             $aplicado = $this->saldos->aplicarAjuste(
@@ -394,6 +419,8 @@ class EstoqueAjusteService
                 $loteRef,
                 $payload
             );
+
+            $this->amarrarLocalSaldoSku($empresa, $produto, $ajuste);
 
             $ano = (int) now()->year;
             $codigoMov = $this->codigos->nextCode($empresa->id, 'MOV-'.$ano, 5);
@@ -579,6 +606,7 @@ class EstoqueAjusteService
     {
         $ajuste->loadMissing([
             'produto:id,codigo,descricao_fiscal,familia,unidade_interna,unidade_comercial,fator_conversao',
+            'endereco:id,codigo,nome',
             'solicitadoPorUser:id,name',
             'aprovadoPorUser:id,name',
             'movimento:id,codigo,tipo',
@@ -606,6 +634,14 @@ class EstoqueAjusteService
                     ? (string) $ajuste->produto->fator_conversao
                     : null,
             ] : null,
+            'endereco_id' => $ajuste->endereco_id !== null ? (int) $ajuste->endereco_id : null,
+            'endereco' => $ajuste->endereco
+                ? [
+                    'id' => (int) $ajuste->endereco->id,
+                    'codigo' => (string) $ajuste->endereco->codigo,
+                    'nome' => $ajuste->endereco->nome,
+                ]
+                : null,
             'inventario_item_id' => $ajuste->inventario_item_id,
             'inventario_id' => $ajuste->inventarioItem?->inventario_id,
             'origem' => $ajuste->origem,
@@ -1075,7 +1111,7 @@ class EstoqueAjusteService
         }
 
         return $positivo
-            ? $this->normalizarLotePayloadEntrada($produto, $raw, $motivo, $origem, $qtdeAbs)
+            ? $this->normalizarLotePayloadEntrada($empresa, $produto, $raw, $motivo, $origem, $qtdeAbs)
             : $this->normalizarLotePayloadBaixa($empresa, $produto, $raw, $qtdeAbs);
     }
 
@@ -1084,6 +1120,7 @@ class EstoqueAjusteService
      * @return list<array<string, mixed>>
      */
     private function normalizarLotePayloadEntrada(
+        Empresa $empresa,
         Produto $produto,
         array $raw,
         string $motivo,
@@ -1153,6 +1190,16 @@ class EstoqueAjusteService
             $fab = $this->nullIfEmpty($linha['data_fabricacao'] ?? $linha['lote_data_fabricacao'] ?? null);
             $val = $this->nullIfEmpty($linha['data_validade'] ?? $linha['lote_data_validade'] ?? null);
 
+            $enderecoId = (int) ($linha['endereco_id'] ?? 0);
+            if ($enderecoId <= 0) {
+                throw ValidationException::withMessages([
+                    "lote_payload.{$idx}.endereco_id" => [
+                        'Informe o local de estoque de cada volume novo.',
+                    ],
+                ]);
+            }
+            $this->assertEnderecoAtivo($empresa, $enderecoId, "lote_payload.{$idx}.endereco_id");
+
             $linhas[] = [
                 'codigo' => mb_substr($codigo, 0, 60),
                 'qtde' => $qtde,
@@ -1161,6 +1208,7 @@ class EstoqueAjusteService
                 'data_validade' => $val !== null ? (string) $val : null,
                 'largura_mm' => $largura,
                 'comprimento_m' => $comprimento,
+                'endereco_id' => $enderecoId,
                 'origem_tipo' => $origemTipo,
                 'volume_novo' => true,
             ];
@@ -1242,6 +1290,19 @@ class EstoqueAjusteService
                 ]);
             }
 
+            $enderecoLinha = (int) ($linha['endereco_id'] ?? 0);
+            $enderecoLote = $lote->endereco_id !== null ? (int) $lote->endereco_id : 0;
+            if ($enderecoLote <= 0 && $enderecoLinha <= 0) {
+                throw ValidationException::withMessages([
+                    "lote_payload.{$idx}.endereco_id" => [
+                        "Volume {$lote->codigo} sem local — guarde no local ou informe endereco_id na baixa.",
+                    ],
+                ]);
+            }
+            if ($enderecoLinha > 0) {
+                $this->assertEnderecoAtivo($empresa, $enderecoLinha, "lote_payload.{$idx}.endereco_id");
+            }
+
             $linhas[] = [
                 'lote_id' => (int) $lote->id,
                 'codigo' => (string) $lote->codigo,
@@ -1255,6 +1316,7 @@ class EstoqueAjusteService
                 'comprimento_m' => $lote->comprimento_m !== null && $lote->comprimento_m !== ''
                     ? PadraoDecimal::roundHalfUp((string) $lote->comprimento_m, PadraoDecimal::SCALE_DIM)
                     : null,
+                'endereco_id' => $enderecoLote > 0 ? $enderecoLote : $enderecoLinha,
                 'origem_tipo' => EstoqueLote::ORIGEM_AJUSTE,
                 'volume_novo' => false,
             ];
@@ -1285,6 +1347,8 @@ class EstoqueAjusteService
      */
     private function loteRefFromAjuste(EstoqueAjuste $ajuste): ?array
     {
+        $enderecoId = $ajuste->endereco_id !== null ? (int) $ajuste->endereco_id : null;
+
         if ($ajuste->lote_id || $ajuste->lote_codigo || $ajuste->lote_data_entrada || $ajuste->lote_data_validade) {
             return [
                 'lote_id' => $ajuste->lote_id,
@@ -1292,15 +1356,143 @@ class EstoqueAjusteService
                 'data_entrada' => optional($ajuste->lote_data_entrada)?->format('Y-m-d'),
                 'data_fabricacao' => optional($ajuste->lote_data_fabricacao)?->format('Y-m-d'),
                 'data_validade' => optional($ajuste->lote_data_validade)?->format('Y-m-d'),
+                'endereco_id' => $enderecoId,
                 'origem_tipo' => EstoqueLote::ORIGEM_AJUSTE,
                 'origem_id' => $ajuste->id,
             ];
         }
 
         return [
+            'endereco_id' => $enderecoId,
             'origem_tipo' => EstoqueLote::ORIGEM_AJUSTE,
             'origem_id' => $ajuste->id,
         ];
+    }
+
+    /**
+     * Local canônico do AJU: top-level, evidência QR ou primeiro volume do payload.
+     *
+     * @param  list<array<string, mixed>>|null  $lotePayload
+     * @param  array<string, mixed>|null  $contagemEvidencia
+     * @param  array<string, mixed>  $data
+     */
+    private function resolverEnderecoIdAjuste(
+        Empresa $empresa,
+        Produto $produto,
+        array $data,
+        ?array $lotePayload,
+        ?array $contagemEvidencia
+    ): int {
+        $candidatos = [];
+
+        $top = (int) ($data['endereco_id'] ?? 0);
+        if ($top > 0) {
+            $candidatos[] = $top;
+        }
+
+        if (is_array($contagemEvidencia)) {
+            $evId = (int) ($contagemEvidencia['endereco']['id'] ?? 0);
+            if ($evId > 0) {
+                $candidatos[] = $evId;
+            }
+        }
+
+        if (is_array($lotePayload)) {
+            foreach ($lotePayload as $linha) {
+                $id = (int) ($linha['endereco_id'] ?? 0);
+                if ($id > 0) {
+                    $candidatos[] = $id;
+                }
+            }
+        }
+
+        $enderecoId = $candidatos[0] ?? 0;
+        if ($enderecoId <= 0) {
+            throw ValidationException::withMessages([
+                'endereco_id' => [
+                    $produto->controla_lote
+                        ? 'Informe o local de estoque (QR END, volume ou seletor).'
+                        : 'Informe o local de estoque do ajuste.',
+                ],
+            ]);
+        }
+
+        $this->assertEnderecoAtivo($empresa, $enderecoId, 'endereco_id');
+
+        return $enderecoId;
+    }
+
+    private function assertEnderecoAtivo(Empresa $empresa, int $enderecoId, string $field): EstoqueEndereco
+    {
+        $end = EstoqueEndereco::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('ativo', true)
+            ->whereKey($enderecoId)
+            ->first();
+
+        if ($end === null) {
+            throw ValidationException::withMessages([
+                $field => ['Local inválido ou inativo nesta empresa.'],
+            ]);
+        }
+
+        return $end;
+    }
+
+    /**
+     * Baixa: se o volume ainda não tinha local e a linha trouxe endereco_id, amarra antes do Writer.
+     *
+     * @param  list<array<string, mixed>>  $payload
+     */
+    private function aplicarEnderecoLinhasBaixa(Empresa $empresa, Produto $produto, array $payload): void
+    {
+        foreach ($payload as $linha) {
+            if (! empty($linha['volume_novo'])) {
+                continue;
+            }
+            $loteId = (int) ($linha['lote_id'] ?? 0);
+            $enderecoId = (int) ($linha['endereco_id'] ?? 0);
+            if ($loteId <= 0 || $enderecoId <= 0) {
+                continue;
+            }
+
+            $lote = EstoqueLote::query()
+                ->where('empresa_id', $empresa->id)
+                ->where('produto_id', $produto->id)
+                ->whereKey($loteId)
+                ->lockForUpdate()
+                ->first();
+            if ($lote === null) {
+                continue;
+            }
+            if ($lote->endereco_id === null) {
+                $lote->endereco_id = $enderecoId;
+                $lote->save();
+            }
+        }
+    }
+
+    /**
+     * SKU sem volume: após Writer da qtde, amarra estoque_saldos.endereco_id (sem segundo escritor de qtde).
+     */
+    private function amarrarLocalSaldoSku(Empresa $empresa, Produto $produto, EstoqueAjuste $ajuste): void
+    {
+        if ($produto->controla_lote || $ajuste->endereco_id === null) {
+            return;
+        }
+
+        $saldo = EstoqueSaldo::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('produto_id', $produto->id)
+            ->lockForUpdate()
+            ->first();
+
+        if ($saldo === null) {
+            return;
+        }
+
+        $saldo->endereco_id = (int) $ajuste->endereco_id;
+        $saldo->save();
     }
 
     private function nullIfEmpty(mixed $value): mixed

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Empresa;
 use App\Models\EstoqueAjuste;
+use App\Models\EstoqueEndereco;
 use App\Models\EstoqueInventario;
 use App\Models\EstoqueInventarioItem;
 use App\Models\EstoqueMovimento;
@@ -12,6 +13,7 @@ use App\Models\NaturezaGerencial;
 use App\Models\Parceiro;
 use App\Models\Produto;
 use App\Models\User;
+use App\Services\Estoque\EstoqueEnderecoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
@@ -37,6 +39,8 @@ class EstoqueInventarioAjusteTest extends TestCase
     private User $gestor;
 
     private Produto $produto;
+
+    private EstoqueEndereco $endereco;
 
     private Parceiro $fornecedor;
 
@@ -132,6 +136,12 @@ class EstoqueInventarioAjusteTest extends TestCase
             'estoque.aprovar',
             'estoque.aprovar_gestor',
         ]);
+
+        app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
+        $this->endereco = EstoqueEndereco::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('codigo', 'L00000001')
+            ->firstOrFail();
     }
 
     /**
@@ -208,12 +218,14 @@ class EstoqueInventarioAjusteTest extends TestCase
             ->postJson("/api/v1/estoque/inventarios/{$invId}/itens/{$itemId}/gerar-ajuste", [
                 'checklist_confirmado' => true,
                 'motivo_codigo' => 'A01',
+                'endereco_id' => $this->endereco->id,
             ])
             ->assertCreated()
             ->assertJsonPath('data.ajuste.origem', EstoqueAjuste::ORIGEM_INV_ROTATIVO)
             ->assertJsonPath('data.ajuste.qtde_diferenca', '-5.0000')
             ->assertJsonPath('data.ajuste.valor_ajuste', '50.00')
-            ->assertJsonPath('data.ajuste.alcada', EstoqueAjuste::ALCADA_LIDER);
+            ->assertJsonPath('data.ajuste.alcada', EstoqueAjuste::ALCADA_LIDER)
+            ->assertJsonPath('data.ajuste.endereco_id', $this->endereco->id);
 
         $ajuId = $aju->json('data.ajuste.id');
 
@@ -281,6 +293,7 @@ class EstoqueInventarioAjusteTest extends TestCase
                 'motivo_codigo' => 'A01',
                 'qtde_contada' => '99.0000',
                 'checklist_confirmado' => true,
+                'endereco_id' => $this->endereco->id,
             ])
             ->assertStatus(422);
 
@@ -333,6 +346,7 @@ class EstoqueInventarioAjusteTest extends TestCase
                 'motivo_codigo' => 'A01',
                 'qtde_contada' => '100.0000',
                 'checklist_confirmado' => true,
+                'endereco_id' => $this->endereco->id,
             ])
             ->assertCreated()
             ->assertJsonPath('data.alcada', EstoqueAjuste::ALCADA_GESTOR)
@@ -432,6 +446,7 @@ class EstoqueInventarioAjusteTest extends TestCase
                 'motivo_codigo' => 'A01',
                 'qtde_contada' => '99.0000',
                 'checklist_confirmado' => true,
+                'endereco_id' => $this->endereco->id,
             ])
             ->assertStatus(422);
 
@@ -456,6 +471,7 @@ class EstoqueInventarioAjusteTest extends TestCase
                 'motivo_codigo' => 'A01',
                 'qtde_contada' => '99.0000',
                 'checklist_confirmado' => true,
+                'endereco_id' => $this->endereco->id,
             ])
             ->assertCreated();
     }
@@ -521,6 +537,7 @@ class EstoqueInventarioAjusteTest extends TestCase
             ->postJson("/api/v1/estoque/inventarios/{$divId}/itens/{$divItem}/gerar-ajuste", [
                 'checklist_confirmado' => true,
                 'motivo_codigo' => 'A01',
+                'endereco_id' => $this->endereco->id,
             ])
             ->assertCreated();
 

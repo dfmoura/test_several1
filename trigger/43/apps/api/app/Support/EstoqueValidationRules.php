@@ -58,6 +58,8 @@ final class EstoqueValidationRules
             'checklist_confirmado' => ['required', 'accepted'],
             'observacao' => ['nullable', 'string', 'max:2000'],
             'causa_raiz' => ['nullable', 'string', 'max:2000'],
+            // Local físico (estoque_enderecos) — obrigatório no serviço (SKU sem volume / QR / fallback).
+            'endereco_id' => ['nullable', 'integer', 'exists:estoque_enderecos,id'],
             'lote_id' => ['nullable', 'integer', 'exists:estoque_lotes,id'],
             'lote_codigo' => ['nullable', 'string', 'max:60'],
             'lote_data_entrada' => ['nullable', 'date'],
@@ -68,6 +70,7 @@ final class EstoqueValidationRules
             'lote_payload.*.lote_id' => ['nullable', 'integer', 'exists:estoque_lotes,id'],
             'lote_payload.*.codigo' => ['nullable', 'string', 'max:60'],
             'lote_payload.*.qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)),
+            'lote_payload.*.endereco_id' => ['nullable', 'integer', 'exists:estoque_enderecos,id'],
             'lote_payload.*.largura_mm' => array_merge(
                 ['nullable'],
                 PadraoDecimal::rules(PadraoDecimal::SCALE_DIM, false)
@@ -79,7 +82,7 @@ final class EstoqueValidationRules
             'lote_payload.*.data_entrada' => ['nullable', 'date'],
             'lote_payload.*.data_fabricacao' => ['nullable', 'date'],
             'lote_payload.*.data_validade' => ['nullable', 'date'],
-            // Contagem avulsa por QR (volume + local) — auditoria; não alimenta Writer.
+            // Contagem avulsa por QR (volume + local) — auditoria; local também persiste no AJU.
             'contagem_evidencia' => ['nullable', 'array'],
             'contagem_evidencia.modo' => ['required_with:contagem_evidencia', 'string', 'in:QR_VOLUME_LOCAL'],
             'contagem_evidencia.endereco' => ['required_with:contagem_evidencia', 'array'],
@@ -218,11 +221,14 @@ final class EstoqueValidationRules
             'checklist_confirmado' => ['required', 'accepted'],
             'observacao' => ['nullable', 'string', 'max:2000'],
             'causa_raiz' => ['nullable', 'string', 'max:2000'],
+            // Local obrigatório no serviço (SKU sem volume / volumes no payload).
+            'endereco_id' => ['nullable', 'integer', 'exists:estoque_enderecos,id'],
             // Volumes no AJU gerado: +Δ novos / −Δ com lote_id (opcional; Writer na aprovação).
             'lote_payload' => ['nullable', 'array', 'min:1'],
             'lote_payload.*.lote_id' => ['nullable', 'integer', 'exists:estoque_lotes,id'],
             'lote_payload.*.codigo' => ['nullable', 'string', 'max:60'],
             'lote_payload.*.qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)),
+            'lote_payload.*.endereco_id' => ['nullable', 'integer', 'exists:estoque_enderecos,id'],
             'lote_payload.*.largura_mm' => array_merge(
                 ['nullable'],
                 PadraoDecimal::rules(PadraoDecimal::SCALE_DIM, false)

@@ -165,6 +165,7 @@ class EstoqueAjusteContagemQrTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.status', EstoqueAjuste::STATUS_PENDENTE)
             ->assertJsonPath('data.qtde_diferenca', '-25.0000')
+            ->assertJsonPath('data.endereco_id', $this->endereco->id)
             ->assertJsonPath('data.contagem_evidencia.modo', 'QR_VOLUME_LOCAL')
             ->assertJsonPath('data.contagem_evidencia.endereco.codigo', 'L00000001')
             ->assertJsonPath('data.contagem_evidencia.volumes.0.codigo', 'VOL-A');

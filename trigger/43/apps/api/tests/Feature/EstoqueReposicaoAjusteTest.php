@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Empresa;
 use App\Models\EstoqueAjuste;
+use App\Models\EstoqueEndereco;
 use App\Models\EstoqueMovimento;
 use App\Models\EstoqueSaldo;
 use App\Models\NaturezaGerencial;
@@ -12,6 +13,7 @@ use App\Models\Parceiro;
 use App\Models\Produto;
 use App\Models\Titulo;
 use App\Models\User;
+use App\Services\Estoque\EstoqueEnderecoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
@@ -33,6 +35,8 @@ class EstoqueReposicaoAjusteTest extends TestCase
     private Parceiro $fornecedor;
 
     private Produto $produto;
+
+    private EstoqueEndereco $endereco;
 
     private NaturezaGerencial $nat506;
 
@@ -121,6 +125,12 @@ class EstoqueReposicaoAjusteTest extends TestCase
         ]);
         $this->aprovador->givePermissionTo(['estoque.ler', 'estoque.aprovar']);
         $this->aprovador->empresas()->attach([$this->empresa->id]);
+
+        app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
+        $this->endereco = EstoqueEndereco::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('codigo', 'L00000001')
+            ->firstOrFail();
     }
 
     public function test_reposicao_gera_oc_e_fluxo_receber_titulo(): void
@@ -248,6 +258,31 @@ class EstoqueReposicaoAjusteTest extends TestCase
         ]);
     }
 
+    public function test_ajuste_sem_local_e_rejeitado(): void
+    {
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->produto->id,
+            'qtde' => '100.0000',
+            'unidade' => 'UN',
+            'custo_medio' => '2.500000',
+        ]);
+
+        Sanctum::actingAs($this->operador);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes', [
+                'produto_id' => $this->produto->id,
+                'motivo_codigo' => 'A01',
+                'qtde_contada' => '95.0000',
+                'checklist_confirmado' => true,
+                'origem' => EstoqueAjuste::ORIGEM_CONTAGEM_AVULSA,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['endereco_id']);
+    }
+
     public function test_ajuste_exige_sod_e_gera_mov(): void
     {
         EstoqueSaldo::query()->create([
@@ -269,10 +304,12 @@ class EstoqueReposicaoAjusteTest extends TestCase
                 'qtde_contada' => '95.0000',
                 'checklist_confirmado' => true,
                 'origem' => EstoqueAjuste::ORIGEM_CONTAGEM_AVULSA,
+                'endereco_id' => $this->endereco->id,
             ])
             ->assertCreated()
             ->assertJsonPath('data.status', EstoqueAjuste::STATUS_PENDENTE)
-            ->assertJsonPath('data.qtde_diferenca', '-5.0000');
+            ->assertJsonPath('data.qtde_diferenca', '-5.0000')
+            ->assertJsonPath('data.endereco_id', $this->endereco->id);
 
         $ajuId = $aju->json('data.id');
 
@@ -300,6 +337,7 @@ class EstoqueReposicaoAjusteTest extends TestCase
             ->where('produto_id', $this->produto->id)
             ->firstOrFail();
         $this->assertSame('95.0000', (string) $saldo->qtde);
+        $this->assertSame((int) $this->endereco->id, (int) $saldo->endereco_id);
     }
 
     public function test_ajuste_pendente_pode_ser_cancelado_pelo_solicitante(): void
@@ -321,6 +359,7 @@ class EstoqueReposicaoAjusteTest extends TestCase
                 'motivo_codigo' => 'A01',
                 'qtde_contada' => '98.0000',
                 'checklist_confirmado' => true,
+                'endereco_id' => $this->endereco->id,
             ])
             ->assertCreated()
             ->json('data.id');

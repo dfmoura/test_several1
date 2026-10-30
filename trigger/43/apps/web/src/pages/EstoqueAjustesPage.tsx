@@ -12,6 +12,7 @@ import {
   api,
   type EstoqueAjuste,
   type EstoqueAjusteMeta,
+  type EstoqueEndereco,
   type EstoqueLote,
   type EstoqueSaldo,
   type Produto,
@@ -77,6 +78,7 @@ type VolumeBaixaLinha = {
   comprimento_m: string | null;
   data_entrada: string;
   data_validade: string;
+  endereco_id: number | null;
 };
 
 function volumeEmBranco(v: VolumeLinha): boolean {
@@ -378,6 +380,8 @@ export function EstoqueAjustesPage() {
   const [codigosOcupados, setCodigosOcupados] = useState<string[]>([]);
   const [modoContagem, setModoContagem] = useState<ModoContagem>('manual');
   const [modoVolume, setModoVolume] = useState<ModoVolume>('entrada');
+  const [enderecos, setEnderecos] = useState<EstoqueEndereco[]>([]);
+  const [enderecoId, setEnderecoId] = useState<number | ''>('');
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [causaAprovar, setCausaAprovar] = useState('');
@@ -445,6 +449,7 @@ export function EstoqueAjustesPage() {
             comprimento_m: l.comprimento_m ?? null,
             data_entrada: l.data_entrada ?? '',
             data_validade: l.data_validade ?? '',
+            endereco_id: l.endereco_id ?? l.endereco?.id ?? null,
           })),
       );
       const dePendentes = (pendentesRes.data ?? [])
@@ -525,11 +530,13 @@ export function EstoqueAjustesPage() {
       if (de) qs.set('de', de);
       if (ate) qs.set('ate', ate);
       const suffix = qs.toString() ? `?${qs.toString()}` : '';
-      const aj = await api.get<{ data: EstoqueAjuste[]; meta: EstoqueAjusteMeta }>(
-        `/estoque/ajustes${suffix}`,
-      );
+      const [aj, ends] = await Promise.all([
+        api.get<{ data: EstoqueAjuste[]; meta: EstoqueAjusteMeta }>(`/estoque/ajustes${suffix}`),
+        api.get<{ data: EstoqueEndereco[] }>('/estoque/enderecos'),
+      ]);
       setAjustes(aj.data);
       setMeta(aj.meta);
+      setEnderecos((ends.data ?? []).filter((e) => e.ativo !== false));
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -693,6 +700,9 @@ export function EstoqueAjustesPage() {
         setError('Confirme o local (QR END:…) antes de solicitar o ajuste.');
         return;
       }
+    } else if (!enderecoId) {
+      setError('Informe o local de estoque do ajuste.');
+      return;
     }
 
     if (usaVolumesEntrada) {
@@ -714,6 +724,10 @@ export function EstoqueAjustesPage() {
           setError(`Volume ${v.codigo}: baixa maior que o disponível.`);
           return;
         }
+        if (!v.endereco_id && !enderecoId) {
+          setError(`Volume ${v.codigo} sem local — informe o local do ajuste ou use Guardar.`);
+          return;
+        }
       }
     }
 
@@ -727,6 +741,8 @@ export function EstoqueAjustesPage() {
             ? clampDecimalScale(estoqueQrSomaQtde(qr.fila), DECIMAL_SCALE.qty) || '0.0000'
             : qtdeContada;
 
+      const localId = usaQr && qr.endereco ? qr.endereco.id : Number(enderecoId);
+
       const payload: Record<string, unknown> = {
         produto_id: Number(produto!.id),
         motivo_codigo: motivo,
@@ -735,6 +751,7 @@ export function EstoqueAjustesPage() {
         checklist_confirmado: checklist,
         observacao: observacao || null,
         origem: 'CONTAGEM_AVULSA',
+        endereco_id: localId,
       };
 
       if (usaVolumesEntrada) {
@@ -747,6 +764,7 @@ export function EstoqueAjustesPage() {
             comprimento_m: v.comprimento_m.trim() || undefined,
             data_entrada: v.data_entrada || undefined,
             data_validade: v.data_validade || undefined,
+            endereco_id: localId,
           }));
       } else if (usaVolumesBaixa) {
         payload.lote_payload = baixas
@@ -754,6 +772,7 @@ export function EstoqueAjustesPage() {
           .map((v) => ({
             lote_id: v.lote_id,
             qtde: clampDecimalScale(v.qtde.replace(',', '.'), DECIMAL_SCALE.qty),
+            endereco_id: v.endereco_id || localId,
           }));
       } else if (usaQr) {
         const evidencia = buildContagemEvidencia();
@@ -773,6 +792,7 @@ export function EstoqueAjustesPage() {
       setCodigosOcupados([]);
       setModoVolume('entrada');
       setChecklist(false);
+      setEnderecoId('');
       qr.limparTudo();
       setMsg('Solicitação de ajuste registrada.');
       await load();
@@ -1014,6 +1034,34 @@ export function EstoqueAjustesPage() {
                       <option value="entrada">Entrada (registrar bobinas)</option>
                       <option value="baixa">Baixa (debitar volumes existentes)</option>
                     </select>
+                  </div>
+                )}
+                {!usaQr && (
+                  <div className="form-group">
+                    <label htmlFor="aju_local">Local de estoque</label>
+                    <select
+                      id="aju_local"
+                      required
+                      value={enderecoId === '' ? '' : String(enderecoId)}
+                      onChange={(e) =>
+                        setEnderecoId(e.target.value ? Number(e.target.value) : '')
+                      }
+                    >
+                      <option value="">Selecione o local…</option>
+                      {enderecos.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.codigo}
+                          {e.nome?.trim() ? ` — ${e.nome.trim()}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {enderecos.length === 0 && (
+                      <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
+                        Nenhum local ativo.{' '}
+                        <Link to="/estoque/mapa">Cadastre locais no mapa</Link> ou{' '}
+                        <Link to="/estoque/guardar">Guardar</Link>.
+                      </p>
+                    )}
                   </div>
                 )}
                 <div className="form-group">
@@ -1449,6 +1497,14 @@ export function EstoqueAjustesPage() {
                   <div>
                     <span>Origem</span>
                     <strong>{ajuOrigemLabel(selected.origem)}</strong>
+                  </div>
+                  <div>
+                    <span>Local</span>
+                    <strong>
+                      {selected.endereco?.codigo ??
+                        selected.contagem_evidencia?.endereco?.codigo ??
+                        '—'}
+                    </strong>
                   </div>
                   <div>
                     <span>Solicitado por</span>

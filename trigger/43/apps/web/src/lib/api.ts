@@ -2031,6 +2031,8 @@ export type EstoqueAjuste = {
   aviso_fiscal?: string | null;
   inventario_item_id?: number | null;
   inventario_id?: number | null;
+  endereco_id?: number | null;
+  endereco?: { id: number; codigo: string; nome?: string | null } | null;
   lote_id?: number | null;
   lote_codigo?: string | null;
   lote_data_entrada?: string | null;
@@ -2040,6 +2042,7 @@ export type EstoqueAjuste = {
     lote_id?: number | null;
     codigo?: string;
     qtde: string;
+    endereco_id?: number | null;
     largura_mm?: string | null;
     comprimento_m?: string | null;
     data_entrada?: string | null;

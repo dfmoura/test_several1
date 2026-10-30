@@ -35,7 +35,7 @@ Fluxo físico canônico (reusa resolve `VOL:` / `END:` do Guardar):
 Abrir INV (produto_ids)
   → sessão: ler END → ler VOL(s) → registrar leituras
   → fechar rodada física → rollup Σ qtde dos volumes encontrados → contar1/contar2
-  → se Δ quantidade no SKU → AJU (inalterado)
+  → se Δ quantidade no SKU → AJU (com local obrigatório no gerar/aprovar)
   → se só local errado → corrigir via Guardar (sem mexer saldo)
 ```
 
@@ -46,6 +46,7 @@ Regras:
 3. `LOCAL_ERRADO` não gera AJU por si — saldo do volume está no sistema; endereço se corrige no Guardar.
 4. Cegueira contábil preservada: saldo SKU oculto até confrontação. Leituras físicas não escrevem `estoque_saldos`.
 5. SoD / alçada / congelamento / Writer: inalterados.
+6. **Local no AJU gerado (emenda 2026-10-30):** gerar AJU a partir do INV exige `endereco_id` (EMP, ativo) — ou `lote_payload` com local em cada volume novo / volume de baixa já localizado. Mesma norma de `ADR_ESTOQUE_REPOSICAO_AJUSTE.md`: todo MOV `AJUSTE` amarra local no Writer; só-endereço continua Guardar.
 
 ### Extrato (kardex leve)
 
@@ -106,6 +107,7 @@ SoD: quem solicitou ≠ quem aprova; quem contou o item do INV ≠ quem aprova o
 4. Aprovar o próprio AJU ou AJU contado por si no INV.
 5. Entrada OC ou AJU avulso em SKU congelado por inventário.
 6. Emitir NF-e / SPED a partir do AJU.
+7. Gerar / aprovar AJU (INV ou avulso) sem local físico amarrado no binding do Writer.
 
 ---
 

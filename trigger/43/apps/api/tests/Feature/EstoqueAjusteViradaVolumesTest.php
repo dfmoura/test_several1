@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Empresa;
 use App\Models\EstoqueAjuste;
+use App\Models\EstoqueEndereco;
 use App\Models\EstoqueLote;
 use App\Models\EstoqueMovimento;
 use App\Models\EstoqueSaldo;
 use App\Models\Produto;
 use App\Models\User;
+use App\Services\Estoque\EstoqueEnderecoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
@@ -28,6 +30,8 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
     private User $aprovador;
 
     private Produto $exact;
+
+    private EstoqueEndereco $endereco;
 
     protected function setUp(): void
     {
@@ -84,6 +88,12 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
             'controla_lote' => true,
             'controla_validade' => false,
         ]);
+
+        app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
+        $this->endereco = EstoqueEndereco::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('codigo', 'L00000001')
+            ->firstOrFail();
     }
 
     public function test_a03_abre_n_volumes_com_lx_c_e_saldo(): void
@@ -101,11 +111,13 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
                 'origem' => EstoqueAjuste::ORIGEM_CONTAGEM_AVULSA,
                 'lote_payload' => [
                     [
+                        'endereco_id' => $this->endereco->id,
                         'codigo' => 'BOB-A',
                         'largura_mm' => '210',
                         'comprimento_m' => '1000',
                     ],
                     [
+                        'endereco_id' => $this->endereco->id,
                         'codigo' => 'BOB-B',
                         'largura_mm' => '330',
                         'comprimento_m' => '1000',
@@ -148,8 +160,10 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
         $this->assertSame('210.00', (string) $lotes[0]->largura_mm);
         $this->assertSame('1000.00', (string) $lotes[0]->comprimento_m);
         $this->assertSame(EstoqueLote::ORIGEM_VIRADA, $lotes[0]->origem_tipo);
+        $this->assertSame((int) $this->endereco->id, (int) $lotes[0]->endereco_id);
         $this->assertSame('BOB-B', $lotes[1]->codigo);
         $this->assertSame('330.0000', (string) $lotes[1]->qtde);
+        $this->assertSame((int) $this->endereco->id, (int) $lotes[1]->endereco_id);
 
         $movId = (int) EstoqueAjuste::query()->findOrFail($ajuId)->movimento_id;
         $etq = $this->withHeaders($h)
@@ -179,6 +193,7 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
                 'origem' => EstoqueAjuste::ORIGEM_CONTAGEM_AVULSA,
                 'lote_payload' => [
                     [
+                        'endereco_id' => $this->endereco->id,
                         'codigo' => 'SOBRA-1',
                         'largura_mm' => '210',
                         'comprimento_m' => '1000',
@@ -226,6 +241,7 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
             'qtde' => '250.0000',
             'unidade' => 'M2',
             'origem_tipo' => EstoqueLote::ORIGEM_ENTRADA_COMPRA,
+            'endereco_id' => $this->endereco->id,
             'qr_token' => bin2hex(random_bytes(16)),
         ]);
         $loteB = EstoqueLote::query()->create([
@@ -236,6 +252,7 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
             'qtde' => '150.0000',
             'unidade' => 'M2',
             'origem_tipo' => EstoqueLote::ORIGEM_ENTRADA_COMPRA,
+            'endereco_id' => $this->endereco->id,
             'qr_token' => bin2hex(random_bytes(16)),
         ]);
 
@@ -251,7 +268,9 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
                 'qtde_contada' => '300.0000',
                 'checklist_confirmado' => true,
                 'lote_payload' => [
-                    ['lote_id' => $loteB->id, 'qtde' => '100.0000'],
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'lote_id' => $loteB->id, 'qtde' => '100.0000'],
                 ],
             ])
             ->assertCreated()
@@ -300,7 +319,9 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
                 'qtde_contada' => '100.0000',
                 'checklist_confirmado' => true,
                 'lote_payload' => [
-                    ['codigo' => 'X', 'qtde' => '110.0000'],
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'codigo' => 'X', 'qtde' => '110.0000'],
                 ],
             ])
             ->assertStatus(422)
@@ -319,8 +340,12 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
                 'qtde_contada' => '500.0000',
                 'checklist_confirmado' => true,
                 'lote_payload' => [
-                    ['codigo' => 'A', 'qtde' => '210.0000'],
-                    ['codigo' => 'B', 'qtde' => '200.0000'],
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'codigo' => 'A', 'qtde' => '210.0000'],
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'codigo' => 'B', 'qtde' => '200.0000'],
                 ],
             ])
             ->assertStatus(422)
@@ -339,8 +364,12 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
                 'qtde_contada' => '420.0000',
                 'checklist_confirmado' => true,
                 'lote_payload' => [
-                    ['largura_mm' => '210', 'comprimento_m' => '1000'],
-                    ['largura_mm' => '210', 'comprimento_m' => '1000'],
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'largura_mm' => '210', 'comprimento_m' => '1000'],
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'largura_mm' => '210', 'comprimento_m' => '1000'],
                 ],
             ])
             ->assertCreated();
@@ -363,7 +392,9 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
                 'qtde_contada' => '630.0000',
                 'checklist_confirmado' => true,
                 'lote_payload' => [
-                    ['largura_mm' => '210', 'comprimento_m' => '1000'],
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'largura_mm' => '210', 'comprimento_m' => '1000'],
                 ],
             ])
             ->assertCreated();
@@ -383,8 +414,12 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
                 'qtde_contada' => '420.0000',
                 'checklist_confirmado' => true,
                 'lote_payload' => [
-                    ['codigo' => 'BOB-01', 'largura_mm' => '210', 'comprimento_m' => '1000'],
-                    ['codigo' => 'BOB-01', 'largura_mm' => '210', 'comprimento_m' => '1000'],
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'codigo' => 'BOB-01', 'largura_mm' => '210', 'comprimento_m' => '1000'],
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'codigo' => 'BOB-01', 'largura_mm' => '210', 'comprimento_m' => '1000'],
                 ],
             ])
             ->assertCreated()
@@ -420,7 +455,9 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
                 'qtde_contada' => '210.0000',
                 'checklist_confirmado' => true,
                 'lote_payload' => [
-                    ['codigo' => 'BOB-01', 'largura_mm' => '210', 'comprimento_m' => '1000'],
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'codigo' => 'BOB-01', 'largura_mm' => '210', 'comprimento_m' => '1000'],
                 ],
             ])
             ->assertCreated()
@@ -433,7 +470,9 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
                 'qtde_contada' => '210.0000',
                 'checklist_confirmado' => true,
                 'lote_payload' => [
-                    ['codigo' => 'BOB-01', 'largura_mm' => '210', 'comprimento_m' => '1000'],
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'codigo' => 'BOB-01', 'largura_mm' => '210', 'comprimento_m' => '1000'],
                 ],
             ])
             ->assertCreated()
@@ -452,7 +491,9 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
                 'qtde_contada' => '210.0000',
                 'checklist_confirmado' => true,
                 'lote_payload' => [
-                    ['codigo' => 'FIXO-1', 'largura_mm' => '210', 'comprimento_m' => '1000'],
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'codigo' => 'FIXO-1', 'largura_mm' => '210', 'comprimento_m' => '1000'],
                 ],
             ])
             ->assertCreated();
@@ -472,7 +513,9 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
                 'qtde_contada' => '420.0000',
                 'checklist_confirmado' => true,
                 'lote_payload' => [
-                    ['codigo' => 'OUTRO-3', 'largura_mm' => '210', 'comprimento_m' => '1000'],
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'codigo' => 'OUTRO-3', 'largura_mm' => '210', 'comprimento_m' => '1000'],
                 ],
             ])
             ->assertCreated();

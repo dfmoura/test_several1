@@ -6,6 +6,7 @@ import { StatusPill } from '../components/StatusPill';
 import {
   ApiError,
   api,
+  type EstoqueEndereco,
   type EstoqueInventario,
   type EstoqueInventarioItem,
   type EstoqueInventarioLeitura,
@@ -329,6 +330,8 @@ function InventarioDetail({ id }: { id: number }) {
   const [qtde, setQtde] = useState('');
   const [checklist, setChecklist] = useState(false);
   const [motivo, setMotivo] = useState('A01');
+  const [enderecos, setEnderecos] = useState<EstoqueEndereco[]>([]);
+  const [ajuEnderecoId, setAjuEnderecoId] = useState<number | ''>('');
 
   const endRef = useRef<HTMLInputElement>(null);
   const volRef = useRef<HTMLInputElement>(null);
@@ -342,11 +345,15 @@ function InventarioDetail({ id }: { id: number }) {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await api.get<{ data: EstoqueInventario; meta: EstoqueInventarioMeta }>(
-        `/estoque/inventarios/${id}`,
-      );
+      const [res, ends] = await Promise.all([
+        api.get<{ data: EstoqueInventario; meta: EstoqueInventarioMeta }>(
+          `/estoque/inventarios/${id}`,
+        ),
+        api.get<{ data: EstoqueEndereco[] }>('/estoque/enderecos'),
+      ]);
       setInv(res.data);
       setMeta(res.meta);
+      setEnderecos((ends.data ?? []).filter((e) => e.ativo !== false));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Falha ao carregar.');
     } finally {
@@ -370,6 +377,7 @@ function InventarioDetail({ id }: { id: number }) {
     setMotivo(
       inv?.tipo === 'GERAL' ? 'A02' : inv?.tipo === 'VIRADA' ? 'A03' : 'A01',
     );
+    setAjuEnderecoId(mode === 'gerar' && endereco ? endereco.id : '');
   };
 
   const closeAction = () => {
@@ -377,6 +385,7 @@ function InventarioDetail({ id }: { id: number }) {
     setActionMode(null);
     setQtde('');
     setChecklist(false);
+    setAjuEnderecoId('');
   };
 
   const submitContagem = async (e: FormEvent) => {
@@ -409,12 +418,17 @@ function InventarioDetail({ id }: { id: number }) {
       setError('Confirme o checklist antes de gerar o ajuste.');
       return;
     }
+    if (!ajuEnderecoId) {
+      setError('Informe o local de estoque do ajuste.');
+      return;
+    }
     setError(null);
     setSaving(true);
     try {
       await api.post(`/estoque/inventarios/${id}/itens/${activeItem.id}/gerar-ajuste`, {
         checklist_confirmado: true,
         motivo_codigo: motivo || undefined,
+        endereco_id: Number(ajuEnderecoId),
       });
       closeAction();
       await load();
@@ -1394,6 +1408,25 @@ function InventarioDetail({ id }: { id: number }) {
                       ))}
                     </select>
                   </div>
+                  <div className="form-group span-2">
+                    <label htmlFor="inv_aju_local">Local de estoque</label>
+                    <select
+                      id="inv_aju_local"
+                      required
+                      value={ajuEnderecoId === '' ? '' : String(ajuEnderecoId)}
+                      onChange={(e) =>
+                        setAjuEnderecoId(e.target.value ? Number(e.target.value) : '')
+                      }
+                    >
+                      <option value="">Selecione o local…</option>
+                      {enderecos.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.codigo}
+                          {e.nome?.trim() ? ` — ${e.nome.trim()}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="form-group span-full">
                     <label className="checkbox-item" style={{ maxWidth: '40rem' }}>
                       <input
@@ -1412,7 +1445,7 @@ function InventarioDetail({ id }: { id: number }) {
                   <button
                     type="submit"
                     className="btn btn-primary"
-                    disabled={saving || !checklist}
+                    disabled={saving || !checklist || !ajuEnderecoId}
                   >
                     {saving ? 'Gerando…' : 'Gerar AJU'}
                   </button>
