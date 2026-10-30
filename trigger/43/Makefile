@@ -1,4 +1,4 @@
-.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada seed-estoque-enderecos limpar-estoque limpar-cadeia-pos-orc preparar-ensaio-estoque limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build stage-web-context pronto-etiquetas-volume pronto-pa-embalagem pronto-estoque-saldo-volumes pronto-estoque-ajuste-virada-volumes pronto-estoque-ajuste-volumes pronto-estoque-ajuste-qr pronto-guardar pronto-retiradas pronto-ficha-chao pronto-nfe-pa pronto-nfe-destinadas pronto-produto-modelo pronto-orc-faca-tamanho orc-rbac condicao-pagamento-pronto backlog-pronto formulas-orc-pronto plataforma-pronto queue-logs scheduler-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc export-envio-proposta
+.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada seed-estoque-enderecos limpar-estoque limpar-cadeia-pos-orc preparar-ensaio-estoque limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build stage-web-context pronto-etiquetas-volume pronto-pa-embalagem pronto-estoque-saldo-volumes pronto-estoque-ajuste-virada-volumes pronto-estoque-ajuste-volumes pronto-estoque-ajuste-qr pronto-guardar pronto-retiradas pronto-ficha-chao pronto-ficha-planilha pronto-nfe-pa pronto-nfe-destinadas pronto-produto-modelo pronto-orc-faca-tamanho orc-rbac condicao-pagamento-pronto backlog-pronto formulas-orc-pronto plataforma-pronto queue-logs scheduler-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc export-envio-proposta
 
 # Caminho canônico: docs/DEPLOY_LOCAL_AWS.md
 # Local SEM docker-compose.local.yml = containers up sem :8043 → ERR_CONNECTION_REFUSED
@@ -266,6 +266,10 @@ pronto-retiradas:
 # Host com Docker: ficha OP Impressão e acabamento (satélite unificado)
 pronto-ficha-chao:
 	bash scripts/pronto-ficha-chao.sh
+
+# Host com Docker: Pedidos · Ficha planilha (qtde/comissão por modelo)
+pronto-ficha-planilha:
+	bash scripts/pronto-ficha-planilha.sh
 
 # Host com Docker: SPA DANFE + PED PRODUZIDO com matriz (NF-e = PA)
 pronto-nfe-pa:

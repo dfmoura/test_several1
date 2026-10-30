@@ -25,6 +25,7 @@ import {
   fechamentoPlanilhaHint,
   linhasComerciaisPlanilha,
   linhasProducaoPlanilha,
+  totaisComerciaisPlanilha,
   type PedidoPlanilhaVisual,
 } from '../lib/pedidoFichaPlanilha';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
@@ -103,7 +104,15 @@ function TabelaComercial({
   itens: PedidoItem[];
 }) {
   const linhas = linhasComerciaisPlanilha(pedido, itens, (item) => visualOf(pedido, item));
-  const total = somaValores(itens);
+  const totais = totaisComerciaisPlanilha(itens, linhas);
+  const mostraMatriz = totais.matriz > 0.004;
+  const mostraFaca = totais.faca > 0.004;
+  const mostraArtes = totais.artes > 0.004;
+  const mostraSubEtq =
+    mostraMatriz ||
+    mostraFaca ||
+    mostraArtes ||
+    Math.abs(totais.subtotalEtiquetas - totais.comercial) > 0.004;
 
   return (
     <table className="ficha-table ped-planilha-table ped-planilha-table--comercial">
@@ -134,7 +143,7 @@ function TabelaComercial({
         {linhas.map((ln) => (
           <tr key={ln.key}>
             <td className="ficha-td-num">{ln.itemOrdem}</td>
-            <td className="ficha-td-num">{ln.primeiraDoItem ? fmtQtd(ln.quant) : '—'}</td>
+            <td className="ficha-td-num">{fmtQtd(ln.quant)}</td>
             <td>{ln.primeiraDoItem ? dashCell(ln.medida) : '—'}</td>
             <td className="ficha-td-num">{ln.primeiraDoItem ? fmtCm(ln.larguraCm) : '—'}</td>
             <td className="ficha-td-num">
@@ -166,12 +175,47 @@ function TabelaComercial({
         ))}
       </tbody>
       <tfoot>
+        {mostraSubEtq ? (
+          <tr className="ped-planilha-foot-detail">
+            <td colSpan={18} className="ficha-td-num">
+              Subtotal etiquetas · {fmtQtd(totais.quant)}
+            </td>
+            <td className="ficha-td-num">
+              {formatCurrency(totais.subtotalEtiquetas)}
+            </td>
+          </tr>
+        ) : null}
+        {mostraMatriz ? (
+          <tr className="ped-planilha-foot-detail">
+            <td colSpan={18} className="ficha-td-num">
+              Total matriz
+            </td>
+            <td className="ficha-td-num">{formatCurrency(totais.matriz)}</td>
+          </tr>
+        ) : null}
+        {mostraFaca ? (
+          <tr className="ped-planilha-foot-detail">
+            <td colSpan={18} className="ficha-td-num">
+              Total faca
+            </td>
+            <td className="ficha-td-num">{formatCurrency(totais.faca)}</td>
+          </tr>
+        ) : null}
+        {mostraArtes ? (
+          <tr className="ped-planilha-foot-detail">
+            <td colSpan={18} className="ficha-td-num">
+              Total artes
+            </td>
+            <td className="ficha-td-num">{formatCurrency(totais.artes)}</td>
+          </tr>
+        ) : null}
         <tr>
           <td colSpan={18} className="ficha-td-num">
-            Total etiquetas
+            Total comercial
+            {mostraSubEtq ? null : ` · ${fmtQtd(totais.quant)}`}
           </td>
           <td className="ficha-td-num">
-            <strong>{formatCurrency(total)}</strong>
+            <strong>{formatCurrency(totais.comercial)}</strong>
           </td>
         </tr>
       </tfoot>

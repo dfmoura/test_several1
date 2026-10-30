@@ -10168,6 +10168,11 @@ tr.row-inactive td {
   white-space: nowrap;
 }
 
+.ficha-sheet-ped-planilha .ped-planilha-table--comercial tfoot .ped-planilha-foot-detail td {
+  font-weight: 500;
+  color: var(--text-muted, #5a6570);
+}
+
 /* Revenda / serviço — grade curta; tipografia um pouco mais legível. */
 .ficha-sheet-ped-planilha .ped-planilha-table--simples {
   font-size: 7pt;

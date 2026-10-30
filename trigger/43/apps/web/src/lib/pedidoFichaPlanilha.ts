@@ -8,6 +8,8 @@ import { facasFromSnapshot, somaValorFacas } from './orcamentoForm';
 import {
   comissaoInclusaDoItem,
   linhasEtiquetaDoItem,
+  rateioFechado,
+  somaValores,
   valorMatrizCobradoDoItem,
 } from './pedidoFichaContrato';
 import {
@@ -16,7 +18,7 @@ import {
   valorFreteInformadoDoPedido,
 } from './pedidoConfirmacao';
 import { modoComFrete, normalizarModoEntrega } from './orcamentoFrete';
-import { asPedidoSnap, faixaDoItem, qtdeFaixaDoItem, snapInput, specOperacional } from './producaoFicha';
+import { asPedidoSnap, faixaDoItem, snapInput, specOperacional } from './producaoFicha';
 
 export type PedidoPlanilhaVisual = {
   saida: string | null;
@@ -28,7 +30,7 @@ export type PedidoPlanilhaComercialLinha = {
   itemOrdem: number;
   /** Primeira linha do documento — Frete/Desc. do cabeçalho. */
   primeiraDoDocumento: boolean;
-  /** Primeira linha do item — Matriz/Faca/Comissão do item. */
+  /** Primeira linha do item — Matriz/Faca (fixos do job). */
   primeiraDoItem: boolean;
   quant: number | null;
   medida: string | null;
@@ -150,8 +152,10 @@ function colunasRebobinacaoDoItem(pedido: Pedido, item: PedidoItem): number | nu
 }
 
 /**
- * Linhas comerciais (etiqueta = por modelo). Matriz/faca/comissão só na 1ª linha do item;
- * frete/desconto só na 1ª linha do documento.
+ * Linhas comerciais (etiqueta = por modelo).
+ * Por modelo: qtde alocada, arte, subtotal (etiquetas), comissão rateada.
+ * Fixos do item: matriz/faca só na 1ª linha (não diluem por arte).
+ * Documento: frete/desconto só na 1ª linha. Vlr. rolo = taxa unitária (repete).
  */
 export function linhasComerciaisPlanilha(
   pedido: Pedido,
@@ -168,19 +172,25 @@ export function linhasComerciaisPlanilha(
     const linhas = linhasEtiquetaDoItem(pedido, item, visual);
     const matriz = valorMatrizCobradoDoItem(pedido, item);
     const faca = valorFacaDoItem(pedido, item);
-    const comissao = comissaoInclusaDoItem(pedido, item);
-    const quant = qtdeFaixaDoItem(pedido, item);
+    const comissaoItem = comissaoInclusaDoItem(pedido, item);
+    const pesos = linhas.map((ln) => Math.max(0, ln.etiquetas ?? 0));
+    const comissoes =
+      comissaoItem > 0.004
+        ? rateioFechado(comissaoItem, pesos, 2)
+        : linhas.map(() => null as number | null);
     let primeiraItem = true;
 
-    for (const ln of linhas) {
+    for (let i = 0; i < linhas.length; i++) {
+      const ln = linhas[i]!;
       const isFirstDoc = primeiraDoc;
       const isFirstItem = primeiraItem;
+      const comissaoLinha = comissoes[i] ?? null;
       out.push({
         key: `c-${ln.key}`,
         itemOrdem: ln.ordem,
         primeiraDoDocumento: isFirstDoc,
         primeiraDoItem: isFirstItem,
-        quant: quant > 0 ? quant : null,
+        quant: ln.etiquetas,
         medida: ln.medida,
         larguraCm: ln.larguraCm,
         puxadaCm: ln.puxadaCm,
@@ -192,7 +202,7 @@ export function linhasComerciaisPlanilha(
         valorArte: ln.valorArte,
         valorFaca: isFirstItem ? (faca > 0.004 ? faca : 0) : null,
         valorMilheiro: milheiroDeUnitario(ln.unitario),
-        comissao: isFirstItem ? (comissao > 0.004 ? comissao : 0) : null,
+        comissao: comissaoLinha,
         frete: isFirstDoc ? frete.valor : null,
         freteADefinir: isFirstDoc ? frete.aDefinir : false,
         unitario: ln.unitario,
@@ -206,6 +216,33 @@ export function linhasComerciaisPlanilha(
   }
 
   return out;
+}
+
+/** Totais de leitura da grade comercial — não recalcula preço travado. */
+export type PedidoPlanilhaComercialTotais = {
+  quant: number;
+  subtotalEtiquetas: number;
+  matriz: number;
+  faca: number;
+  artes: number;
+  comissao: number;
+  /** `somaValores(itens)` — fonte de verdade do PED. */
+  comercial: number;
+};
+
+export function totaisComerciaisPlanilha(
+  itens: PedidoItem[],
+  linhas: PedidoPlanilhaComercialLinha[],
+): PedidoPlanilhaComercialTotais {
+  return {
+    quant: linhas.reduce((acc, ln) => acc + (ln.quant ?? 0), 0),
+    subtotalEtiquetas: money2(linhas.reduce((acc, ln) => acc + ln.subtotal, 0)),
+    matriz: money2(linhas.reduce((acc, ln) => acc + (ln.valorMatriz ?? 0), 0)),
+    faca: money2(linhas.reduce((acc, ln) => acc + (ln.valorFaca ?? 0), 0)),
+    artes: money2(linhas.reduce((acc, ln) => acc + (ln.valorArte > 0 ? ln.valorArte : 0), 0)),
+    comissao: money2(linhas.reduce((acc, ln) => acc + (ln.comissao ?? 0), 0)),
+    comercial: money2(somaValores(itens)),
+  };
 }
 
 /** Linhas de produção — um por item de etiqueta (física da faixa). */
