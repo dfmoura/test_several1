@@ -10361,17 +10361,24 @@ tr.row-inactive td {
   white-space: nowrap;
 }
 
+/* 12 mm: menor que o pick REV (18 mm), ainda escaneável para VOL:… na impressão A4. */
 .ficha-sheet-op-chao .op-chao-qr {
-  width: 20mm;
+  width: 14mm;
   text-align: center;
   vertical-align: middle;
-  padding: 0.6mm;
+  padding: 0.4mm;
 }
 
 .ficha-sheet-op-chao .op-chao-qr .ficha-pick-qr {
   margin: 0 auto;
-  width: 16mm;
-  height: 16mm;
+  width: 12mm;
+  height: 12mm;
+  image-rendering: pixelated;
+}
+
+.ficha-sheet-op-chao .op-chao-qr .ficha-pick-qr-hri {
+  max-width: 12mm;
+  font-size: 4.5pt;
 }
 
 .ficha-sheet-op-chao .op-chao-td-check .ficha-pick-check {

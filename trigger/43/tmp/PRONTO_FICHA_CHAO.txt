@@ -1,13 +1,13 @@
-SPA build: OK (2026-10-30T16:17:56-03:00)
-dist: apps/web/dist (index-BFcJKJNg.js)
-API: qr_payload em volumeToOut (bind-mount apps/api)
-stage-web-context: OK (.web-docker-context)
+SPA: OK (QR 12mm + modelos + retirada)
+dist bind-mount: apps/web/dist → erp43_web:/var/www/web
+API: qr_payload em volumeToOut (bind-mount)
 
-No terminal do HOST (fora do agent sandbox):
+Docker CLI daqui: SEM /var/run/docker.sock
+
+No TERMINAL DO HOST:
+  sudo systemctl restart docker
   cd /home/dfmoura/Documents/test_several1/trigger/43
   make pronto-ficha-chao
-  # ou, se stack já up:
-  make doctor
-  make web-build   # opcional — dist já gerado
 
-Testar: http://localhost:8043/ordens-producao  → Ficha de chão
+Testar: http://localhost:8043  → Ordens de produção → Ficha de chão
+  (Ctrl+Shift+R)

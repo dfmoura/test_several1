@@ -191,7 +191,7 @@ function TabelaRetirada({ linhas }: { linhas: OpFichaChaoRetiradaLinha[] }) {
         linhas.map(async (l) => {
           if (!l.qr_payload) return;
           next[l.key] = await QRCode.toDataURL(l.qr_payload, {
-            width: 96,
+            width: 80,
             margin: 1,
             errorCorrectionLevel: 'M',
             color: { dark: '#000000', light: '#ffffff' },
@@ -242,8 +242,8 @@ function TabelaRetirada({ linhas }: { linhas: OpFichaChaoRetiradaLinha[] }) {
                   className="ficha-pick-qr"
                   src={qrMap[ln.key]}
                   alt={`QR ${ln.volume}`}
-                  width={72}
-                  height={72}
+                  width={48}
+                  height={48}
                 />
               ) : ln.qr_payload ? (
                 <span className="ficha-pick-qr-hri">{ln.qr_payload}</span>
