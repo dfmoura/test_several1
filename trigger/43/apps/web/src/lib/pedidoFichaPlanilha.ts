@@ -30,7 +30,7 @@ export type PedidoPlanilhaComercialLinha = {
   itemOrdem: number;
   /** Primeira linha do documento — Frete/Desc. do cabeçalho. */
   primeiraDoDocumento: boolean;
-  /** Primeira linha do item — Matriz/Faca (fixos do job). */
+  /** Primeira linha do item (eco residual; medida/largura/puxada/material repetem). */
   primeiraDoItem: boolean;
   quant: number | null;
   medida: string | null;
@@ -152,10 +152,19 @@ function colunasRebobinacaoDoItem(pedido: Pedido, item: PedidoItem): number | nu
 }
 
 /**
+ * Rateio monetário por peso de etiquetas; null se total ≈ 0.
+ * Fecha no último peso (mesmo padrão de comissão / subtotal).
+ */
+function rateioOuNulo(total: number, pesos: number[]): Array<number | null> {
+  if (total <= 0.004) return pesos.map(() => null);
+  return rateioFechado(total, pesos, 2);
+}
+
+/**
  * Linhas comerciais (etiqueta = por modelo).
- * Por modelo: qtde alocada, arte, subtotal (etiquetas), comissão rateada.
- * Fixos do item: matriz/faca só na 1ª linha (não diluem por arte).
- * Documento: frete/desconto só na 1ª linha. Vlr. rolo = taxa unitária (repete).
+ * Por modelo (repete / rateia): qtde, medida, largura, puxada, material, arte,
+ * matriz, faca, comissão, subtotal (etiquetas). Vlr. rolo = taxa unitária.
+ * Documento: frete/desconto só na 1ª linha.
  */
 export function linhasComerciaisPlanilha(
   pedido: Pedido,
@@ -170,21 +179,16 @@ export function linhasComerciaisPlanilha(
   for (const item of itens) {
     const visual = visualOf(item);
     const linhas = linhasEtiquetaDoItem(pedido, item, visual);
-    const matriz = valorMatrizCobradoDoItem(pedido, item);
-    const faca = valorFacaDoItem(pedido, item);
-    const comissaoItem = comissaoInclusaDoItem(pedido, item);
     const pesos = linhas.map((ln) => Math.max(0, ln.etiquetas ?? 0));
-    const comissoes =
-      comissaoItem > 0.004
-        ? rateioFechado(comissaoItem, pesos, 2)
-        : linhas.map(() => null as number | null);
+    const matrizes = rateioOuNulo(valorMatrizCobradoDoItem(pedido, item), pesos);
+    const facas = rateioOuNulo(valorFacaDoItem(pedido, item), pesos);
+    const comissoes = rateioOuNulo(comissaoInclusaDoItem(pedido, item), pesos);
     let primeiraItem = true;
 
     for (let i = 0; i < linhas.length; i++) {
       const ln = linhas[i]!;
       const isFirstDoc = primeiraDoc;
       const isFirstItem = primeiraItem;
-      const comissaoLinha = comissoes[i] ?? null;
       out.push({
         key: `c-${ln.key}`,
         itemOrdem: ln.ordem,
@@ -198,11 +202,11 @@ export function linhasComerciaisPlanilha(
         material: ln.material,
         obs: obsLinha(pedido, item, isFirstDoc),
         cores: ln.tintas.length > 0 ? ln.tintas.join(', ') : ln.cores,
-        valorMatriz: isFirstItem ? (matriz > 0.004 ? matriz : 0) : null,
+        valorMatriz: matrizes[i] ?? null,
         valorArte: ln.valorArte,
-        valorFaca: isFirstItem ? (faca > 0.004 ? faca : 0) : null,
+        valorFaca: facas[i] ?? null,
         valorMilheiro: milheiroDeUnitario(ln.unitario),
-        comissao: comissaoLinha,
+        comissao: comissoes[i] ?? null,
         frete: isFirstDoc ? frete.valor : null,
         freteADefinir: isFirstDoc ? frete.aDefinir : false,
         unitario: ln.unitario,

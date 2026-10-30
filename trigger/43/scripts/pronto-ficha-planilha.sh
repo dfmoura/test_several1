@@ -45,9 +45,11 @@ Roteiro
   1. Hard refresh (Ctrl+Shift+R)
   2. Abrir PED-2026-PLAN01 → Ficha planilha
   3. Conferir grade comercial (3 modelos: 5000 / 3000 / 2000):
-     - Quant. por modelo (não só na 1ª linha)
-     - Comissão rateada por modelo (fecha em R$ 175,00)
-     - Matriz R$ 340 e faca R$ 180 só na 1ª linha do item
+     - Quant. por modelo
+     - Medida / Largura / Puxada repetem em cada modelo
+     - Matriz R$ 340 rateada (170 / 102 / 68)
+     - Faca R$ 180 rateada (90 / 54 / 36)
+     - Comissão R$ 175 rateada (87,50 / 52,50 / 35)
      - Frete R$ 120 e Desc. R$ 50 só na 1ª linha do documento
      - Vlr. rolo = taxa unitária (repete)
      - Sub-Total = etiquetas do modelo (Σ R$ 3.500,00)

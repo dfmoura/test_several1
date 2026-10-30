@@ -144,13 +144,11 @@ function TabelaComercial({
           <tr key={ln.key}>
             <td className="ficha-td-num">{ln.itemOrdem}</td>
             <td className="ficha-td-num">{fmtQtd(ln.quant)}</td>
-            <td>{ln.primeiraDoItem ? dashCell(ln.medida) : '—'}</td>
-            <td className="ficha-td-num">{ln.primeiraDoItem ? fmtCm(ln.larguraCm) : '—'}</td>
-            <td className="ficha-td-num">
-              {ln.primeiraDoItem ? fmtCm(ln.puxadaCm, 4) : '—'}
-            </td>
+            <td>{dashCell(ln.medida)}</td>
+            <td className="ficha-td-num">{fmtCm(ln.larguraCm)}</td>
+            <td className="ficha-td-num">{fmtCm(ln.puxadaCm, 4)}</td>
             <td>{dashCell(ln.modelo)}</td>
-            <td>{ln.primeiraDoItem ? dashCell(ln.material) : '—'}</td>
+            <td>{dashCell(ln.material)}</td>
             <td className="ped-planilha-obs">{dashCell(ln.obs)}</td>
             <td>{dashCell(ln.cores)}</td>
             <td className="ficha-td-num">{fmtMoney(ln.valorMatriz)}</td>
