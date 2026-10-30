@@ -1,21 +1,35 @@
 /**
  * Grão da ficha de chão unificada da OP — impressão, acabamento e retirada.
  * Satélite da ficha flexo retrato. Sem R$. Sem writer (confirmação em A buscar).
+ * Produção: 1 linha por modelo (mesmo grão da planilha PED).
+ * Retirada: volume a volume (kit da OP), bobina em metro linear + m².
  */
-import type { OrdemProducao, Pedido, PedidoItem } from './api';
+import type {
+  OpRetiradaVolume,
+  OrdemProducao,
+  OrdemProducaoMaterial,
+  Pedido,
+  PedidoItem,
+} from './api';
 import { formatoLabel } from '../components/FacaShapeIcon';
 import { formatDate, formatDecimalBr } from './format';
 import { descricaoFromPedidoSpec } from './orcamentoPropostaItens';
 import {
   linhasComerciaisPlanilha,
-  linhasProducaoPlanilha,
+  linhasProducaoPlanilhaPorModelo,
   type PedidoPlanilhaComercialLinha,
-  type PedidoPlanilhaProducaoLinha,
+  type PedidoPlanilhaProducaoModeloLinha,
   type PedidoPlanilhaVisual,
 } from './pedidoFichaPlanilha';
 import {
   formatNecessidadeOp,
+  formatQtdePick,
+  formatVolumeDimensao,
+  larguraMmParaMetro,
+  leituraBobinaDaQtde,
+  modoRetirada,
   opKitLinhasOrdenadas,
+  unidadeExibicao,
   volumesParaEscolha,
 } from './producaoPick';
 import { specOperacional } from './producaoFicha';
@@ -57,13 +71,15 @@ export function linhasIdentidadeChao(
   return linhasComerciaisPlanilha(pedido, [item], (it) => visualPlanilhaOf(pedido, it));
 }
 
-/** Parâmetros de máquina / produção — 1 linha por item. */
-export function linhaProducaoChao(
+/**
+ * Parâmetros de máquina / produção — 1 linha por modelo.
+ * Setup de faixa repete; rolos rateados (mesmo grão da planilha PED).
+ */
+export function linhasProducaoChao(
   pedido: Pedido,
   item: PedidoItem,
-): PedidoPlanilhaProducaoLinha | null {
-  const [ln] = linhasProducaoPlanilha(pedido, [item], (it) => visualPlanilhaOf(pedido, it));
-  return ln ?? null;
+): PedidoPlanilhaProducaoModeloLinha[] {
+  return linhasProducaoPlanilhaPorModelo(pedido, [item], (it) => visualPlanilhaOf(pedido, it));
 }
 
 /** Linha plana para caminhada na prateleira (volume a volume). */
@@ -72,22 +88,79 @@ export type OpFichaChaoRetiradaLinha = {
   local: string;
   volume: string;
   material: string;
+  dimensao: string;
+  /** Metro linear (bobina) ou qtde+unidade (demais). */
   levar: string;
+  m2: string;
   validade: string;
+  qr_payload: string | null;
 };
 
 function fmtLevar(qtde: number | string | null | undefined, unidade: string | null | undefined): string {
   const n = Number(qtde);
   if (!Number.isFinite(n) || n <= 0) return '—';
+  return formatQtdePick(n, unidadeExibicao(unidade));
+}
+
+function fmtNumChao(n: number): string {
   const scale = Math.abs(n - Math.round(n)) < 1e-6 ? 0 : 2;
-  const q = formatDecimalBr(n, scale, { stripTrailingZeros: true });
-  const u = (unidade ?? '').trim();
-  return u ? `${q} ${u}` : q;
+  return formatDecimalBr(n, scale, { stripTrailingZeros: true });
+}
+
+function linhaRetiradaVazia(
+  key: string,
+  material: string,
+  local: string,
+  levar: string,
+): OpFichaChaoRetiradaLinha {
+  return {
+    key,
+    local,
+    volume: '—',
+    material,
+    dimensao: '—',
+    levar,
+    m2: '—',
+    validade: '—',
+    qr_payload: null,
+  };
+}
+
+/**
+ * Bobina (papel/filme): Levar = metro linear com sufixo "m";
+ * M² = número puro (cabeçalho já diz a unidade — igual à coluna M² da impressão).
+ * Tubete/caixa/UN: Levar = qtde + unidade de exibição; Dimensão/M² = —.
+ */
+function linhaRetiradaVolume(
+  m: OrdemProducaoMaterial,
+  v: OpRetiradaVolume,
+  i: number,
+  ordem: OrdemProducao,
+): OpFichaChaoRetiradaLinha {
+  const leitura = leituraBobinaDaQtde(v, v.qtde_retirar, larguraMmParaMetro(m, ordem));
+  const bobina =
+    modoRetirada(m) === 'volume' &&
+    ((leitura.metros != null && leitura.metros > 0) || (leitura.m2 != null && leitura.m2 > 0));
+  return {
+    key: `${m.id}-${v.lote_id ?? v.codigo ?? i}`,
+    local: (v.endereco?.codigo ?? '').trim() || '—',
+    volume: (v.codigo ?? '').trim() || '—',
+    material: opKitNome(m),
+    dimensao: bobina ? formatVolumeDimensao(v) ?? '—' : '—',
+    levar: bobina
+      ? leitura.metros != null && leitura.metros > 0
+        ? formatQtdePick(leitura.metros, 'm')
+        : '—'
+      : fmtLevar(v.qtde_retirar, v.unidade ?? m.unidade),
+    m2: bobina && leitura.m2 != null && leitura.m2 > 0 ? fmtNumChao(leitura.m2) : '—',
+    validade: v.data_validade ? formatDate(v.data_validade) : '—',
+    qr_payload: (v.qr_payload ?? '').trim() || null,
+  };
 }
 
 /**
  * Volumes a pegar (FEFO) ou já baixados — uma linha por volume.
- * Sem prosa; sem segundo writer.
+ * Bobina: Levar = metro linear; M² e Dimensão à parte. Sem prosa; sem segundo writer.
  */
 export function linhasRetiradaChao(ordem: OrdemProducao): OpFichaChaoRetiradaLinha[] {
   const out: OpFichaChaoRetiradaLinha[] = [];
@@ -101,37 +174,23 @@ export function linhasRetiradaChao(ordem: OrdemProducao): OpFichaChaoRetiradaLin
 
     if (vols.length === 0) {
       if (estado === 'sem_estoque') {
-        out.push({
-          key: `${m.id}-sem`,
-          local: '—',
-          volume: '—',
-          material: nome,
-          levar: 'Sem saldo',
-          validade: '—',
-        });
+        out.push(linhaRetiradaVazia(`${m.id}-sem`, nome, '—', 'Sem saldo'));
         continue;
       }
       const onde = opKitOnde(m);
-      out.push({
-        key: `${m.id}-saldo`,
-        local: onde === '—' ? 'Saldo' : onde,
-        volume: '—',
-        material: nome,
-        levar: formatNecessidadeOp(m, ordem),
-        validade: '—',
-      });
+      out.push(
+        linhaRetiradaVazia(
+          `${m.id}-saldo`,
+          nome,
+          onde === '—' ? 'Saldo' : onde,
+          formatNecessidadeOp(m, ordem),
+        ),
+      );
       continue;
     }
 
     vols.forEach((v, i) => {
-      out.push({
-        key: `${m.id}-${v.lote_id ?? v.codigo ?? i}`,
-        local: (v.endereco?.codigo ?? '').trim() || '—',
-        volume: (v.codigo ?? '').trim() || '—',
-        material: nome,
-        levar: fmtLevar(v.qtde_retirar, v.unidade ?? m.unidade),
-        validade: v.data_validade ? formatDate(v.data_validade) : '—',
-      });
+      out.push(linhaRetiradaVolume(m, v, i, ordem));
     });
   }
   return out;
@@ -151,10 +210,11 @@ export function opFichaChaoMeta(): {
     titulo: 'Ficha de chão',
     docLabel: 'Impressão · rebobinação · retirada · A4 paisagem',
     secaoImpressao: 'Impressão · máquina',
-    hintImpressao: 'Largura do papel = largura × colunas de produção',
+    hintImpressao: 'Largura do papel = largura × colunas de produção · 1 linha por modelo',
     secaoAcabamento: 'Acabamento · rebobinação',
     secaoRetirada: 'Retirada · prateleira',
-    hintRetirada: 'Marque Levado. Confirme a saída na tela A buscar.',
+    hintRetirada:
+      'Bobina: Levar = metro linear. Marque Levado. Confirme a saída na tela A buscar.',
     toolbarHint: 'Máquina e prateleira · A4 paisagem · sem preço',
   };
 }

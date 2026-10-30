@@ -1,0 +1,13 @@
+SPA build: OK (2026-10-30T16:17:56-03:00)
+dist: apps/web/dist (index-BFcJKJNg.js)
+API: qr_payload em volumeToOut (bind-mount apps/api)
+stage-web-context: OK (.web-docker-context)
+
+No terminal do HOST (fora do agent sandbox):
+  cd /home/dfmoura/Documents/test_several1/trigger/43
+  make pronto-ficha-chao
+  # ou, se stack já up:
+  make doctor
+  make web-build   # opcional — dist já gerado
+
+Testar: http://localhost:8043/ordens-producao  → Ficha de chão

@@ -111,7 +111,7 @@ Um satélite paisagem A4 substitui as duas rotas acima. Toolbar: **Ficha de chã
 |------|------|----------|
 | `/ordens-producao/:id/ficha-chao` | PCP / chão (`producao.ler`) | Identidade (1×) → Impressão · máquina (bloco completo) → Acabamento · rebobinação (**só exclusivos**: colunas reb., etiq/rolo, rolos, m/rolo) |
 
-Rotas antigas `ficha-impressao` e `ficha-acabamento` redirecionam para `ficha-chao`. Sem repetir Item / metragem / acabamento / tubete / saída na banda de rebobinação (já na impressão na mesma folha). Grão = planilha do PED (`pedidoFichaPlanilha`) escopada ao **item da OP**. Sem gate de `SAIDA_PRODUCAO`. Sem alterar `/ficha` (flexo + kit).
+Rotas antigas `ficha-impressao` e `ficha-acabamento` redirecionam para `ficha-chao`. Sem repetir Item / metragem / acabamento / tubete / saída na banda de rebobinação (já na impressão na mesma folha). Grão = planilha do PED escopada ao **item da OP** — produção por modelo desde a emenda 2026-10-30. Sem gate de `SAIDA_PRODUCAO`. Sem alterar `/ficha` (flexo + kit).
 
 ## Emenda 2026-10-29b — três papéis (histórico)
 
@@ -123,8 +123,23 @@ Toolbar da OP: **Imprimir lista** + **Ficha de chão** apenas.
 
 | Rota | Quem | Conteúdo |
 |------|------|----------|
-| `/ordens-producao/:id/ficha-chao` | `producao.ler` ou `estoque.ler` | Identidade → Impressão → Acabamento (exclusivos) → **Retirada · prateleira** (Levado · Local · Volume · Material · Levar · Validade) |
+| `/ordens-producao/:id/ficha-chao` | `producao.ler` ou `estoque.ler` | Identidade → Impressão → Acabamento (exclusivos) → **Retirada · prateleira** (ver emenda 2026-10-30) |
 
 `ficha-materiais`, `ficha-impressao`, `ficha-acabamento` e `/estoque/retiradas/:id/ficha` redirecionam para `ficha-chao`. Confirmar saída continua só em Estoque · **A buscar** (ficha é guia; sem segundo writer). Sem prosa FEFO; tabela plana volume a volume.
+
+## Emenda 2026-10-30 — modelos + retirada em m / m² / QR
+
+Grão de **Impressão** e **Acabamento** = `linhasProducaoPlanilhaPorModelo` (1 linha por modelo; setup de faixa repete; rolos rateados) — mesmo da planilha PED, escopado ao item da OP. Identidade: Quant em cada modelo.
+
+**Retirada · prateleira** (ordem de caminhada): Levado · Local · Volume · QR · Material · Dimensão · Levar · M² · Validade.
+
+| Coluna | Bobina | Demais (tubete / caixa / MUC) |
+|--------|--------|-------------------------------|
+| Levar | metro linear do volume | qtde + unidade de estoque |
+| M² | área correspondente | — |
+| Dimensão | L mm × C m do volume | — |
+| QR | `qr_payload` do lote (`volumeToOut`) | — se sem payload |
+
+Writer e `qtde_retirar` permanecem na unidade de estoque (m²). Ficha só apresenta. Sem explodir retirada por arte. Sem segundo writer.
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX).

@@ -1,3 +1,5 @@
+import { useEffect, useMemo, useState } from 'react';
+import QRCode from 'qrcode';
 import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
 import {
@@ -12,8 +14,8 @@ import { formatDecimalBr } from '../lib/format';
 import { formatEnderecoParceiro } from '../lib/pedidoConfirmacao';
 import {
   itemPedidoDaOp,
-  linhaProducaoChao,
   linhasIdentidadeChao,
+  linhasProducaoChao,
   linhasRetiradaChao,
   opFichaChaoMeta,
   type OpFichaChaoRetiradaLinha,
@@ -21,7 +23,7 @@ import {
 import { textoMaquinaFlexo } from '../lib/opFichaFlexo';
 import type {
   PedidoPlanilhaComercialLinha,
-  PedidoPlanilhaProducaoLinha,
+  PedidoPlanilhaProducaoModeloLinha,
 } from '../lib/pedidoFichaPlanilha';
 import { formatDateTimeBr, opChipClass, specOperacional } from '../lib/producaoFicha';
 import { opStatusLabel } from '../lib/producaoUi';
@@ -30,6 +32,7 @@ import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
 /**
  * Ficha de chão unificada — impressão, acabamento e retirada (A4 paisagem).
  * Satélite da ficha flexo. Confirmar saída só na tela A buscar.
+ * Produção: 1 linha por modelo. Retirada: volume a volume (bobina em m + m² + QR).
  */
 export type OrdemProducaoFichaChaoSheetProps = {
   ordem: OrdemProducao;
@@ -75,7 +78,7 @@ function TabelaIdentidade({ linhas }: { linhas: PedidoPlanilhaComercialLinha[] }
         {linhas.map((ln) => (
           <tr key={ln.key}>
             <td className="ficha-td-num">{ln.itemOrdem}</td>
-            <td className="ficha-td-num">{ln.primeiraDoItem ? fmtQtd(ln.quant) : '—'}</td>
+            <td className="ficha-td-num">{fmtQtd(ln.quant)}</td>
             <td>{ln.primeiraDoItem ? dashCell(ln.medida) : '—'}</td>
             <td className="ficha-td-num">
               {ln.primeiraDoItem ? fmtCm(ln.larguraCm) : '—'}
@@ -94,12 +97,13 @@ function TabelaIdentidade({ linhas }: { linhas: PedidoPlanilhaComercialLinha[] }
   );
 }
 
-function TabelaImpressao({ ln }: { ln: PedidoPlanilhaProducaoLinha }) {
+function TabelaImpressao({ linhas }: { linhas: PedidoPlanilhaProducaoModeloLinha[] }) {
   return (
     <table className="ficha-table op-chao-table op-chao-table--impressao">
       <thead>
         <tr>
           <th>Item</th>
+          <th>Modelo</th>
           <th>Troca de produto</th>
           <th className="ficha-td-num" title="Largura × colunas de produção">
             Largura do papel
@@ -117,38 +121,42 @@ function TabelaImpressao({ ln }: { ln: PedidoPlanilhaProducaoLinha }) {
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td className="ficha-td-num">{ln.itemOrdem}</td>
-          <td>{dashCell(ln.trocaProduto)}</td>
-          <td className="ficha-td-num">{fmtCm(ln.larguraPapelCm)}</td>
-          <td className="ficha-td-num">{fmtQtd(ln.colunasProducao)}</td>
-          <td className="ficha-td-num">{fmtQtd(ln.metragemLinear)}</td>
-          <td className="ficha-td-num">{fmtQtd(ln.m2)}</td>
-          <td>{dashCell(ln.acabamento)}</td>
-          <td>{dashCell(ln.tubete)}</td>
-          <td>{dashCell(ln.formatoFaca)}</td>
-          <td className="ficha-td-num">{dashCell(ln.nFaca)}</td>
-          <td className="ficha-td-num">{fmtQtd(ln.z)}</td>
-          <td className="op-chao-saida">
-            {ln.saidaCodigo && isSaidaEtiqueta(ln.saidaCodigo) ? (
-              <SaidaEtiquetaBadge code={ln.saidaCodigo} variant="dense" />
-            ) : (
-              '—'
-            )}
-          </td>
-          <td>{dashCell(ln.maquina)}</td>
-        </tr>
+        {linhas.map((ln) => (
+          <tr key={ln.key}>
+            <td className="ficha-td-num">{ln.itemOrdem}</td>
+            <td>{dashCell(ln.modelo)}</td>
+            <td>{dashCell(ln.trocaProduto)}</td>
+            <td className="ficha-td-num">{fmtCm(ln.larguraPapelCm)}</td>
+            <td className="ficha-td-num">{fmtQtd(ln.colunasProducao)}</td>
+            <td className="ficha-td-num">{fmtQtd(ln.metragemLinear)}</td>
+            <td className="ficha-td-num">{fmtQtd(ln.m2)}</td>
+            <td>{dashCell(ln.acabamento)}</td>
+            <td>{dashCell(ln.tubete)}</td>
+            <td>{dashCell(ln.formatoFaca)}</td>
+            <td className="ficha-td-num">{dashCell(ln.nFaca)}</td>
+            <td className="ficha-td-num">{fmtQtd(ln.z)}</td>
+            <td className="op-chao-saida">
+              {ln.saidaCodigo && isSaidaEtiqueta(ln.saidaCodigo) ? (
+                <SaidaEtiquetaBadge code={ln.saidaCodigo} variant="dense" />
+              ) : (
+                '—'
+              )}
+            </td>
+            <td>{dashCell(ln.maquina)}</td>
+          </tr>
+        ))}
       </tbody>
     </table>
   );
 }
 
 /** Só exclusivos de rebobinação — metragem/acabamento/tubete/saída ficam na impressão. */
-function TabelaAcabamento({ ln }: { ln: PedidoPlanilhaProducaoLinha }) {
+function TabelaAcabamento({ linhas }: { linhas: PedidoPlanilhaProducaoModeloLinha[] }) {
   return (
     <table className="ficha-table op-chao-table op-chao-table--acabamento">
       <thead>
         <tr>
+          <th>Modelo</th>
           <th className="ficha-td-num">Qdade colunas rebobinação</th>
           <th className="ficha-td-num">Qdade etiquetas p/ rolo</th>
           <th className="ficha-td-num">Qdade de rolos</th>
@@ -156,19 +164,49 @@ function TabelaAcabamento({ ln }: { ln: PedidoPlanilhaProducaoLinha }) {
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td className="ficha-td-num">{fmtQtd(ln.colunasRebobinacao)}</td>
-          <td className="ficha-td-num">{fmtQtd(ln.etiqPorRolo)}</td>
-          <td className="ficha-td-num">{fmtQtd(ln.rolos)}</td>
-          <td className="ficha-td-num">{fmtQtd(ln.metrosPorRolo)}</td>
-        </tr>
+        {linhas.map((ln) => (
+          <tr key={ln.key}>
+            <td>{dashCell(ln.modelo)}</td>
+            <td className="ficha-td-num">{fmtQtd(ln.colunasRebobinacao)}</td>
+            <td className="ficha-td-num">{fmtQtd(ln.etiqPorRolo)}</td>
+            <td className="ficha-td-num">{fmtQtd(ln.rolos)}</td>
+            <td className="ficha-td-num">{fmtQtd(ln.metrosPorRolo)}</td>
+          </tr>
+        ))}
       </tbody>
     </table>
   );
 }
 
-/** Caminhada na prateleira — volume a volume, seco. */
+/** Caminhada na prateleira — volume a volume; bobina em m + m² + QR. */
 function TabelaRetirada({ linhas }: { linhas: OpFichaChaoRetiradaLinha[] }) {
+  const [qrMap, setQrMap] = useState<Record<string, string>>({});
+  const qrKey = linhas.map((l) => `${l.key}:${l.qr_payload ?? ''}`).join('|');
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const next: Record<string, string> = {};
+      await Promise.all(
+        linhas.map(async (l) => {
+          if (!l.qr_payload) return;
+          next[l.key] = await QRCode.toDataURL(l.qr_payload, {
+            width: 96,
+            margin: 1,
+            errorCorrectionLevel: 'M',
+            color: { dark: '#000000', light: '#ffffff' },
+          });
+        }),
+      );
+      if (!cancelled) setQrMap(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // qrKey espelha payloads; linhas é estável via useMemo no pai
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qrKey]);
+
   return (
     <table className="ficha-table op-chao-table op-chao-table--retirada">
       <thead>
@@ -178,9 +216,14 @@ function TabelaRetirada({ linhas }: { linhas: OpFichaChaoRetiradaLinha[] }) {
           </th>
           <th scope="col">Local</th>
           <th scope="col">Volume</th>
+          <th scope="col">QR</th>
           <th scope="col">Material</th>
+          <th scope="col">Dimensão</th>
           <th className="ficha-td-num" scope="col">
             Levar
+          </th>
+          <th className="ficha-td-num" scope="col">
+            M²
           </th>
           <th scope="col">Validade</th>
         </tr>
@@ -193,8 +236,25 @@ function TabelaRetirada({ linhas }: { linhas: OpFichaChaoRetiradaLinha[] }) {
             </td>
             <td className="op-chao-local">{dashCell(ln.local)}</td>
             <td className="op-chao-volume">{dashCell(ln.volume)}</td>
+            <td className="op-chao-qr">
+              {qrMap[ln.key] ? (
+                <img
+                  className="ficha-pick-qr"
+                  src={qrMap[ln.key]}
+                  alt={`QR ${ln.volume}`}
+                  width={72}
+                  height={72}
+                />
+              ) : ln.qr_payload ? (
+                <span className="ficha-pick-qr-hri">{ln.qr_payload}</span>
+              ) : (
+                '—'
+              )}
+            </td>
             <td>{dashCell(ln.material)}</td>
+            <td className="op-chao-dimensao">{dashCell(ln.dimensao)}</td>
             <td className="ficha-td-num">{dashCell(ln.levar)}</td>
+            <td className="ficha-td-num">{dashCell(ln.m2)}</td>
             <td>{dashCell(ln.validade)}</td>
           </tr>
         ))}
@@ -212,9 +272,15 @@ export function OrdemProducaoFichaChaoSheet({
 }: OrdemProducaoFichaChaoSheetProps) {
   const meta = opFichaChaoMeta();
   const item = itemPedidoDaOp(o, pedido);
-  const identidade = pedido && item ? linhasIdentidadeChao(pedido, item) : [];
-  const producao = pedido && item ? linhaProducaoChao(pedido, item) : null;
-  const retirada = linhasRetiradaChao(o);
+  const identidade = useMemo(
+    () => (pedido && item ? linhasIdentidadeChao(pedido, item) : []),
+    [pedido, item],
+  );
+  const producao = useMemo(
+    () => (pedido && item ? linhasProducaoChao(pedido, item) : []),
+    [pedido, item],
+  );
+  const retirada = useMemo(() => linhasRetiradaChao(o), [o]);
   const spec = pedido && item ? specOperacional(pedido, item) : {};
   const maquina = textoMaquinaFlexo(spec);
   const pedCodigo = o.pedido?.codigo ?? pedido?.codigo ?? '—';
@@ -291,22 +357,22 @@ export function OrdemProducaoFichaChaoSheet({
 
       <FichaSection title={meta.secaoImpressao}>
         <p className="op-chao-hint">{meta.hintImpressao}</p>
-        {!producao ? (
+        {producao.length === 0 ? (
           <p className="ficha-empty">
             Sem especificação do item do pedido para montar os parâmetros de chão.
           </p>
         ) : (
-          <TabelaImpressao ln={producao} />
+          <TabelaImpressao linhas={producao} />
         )}
       </FichaSection>
 
       <FichaSection title={meta.secaoAcabamento}>
-        {!producao ? (
+        {producao.length === 0 ? (
           <p className="ficha-empty">
             Sem especificação do item do pedido para montar a rebobinação.
           </p>
         ) : (
-          <TabelaAcabamento ln={producao} />
+          <TabelaAcabamento linhas={producao} />
         )}
       </FichaSection>
 

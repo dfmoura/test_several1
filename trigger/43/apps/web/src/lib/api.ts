@@ -3366,7 +3366,7 @@ export type OpRetiradaVolume = {
   produto_id?: number | null;
   descricao?: string | null;
   proximidade?: number | null;
-  /** Presente na porta A separar (REV) para ficha impressa / QR. */
+  /** Ficha impressa / QR (A separar REV + retirada OP / ficha de chão). */
   qr_payload?: string | null;
 };
 

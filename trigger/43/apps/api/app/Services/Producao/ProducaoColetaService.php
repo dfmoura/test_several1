@@ -647,6 +647,7 @@ class ProducaoColetaService
             'sugerido' => $sugerido,
             'motivo' => $motivo,
             'ordem_politica' => $ordemPolitica,
+            'qr_payload' => $lote->qrPayload(),
         ];
     }
 
