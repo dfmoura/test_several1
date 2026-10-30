@@ -6,7 +6,7 @@ import { ModeloTintasPorModelo } from './ModeloTintasTags';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { tintasDeComposicao } from '../lib/modeloTintas';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
-import { descontoAplicadoNoTotal } from '../lib/orcamentoForm';
+import { descontoAplicadoNoTotal, textoCoresInformadas } from '../lib/orcamentoForm';
 import {
   faixaDoItem,
   isPropostaMultiItem,
@@ -81,7 +81,7 @@ function SpecPaDense({ desc }: { desc?: OrcPropostaDescricao | null }) {
     { key: 'medida', label: 'Medida', value: desc?.medida || '—' },
     { key: 'acab', label: 'Acab.', value: desc?.acabamento || '—', size: 'wide' },
     { key: 'tubete', label: 'Tubete', value: desc?.tubete || '—', size: 'narrow' },
-    { key: 'cores', label: 'Cores', value: desc?.cores || '—', size: 'narrow' },
+    { key: 'cores', label: 'Cores', value: textoCoresInformadas(desc?.cores) ?? '—', size: 'narrow' },
     ...(tintasDeComposicao(desc?.modelos_composicao).length > 0
       ? [
           {

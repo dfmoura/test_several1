@@ -763,6 +763,10 @@ final class OrcamentoCatalogo
         }
 
         $k = self::loadCoresKey($this->coresKeyRaw($cores));
+        // Lisa: sem tinta — nunca cair no fallback da coluna 4.
+        if ($k === '0' || $k === '') {
+            return 0.0;
+        }
         $col = ((int) $k) >= 4 || $k === '4V' ? '4' : $k;
         if (! isset($rates[$col])) {
             $col = '4';

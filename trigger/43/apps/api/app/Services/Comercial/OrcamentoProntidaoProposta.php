@@ -8,6 +8,7 @@ use App\Models\PedidoItem;
 use App\Models\Produto;
 use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use App\Support\FacasComposicao;
+use App\Support\OrcamentoCores;
 use App\Support\SaidaEtiqueta;
 use App\Support\TipoOperacaoSaida;
 use Illuminate\Validation\ValidationException;
@@ -351,14 +352,8 @@ class OrcamentoProntidaoProposta
 
     private static function coresInformadas(mixed $cores): bool
     {
-        if ($cores === null || $cores === '') {
-            return false;
-        }
-        if (is_numeric($cores)) {
-            return (float) $cores >= 1;
-        }
-
-        return trim((string) $cores) !== '';
+        // `0` (lisa) é escolha válida — não confundir com campo vazio.
+        return OrcamentoCores::isInformada($cores);
     }
 
     /**

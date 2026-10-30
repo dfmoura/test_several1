@@ -173,6 +173,32 @@ class OrcamentoProntidaoPropostaTest extends TestCase
         $this->assertArrayNotHasKey('saida_etiqueta', $eval['bloqueios']);
     }
 
+    public function test_cores_lisa_zero_e_informada(): void
+    {
+        foreach ([0, '0'] as $cores) {
+            $input = $this->specEtiqueta();
+            $input['cores'] = $cores;
+            $orc = $this->orcamento(['input_snapshot' => $input]);
+
+            $eval = OrcamentoProntidaoProposta::evaluate($orc);
+
+            $this->assertTrue($eval['apto'], 'cores='.var_export($cores, true).' deve ser apto');
+            $this->assertArrayNotHasKey('especificacao', $eval['bloqueios']);
+        }
+    }
+
+    public function test_cores_vazia_bloqueia_especificacao(): void
+    {
+        $input = $this->specEtiqueta();
+        $input['cores'] = '';
+        $orc = $this->orcamento(['input_snapshot' => $input]);
+
+        $eval = OrcamentoProntidaoProposta::evaluate($orc);
+
+        $this->assertFalse($eval['apto']);
+        $this->assertArrayHasKey('especificacao', $eval['bloqueios']);
+    }
+
     /**
      * @return array<string, mixed>
      */

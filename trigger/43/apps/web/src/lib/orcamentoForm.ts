@@ -33,6 +33,19 @@ export const CORES_OPCOES = [
   { value: '8', label: '8' },
 ] as const;
 
+/**
+ * `0` (lisa) é valor informado — não usar truthiness (`if (cores)`).
+ * Retorna o texto canônico ou null se ausente.
+ */
+export function textoCoresInformadas(
+  cores: string | number | null | undefined,
+): string | null {
+  if (cores === null || cores === undefined) return null;
+  const s = String(cores).trim();
+  if (s === '' || s === '—') return null;
+  return s;
+}
+
 export const STATUS_EDITAVEL = new Set(['RASCUNHO', 'CALCULADO', 'REPROVADO']);
 
 /**

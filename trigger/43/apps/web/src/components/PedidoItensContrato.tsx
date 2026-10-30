@@ -5,6 +5,7 @@ import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { StatusPill } from './StatusPill';
 import type { Pedido, PedidoItem } from '../lib/api';
 import { formatCurrency, formatDecimalBr, formatUnitPrice } from '../lib/format';
+import { textoCoresInformadas } from '../lib/orcamentoForm';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import {
   faixaIndexDoItem,
@@ -44,7 +45,8 @@ function specResumoEtiqueta(spec: Record<string, unknown>): string[] {
   const desc = descricaoFromPedidoSpec(spec);
   const bits: string[] = [];
   if (desc.tubete) bits.push(`Tubete ${desc.tubete}`);
-  if (desc.cores) bits.push(`${desc.cores} cor(es)`);
+  const coresTxt = textoCoresInformadas(desc.cores);
+  if (coresTxt != null) bits.push(`${coresTxt} cor(es)`);
   if (desc.etiq_por_rolo != null) {
     bits.push(`${Number(desc.etiq_por_rolo).toLocaleString('pt-BR')} etiq/rolo`);
   }

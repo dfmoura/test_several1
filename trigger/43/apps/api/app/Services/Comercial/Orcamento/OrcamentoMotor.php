@@ -2,6 +2,8 @@
 
 namespace App\Services\Comercial\Orcamento;
 
+use App\Support\OrcamentoCores;
+
 /**
  * Motor R1–R20 — port fiel de trigger/36 calculator.py + matrix_key.py.
  * Intermediários espelham o Excel (float); teto comercial (ceiling) no fechamento.
@@ -255,7 +257,10 @@ final class OrcamentoMotor
         $valorTrocaBobina = $temTrocaBobina ? $taxa * $horaTrocaBobina : 0.0;
         $valorPapelTrocaProduto = $cat->usaTintaMatriz() ? 0.0 : $perdaTroca * $precoPapel;
 
-        if ($cat->usaTintaMatriz()) {
+        // Lisa (0 cores): sem tinta — v1 e v2.
+        if (OrcamentoCores::isLisa($inp['cores'])) {
+            $valorTinta = 0.0;
+        } elseif ($cat->usaTintaMatriz()) {
             $areaTinta = $m2 + $perdaAcerto + $perdaTroca + $perdaBobinaM2;
             $valorTinta = $cat->tintaMatrizRate($areaTinta, $inp['cores']) * $areaTinta;
         } else {

@@ -17,6 +17,7 @@ import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { fichaSaidaEstoque } from '../lib/opFichaSaida';
 import { opStatusLabel } from '../lib/producaoUi';
 import { dash, faixaDoItem, formatDateTimeBr, opChipClass, specOperacional } from '../lib/producaoFicha';
+import { textoCoresInformadas } from '../lib/orcamentoForm';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import {
   artesDaOrdem,
@@ -108,6 +109,7 @@ export function OrdemProducaoFichaSheet({
   const qtdeArte = corrida?.etiquetas ?? (Number(o.qtde_planejada) || 0);
   const artes = artesDaOrdem(spec, qtdeArte);
   const tintas = desc.modelos_composicao;
+  const coresTxt = textoCoresInformadas(desc.cores);
   const temImpressao = Boolean(
       desc.papel ||
       desc.medida ||
@@ -115,7 +117,7 @@ export function OrdemProducaoFichaSheet({
       bobina ||
       faca ||
       saidaOk ||
-      desc.cores ||
+      coresTxt != null ||
       desc.acabamento ||
       desc.tubete ||
       desc.etiq_por_rolo != null ||
@@ -199,7 +201,7 @@ export function OrdemProducaoFichaSheet({
               {colunasTxt ? <FichaKv label="Colunas" value={colunasTxt} /> : null}
               {bobina ? <FichaKv label="Bobina" value={bobina} wide /> : null}
               {faca ? <FichaKv label="Faca" value={faca} wide /> : null}
-              {desc.cores ? <FichaKv label="Cores" value={String(desc.cores)} /> : null}
+              {coresTxt != null ? <FichaKv label="Cores" value={coresTxt} /> : null}
               {desc.acabamento ? <FichaKv label="Acabamento" value={desc.acabamento} /> : null}
               {desc.tubete ? <FichaKv label="Tubete" value={desc.tubete} /> : null}
               {desc.etiq_por_rolo != null ? (

@@ -139,7 +139,14 @@ final class OrcamentoValidationRules
             'medida' => ['required', 'string', 'max:64'],
             'largura_cm' => ['required', 'numeric', 'gt:0'],
             'puxada_cm' => ['required', 'numeric', 'gt:0'],
-            'cores' => ['required'],
+            'cores' => [
+                'required',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (OrcamentoCores::chave($value) === null) {
+                        $fail('Cores inválidas. Use 0 (lisa), 1–8 ou 4V.');
+                    }
+                },
+            ],
             'papel' => ['required', 'string', 'max:180'],
             'papel_tarifa' => ['nullable', 'string', 'max:120'],
             'papel_produto_id' => ['nullable', 'integer', 'min:1'],

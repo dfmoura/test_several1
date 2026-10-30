@@ -286,4 +286,50 @@ class OrcamentoMotorTest extends TestCase
         $this->assertEquals(0.0, (float) $base['faixas'][0]['valor_caixa']);
         $this->assertEquals(0.0, (float) $adj['faixas'][0]['valor_caixa']);
     }
+
+    public function test_cores_lisa_sem_tinta_nem_matriz(): void
+    {
+        $fixturePath = dirname(__DIR__).'/fixtures/orcamento_brahva.json';
+        $fx = json_decode((string) file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+
+        $motor = new OrcamentoMotor;
+        $cat = OrcamentoCatalogo::loadFromJson();
+        $this->assertTrue($cat->usaTintaMatriz());
+        $this->assertSame(0.0, $cat->tintaMatrizRate(80.0, 0));
+        $this->assertSame(0.0, $cat->tintaMatrizRate(80.0, '0'));
+
+        $result = $motor->calcular([
+            'cliente' => $fx['cliente'],
+            'medida' => $fx['medida'],
+            'largura_cm' => $fx['largura_cm'],
+            'puxada_cm' => $fx['puxada_cm'],
+            'cores' => 0,
+            'papel' => $fx['papel'],
+            'acabamento' => $fx['acabamento'],
+            'modelos' => 1,
+            'colunas' => $fx['colunas'],
+            'etiq_por_rolo' => $fx['etiq_por_rolo'],
+            'tubete' => $fx['tubete'],
+            'z' => $fx['z'],
+            'maquina' => $fx['maquina'],
+            'imposto_pct' => $fx['imposto_pct'],
+            'matriz' => 'SIM',
+            'tipo_troca_produto' => 'SEM PARADA',
+            'rpm' => $fx['rpm'],
+            'overrides' => $fx['overrides'],
+            'faixas' => [['quantidade' => 7000, 'comissao_pct' => 0]],
+        ], $cat);
+
+        // cobra_matriz segue o flag SIM; com 0 cores a geometria zera o valor.
+        $this->assertSame(0.0, $result['valor_matriz']);
+        $this->assertEqualsWithDelta(0.0, (float) $result['faixas'][0]['valor_tinta'], 0.001);
+        $this->assertGreaterThan(0.0, (float) $result['faixas'][0]['valor_etiqueta']);
+    }
+
+    public function test_batida_aceita_cores_lisa(): void
+    {
+        $cat = OrcamentoCatalogo::loadFromJson();
+        $this->assertEqualsWithDelta(190.0, $cat->taxaHoraMaquina('BATIDA', 0), 0.001);
+        $this->assertEqualsWithDelta(190.0, $cat->taxaHoraMaquina('BATIDA', '0'), 0.001);
+    }
 }

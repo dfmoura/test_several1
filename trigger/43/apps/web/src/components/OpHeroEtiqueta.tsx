@@ -3,6 +3,7 @@ import { StatusPill } from './StatusPill';
 import { formatoLabel } from './FacaShapeIcon';
 import type { OrdemProducao, Pedido } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
+import { textoCoresInformadas } from '../lib/orcamentoForm';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { specOperacional } from '../lib/producaoFicha';
@@ -35,7 +36,9 @@ export function OpHeroEtiqueta({ op, pedido }: Props) {
     desc.medida ? { k: 'Medida', v: desc.medida } : null,
     desc.papel ? { k: 'Papel', v: desc.papel } : null,
     faca ? { k: 'Faca', v: faca } : null,
-    desc.cores ? { k: 'Cores', v: desc.cores } : null,
+    textoCoresInformadas(desc.cores) != null
+      ? { k: 'Cores', v: String(desc.cores) }
+      : null,
     desc.acabamento ? { k: 'Acabamento', v: desc.acabamento } : null,
     desc.tubete ? { k: 'Tubete', v: desc.tubete } : null,
   ].filter((c): c is { k: string; v: string } => c != null);
