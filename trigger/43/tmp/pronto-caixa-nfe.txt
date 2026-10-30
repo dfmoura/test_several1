@@ -1,0 +1,27 @@
+FLEXOERP local — Caixa de NF-e pronto para teste
+Data: 2026-10-30
+
+== Health ==
+{"status":"ok","app":"FLEXOERP","stage":"local","env":"local","debug":true,"time":"2026-10-30T14:40:27-03:00","envio_proposta":{"email_auto":true,"mail_mailer":"smtp","mail_from_configurado":true,"mail_smtp_pronto":true,"whatsapp_auto":true,"viazap_configurado":true}}
+
+== Import DF-e (dfe:importar-xml-pasta) ==
+Pasta host: apps/api/storage/app/import-dfe-notas (111 XMLs abr–set 2026; zero outubro — OK)
+Pasta container: /var/www/html/storage/app/import-dfe-notas (mount OK, 111 arquivos)
+EMP: 13 (EMP-00001 · CNPJ 01423183000110)
+Criados: 0 | Atualizados: 111 | Ignorados: 0 | Erros: 0
+
+== URLs ==
+Caixa de NF-e:     http://localhost:8043/compras/nfe-destinadas
+NF-e vinculadas:   http://localhost:8043/compras/nfe-recebidas
+App:               http://localhost:8043  (ERP_STAGE=local)
+
+== Filtro De/Até ==
+O filtro De/Até da Caixa defaulta o mês corrente (outubro/2026).
+As notas importadas são abr–set/2026 (sem outubro).
+Para vê-las: alargar De/Até (ex.: 2026-04-01 a 2026-10-31) e clicar Filtrar.
+
+== Não feito (proposital) ==
+Sem alteração de código produto / NSU / sync SEFAZ em local.
+Sem promote cloud → production.
+
+VERIFY 2026-10-30T14:41:02-03:00 | health=ok stage=local | SPA=200 | erp43_web/app/mysql/queue/scheduler Up
