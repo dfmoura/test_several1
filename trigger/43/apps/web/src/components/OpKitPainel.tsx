@@ -51,7 +51,7 @@ function volumesSugeridosLinha(m: OrdemProducaoMaterial) {
 /**
  * Ficha da etiqueta + lista do kit.
  * Happy path (chão): um clique «Saiu» / «Confirmar saída sugerida».
- * Overlay só para outro volume ou devolver.
+ * Overlay: outro volume, devolver (bom) ou estragou (avaria + pegar de novo).
  */
 export function OpKitPainel({
   op,
@@ -73,6 +73,7 @@ export function OpKitPainel({
 
   const linhas = opKitLinhasOrdenadas(op.materiais ?? []);
   const [abertoId, setAbertoId] = useState<number | null>(null);
+  const [overlayInicio, setOverlayInicio] = useState<'devolver' | 'estragou'>('devolver');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const aberto = linhas.find((m) => m.id === abertoId) ?? null;
@@ -86,11 +87,17 @@ export function OpKitPainel({
     const m = (op.materiais ?? []).find((x) => x.id === materialInicialId);
     if (!m) return;
     const estado = opKitEstado(m);
-    // Deep-link: overlay só devolver ou sem estoque — happy path fica no botão Saiu.
+    // Deep-link: overlay só devolver/estragou ou sem estoque — happy path fica no botão Saiu.
     if (estado === 'ja_saiu' || estado === 'sem_estoque') {
+      setOverlayInicio('devolver');
       setAbertoId(materialInicialId);
     }
   }, [materialInicialId, op.materiais]);
+
+  const abrirOverlay = (m: OrdemProducaoMaterial, inicio: 'devolver' | 'estragou') => {
+    setOverlayInicio(inicio);
+    setAbertoId(m.id);
+  };
 
   const confirmarLinha = async (m: OrdemProducaoMaterial) => {
     const linha = linhaConfirmarSugerida(m);
@@ -176,6 +183,8 @@ export function OpKitPainel({
             const podeOutro =
               noEstoque && canWrite && (estado === 'falta_pegar' || estado === 'sem_estoque');
             const podeDevolver = canWrite && estado === 'ja_saiu';
+            const podeEstragou = noEstoque && canWrite && estado === 'ja_saiu';
+            const avariaQtde = Number(m.qtde_avaria ?? 0);
 
             return (
               <li key={m.id} className={`op-kit-lista__item op-kit-lista__item--${estado}`}>
@@ -209,6 +218,16 @@ export function OpKitPainel({
                       <span className={`op-kit-lista__st op-kit-lista__st--${estado}`}>
                         {opKitEstadoLabel(estado)}
                       </span>
+                      {avariaQtde > 0 ? (
+                        <>
+                          <span className="op-kit-lista__sep" aria-hidden>
+                            ·
+                          </span>
+                          <span className="op-kit-lista__st op-kit-lista__st--avaria">
+                            Avaria {formatDecimalBr(avariaQtde, 4)}
+                          </span>
+                        </>
+                      ) : null}
                     </div>
                   </div>
                   <div className="op-kit-lista__acoes">
@@ -227,7 +246,7 @@ export function OpKitPainel({
                         type="button"
                         className="btn btn-secondary btn-sm"
                         disabled={busy}
-                        onClick={() => setAbertoId(m.id)}
+                        onClick={() => abrirOverlay(m, 'devolver')}
                       >
                         {estado === 'sem_estoque'
                           ? 'Ver estoque'
@@ -241,12 +260,27 @@ export function OpKitPainel({
                         type="button"
                         className="btn btn-secondary btn-sm"
                         disabled={busy}
-                        onClick={() => setAbertoId(m.id)}
+                        onClick={() => abrirOverlay(m, 'devolver')}
                       >
                         Devolver
                       </button>
                     ) : null}
-                    {!podeSair && !podeOutro && !podeDevolver && porta === 'op' && estado === 'falta_pegar' ? (
+                    {podeEstragou ? (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={busy}
+                        onClick={() => abrirOverlay(m, 'estragou')}
+                      >
+                        Estragou
+                      </button>
+                    ) : null}
+                    {!podeSair &&
+                    !podeOutro &&
+                    !podeDevolver &&
+                    !podeEstragou &&
+                    porta === 'op' &&
+                    estado === 'falta_pegar' ? (
                       <Link
                         className="btn btn-secondary btn-sm"
                         to={hrefFichaEstoque(op.id, { materialId: m.id })}
@@ -326,10 +360,12 @@ export function OpKitPainel({
 
       {aberto ? (
         <OpEscolhaOverlay
+          key={`${aberto.id}-${overlayInicio}`}
           op={op}
           material={aberto}
           porta={porta}
           canWrite={canWrite}
+          inicio={overlayInicio}
           onClose={() => setAbertoId(null)}
           onOp={onOp}
         />

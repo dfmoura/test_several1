@@ -1,13 +1,6 @@
-SPA: OK (QR 12mm + modelos + retirada)
-dist bind-mount: apps/web/dist → erp43_web:/var/www/web
-API: qr_payload em volumeToOut (bind-mount)
-
-Docker CLI daqui: SEM /var/run/docker.sock
-
-No TERMINAL DO HOST:
-  sudo systemctl restart docker
-  cd /home/dfmoura/Documents/test_several1/trigger/43
-  make pronto-ficha-chao
-
-Testar: http://localhost:8043  → Ordens de produção → Ficha de chão
-  (Ctrl+Shift+R)
+READY 2026-10-30T20:00:21-03:00
+Stack HOST: erp43_web :8043 (bind apps/web/dist) · API :8040 · MySQL :33073
+SPA: index-GZ-roR8I.js
+API: volumeToOut + qr_payload
+Docker CLI no agent: sem sock (não precisa — stack já no ar)
+Test: http://localhost:8043/ordens-producao → Ficha de chão (Ctrl+Shift+R)

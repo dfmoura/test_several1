@@ -41,7 +41,7 @@ Duas pessoas, duas telas — o motor é o mesmo.
 | Porta | Quem (RBAC) | Mostra | Não mostra |
 |-------|-------------|--------|------------|
 | OP | PCP (`producao.ler`); confirmar saída exige `estoque.escrever`; fechar exige `producao.escrever` | Cabeçalho da ficha, insumos do kit e, com material já saído, o fecho (etiquetas boas, refugo, tolerância). Depois de concluída: rolos reais e caixas. | Busca na prateleira, grade de consumo no fecho |
-| Estoque · **A buscar** | Almoxarifado (`estoque.ler`) | O que **sai da prateleira**. Marca volume e **Confirmar = saiu**. Em **Já saiu**: **Devolver à prateleira** (mesmo MOV de sobra). | Etiquetas boas, rolos e caixas do PA |
+| Estoque · **A buscar** | Almoxarifado (`estoque.ler`) | O que **sai da prateleira**. Marca volume e **Confirmar = saiu**. Em **Já saiu**: **Devolver** (bom → `ENTRADA_SOBRA`) ou **Estragou** (avaria sem MOV + `SAIDA_PRODUCAO` complementar). | Etiquetas boas, rolos e caixas do PA |
 | Produção | — | Sem item de menu próprio. Atalho antigo `/ordens-producao/apontamentos` abre a ordem. | — |
 
 Menu: **A buscar** vive em Estoque (`estoque.ler`). O fecho vive em **Ordens de produção** (`producao.escrever`). O papel PRODUCAO não busca na prateleira.
@@ -56,7 +56,7 @@ Estados do kit: **falta pegar · já saiu · sem estoque**.
 |-------|------|
 | OP | Cabeçalho da ficha do item (formulário + modelos e valores) e, em seguida, os insumos do kit. Acrescenta ou remove volume/unidade **já conhecidos** do estoque, no formulário de faixa do orçamento. Sem busca. Quem tem `estoque.escrever` confirma a saída no mesmo `POST …/confirmar`; quem só lê segue para A buscar. |
 | Estoque · A buscar | Por linha: **Saiu** (FEFO/qtde). Rodapé: **Confirmar saída sugerida (N)** → `POST …/confirmar-pendentes`. |
-| Overlay | Só **Outro volume** (motivo) ou **Devolver**. Não é o caminho feliz. |
+| Overlay | **Outro volume** (motivo), **Devolver** (bom) ou **Estragou** (avaria + pegar de novo). Não é o caminho feliz. |
 
 Ficha impressa: link na toolbar. Sem segunda lista embutida na página do chão.
 
@@ -141,5 +141,9 @@ Grão de **Impressão** e **Acabamento** = `linhasProducaoPlanilhaPorModelo` (1 
 | QR | `qr_payload` do lote (`volumeToOut`) | — se sem payload |
 
 Writer e `qtde_retirar` permanecem na unidade de estoque (m²). Ficha só apresenta. Sem explodir retirada por arte. Sem segundo writer.
+
+## Emenda 2026-10-30b — Estragou na lista de retirada
+
+UI viva em Estoque · **A buscar** (`OpKitPainel` / `OpEscolhaOverlay`): estado **Já saiu** expõe **Devolver** e **Estragou**. Estragou = `POST …/avaria` (marca) + `POST …/confirmar` com `complementar: true` (nova baixa). Sem AJU, sem segundo writer, sem formulário de avaria na Ficha de chão nem na OP. Motor e testes já cobriam o ciclo (BL-109).
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX).

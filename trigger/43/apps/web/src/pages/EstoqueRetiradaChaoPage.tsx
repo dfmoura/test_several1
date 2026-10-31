@@ -7,7 +7,7 @@ import { onAbrirFichaClick } from '../lib/fichaNav';
 
 /**
  * Porta do estoque: o físico que sai da prateleira.
- * Happy path = Confirmar saída sugerida. Overlay = outro volume / devolver.
+ * Happy path = Confirmar saída sugerida. Overlay = outro volume / devolver / estragou (avaria + pegar de novo).
  */
 export function EstoqueRetiradaChaoPage() {
   const { id } = useParams();
