@@ -229,35 +229,48 @@ function TabelaRetirada({ linhas }: { linhas: OpFichaChaoRetiradaLinha[] }) {
         </tr>
       </thead>
       <tbody>
-        {linhas.map((ln) => (
-          <tr key={ln.key}>
-            <td className="op-chao-td-check">
-              <span className="ficha-pick-check" aria-hidden />
-            </td>
-            <td className="op-chao-local">{dashCell(ln.local)}</td>
-            <td className="op-chao-volume">{dashCell(ln.volume)}</td>
-            <td className="op-chao-qr">
-              {qrMap[ln.key] ? (
-                <img
-                  className="ficha-pick-qr"
-                  src={qrMap[ln.key]}
-                  alt={`QR ${ln.volume}`}
-                  width={48}
-                  height={48}
-                />
-              ) : ln.qr_payload ? (
-                <span className="ficha-pick-qr-hri">{ln.qr_payload}</span>
-              ) : (
-                '—'
-              )}
-            </td>
-            <td>{dashCell(ln.material)}</td>
-            <td className="op-chao-dimensao">{dashCell(ln.dimensao)}</td>
-            <td className="ficha-td-num">{dashCell(ln.levar)}</td>
-            <td className="ficha-td-num">{dashCell(ln.m2)}</td>
-            <td>{dashCell(ln.validade)}</td>
-          </tr>
-        ))}
+        {linhas.map((ln) => {
+          const perda = ln.situacao === 'perda';
+          return (
+            <tr key={ln.key} className={perda ? 'op-chao-row--perda' : undefined}>
+              <td className="op-chao-td-check">
+                {perda ? (
+                  <span className="op-chao-perda-marca" title="Perda — não levar">
+                    —
+                  </span>
+                ) : (
+                  <span className="ficha-pick-check" aria-hidden />
+                )}
+              </td>
+              <td className="op-chao-local">{dashCell(ln.local)}</td>
+              <td className="op-chao-volume">{dashCell(ln.volume)}</td>
+              <td className="op-chao-qr">
+                {perda ? (
+                  '—'
+                ) : qrMap[ln.key] ? (
+                  <img
+                    className="ficha-pick-qr"
+                    src={qrMap[ln.key]}
+                    alt={`QR ${ln.volume}`}
+                    width={48}
+                    height={48}
+                  />
+                ) : ln.qr_payload ? (
+                  <span className="ficha-pick-qr-hri">{ln.qr_payload}</span>
+                ) : (
+                  '—'
+                )}
+              </td>
+              <td>{dashCell(ln.material)}</td>
+              <td className="op-chao-dimensao">{dashCell(ln.dimensao)}</td>
+              <td className={`ficha-td-num${perda ? ' op-chao-levar--perda' : ''}`}>
+                {dashCell(ln.levar)}
+              </td>
+              <td className="ficha-td-num">{dashCell(ln.m2)}</td>
+              <td>{dashCell(ln.validade)}</td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );

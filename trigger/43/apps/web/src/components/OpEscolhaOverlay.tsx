@@ -79,11 +79,9 @@ export function OpEscolhaOverlay({
    * Devolver: mesmo MOV ENTRADA_SOBRA. Quem tem estoque.escrever pode na OP ou no chão.
    */
   const podeDevolver = canWrite && estado === 'ja_saiu';
+  /** Sempre o pool API (já exclui perda). Vazio = nada a devolver — nunca cair em baixados. */
   const volsADevolver = useMemo(
-    () =>
-      material.retirada?.volumes_a_devolver?.length
-        ? material.retirada.volumes_a_devolver
-        : (material.retirada?.volumes_baixados ?? []),
+    () => material.retirada?.volumes_a_devolver ?? [],
     [material],
   );
   const volsLinha = useMemo(() => volumesParaEscolha(material), [material]);

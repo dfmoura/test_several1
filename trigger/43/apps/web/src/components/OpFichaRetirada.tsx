@@ -534,9 +534,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
       };
       if (modoRetirada(material) === 'volume') {
         const vols =
-          material.retirada?.volumes_a_devolver?.length
-            ? material.retirada.volumes_a_devolver
-            : (material.retirada?.volumes_baixados ?? []);
+          material.retirada?.volumes_a_devolver ?? [];
         if (vols.length === 0) {
           setErr('Nenhum volume fora do estoque para devolver.');
           setBusy(false);

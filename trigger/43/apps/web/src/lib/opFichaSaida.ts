@@ -113,9 +113,8 @@ function volumesMarcados(m: OrdemProducaoMaterial): OpRetiradaVolume[] {
   );
 }
 
+/** Todos os baixados (inclui perda marcada) — ficha de auditoria, não pool de devolução. */
 function volumesQueSairam(m: OrdemProducaoMaterial): OpRetiradaVolume[] {
-  const devolver = m.retirada?.volumes_a_devolver ?? [];
-  if (devolver.length > 0) return devolver;
   return m.retirada?.volumes_baixados ?? [];
 }
 
@@ -204,6 +203,7 @@ function itemDeMaterial(m: OrdemProducaoMaterial, op: OrdemProducao): FichaSaida
         : parseQtdeDigitada(vol.qtde_retirar);
       const leitura = metragem ? formatLeituraBobina(vol, qtde, larguraMmDoMaterial(m)) : null;
       const medidaVol = formatVolumeDimensao(vol);
+      const situacaoVol = jaSaiu && vol.avariado ? 'Perda' : situacao;
       linhas.push({
         id: `${m.id}-${vol.lote_id ?? vol.codigo ?? i}`,
         estado: estadoVisual,
@@ -215,7 +215,7 @@ function itemDeMaterial(m: OrdemProducaoMaterial, op: OrdemProducao): FichaSaida
           ...(mostrarMedida ? { medida: ehCaixa ? medidaCaixa || '—' : medidaVol || '—' } : {}),
           ...(metragem ? { m2: leitura?.m2 ?? '—', m: leitura?.metros ?? '—' } : {}),
           qtde: qtdeTexto(qtde, un, jaSaiu),
-          situacao,
+          situacao: situacaoVol,
         },
       });
     });

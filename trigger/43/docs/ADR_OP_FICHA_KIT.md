@@ -151,9 +151,10 @@ Tentativa de avaria em A buscar. Substituída pela emenda 2026-10-30c (perda no 
 
 Superfície: **Ordens de produção** → kit **O que sai do estoque** → volume **Já saiu** → **Perdeu**.
 
-1. `POST /ordens-producao/{op}/avaria` com `volumes[{lote_id,qtde}]` + motivo → grava `avaria_lotes` + `qtde_avaria` (sem MOV; saldo já saiu).
+1. `POST /estoque/retiradas/{op}/avaria` com `volumes[{lote_id,qtde}]` + motivo → grava `avaria_lotes` + `qtde_avaria` (sem MOV; saldo já saiu). Avaria só por `qtde` em SKU com lote também amarra FEFO em `avaria_lotes`.
 2. Overlay de escolha → `POST /estoque/retiradas/{op}/confirmar` com `complementar: true` → nova `SAIDA_PRODUCAO` do substituto.
-3. Volume em perda some do pool `volumes_a_devolver` (não volta à prateleira).
-4. A buscar mantém só saída FEFO + **Devolver** (bom). Ficha de chão sem writer.
+3. Volume em perda some do pool `volumes_a_devolver` (não volta à prateleira). UI de Devolver **nunca** cai em `volumes_baixados` quando o pool está vazio.
+4. A buscar mantém só saída FEFO + **Devolver** (bom).
+5. **Ficha de chão** Retirada: volumes bons/substitutos = saiu; volume `avariado` = linha **PERDA** (sem QR de caminhada, sem checkbox Levado). Sem writer.
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX).

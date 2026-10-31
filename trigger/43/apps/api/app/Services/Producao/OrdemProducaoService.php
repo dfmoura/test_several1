@@ -934,6 +934,67 @@ class OrdemProducaoService
                 ]);
             }
 
+            // SKU com volume: amarra a perda nos lotes ainda fora (FEFO do pool),
+            // para não deixar qtde_avaria órfã de avaria_lotes (devolver/ficha).
+            if (
+                bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) > 0
+                && $mat->produto
+                && $mat->produto->controla_lote
+            ) {
+                $fora = $this->coleta->volumesADevolver($empresa, $op, (int) $mat->produto_id, $mat);
+                $restante = $qtde;
+                /** @var list<array{lote_id: int, qtde: string, motivo: string}> $lista */
+                $lista = [];
+                foreach (is_array($mat->avaria_lotes) ? $mat->avaria_lotes : [] as $row) {
+                    $lid = (int) ($row['lote_id'] ?? 0);
+                    $qPrev = PadraoDecimal::roundHalfUp((string) ($row['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY);
+                    if ($lid > 0 && bccomp($qPrev, '0', PadraoDecimal::SCALE_QTY) > 0) {
+                        $lista[$lid] = [
+                            'lote_id' => $lid,
+                            'qtde' => $qPrev,
+                            'motivo' => (string) ($row['motivo'] ?? $motivo),
+                        ];
+                    }
+                }
+                foreach ($fora as $v) {
+                    if (bccomp($restante, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                        break;
+                    }
+                    $lid = (int) ($v['lote_id'] ?? 0);
+                    $disp = PadraoDecimal::roundHalfUp((string) ($v['qtde_retirar'] ?? '0'), PadraoDecimal::SCALE_QTY);
+                    if ($lid <= 0 || bccomp($disp, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                        continue;
+                    }
+                    $take = bccomp($restante, $disp, PadraoDecimal::SCALE_QTY) <= 0 ? $restante : $disp;
+                    $prev = $lista[$lid]['qtde'] ?? '0';
+                    $lista[$lid] = [
+                        'lote_id' => $lid,
+                        'qtde' => PadraoDecimal::roundHalfUp(
+                            bcadd($prev, $take, PadraoDecimal::SCALE_QTY + 4),
+                            PadraoDecimal::SCALE_QTY
+                        ),
+                        'motivo' => $motivo,
+                    ];
+                    $restante = PadraoDecimal::roundHalfUp(
+                        bcsub($restante, $take, PadraoDecimal::SCALE_QTY + 4),
+                        PadraoDecimal::SCALE_QTY
+                    );
+                }
+                if (bccomp($restante, '0', PadraoDecimal::SCALE_QTY) > 0) {
+                    throw ValidationException::withMessages([
+                        'qtde' => ['Não há volume fora da prateleira suficiente para amarrar esta avaria.'],
+                    ]);
+                }
+                $mat->avaria_lotes = array_values($lista);
+                $mat->qtde_avaria = $qtde;
+                $mat->motivo_avaria = $motivo;
+                $mat->avaria_em = now();
+                $mat->avaria_por = Auth::id();
+                $mat->save();
+
+                return $op;
+            }
+
             $mat->qtde_avaria = $qtde;
             if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
                 $mat->motivo_avaria = null;
@@ -1169,12 +1230,37 @@ class OrdemProducaoService
                 $mat->avaria_por = null;
                 $mat->avaria_lotes = null;
             } elseif (bccomp($avariaAtual, $novaReq, PadraoDecimal::SCALE_QTY) > 0) {
+                // Clamp do total e dos lotes — evita avaria_lotes somar mais que qtde_avaria.
                 $mat->qtde_avaria = $novaReq;
                 if (bccomp($novaReq, '0', PadraoDecimal::SCALE_QTY) <= 0) {
                     $mat->motivo_avaria = null;
                     $mat->avaria_em = null;
                     $mat->avaria_por = null;
                     $mat->avaria_lotes = null;
+                } else {
+                    $restante = $novaReq;
+                    $lotes = [];
+                    foreach (is_array($mat->avaria_lotes) ? $mat->avaria_lotes : [] as $row) {
+                        if (bccomp($restante, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                            break;
+                        }
+                        $lid = (int) ($row['lote_id'] ?? 0);
+                        $qPrev = PadraoDecimal::roundHalfUp((string) ($row['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY);
+                        if ($lid <= 0 || bccomp($qPrev, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                            continue;
+                        }
+                        $keep = bccomp($qPrev, $restante, PadraoDecimal::SCALE_QTY) <= 0 ? $qPrev : $restante;
+                        $lotes[] = [
+                            'lote_id' => $lid,
+                            'qtde' => $keep,
+                            'motivo' => (string) ($row['motivo'] ?? $mat->motivo_avaria ?? ''),
+                        ];
+                        $restante = PadraoDecimal::roundHalfUp(
+                            bcsub($restante, $keep, PadraoDecimal::SCALE_QTY + 4),
+                            PadraoDecimal::SCALE_QTY
+                        );
+                    }
+                    $mat->avaria_lotes = $lotes === [] ? null : $lotes;
                 }
             }
             $mat->save();

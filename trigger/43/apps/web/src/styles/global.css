@@ -10386,6 +10386,24 @@ tr.row-inactive td {
   height: 3.6mm;
 }
 
+.ficha-sheet-op-chao .op-chao-row--perda td {
+  color: #8a4b12;
+  background: #fbf6ef;
+}
+
+.ficha-sheet-op-chao .op-chao-levar--perda {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.ficha-sheet-op-chao .op-chao-perda-marca {
+  display: inline-block;
+  min-width: 3.6mm;
+  text-align: center;
+  font-weight: 700;
+  color: #8a4b12;
+}
+
 /* OP materiais · retirada — A4 paisagem. Satélite da ficha flexo retrato. */
 .ficha-sheet.ficha-sheet-op-materiais {
   width: 297mm;

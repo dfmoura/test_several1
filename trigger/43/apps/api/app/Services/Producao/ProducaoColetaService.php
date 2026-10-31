@@ -536,9 +536,12 @@ class ProducaoColetaService
         $map = $this->avariaPorLote($mat);
         foreach ($volumes as &$v) {
             $lid = (int) ($v['lote_id'] ?? 0);
-            if ($lid > 0 && isset($map[$lid]) && bccomp($map[$lid], '0', PadraoDecimal::SCALE_QTY) > 0) {
-                $v['avariado'] = true;
-                $v['qtde_avaria'] = $map[$lid];
+            $qAv = $lid > 0 ? ($map[$lid] ?? '0') : '0';
+            $qBaixa = PadraoDecimal::roundHalfUp((string) ($v['qtde_retirar'] ?? '0'), PadraoDecimal::SCALE_QTY);
+            if ($lid > 0 && bccomp($qAv, '0', PadraoDecimal::SCALE_QTY) > 0) {
+                // Perda total do volume baixado → some do pool de devolução/Perdeu.
+                $v['avariado'] = bccomp($qAv, $qBaixa, PadraoDecimal::SCALE_QTY) >= 0;
+                $v['qtde_avaria'] = $qAv;
             } else {
                 $v['avariado'] = false;
                 $v['qtde_avaria'] = null;

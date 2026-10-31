@@ -41,9 +41,8 @@ type Props = {
 function volumesSugeridosLinha(m: OrdemProducaoMaterial) {
   const estado = opKitEstado(m);
   if (estado === 'ja_saiu') {
-    return m.retirada?.volumes_a_devolver?.length
-      ? m.retirada.volumes_a_devolver
-      : (m.retirada?.volumes_baixados ?? []);
+    // Pool a devolver (sem perda). Vazio ≠ “mostrar baixados” — evita reaparecer volume perdido.
+    return m.retirada?.volumes_a_devolver ?? [];
   }
   return volumesParaEscolha(m).filter((v) => volumeSugerido(v) || Number(v.qtde_retirar) > 0);
 }

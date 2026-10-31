@@ -82,6 +82,9 @@ export function linhasProducaoChao(
   return linhasProducaoPlanilhaPorModelo(pedido, [item], (it) => visualPlanilhaOf(pedido, it));
 }
 
+/** Situação na retirada impressa — perda ≠ volume bom a levar. */
+export type OpFichaChaoRetiradaSituacao = 'levar' | 'saiu' | 'perda';
+
 /** Linha plana para caminhada na prateleira (volume a volume). */
 export type OpFichaChaoRetiradaLinha = {
   key: string;
@@ -89,11 +92,12 @@ export type OpFichaChaoRetiradaLinha = {
   volume: string;
   material: string;
   dimensao: string;
-  /** Metro linear (bobina) ou qtde+unidade (demais). */
+  /** Metro linear (bobina) ou qtde+unidade (demais). Perda = «PERDA». */
   levar: string;
   m2: string;
   validade: string;
   qr_payload: string | null;
+  situacao: OpFichaChaoRetiradaSituacao;
 };
 
 function fmtLevar(qtde: number | string | null | undefined, unidade: string | null | undefined): string {
@@ -112,6 +116,7 @@ function linhaRetiradaVazia(
   material: string,
   local: string,
   levar: string,
+  situacao: OpFichaChaoRetiradaSituacao = 'levar',
 ): OpFichaChaoRetiradaLinha {
   return {
     key,
@@ -123,6 +128,7 @@ function linhaRetiradaVazia(
     m2: '—',
     validade: '—',
     qr_payload: null,
+    situacao,
   };
 }
 
@@ -136,31 +142,40 @@ function linhaRetiradaVolume(
   v: OpRetiradaVolume,
   i: number,
   ordem: OrdemProducao,
+  situacao: OpFichaChaoRetiradaSituacao,
 ): OpFichaChaoRetiradaLinha {
   const leitura = leituraBobinaDaQtde(v, v.qtde_retirar, larguraMmParaMetro(m, ordem));
   const bobina =
     modoRetirada(m) === 'volume' &&
     ((leitura.metros != null && leitura.metros > 0) || (leitura.m2 != null && leitura.m2 > 0));
+  const levarBom = bobina
+    ? leitura.metros != null && leitura.metros > 0
+      ? formatQtdePick(leitura.metros, 'm')
+      : '—'
+    : fmtLevar(v.qtde_retirar, v.unidade ?? m.unidade);
   return {
     key: `${m.id}-${v.lote_id ?? v.codigo ?? i}`,
     local: (v.endereco?.codigo ?? '').trim() || '—',
     volume: (v.codigo ?? '').trim() || '—',
     material: opKitNome(m),
     dimensao: bobina ? formatVolumeDimensao(v) ?? '—' : '—',
-    levar: bobina
-      ? leitura.metros != null && leitura.metros > 0
-        ? formatQtdePick(leitura.metros, 'm')
-        : '—'
-      : fmtLevar(v.qtde_retirar, v.unidade ?? m.unidade),
-    m2: bobina && leitura.m2 != null && leitura.m2 > 0 ? fmtNumChao(leitura.m2) : '—',
+    levar: situacao === 'perda' ? 'PERDA' : levarBom,
+    m2:
+      situacao === 'perda'
+        ? '—'
+        : bobina && leitura.m2 != null && leitura.m2 > 0
+          ? fmtNumChao(leitura.m2)
+          : '—',
     validade: v.data_validade ? formatDate(v.data_validade) : '—',
-    qr_payload: (v.qr_payload ?? '').trim() || null,
+    // Perda: sem QR de caminhada — volume não volta / não se busca de novo.
+    qr_payload: situacao === 'perda' ? null : (v.qr_payload ?? '').trim() || null,
+    situacao,
   };
 }
 
 /**
  * Volumes a pegar (FEFO) ou já baixados — uma linha por volume.
- * Bobina: Levar = metro linear; M² e Dimensão à parte. Sem prosa; sem segundo writer.
+ * Já saiu: perda marcada como PERDA; substituto/bom como saiu. Sem segundo writer.
  */
 export function linhasRetiradaChao(ordem: OrdemProducao): OpFichaChaoRetiradaLinha[] {
   const out: OpFichaChaoRetiradaLinha[] = [];
@@ -189,8 +204,12 @@ export function linhasRetiradaChao(ordem: OrdemProducao): OpFichaChaoRetiradaLin
       continue;
     }
 
-    vols.forEach((v, i) => {
-      out.push(linhaRetiradaVolume(m, v, i, ordem));
+    // Bom/substituto primeiro; perda no fim (auditoria, sem misturar com caminhada).
+    const ordenados = [...vols].sort((a, b) => Number(Boolean(a.avariado)) - Number(Boolean(b.avariado)));
+    ordenados.forEach((v, i) => {
+      const situacao: OpFichaChaoRetiradaSituacao =
+        estado === 'ja_saiu' ? (v.avariado ? 'perda' : 'saiu') : 'levar';
+      out.push(linhaRetiradaVolume(m, v, i, ordem, situacao));
     });
   }
   return out;
@@ -214,7 +233,7 @@ export function opFichaChaoMeta(): {
     secaoAcabamento: 'Acabamento · rebobinação',
     secaoRetirada: 'Retirada · prateleira',
     hintRetirada:
-      'Bobina: Levar = metro linear. Marque Levado. Confirme a saída na tela A buscar.',
+      'Bobina: Levar = metro linear. Marque Levado. Confirme a saída em A buscar. PERDA = volume estragado (não levar).',
     toolbarHint: 'Máquina e prateleira · A4 paisagem · sem preço',
   };
 }

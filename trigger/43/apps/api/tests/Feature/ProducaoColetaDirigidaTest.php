@@ -647,7 +647,11 @@ class ProducaoColetaDirigidaTest extends TestCase
             ]
         );
         $av->assertOk();
-        $this->assertSame('20.0000', collect($av->json('data.materiais'))->firstWhere('id', $this->matPapel->id)['qtde_avaria']);
+        $papelAv = collect($av->json('data.materiais'))->firstWhere('id', $this->matPapel->id);
+        $this->assertSame('20.0000', $papelAv['qtde_avaria']);
+        // SKU com lote: avaria por qtde também amarra avaria_lotes (ficha/devolver).
+        $this->assertNotEmpty($papelAv['avaria_lotes']);
+        $this->assertSame(20.0, (float) collect($papelAv['avaria_lotes'])->sum(fn ($r) => (float) $r['qtde']));
 
         $prev = $this->withHeaders($this->h())->getJson(
             '/api/v1/estoque/retiradas/'.$this->op->id.'/preview?material_id='.$this->matPapel->id.'&qtde=20'

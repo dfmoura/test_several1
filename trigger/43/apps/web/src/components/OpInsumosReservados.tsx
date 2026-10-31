@@ -1256,12 +1256,15 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                             const medidaVol = formatVolumeDimensao(vol);
                             const loteId = vol.lote_id ?? 0;
                             const avariado = Boolean(vol.avariado);
+                            const qAvaria = parseQtdeDigitada(vol.qtde_avaria);
+                            const qBaixa = parseQtdeDigitada(qtde);
+                            const restaPerder = Math.max(0, qBaixa - qAvaria);
                             const podePerder =
                               aberta &&
                               canWrite &&
                               loteId > 0 &&
                               !avariado &&
-                              parseQtdeDigitada(qtde) > 0;
+                              restaPerder > 1e-6;
                             const podeSubstituir = aberta && canWrite && avariado;
                             return {
                               id: vol.lote_id ?? vol.codigo ?? qtde,
@@ -1299,7 +1302,7 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                                       setPerda({
                                         materialId: m.id,
                                         loteId,
-                                        qtde,
+                                        qtde: String(restaPerder > 0 ? restaPerder : qBaixa),
                                         label: formatLotePick(vol),
                                         unidade: un,
                                       });
