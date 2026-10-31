@@ -24,10 +24,13 @@ type Props = {
   busy?: boolean;
   /** QR opcional — resolve no pai (porta REV / OP). */
   onLerQr?: (payload: string) => Promise<void>;
-  /** Texto do cabeçalho. A confirmação permanece na tela de trás. */
+  /** Texto do cabeçalho. Sem onConfirm, a confirmação permanece na tela de trás. */
   hint?: string;
   modo?: VolumePickModo;
   mostrarProduto?: boolean;
+  /** CTA do rodapé (ex.: reposição após perda). Sem isto = «Usar estes volumes» só fecha. */
+  confirmLabel?: string;
+  onConfirm?: () => void;
   onChangeMarcas: (next: VolumePickMarca[]) => void;
   onClose: () => void;
 };
@@ -47,6 +50,8 @@ export function SeparacaoVolumesOverlay({
   hint = 'Marque um ou mais volumes. A confirmação fica na tela anterior.',
   modo = 'snapshot',
   mostrarProduto = false,
+  confirmLabel,
+  onConfirm,
   onChangeMarcas,
   onClose,
 }: Props) {
@@ -221,9 +226,20 @@ export function SeparacaoVolumesOverlay({
               : `${nMarcados} volume${nMarcados === 1 ? '' : 's'} marcado${nMarcados === 1 ? '' : 's'}`}
           </p>
           <div className="op-escolha__foot-actions">
-            <button type="button" className="btn btn-primary" onClick={onClose} disabled={busy}>
-              Usar estes volumes
-            </button>
+            {onConfirm ? (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={onConfirm}
+                disabled={busy || nMarcados === 0}
+              >
+                {confirmLabel ?? 'Confirmar substituto'}
+              </button>
+            ) : (
+              <button type="button" className="btn btn-primary" onClick={onClose} disabled={busy}>
+                {confirmLabel ?? 'Usar estes volumes'}
+              </button>
+            )}
           </div>
         </footer>
       </div>

@@ -29,7 +29,7 @@ OP = ficha da etiqueta (herói + jornada + kit)
 | **Sem entidade carrinho** | O kit já é a lista viva. Segundo ledger piora o teste. |
 | **Três portas** | OP entende; Estoque busca; Produção fecha. Sem mega-tela. |
 | **Um CTA** | Só a próxima ação. |
-| **Avaria numa porta** | Só na lista de retirada. OP não duplica o formulário. |
+| **Avaria / perda do volume** | Na **OP**, no registro do volume que saiu: **Perdeu** → marca perda (sem MOV) + escolhe substituto (`SAIDA_PRODUCAO` complementar). |
 | **Extra = acrescentar no kit** | Mesmo `materiais[]` + confirmação no estoque. |
 | **1 kit por OP** | Pedido com N etiquetas = N fichas. Onda de separação = ADR futuro. |
 | **Devolver “Já saiu”** | Antes de concluir: `POST /estoque/retiradas/{op}/devolver` → mesmo `ENTRADA_SOBRA` + `EstoqueSaldoWriter`, reduz `qtde_requisitada`, zera `saida_movimento_id` se voltar tudo. UI na porta estoque **e** na OP se o usuário tem `estoque.escrever` (mesmo motor; sem formulário duplicado para quem só tem produção). Sem estorno inventado, sem segundo writer. Avaria da separação é limitada ao que ainda está fora. |
@@ -41,7 +41,7 @@ Duas pessoas, duas telas — o motor é o mesmo.
 | Porta | Quem (RBAC) | Mostra | Não mostra |
 |-------|-------------|--------|------------|
 | OP | PCP (`producao.ler`); confirmar saída exige `estoque.escrever`; fechar exige `producao.escrever` | Cabeçalho da ficha, insumos do kit e, com material já saído, o fecho (etiquetas boas, refugo, tolerância). Depois de concluída: rolos reais e caixas. | Busca na prateleira, grade de consumo no fecho |
-| Estoque · **A buscar** | Almoxarifado (`estoque.ler`) | O que **sai da prateleira**. Marca volume e **Confirmar = saiu**. Em **Já saiu**: **Devolver** (bom → `ENTRADA_SOBRA`) ou **Estragou** (avaria sem MOV + `SAIDA_PRODUCAO` complementar). | Etiquetas boas, rolos e caixas do PA |
+| Estoque · **A buscar** | Almoxarifado (`estoque.ler`) | O que **sai da prateleira**. Marca volume e **Confirmar = saiu**. Em **Já saiu**: **Devolver** (bom → `ENTRADA_SOBRA`). Perda/substituto do volume = na OP. | Etiquetas boas, rolos e caixas do PA |
 | Produção | — | Sem item de menu próprio. Atalho antigo `/ordens-producao/apontamentos` abre a ordem. | — |
 
 Menu: **A buscar** vive em Estoque (`estoque.ler`). O fecho vive em **Ordens de produção** (`producao.escrever`). O papel PRODUCAO não busca na prateleira.
@@ -56,7 +56,8 @@ Estados do kit: **falta pegar · já saiu · sem estoque**.
 |-------|------|
 | OP | Cabeçalho da ficha do item (formulário + modelos e valores) e, em seguida, os insumos do kit. Acrescenta ou remove volume/unidade **já conhecidos** do estoque, no formulário de faixa do orçamento. Sem busca. Quem tem `estoque.escrever` confirma a saída no mesmo `POST …/confirmar`; quem só lê segue para A buscar. |
 | Estoque · A buscar | Por linha: **Saiu** (FEFO/qtde). Rodapé: **Confirmar saída sugerida (N)** → `POST …/confirmar-pendentes`. |
-| Overlay | **Outro volume** (motivo), **Devolver** (bom) ou **Estragou** (avaria + pegar de novo). Não é o caminho feliz. |
+| Overlay (A buscar) | **Outro volume** (motivo) ou **Devolver** (bom). Não é o caminho feliz. |
+| OP · volume já saiu | **Perdeu** no registro → perda amarrada ao lote (`avaria_lotes`) + baixa do substituto. |
 
 Ficha impressa: link na toolbar. Sem segunda lista embutida na página do chão.
 
@@ -142,8 +143,17 @@ Grão de **Impressão** e **Acabamento** = `linhasProducaoPlanilhaPorModelo` (1 
 
 Writer e `qtde_retirar` permanecem na unidade de estoque (m²). Ficha só apresenta. Sem explodir retirada por arte. Sem segundo writer.
 
-## Emenda 2026-10-30b — Estragou na lista de retirada
+## Emenda 2026-10-30b — Estragou na lista de retirada (supersedida)
 
-UI viva em Estoque · **A buscar** (`OpKitPainel` / `OpEscolhaOverlay`): estado **Já saiu** expõe **Devolver** e **Estragou**. Estragou = `POST …/avaria` (marca) + `POST …/confirmar` com `complementar: true` (nova baixa). Sem AJU, sem segundo writer, sem formulário de avaria na Ficha de chão nem na OP. Motor e testes já cobriam o ciclo (BL-109).
+Tentativa de avaria em A buscar. Substituída pela emenda 2026-10-30c (perda no volume da OP).
+
+## Emenda 2026-10-30c — Perdeu no volume da OP
+
+Superfície: **Ordens de produção** → kit **O que sai do estoque** → volume **Já saiu** → **Perdeu**.
+
+1. `POST /ordens-producao/{op}/avaria` com `volumes[{lote_id,qtde}]` + motivo → grava `avaria_lotes` + `qtde_avaria` (sem MOV; saldo já saiu).
+2. Overlay de escolha → `POST /estoque/retiradas/{op}/confirmar` com `complementar: true` → nova `SAIDA_PRODUCAO` do substituto.
+3. Volume em perda some do pool `volumes_a_devolver` (não volta à prateleira).
+4. A buscar mantém só saída FEFO + **Devolver** (bom). Ficha de chão sem writer.
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX).

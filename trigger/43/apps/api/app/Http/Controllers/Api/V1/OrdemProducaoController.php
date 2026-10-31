@@ -123,8 +123,14 @@ class OrdemProducaoController extends Controller
 
         $data = $request->validate([
             'material_id' => ['required', 'integer'],
-            'qtde' => array_merge(['required'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
+            'qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
             'motivo' => ['nullable', 'string', 'max:255'],
+            'volumes' => ['nullable', 'array'],
+            'volumes.*.lote_id' => ['required_with:volumes', 'integer'],
+            'volumes.*.qtde' => array_merge(
+                ['required_with:volumes'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)
+            ),
         ]);
 
         return response()->json([

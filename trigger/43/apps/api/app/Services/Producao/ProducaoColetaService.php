@@ -518,19 +518,69 @@ class ProducaoColetaService
                 'candidatos' => [],
             ];
 
-        $out['volumes_baixados'] = $this->volumesBaixados($empresa, $op, (int) $mat->produto_id);
-        $out['volumes_a_devolver'] = $this->volumesADevolver($empresa, $op, (int) $mat->produto_id);
+        $out['volumes_baixados'] = $this->marcarVolumesAvariados(
+            $this->volumesBaixados($empresa, $op, (int) $mat->produto_id),
+            $mat
+        );
+        $out['volumes_a_devolver'] = $this->volumesADevolver($empresa, $op, (int) $mat->produto_id, $mat);
 
         return $out;
     }
 
     /**
-     * Volumes ainda fora da prateleira nesta OP (SAIDA − ENTRADA_SOBRA), por lote.
+     * @param  list<array<string, mixed>>  $volumes
+     * @return list<array<string, mixed>>
+     */
+    public function marcarVolumesAvariados(array $volumes, OrdemProducaoMaterial $mat): array
+    {
+        $map = $this->avariaPorLote($mat);
+        foreach ($volumes as &$v) {
+            $lid = (int) ($v['lote_id'] ?? 0);
+            if ($lid > 0 && isset($map[$lid]) && bccomp($map[$lid], '0', PadraoDecimal::SCALE_QTY) > 0) {
+                $v['avariado'] = true;
+                $v['qtde_avaria'] = $map[$lid];
+            } else {
+                $v['avariado'] = false;
+                $v['qtde_avaria'] = null;
+            }
+        }
+        unset($v);
+
+        return $volumes;
+    }
+
+    /**
+     * @return array<int, string> lote_id => qtde
+     */
+    public function avariaPorLote(OrdemProducaoMaterial $mat): array
+    {
+        $map = [];
+        foreach (is_array($mat->avaria_lotes) ? $mat->avaria_lotes : [] as $row) {
+            $lid = (int) ($row['lote_id'] ?? 0);
+            $q = PadraoDecimal::roundHalfUp((string) ($row['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY);
+            if ($lid <= 0 || bccomp($q, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                continue;
+            }
+            $map[$lid] = isset($map[$lid])
+                ? PadraoDecimal::roundHalfUp(bcadd($map[$lid], $q, PadraoDecimal::SCALE_QTY + 4), PadraoDecimal::SCALE_QTY)
+                : $q;
+        }
+
+        return $map;
+    }
+
+    /**
+     * Volumes ainda fora da prateleira nesta OP (SAIDA − ENTRADA_SOBRA − avaria), por lote.
+     * Avaria da separação não volta — fica fora do pool de devolução.
      *
      * @return list<array<string, mixed>>
      */
-    public function volumesADevolver(Empresa $empresa, OrdemProducao $op, int $produtoId): array
-    {
+    public function volumesADevolver(
+        Empresa $empresa,
+        OrdemProducao $op,
+        int $produtoId,
+        ?OrdemProducaoMaterial $mat = null,
+    ): array {
         $agg = [];
         $meta = [];
 
@@ -577,6 +627,18 @@ class ProducaoColetaService
             })
             ->get();
         $aplicar('-', $sobras);
+
+        $avariaMap = $mat ? $this->avariaPorLote($mat) : [];
+        foreach ($avariaMap as $lid => $qAvaria) {
+            $key = 'L'.$lid;
+            if (! isset($agg[$key])) {
+                continue;
+            }
+            $agg[$key] = PadraoDecimal::roundHalfUp(
+                bcsub($agg[$key], $qAvaria, PadraoDecimal::SCALE_QTY + 4),
+                PadraoDecimal::SCALE_QTY
+            );
+        }
 
         $out = [];
         $ordem = 1;

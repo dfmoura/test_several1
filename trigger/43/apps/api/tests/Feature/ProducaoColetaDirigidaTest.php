@@ -679,6 +679,68 @@ class ProducaoColetaDirigidaTest extends TestCase
         );
     }
 
+    public function test_avaria_por_volume_na_op_exclui_devolver_e_permite_substituto(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/confirmar",
+            [
+                'linhas' => [
+                    [
+                        'material_id' => $this->matPapel->id,
+                        'qtde' => '100.0000',
+                        'volumes' => [
+                            ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
+                        ],
+                    ],
+                ],
+            ]
+        )->assertOk();
+
+        $av = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/avaria",
+            [
+                'material_id' => $this->matPapel->id,
+                'motivo' => 'Bobina rasgada na mesa',
+                'volumes' => [
+                    ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
+                ],
+            ]
+        );
+        $av->assertOk();
+        $papel = collect($av->json('data.materiais'))->firstWhere('id', $this->matPapel->id);
+        $this->assertSame('100.0000', $papel['qtde_avaria']);
+        $this->assertSame($this->loteVencido->id, (int) $papel['avaria_lotes'][0]['lote_id']);
+        $baixado = collect($papel['retirada']['volumes_baixados'])->firstWhere('lote_id', $this->loteVencido->id);
+        $this->assertTrue($baixado['avariado']);
+        $this->assertSame([], $papel['retirada']['volumes_a_devolver']);
+
+        $repo = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/confirmar",
+            [
+                'linhas' => [
+                    [
+                        'material_id' => $this->matPapel->id,
+                        'qtde' => '80.0000',
+                        'complementar' => true,
+                        'volumes' => [
+                            ['lote_id' => $this->loteSemValidade->id, 'qtde' => '80.0000'],
+                        ],
+                        'volumes_motivo' => 'Substituição após perda do volume',
+                    ],
+                ],
+            ]
+        );
+        $repo->assertOk();
+        $papel2 = collect($repo->json('data.materiais'))->firstWhere('id', $this->matPapel->id);
+        $this->assertSame('180.0000', $papel2['qtde_requisitada']);
+        $this->assertSame('100.0000', $papel2['qtde_avaria']);
+        $aDevolver = collect($papel2['retirada']['volumes_a_devolver'])->pluck('lote_id')->all();
+        $this->assertContains($this->loteSemValidade->id, $aDevolver);
+        $this->assertNotContains($this->loteVencido->id, $aDevolver);
+    }
+
     public function test_chao_confirma_extra_por_produto_id(): void
     {
         Sanctum::actingAs($this->user);

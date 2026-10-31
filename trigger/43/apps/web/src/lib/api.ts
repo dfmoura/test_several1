@@ -3371,6 +3371,9 @@ export type OpRetiradaVolume = {
   proximidade?: number | null;
   /** Ficha impressa / QR (A separar REV + retirada OP / ficha de chão). */
   qr_payload?: string | null;
+  /** Volume apontado como perda na separação (não devolve). */
+  avariado?: boolean;
+  qtde_avaria?: string | null;
 };
 
 export type OpRetiradaPreview = {
@@ -3423,6 +3426,8 @@ export type OrdemProducaoMaterial = {
   qtde_avaria?: string;
   motivo_avaria?: string | null;
   avaria_em?: string | null;
+  /** Volumes (lotes) apontados como perda na separação. */
+  avaria_lotes?: Array<{ lote_id: number; qtde: string; motivo?: string | null }>;
   qtde_consumida: string;
   qtde_retorno: string;
   qtde_perda: string;

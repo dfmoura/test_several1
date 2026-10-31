@@ -13718,6 +13718,11 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
 .op-insumos .op-insumo-w--qtde { width: 10%; }
 .op-insumos .op-insumo-w--acao { width: 8%; }
 
+.op-insumos .op-insumo-perda {
+  color: #8a4b12;
+  font-weight: 700;
+}
+
 .op-insumos .op-insumo-linha table.data-table th,
 .op-insumos .op-insumo-linha table.data-table td {
   padding: 0.32rem 0.45rem;

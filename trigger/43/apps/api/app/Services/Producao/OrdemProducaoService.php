@@ -774,8 +774,9 @@ class OrdemProducaoService
     /**
      * Avaria na separação: material já baixado, danificado antes da máquina.
      * Não escreve saldo (já saiu em SAIDA_PRODUCAO). Não é perda de processo.
+     * Com volumes[]: amarra o lote físico (OP) e soma em qtde_avaria.
      *
-     * @param  array{material_id?: int, qtde?: mixed, motivo?: string}  $data
+     * @param  array{material_id?: int, qtde?: mixed, motivo?: string, volumes?: list<array{lote_id?: int, qtde?: mixed}>}  $data
      * @return array<string, mixed>
      */
     public function registrarAvaria(Empresa $empresa, OrdemProducao $op, array $data): array
@@ -790,22 +791,25 @@ class OrdemProducaoService
         }
 
         $materialId = isset($data['material_id']) ? (int) $data['material_id'] : 0;
-        $qtde = PadraoDecimal::parseStrict((string) ($data['qtde'] ?? ''), PadraoDecimal::SCALE_QTY);
+        $volumesIn = is_array($data['volumes'] ?? null) ? array_values($data['volumes']) : [];
         $motivo = trim((string) ($data['motivo'] ?? ''));
+        $qtdeRaw = $data['qtde'] ?? null;
+        $qtde = $qtdeRaw !== null && $qtdeRaw !== ''
+            ? PadraoDecimal::parseStrict((string) $qtdeRaw, PadraoDecimal::SCALE_QTY)
+            : null;
 
-        if ($materialId <= 0 || $qtde === null || bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) < 0) {
+        if ($materialId <= 0) {
             throw ValidationException::withMessages([
-                'qtde' => ['Informe a linha e a quantidade de avaria (zero limpa o apontamento).'],
+                'material_id' => ['Informe a linha de material.'],
+            ]);
+        }
+        if ($volumesIn === [] && ($qtde === null || bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) < 0)) {
+            throw ValidationException::withMessages([
+                'qtde' => ['Informe a quantidade de avaria (zero limpa o apontamento) ou o volume.'],
             ]);
         }
 
-        if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) > 0 && mb_strlen($motivo) < 3) {
-            throw ValidationException::withMessages([
-                'motivo' => ['Informe o motivo da avaria (mínimo 3 caracteres).'],
-            ]);
-        }
-
-        $op = DB::transaction(function () use ($empresa, $op, $materialId, $qtde, $motivo) {
+        $op = DB::transaction(function () use ($empresa, $op, $materialId, $qtde, $motivo, $volumesIn) {
             $op = OrdemProducao::query()->lockForUpdate()->findOrFail($op->id);
             if ($op->empresa_id !== $empresa->id) {
                 abort(404);
@@ -828,6 +832,102 @@ class OrdemProducaoService
             }
 
             $req = (string) $mat->qtde_requisitada;
+
+            if ($volumesIn !== []) {
+                if (mb_strlen($motivo) < 3) {
+                    throw ValidationException::withMessages([
+                        'motivo' => ['Informe o motivo da avaria (mínimo 3 caracteres).'],
+                    ]);
+                }
+                if (! $mat->produto_id) {
+                    throw ValidationException::withMessages([
+                        'material_id' => ['Material sem SKU para amarrar volume.'],
+                    ]);
+                }
+
+                $fora = $this->coleta->volumesADevolver($empresa, $op, (int) $mat->produto_id, $mat);
+                $foraPorLote = [];
+                foreach ($fora as $v) {
+                    $lid = (int) ($v['lote_id'] ?? 0);
+                    if ($lid > 0) {
+                        $foraPorLote[$lid] = PadraoDecimal::roundHalfUp(
+                            (string) ($v['qtde_retirar'] ?? '0'),
+                            PadraoDecimal::SCALE_QTY
+                        );
+                    }
+                }
+
+                /** @var array<int, array{lote_id: int, qtde: string, motivo: string}> $lotes */
+                $lotes = [];
+                foreach (is_array($mat->avaria_lotes) ? $mat->avaria_lotes : [] as $row) {
+                    $lid = (int) ($row['lote_id'] ?? 0);
+                    $q = PadraoDecimal::roundHalfUp((string) ($row['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY);
+                    if ($lid > 0 && bccomp($q, '0', PadraoDecimal::SCALE_QTY) > 0) {
+                        $lotes[$lid] = [
+                            'lote_id' => $lid,
+                            'qtde' => $q,
+                            'motivo' => (string) ($row['motivo'] ?? $mat->motivo_avaria ?? ''),
+                        ];
+                    }
+                }
+
+                foreach ($volumesIn as $row) {
+                    $lid = (int) ($row['lote_id'] ?? 0);
+                    $qAdd = PadraoDecimal::parseStrict((string) ($row['qtde'] ?? ''), PadraoDecimal::SCALE_QTY);
+                    if ($lid <= 0 || $qAdd === null || bccomp($qAdd, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                        throw ValidationException::withMessages([
+                            'volumes' => ['Informe lote_id e quantidade positiva para cada volume avariado.'],
+                        ]);
+                    }
+                    $disponivel = $foraPorLote[$lid] ?? '0';
+                    if (bccomp($qAdd, $disponivel, PadraoDecimal::SCALE_QTY) > 0) {
+                        throw ValidationException::withMessages([
+                            'volumes' => ["Volume {$lid}: avaria ({$qAdd}) excede o que ainda está fora e sem perda ({$disponivel})."],
+                        ]);
+                    }
+                    $prev = $lotes[$lid]['qtde'] ?? '0';
+                    $lotes[$lid] = [
+                        'lote_id' => $lid,
+                        'qtde' => PadraoDecimal::roundHalfUp(
+                            bcadd($prev, $qAdd, PadraoDecimal::SCALE_QTY + 4),
+                            PadraoDecimal::SCALE_QTY
+                        ),
+                        'motivo' => $motivo,
+                    ];
+                    $foraPorLote[$lid] = PadraoDecimal::roundHalfUp(
+                        bcsub($disponivel, $qAdd, PadraoDecimal::SCALE_QTY + 4),
+                        PadraoDecimal::SCALE_QTY
+                    );
+                }
+
+                $soma = '0';
+                $lista = [];
+                foreach ($lotes as $row) {
+                    $soma = bcadd($soma, $row['qtde'], PadraoDecimal::SCALE_QTY + 4);
+                    $lista[] = $row;
+                }
+                $soma = PadraoDecimal::roundHalfUp($soma, PadraoDecimal::SCALE_QTY);
+                if (bccomp($soma, $req, PadraoDecimal::SCALE_QTY) > 0) {
+                    throw ValidationException::withMessages([
+                        'qtde' => ["Avaria ({$soma}) não pode exceder o requisitado ({$req})."],
+                    ]);
+                }
+
+                $mat->avaria_lotes = $lista === [] ? null : array_values($lista);
+                $mat->qtde_avaria = $soma;
+                $mat->motivo_avaria = $motivo;
+                $mat->avaria_em = now();
+                $mat->avaria_por = Auth::id();
+                $mat->save();
+
+                return $op;
+            }
+
+            if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) > 0 && mb_strlen($motivo) < 3) {
+                throw ValidationException::withMessages([
+                    'motivo' => ['Informe o motivo da avaria (mínimo 3 caracteres).'],
+                ]);
+            }
             if (bccomp($qtde, $req, PadraoDecimal::SCALE_QTY) > 0) {
                 throw ValidationException::withMessages([
                     'qtde' => ["Avaria ({$qtde}) não pode exceder o requisitado ({$req})."],
@@ -839,6 +939,7 @@ class OrdemProducaoService
                 $mat->motivo_avaria = null;
                 $mat->avaria_em = null;
                 $mat->avaria_por = null;
+                $mat->avaria_lotes = null;
             } else {
                 $mat->motivo_avaria = $motivo;
                 $mat->avaria_em = now();
@@ -916,7 +1017,7 @@ class OrdemProducaoService
             }
 
             $produto = $mat->produto;
-            $disponiveis = $this->coleta->volumesADevolver($empresa, $op, (int) $produto->id);
+            $disponiveis = $this->coleta->volumesADevolver($empresa, $op, (int) $produto->id, $mat);
             $dispPorLote = [];
             foreach ($disponiveis as $v) {
                 $lid = (int) ($v['lote_id'] ?? 0);
@@ -1066,12 +1167,14 @@ class OrdemProducaoService
                 $mat->motivo_avaria = null;
                 $mat->avaria_em = null;
                 $mat->avaria_por = null;
+                $mat->avaria_lotes = null;
             } elseif (bccomp($avariaAtual, $novaReq, PadraoDecimal::SCALE_QTY) > 0) {
                 $mat->qtde_avaria = $novaReq;
                 if (bccomp($novaReq, '0', PadraoDecimal::SCALE_QTY) <= 0) {
                     $mat->motivo_avaria = null;
                     $mat->avaria_em = null;
                     $mat->avaria_por = null;
+                    $mat->avaria_lotes = null;
                 }
             }
             $mat->save();
@@ -1821,6 +1924,14 @@ class OrdemProducaoService
                 'qtde_avaria' => (string) ($m->qtde_avaria ?? '0'),
                 'motivo_avaria' => $m->motivo_avaria,
                 'avaria_em' => optional($m->avaria_em)?->toIso8601String(),
+                'avaria_lotes' => array_values(array_map(
+                    static fn (array $row): array => [
+                        'lote_id' => (int) ($row['lote_id'] ?? 0),
+                        'qtde' => PadraoDecimal::roundHalfUp((string) ($row['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY),
+                        'motivo' => isset($row['motivo']) ? (string) $row['motivo'] : null,
+                    ],
+                    is_array($m->avaria_lotes) ? $m->avaria_lotes : []
+                )),
                 'qtde_consumida' => (string) $m->qtde_consumida,
                 'qtde_retorno' => (string) $m->qtde_retorno,
                 'qtde_perda' => (string) $m->qtde_perda,

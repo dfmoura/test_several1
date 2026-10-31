@@ -8,14 +8,14 @@ Norma: `docs/ADR_OP_FICHA_KIT.md`. Motor intacto: `ADR_PRODUCAO_PED_OP_ESTOQUE.m
 OP = o que produzir + kit + fechar
   kit = materiais[] (sem CART- / REQ-)
     Estoque · A buscar = o que sai da prateleira (SAIDA_PRODUCAO) e a sobra que volta
-    OP = etiquetas boas, refugo, fechar; depois rolos reais e caixas
+    OP = volume Já saiu → Perdeu + substituto; etiquetas boas; fechar; rolos/caixas
 ```
 
 ## Faça
 
-- Vocabulário humano: falta pegar · já saiu · sem estoque · devolver sobra · etiquetas boas · rolos reais · caixas.
-- Kit = **azulejos**. Cada um mostra **quanto a OP precisa**. Bobina: **metro linear da pista + m²**. Overlay na OP só mostra. **Confirmar saída só com `estoque.escrever`**, em Estoque · A buscar. **Fechar a ordem só com `producao.escrever`**, na própria OP. Bobina na prateleira = **volumes** (baixa em m²); o resto = unidades. Filtro = lote do volume.
-- Avaria só na lista de retirada.
+- Vocabulário humano: falta pegar · já saiu · sem estoque · devolver sobra · perda do volume · etiquetas boas · rolos reais · caixas.
+- Kit = **azulejos**. Cada um mostra **quanto a OP precisa**. Bobina: **metro linear da pista + m²**. **Confirmar saída com `estoque.escrever`** (OP ou A buscar). **Fechar a ordem só com `producao.escrever`**, na própria OP. Bobina na prateleira = **volumes** (baixa em m²); o resto = unidades. Filtro = lote do volume.
+- **Perda do volume** na OP: botão **Perdeu** no registro que saiu → `avaria_lotes` + complementar. Sem AJU, sem segundo writer.
 - Extra = acrescentar no kit (mesma confirmação no estoque).
 - 1 kit por OP.
 - Bobina da lista = grupo do catálogo. Outro grupo só com motivo. Etiqueta com papel no snapshot só fecha depois que o papel saiu.
@@ -25,11 +25,12 @@ OP = o que produzir + kit + fechar
 
 ## Não faça
 
-- Recolocar tabela de 9 colunas, QR ou avaria na ficha da OP.
+- Recolocar tabela de 9 colunas ou QR na ficha impressa da OP.
 - Criar documento carrinho / requisição ou segundo writer.
 - Reservar saldo sem ADR.
 - Juntar a baixa de prateleira com o fecho da ordem.
 - Recolocar o menu **Na máquina** ou a grade de consumo (saiu, rasgou, sobra, perda, usou) no fecho.
 - Recolocar botões separados **Retirada · volumes** / **Materiais · retirada** na toolbar da OP.
+- Tratar perda de volume só em A buscar (superfície canônica = OP no registro do volume).
 
 Se a tarefa exigir violar isto → parar e citar `docs/ADR_OP_FICHA_KIT.md`.

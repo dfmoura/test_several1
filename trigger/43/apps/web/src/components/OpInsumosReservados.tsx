@@ -431,7 +431,10 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
   const assinatura = useMemo(
     () =>
       (materiais ?? [])
-        .map((m) => `${m.id}:${m.saida_movimento_id ?? ''}:${m.qtde_requisitada}:${m.pendente}`)
+        .map(
+          (m) =>
+            `${m.id}:${m.saida_movimento_id ?? ''}:${m.qtde_requisitada}:${m.qtde_avaria ?? 0}:${m.pendente}:${JSON.stringify(m.avaria_lotes ?? [])}`,
+        )
         .join('|'),
     [materiais],
   );
@@ -445,6 +448,16 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [overlayMaterialId, setOverlayMaterialId] = useState<number | null>(null);
+  /** Reposição após perda: overlay confirma complementar na hora. */
+  const [reposicaoMaterialId, setReposicaoMaterialId] = useState<number | null>(null);
+  const [perda, setPerda] = useState<{
+    materialId: number;
+    loteId: number;
+    qtde: string;
+    label: string;
+    unidade: string;
+  } | null>(null);
+  const [motivoPerda, setMotivoPerda] = useState('');
   const [catalogoOverlay, setCatalogoOverlay] = useState<OpRetiradaVolume[]>([]);
   const [conhecidos, setConhecidos] = useState<Record<number, OpRetiradaVolume>>({});
   const [overlayBusy, setOverlayBusy] = useState(false);
@@ -509,20 +522,25 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
     return out;
   };
 
-  const abrirOverlay = (m: OrdemProducaoMaterial) => {
+  const abrirOverlay = (m: OrdemProducaoMaterial, modo: 'escolha' | 'reposicao' = 'escolha') => {
     const ticket = overlayTicket.current + 1;
     overlayTicket.current = ticket;
     const base = volumesParaEscolha(m);
     lembrar(base);
     setCatalogoOverlay(base);
     setOverlayMaterialId(m.id);
+    setReposicaoMaterialId(modo === 'reposicao' ? m.id : null);
+    if (modo === 'reposicao') {
+      setVolumes((prev) => ({ ...prev, [m.id]: [] }));
+    }
     setOverlayBusy(true);
     const produtoMarcado = (volumes[m.id] ?? [])
       .map((v) => conhecidos[v.lote_id]?.produto_id ?? 0)
       .find((id) => id > 0) ?? 0;
     const produtoQuery =
       (m.escolher_produto ? (produtos[m.id] ?? 0) : 0) ||
-      ((m.componente ?? '').toUpperCase() === 'ACABAMENTO' ? produtoMarcado : 0);
+      ((m.componente ?? '').toUpperCase() === 'ACABAMENTO' ? produtoMarcado : 0) ||
+      (m.produto?.id ?? 0);
     void api
       .get<{ data: OpRetiradaVolume[] }>(
         `/ordens-producao/${op.id}/volumes-escolha?material_id=${m.id}${
@@ -541,6 +559,73 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
       .finally(() => {
         if (overlayTicket.current === ticket) setOverlayBusy(false);
       });
+  };
+
+  const confirmarPerdaVolume = async () => {
+    if (!perda) return;
+    if (motivoPerda.trim().length < 3) {
+      setErr('Informe o motivo da perda (mínimo 3 caracteres).');
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      // Mesmo motor; RBAC estoque.escrever (quem baixa também aponta perda do volume).
+      const res = await api.post<{ data: OrdemProducao }>(`/estoque/retiradas/${op.id}/avaria`, {
+        material_id: perda.materialId,
+        motivo: motivoPerda.trim(),
+        volumes: [{ lote_id: perda.loteId, qtde: parseQtdeDigitada(perda.qtde).toFixed(4) }],
+      });
+      onOp(res.data);
+      const material = (res.data.materiais ?? []).find((m) => m.id === perda.materialId);
+      setPerda(null);
+      setMotivoPerda('');
+      if (material) {
+        abrirOverlay(material, 'reposicao');
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Falha ao registrar a perda.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmarReposicao = async () => {
+    const materialId = reposicaoMaterialId;
+    if (materialId == null) return;
+    const material = (materiais ?? []).find((m) => m.id === materialId);
+    if (!material) return;
+    const escolhidos = (volumes[materialId] ?? []).filter((v) => parseQtdeDigitada(v.qtde) > 0);
+    if (escolhidos.length === 0) {
+      setErr('Marque o volume substituto.');
+      return;
+    }
+    const vols = volumesEfetivos(material, escolhidos);
+    const soma = vols.reduce((acc, v) => acc + parseQtdeDigitada(v.qtde), 0);
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.post<{ data: OrdemProducao }>(`/estoque/retiradas/${op.id}/confirmar`, {
+        linhas: [
+          {
+            material_id: materialId,
+            qtde: soma.toFixed(4),
+            complementar: true,
+            volumes: vols,
+            volumes_motivo: 'Substituição após perda do volume',
+          },
+        ],
+      });
+      onOp(res.data);
+      overlayTicket.current += 1;
+      setOverlayMaterialId(null);
+      setReposicaoMaterialId(null);
+      setVolumes((prev) => ({ ...prev, [materialId]: [] }));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Falha ao baixar o substituto.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const gravarEscolha = (materialId: number, produtoId: number | null, grupoMotivo?: string) => {
@@ -569,7 +654,8 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
       .map((marca) => ({ lote_id: marca.lote_id, qtde: marca.qtde }));
     setVolumes((prev) => ({ ...prev, [materialId]: linhas }));
     const material = (materiais ?? []).find((item) => item.id === materialId);
-    if (!material || material.saida_movimento_id) return;
+    // Reposição complementar: só monta o carrinho; confirma no overlay.
+    if (!material || (material.saida_movimento_id && reposicaoMaterialId !== materialId)) return;
     const volumeDireto =
       (material.componente ?? '').toUpperCase() === 'ACABAMENTO' && Boolean(material.escolher_produto);
     if (!volumeDireto) return;
@@ -959,10 +1045,8 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                     (estado === 'falta_pegar' || (podeTrocar && saldoOpcao > 0)),
                 );
                 const escolhidos = volumes[m.id] ?? [];
-                const baixados =
-                  m.retirada?.volumes_a_devolver?.length
-                    ? m.retirada.volumes_a_devolver
-                    : (m.retirada?.volumes_baixados ?? []);
+                /** Já saiu: todos os volumes baixados (inclui perda). Devolver usa volumes_a_devolver na API. */
+                const baixados = m.retirada?.volumes_baixados ?? [];
                 const un = unidadeExibicao(m.unidade || m.retirada?.unidade);
                 const peca = unidadeContada(m.unidade || m.retirada?.unidade);
                 const metragem = insumoComMetragem(m);
@@ -1170,6 +1254,15 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                               ? formatLeituraBobina(vol, qtde, larguraMmDoMaterial(m))
                               : null;
                             const medidaVol = formatVolumeDimensao(vol);
+                            const loteId = vol.lote_id ?? 0;
+                            const avariado = Boolean(vol.avariado);
+                            const podePerder =
+                              aberta &&
+                              canWrite &&
+                              loteId > 0 &&
+                              !avariado &&
+                              parseQtdeDigitada(qtde) > 0;
+                            const podeSubstituir = aberta && canWrite && avariado;
                             return {
                               id: vol.lote_id ?? vol.codigo ?? qtde,
                               cols: colunasVolume({
@@ -1185,7 +1278,46 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                                 m2: metragem ? leitura?.m2 ?? '—' : null,
                                 metros: metragem ? leitura?.metros ?? '—' : null,
                                 qtdeLabel,
-                                qtde,
+                                qtde: avariado ? (
+                                  <span className="op-insumo-perda" title={vol.qtde_avaria ?? qtde}>
+                                    Perda
+                                    {vol.qtde_avaria
+                                      ? ` · ${formatQtdePick(parseQtdeDigitada(vol.qtde_avaria), un)}`
+                                      : ''}
+                                  </span>
+                                ) : (
+                                  qtde
+                                ),
+                                acao: podePerder ? (
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    disabled={busy}
+                                    onClick={() => {
+                                      setErr(null);
+                                      setMotivoPerda('');
+                                      setPerda({
+                                        materialId: m.id,
+                                        loteId,
+                                        qtde,
+                                        label: formatLotePick(vol),
+                                        unidade: un,
+                                      });
+                                    }}
+                                  >
+                                    Perdeu
+                                  </button>
+                                ) : podeSubstituir ? (
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    disabled={busy}
+                                    title="Baixar outro volume no lugar deste (perda já apontada)"
+                                    onClick={() => abrirOverlay(m, 'reposicao')}
+                                  >
+                                    Substituir
+                                  </button>
+                                ) : undefined,
                               }),
                             };
                           })}
@@ -1414,6 +1546,76 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
         </div>
       ) : null}
 
+      {perda ? (
+        <div className="op-escolha" role="dialog" aria-modal="true" aria-labelledby="op-perda-title">
+          <button
+            type="button"
+            className="op-escolha__backdrop"
+            aria-label="Fechar"
+            onClick={() => {
+              if (!busy) {
+                setPerda(null);
+                setMotivoPerda('');
+              }
+            }}
+          />
+          <div className="op-escolha__panel" style={{ maxWidth: 480 }}>
+            <header className="op-escolha__head">
+              <div className="op-escolha__head-main">
+                <p className="op-escolha__tipo">Perda</p>
+                <h2 id="op-perda-title">{perda.label}</h2>
+                <p className="muted op-escolha__hint">
+                  Marca este volume como perda (já saiu — não volta à prateleira). Em seguida escolha o
+                  substituto no estoque.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                disabled={busy}
+                onClick={() => {
+                  setPerda(null);
+                  setMotivoPerda('');
+                }}
+              >
+                Fechar
+              </button>
+            </header>
+            {err ? <div className="alert alert-error">{err}</div> : null}
+            <div className="op-escolha__body">
+              <p className="muted" style={{ marginTop: 0 }}>
+                Qtde:{' '}
+                <strong>{formatQtdePick(parseQtdeDigitada(perda.qtde), perda.unidade)}</strong>
+              </p>
+              <div className="form-group">
+                <label htmlFor="op-perda-motivo">Motivo</label>
+                <input
+                  id="op-perda-motivo"
+                  value={motivoPerda}
+                  disabled={busy}
+                  autoFocus
+                  placeholder="Ex.: rasgou na mesa / umedeceu"
+                  onChange={(e) => setMotivoPerda(e.target.value)}
+                />
+              </div>
+            </div>
+            <footer className="op-escolha__foot">
+              <span />
+              <div className="op-escolha__foot-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={busy || motivoPerda.trim().length < 3}
+                  onClick={() => void confirmarPerdaVolume()}
+                >
+                  Registrar perda e escolher outro
+                </button>
+              </div>
+            </footer>
+          </div>
+        </div>
+      ) : null}
+
       {overlayMaterialId != null
         ? (() => {
             const material = (materiais ?? []).find((m) => m.id === overlayMaterialId);
@@ -1423,6 +1625,7 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
             const pedidoQtde = unidadeContada(material.unidade)
               ? qtdeContadaExibida(pedidoN)
               : String(pedidoN || '');
+            const emReposicao = reposicaoMaterialId === material.id;
             return (
               <SeparacaoVolumesOverlay
                 titulo={opKitNome(material)}
@@ -1430,19 +1633,26 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                 unidade={un}
                 volumes={catalogoOverlay}
                 marcas={marcasDoOverlay(material.id)}
-                busy={busy}
+                busy={busy || overlayBusy}
                 modo="debita"
                 mostrarProduto
                 hint={
-                  overlayBusy
-                    ? 'Carregando o estoque. Marque um ou mais volumes. A confirmação da saída fica na ordem.'
-                    : 'Marque um ou mais volumes. A confirmação da saída fica na ordem.'
+                  emReposicao
+                    ? overlayBusy
+                      ? 'Carregando o estoque. Marque o volume substituto.'
+                      : 'Perda registrada. Marque o volume que substitui e confirme a baixa.'
+                    : overlayBusy
+                      ? 'Carregando o estoque. Marque um ou mais volumes. A confirmação da saída fica na ordem.'
+                      : 'Marque um ou mais volumes. A confirmação da saída fica na ordem.'
                 }
+                confirmLabel={emReposicao ? 'Baixar substituto' : undefined}
+                onConfirm={emReposicao ? () => void confirmarReposicao() : undefined}
                 onLerQr={canWrite ? lerQrOverlay : undefined}
                 onChangeMarcas={(next) => aplicarMarcas(material.id, next)}
                 onClose={() => {
                   overlayTicket.current += 1;
                   setOverlayMaterialId(null);
+                  setReposicaoMaterialId(null);
                 }}
               />
             );
