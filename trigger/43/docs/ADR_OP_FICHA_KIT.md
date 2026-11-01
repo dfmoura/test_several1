@@ -106,7 +106,7 @@ Satélites paisagem da ficha flexo, sem preço e sem mexer no kit. (Substituída
 
 ## Emenda 2026-10-29 — ficha de chão unificada
 
-Um satélite paisagem A4 substitui as duas rotas acima. Toolbar: **Ficha de chão** (emenda 2026-10-29c).
+Um satélite paisagem A4 substitui as duas rotas acima. Toolbar: **Ficha da OP** (rótulo; rota `/ficha-chao` — emenda 2026-10-29c / rótulo 2026-11-01).
 
 | Rota | Quem | Conteúdo |
 |------|------|----------|
@@ -120,7 +120,7 @@ Separava máquina / pick ticket / materiais. Substituída pela emenda 2026-10-29
 
 ## Emenda 2026-10-29c — um papel: máquina + retirada
 
-Toolbar da OP: **Imprimir lista** + **Ficha de chão** apenas.
+Toolbar da OP: **Imprimir lista** + **Ficha da OP** apenas.
 
 | Rota | Quem | Conteúdo |
 |------|------|----------|
@@ -155,6 +155,10 @@ Superfície: **Ordens de produção** → kit **O que sai do estoque** → volum
 2. Overlay de escolha → `POST /estoque/retiradas/{op}/confirmar` com `complementar: true` → nova `SAIDA_PRODUCAO` do substituto.
 3. Volume em perda some do pool `volumes_a_devolver` (não volta à prateleira). UI de Devolver **nunca** cai em `volumes_baixados` quando o pool está vazio.
 4. A buscar mantém só saída FEFO + **Devolver** (bom).
-5. **Ficha de chão** Retirada: volumes bons/substitutos = saiu; volume `avariado` = linha **PERDA** (sem QR de caminhada, sem checkbox Levado). Sem writer.
+5. **Ficha da OP** Retirada: volumes bons/substitutos = saiu; volume `avariado` = linha **PERDA** (sem QR de caminhada, sem checkbox Levado). Sem writer.
+
+## Emenda 2026-11-01 — rótulo **Ficha da OP**
+
+Só copy/UX: botão da toolbar, título do documento impresso e rodapé passam a **Ficha da OP** (família *Ficha do pedido* / *Ficha do cliente*). Rota `/ficha-chao`, redirects legados, motor e conteúdo (impressão · rebobinação · retirada) intactos. Evitar “Impressão OP” — conflita com a seção **Impressão · máquina**.
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX).

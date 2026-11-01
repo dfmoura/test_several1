@@ -3,4 +3,4 @@ Stack HOST: erp43_web :8043 (bind apps/web/dist) · API :8040 · MySQL :33073
 SPA: index-GZ-roR8I.js
 API: volumeToOut + qr_payload
 Docker CLI no agent: sem sock (não precisa — stack já no ar)
-Test: http://localhost:8043/ordens-producao → Ficha de chão (Ctrl+Shift+R)
+Test: http://localhost:8043/ordens-producao → Ficha da OP (Ctrl+Shift+R)

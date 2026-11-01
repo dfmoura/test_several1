@@ -3369,7 +3369,7 @@ export type OpRetiradaVolume = {
   produto_id?: number | null;
   descricao?: string | null;
   proximidade?: number | null;
-  /** Ficha impressa / QR (A separar REV + retirada OP / ficha de chão). */
+  /** Ficha impressa / QR (A separar REV + retirada OP / ficha da OP). */
   qr_payload?: string | null;
   /** Volume apontado como perda na separação (não devolve). */
   avariado?: boolean;

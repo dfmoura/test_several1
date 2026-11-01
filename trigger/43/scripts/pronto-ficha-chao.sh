@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe stack local + SPA com ficha de chão unificada (máquina + prateleira).
+# Sobe stack local + SPA com Ficha da OP (/ficha-chao: máquina + prateleira).
 # Uso (no host, com Docker): bash scripts/pronto-ficha-chao.sh
 #     ou: make pronto-ficha-chao
 set -euo pipefail
@@ -18,7 +18,7 @@ echo "ok"
 echo "== Stack up =="
 make up
 
-echo "== Rebuild SPA (ficha de chão) =="
+echo "== Rebuild SPA (Ficha da OP) =="
 make web-build
 
 echo "== Health =="
@@ -35,7 +35,7 @@ make doctor
 
 cat <<'EOF'
 
-Pronto para testar — Ficha de chão (modelos + retirada)
+Pronto para testar — Ficha da OP (modelos + retirada)
   App:     http://localhost:8043
   Login:   http://localhost:8043/login
   OPs:     http://localhost:8043/ordens-producao
@@ -43,7 +43,7 @@ Pronto para testar — Ficha de chão (modelos + retirada)
 Roteiro
   1. Hard refresh (Ctrl+Shift+R) — SPA nova (dist bind-mount)
   2. Ordens de produção → OP de etiqueta com N modelos
-  3. Toolbar → Ficha de chão
+  3. Toolbar → Ficha da OP
   4. Identidade: 1 linha/modelo com Quant em todas
   5. Impressão · máquina: coluna Modelo + N linhas (rolos rateados)
   6. Acabamento · rebobinação: coluna Modelo + N linhas

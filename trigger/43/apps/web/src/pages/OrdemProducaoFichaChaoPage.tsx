@@ -25,7 +25,7 @@ export function OrdemProducaoFichaChaoPage() {
 
   useEffect(() => {
     if (!id) {
-      setError('Ordem inválida para ficha de chão.');
+      setError('Ordem inválida para a ficha da OP.');
       setLoading(false);
       return;
     }

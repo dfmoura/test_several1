@@ -30,7 +30,7 @@ import { opStatusLabel } from '../lib/producaoUi';
 import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
 
 /**
- * Ficha de chão unificada — impressão, acabamento e retirada (A4 paisagem).
+ * Ficha da OP (satélite /ficha-chao) — impressão, acabamento e retirada (A4 paisagem).
  * Satélite da ficha flexo. Confirmar saída só na tela A buscar.
  * Produção: 1 linha por modelo. Retirada: volume a volume (bobina em m + m² + QR).
  */
@@ -410,7 +410,7 @@ export function OrdemProducaoFichaChaoSheet({
 
       <footer className="ficha-footer">
         <span>
-          Uso interno · {o.codigo} · ficha de chão · emitido por {emitidoPor}
+          Uso interno · {o.codigo} · ficha da OP · emitido por {emitidoPor}
         </span>
         <TriggerAttribution
           variant="print"

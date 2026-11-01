@@ -2,7 +2,7 @@
  * Grão da ficha planilha do PED (A4 paisagem) — só apresentação.
  * Comercial: 1 linha por modelo.
  * Produção (planilha): 1 linha por modelo; setup do item repete; Rolos rateados.
- * Produção (OP ficha de chão): `linhasProducaoPlanilhaPorModelo` (1 linha/modelo).
+ * Produção (Ficha da OP /ficha-chao): `linhasProducaoPlanilhaPorModelo` (1 linha/modelo).
  * Produção (outros satélites OP): `linhasProducaoPlanilha` permanece 1 linha por item.
  * Não persiste campo novo e não altera FAT/OP/contrato retrato.
  */

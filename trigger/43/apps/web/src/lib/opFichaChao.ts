@@ -1,5 +1,5 @@
 /**
- * Grão da ficha de chão unificada da OP — impressão, acabamento e retirada.
+ * Grão da Ficha da OP (satélite /ficha-chao) — impressão, acabamento e retirada.
  * Satélite da ficha flexo retrato. Sem R$. Sem writer (confirmação em A buscar).
  * Produção: 1 linha por modelo (mesmo grão da planilha PED).
  * Retirada: volume a volume (kit da OP), bobina em metro linear + m².
@@ -226,7 +226,7 @@ export function opFichaChaoMeta(): {
   toolbarHint: string;
 } {
   return {
-    titulo: 'Ficha de chão',
+    titulo: 'Ficha da OP',
     docLabel: 'Impressão · rebobinação · retirada · A4 paisagem',
     secaoImpressao: 'Impressão · máquina',
     hintImpressao: 'Largura do papel = largura × colunas de produção · 1 linha por modelo',

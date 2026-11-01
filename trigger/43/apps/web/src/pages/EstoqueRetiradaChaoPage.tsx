@@ -50,7 +50,7 @@ export function EstoqueRetiradaChaoPage() {
             href={`/ordens-producao/${op.id}/ficha-chao`}
             onClick={(e) => onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha-chao`)}
           >
-            Ficha de chão
+            Ficha da OP
           </a>
         ) : null}
         {op ? <span className="pick-toolbar__ref">{op.codigo}</span> : null}
