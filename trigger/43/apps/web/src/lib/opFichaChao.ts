@@ -96,7 +96,6 @@ export type OpFichaChaoRetiradaLinha = {
   levar: string;
   m2: string;
   validade: string;
-  qr_payload: string | null;
   situacao: OpFichaChaoRetiradaSituacao;
 };
 
@@ -127,7 +126,6 @@ function linhaRetiradaVazia(
     levar,
     m2: '—',
     validade: '—',
-    qr_payload: null,
     situacao,
   };
 }
@@ -167,8 +165,6 @@ function linhaRetiradaVolume(
           ? fmtNumChao(leitura.m2)
           : '—',
     validade: v.data_validade ? formatDate(v.data_validade) : '—',
-    // Perda: sem QR de caminhada — volume não volta / não se busca de novo.
-    qr_payload: situacao === 'perda' ? null : (v.qr_payload ?? '').trim() || null,
     situacao,
   };
 }

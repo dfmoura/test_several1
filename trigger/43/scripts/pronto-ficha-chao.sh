@@ -48,9 +48,9 @@ Roteiro
   5. Impressão · máquina: coluna Modelo + N linhas (rolos rateados)
   6. Acabamento · rebobinação: coluna Modelo + N linhas
   7. Retirada · prateleira:
-       Levado · Local · Volume · QR · Material · Dimensão · Levar · M² · Validade
-       Bobina: Levar = metro linear (m); M² e Dimensão L×C; QR do volume
-       Tubete/caixa: Levar = qtde+un; M²/Dimensão/QR = —
+       Levado · Local · Volume · Material · Dimensão · Levar · M² · Validade
+       Bobina: Levar = metro linear (m); M² e Dimensão L×C
+       Tubete/caixa: Levar = qtde+un; M²/Dimensão = —
   8. Imprimir / conferir A4 paisagem
   9. URLs antigas → /ficha-chao
 

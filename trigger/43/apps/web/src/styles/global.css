@@ -10361,26 +10361,6 @@ tr.row-inactive td {
   white-space: nowrap;
 }
 
-/* 12 mm: menor que o pick REV (18 mm), ainda escaneável para VOL:… na impressão A4. */
-.ficha-sheet-op-chao .op-chao-qr {
-  width: 14mm;
-  text-align: center;
-  vertical-align: middle;
-  padding: 0.4mm;
-}
-
-.ficha-sheet-op-chao .op-chao-qr .ficha-pick-qr {
-  margin: 0 auto;
-  width: 12mm;
-  height: 12mm;
-  image-rendering: pixelated;
-}
-
-.ficha-sheet-op-chao .op-chao-qr .ficha-pick-qr-hri {
-  max-width: 12mm;
-  font-size: 4.5pt;
-}
-
 .ficha-sheet-op-chao .op-chao-td-check .ficha-pick-check {
   width: 3.6mm;
   height: 3.6mm;
@@ -11928,8 +11908,7 @@ tr.row-inactive td {
   body.ficha-print-mode .ficha-sheet-ped-planilha .ped-planilha-saida .saida-etiqueta-badge--dense,
   body.ficha-print-mode .ficha-sheet-ped-planilha .ped-planilha-saida .saida-etiqueta-badge__img,
   body.ficha-print-mode .ficha-sheet-op-chao .op-chao-saida .saida-etiqueta-badge--dense,
-  body.ficha-print-mode .ficha-sheet-op-chao .op-chao-saida .saida-etiqueta-badge__img,
-  body.ficha-print-mode .ficha-sheet-op-chao .op-chao-qr .ficha-pick-qr {
+  body.ficha-print-mode .ficha-sheet-op-chao .op-chao-saida .saida-etiqueta-badge__img {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

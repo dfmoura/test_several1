@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
-import QRCode from 'qrcode';
+import { useMemo } from 'react';
 import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
 import {
@@ -32,7 +31,7 @@ import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
 /**
  * Ficha da OP (satélite /ficha-chao) — impressão, acabamento e retirada (A4 paisagem).
  * Satélite da ficha flexo. Confirmar saída só na tela A buscar.
- * Produção: 1 linha por modelo. Retirada: volume a volume (bobina em m + m² + QR).
+ * Produção: 1 linha por modelo. Retirada: volume a volume (bobina em m + m²).
  */
 export type OrdemProducaoFichaChaoSheetProps = {
   ordem: OrdemProducao;
@@ -178,35 +177,8 @@ function TabelaAcabamento({ linhas }: { linhas: PedidoPlanilhaProducaoModeloLinh
   );
 }
 
-/** Caminhada na prateleira — volume a volume; bobina em m + m² + QR. */
+/** Caminhada na prateleira — volume a volume; bobina em m + m². Sem coluna QR. */
 function TabelaRetirada({ linhas }: { linhas: OpFichaChaoRetiradaLinha[] }) {
-  const [qrMap, setQrMap] = useState<Record<string, string>>({});
-  const qrKey = linhas.map((l) => `${l.key}:${l.qr_payload ?? ''}`).join('|');
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const next: Record<string, string> = {};
-      await Promise.all(
-        linhas.map(async (l) => {
-          if (!l.qr_payload) return;
-          next[l.key] = await QRCode.toDataURL(l.qr_payload, {
-            width: 80,
-            margin: 1,
-            errorCorrectionLevel: 'M',
-            color: { dark: '#000000', light: '#ffffff' },
-          });
-        }),
-      );
-      if (!cancelled) setQrMap(next);
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // qrKey espelha payloads; linhas é estável via useMemo no pai
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qrKey]);
-
   return (
     <table className="ficha-table op-chao-table op-chao-table--retirada">
       <thead>
@@ -216,7 +188,6 @@ function TabelaRetirada({ linhas }: { linhas: OpFichaChaoRetiradaLinha[] }) {
           </th>
           <th scope="col">Local</th>
           <th scope="col">Volume</th>
-          <th scope="col">QR</th>
           <th scope="col">Material</th>
           <th scope="col">Dimensão</th>
           <th className="ficha-td-num" scope="col">
@@ -244,23 +215,6 @@ function TabelaRetirada({ linhas }: { linhas: OpFichaChaoRetiradaLinha[] }) {
               </td>
               <td className="op-chao-local">{dashCell(ln.local)}</td>
               <td className="op-chao-volume">{dashCell(ln.volume)}</td>
-              <td className="op-chao-qr">
-                {perda ? (
-                  '—'
-                ) : qrMap[ln.key] ? (
-                  <img
-                    className="ficha-pick-qr"
-                    src={qrMap[ln.key]}
-                    alt={`QR ${ln.volume}`}
-                    width={48}
-                    height={48}
-                  />
-                ) : ln.qr_payload ? (
-                  <span className="ficha-pick-qr-hri">{ln.qr_payload}</span>
-                ) : (
-                  '—'
-                )}
-              </td>
               <td>{dashCell(ln.material)}</td>
               <td className="op-chao-dimensao">{dashCell(ln.dimensao)}</td>
               <td className={`ficha-td-num${perda ? ' op-chao-levar--perda' : ''}`}>

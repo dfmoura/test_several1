@@ -132,14 +132,13 @@ Toolbar da OP: **Imprimir lista** + **Ficha da OP** apenas.
 
 Grão de **Impressão** e **Acabamento** = `linhasProducaoPlanilhaPorModelo` (1 linha por modelo; setup de faixa repete; rolos rateados) — mesmo da planilha PED, escopado ao item da OP. Identidade: Quant em cada modelo.
 
-**Retirada · prateleira** (ordem de caminhada): Levado · Local · Volume · QR · Material · Dimensão · Levar · M² · Validade.
+**Retirada · prateleira** (ordem de caminhada): Levado · Local · Volume · Material · Dimensão · Levar · M² · Validade (QR removido — emenda 2026-11-01b).
 
 | Coluna | Bobina | Demais (tubete / caixa / MUC) |
 |--------|--------|-------------------------------|
 | Levar | metro linear do volume | qtde + unidade de estoque |
 | M² | área correspondente | — |
 | Dimensão | L mm × C m do volume | — |
-| QR | `qr_payload` do lote (`volumeToOut`) | — se sem payload |
 
 Writer e `qtde_retirar` permanecem na unidade de estoque (m²). Ficha só apresenta. Sem explodir retirada por arte. Sem segundo writer.
 
@@ -155,10 +154,14 @@ Superfície: **Ordens de produção** → kit **O que sai do estoque** → volum
 2. Overlay de escolha → `POST /estoque/retiradas/{op}/confirmar` com `complementar: true` → nova `SAIDA_PRODUCAO` do substituto.
 3. Volume em perda some do pool `volumes_a_devolver` (não volta à prateleira). UI de Devolver **nunca** cai em `volumes_baixados` quando o pool está vazio.
 4. A buscar mantém só saída FEFO + **Devolver** (bom).
-5. **Ficha da OP** Retirada: volumes bons/substitutos = saiu; volume `avariado` = linha **PERDA** (sem QR de caminhada, sem checkbox Levado). Sem writer.
+5. **Ficha da OP** Retirada: volumes bons/substitutos = saiu; volume `avariado` = linha **PERDA** (sem checkbox Levado). Sem writer.
 
 ## Emenda 2026-11-01 — rótulo **Ficha da OP**
 
 Só copy/UX: botão da toolbar, título do documento impresso e rodapé passam a **Ficha da OP** (família *Ficha do pedido* / *Ficha do cliente*). Rota `/ficha-chao`, redirects legados, motor e conteúdo (impressão · rebobinação · retirada) intactos. Evitar “Impressão OP” — conflita com a seção **Impressão · máquina**.
+
+## Emenda 2026-11-01b — sem coluna QR na Retirada
+
+**Retirada · prateleira** deixa de imprimir QR (`qr_payload`). Colunas: Levado · Local · Volume · Material · Dimensão · Levar · M² · Validade. Identidade do volume continua pelo código **Volume**. QR de etiqueta/estoque (A buscar, etiquetas de volume) permanece. Sem writer.
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX).
