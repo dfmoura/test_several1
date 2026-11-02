@@ -7,7 +7,8 @@ import { api, type Faturamento } from '../lib/api';
 import { formatCurrency, formatDate } from '../lib/format';
 import { nfStatusLabel } from '../lib/fiscalUi';
 import { hrefFaturamento } from '../lib/cobrancaUi';
-import { appendPeriodo, currentMonthRange, hasPeriodo } from '../lib/periodo';
+import { PeriodoFiltro } from '../components/PeriodoFiltro';
+import { appendPeriodo, hasPeriodo, type PeriodoRange } from '../lib/periodo';
 import { useTableSort } from '../lib/useTableSort';
 
 const SORT = {
@@ -43,12 +44,16 @@ export function FaturamentosPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<Faturamento[]>([]);
   const [q, setQ] = useState('');
-  const mesAtual = currentMonthRange();
-  const [de, setDe] = useState(mesAtual.de);
-  const [ate, setAte] = useState(mesAtual.ate);
+  const [de, setDe] = useState('');
+  const [ate, setAte] = useState('');
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, SORT);
+
+  const setPeriodo = (next: PeriodoRange) => {
+    setDe(next.de);
+    setAte(next.ate);
+  };
 
   const load = async (search?: string, deVal?: string, ateVal?: string) => {
     setLoading(true);
@@ -77,6 +82,11 @@ export function FaturamentosPage() {
     void load(q, de, ate);
   };
 
+  const applyPeriodo = (next: PeriodoRange) => {
+    setPeriodo(next);
+    void load(q, next.de, next.ate);
+  };
+
   return (
     <>
       <PageHeader
@@ -103,14 +113,13 @@ export function FaturamentosPage() {
               <label>Buscar</label>
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="FAT, PED, cliente…" />
             </div>
-            <div className="form-group">
-              <label htmlFor="faturamentos-de">De</label>
-              <input id="faturamentos-de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label htmlFor="faturamentos-ate">Até</label>
-              <input id="faturamentos-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
-            </div>
+            <PeriodoFiltro
+              idPrefix="faturamentos"
+              de={de}
+              ate={ate}
+              onChange={setPeriodo}
+              onApply={applyPeriodo}
+            />
             <div>
               <button type="submit" className="btn btn-secondary">
                 Filtrar

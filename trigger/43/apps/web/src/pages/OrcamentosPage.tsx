@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { IconDuplicate, IconEye, IconPencil } from '../components/NavIcons';
 import { PageHeader } from '../components/PageHeader';
+import { PeriodoFiltro } from '../components/PeriodoFiltro';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, ApiError, type Orcamento } from '../lib/api';
@@ -15,7 +16,7 @@ import {
 } from '../lib/orcamentoForm';
 import { linhagemLabelLista } from '../lib/orcamentoLinhagem';
 import { tipoOperacaoFromSnap, tipoOperacaoLabel } from '../lib/operacoesSaida';
-import { appendPeriodo, currentMonthRange, hasPeriodo } from '../lib/periodo';
+import { appendPeriodo, hasPeriodo, type PeriodoRange } from '../lib/periodo';
 import { useTableSort } from '../lib/useTableSort';
 
 const SORT = {
@@ -59,14 +60,18 @@ export function OrcamentosPage() {
   const canWrite = hasPermission('orcamento.escrever');
   const [lista, setLista] = useState<Orcamento[]>([]);
   const [q, setQ] = useState('');
-  const mesAtual = currentMonthRange();
-  const [de, setDe] = useState(mesAtual.de);
-  const [ate, setAte] = useState(mesAtual.ate);
+  const [de, setDe] = useState('');
+  const [ate, setAte] = useState('');
   const [status, setStatusState] = useState<StatusTab>(() => parseStatusTab(searchParams.get('status')));
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [duplicandoId, setDuplicandoId] = useState<number | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(lista, SORT);
+
+  const setPeriodo = (next: PeriodoRange) => {
+    setDe(next.de);
+    setAte(next.ate);
+  };
 
   const load = useCallback(async (search?: string, statusFilter?: string, deVal?: string, ateVal?: string) => {
     setLoading(true);
@@ -111,6 +116,11 @@ export function OrcamentosPage() {
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     void load(q, status || undefined, de, ate);
+  };
+
+  const applyPeriodo = (next: PeriodoRange) => {
+    setPeriodo(next);
+    void load(q, status || undefined, next.de, next.ate);
   };
 
   const duplicar = async (o: Orcamento) => {
@@ -179,14 +189,13 @@ export function OrcamentosPage() {
                 placeholder="Código, cliente ou contato"
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="orcamentos-de">De</label>
-              <input id="orcamentos-de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label htmlFor="orcamentos-ate">Até</label>
-              <input id="orcamentos-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
-            </div>
+            <PeriodoFiltro
+              idPrefix="orcamentos"
+              de={de}
+              ate={ate}
+              onChange={setPeriodo}
+              onApply={applyPeriodo}
+            />
             <div>
               <button type="submit" className="btn btn-secondary">
                 Buscar

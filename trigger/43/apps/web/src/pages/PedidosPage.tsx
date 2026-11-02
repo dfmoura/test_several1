@@ -5,7 +5,8 @@ import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type Pedido } from '../lib/api';
 import { formatDate } from '../lib/format';
-import { appendPeriodo, currentMonthRange, hasPeriodo } from '../lib/periodo';
+import { PeriodoFiltro } from '../components/PeriodoFiltro';
+import { appendPeriodo, hasPeriodo, type PeriodoRange } from '../lib/periodo';
 import { linhagemLabelLista } from '../lib/orcamentoLinhagem';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { PED_LISTA_STATUSES, pedStatusLabel } from '../lib/producaoUi';
@@ -59,13 +60,17 @@ export function PedidosPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [q, setQ] = useState('');
-  const mesAtual = currentMonthRange();
-  const [de, setDe] = useState(mesAtual.de);
-  const [ate, setAte] = useState(mesAtual.ate);
+  const [de, setDe] = useState('');
+  const [ate, setAte] = useState('');
   const [status, setStatusState] = useState<StatusTab>(() => parseStatusTab(searchParams.get('status')));
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(pedidos, SORT);
+
+  const setPeriodo = (next: PeriodoRange) => {
+    setDe(next.de);
+    setAte(next.ate);
+  };
 
   const load = useCallback(async (search?: string, st?: string, deVal?: string, ateVal?: string) => {
     setLoading(true);
@@ -122,6 +127,11 @@ export function PedidosPage() {
     void load(q, status || undefined, de, ate);
   };
 
+  const applyPeriodo = (next: PeriodoRange) => {
+    setPeriodo(next);
+    void load(q, status || undefined, next.de, next.ate);
+  };
+
   return (
     <>
       <PageHeader
@@ -158,14 +168,13 @@ export function PedidosPage() {
                 placeholder="PED, ORC, cliente, contato…"
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="pedidos-de">De</label>
-              <input id="pedidos-de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label htmlFor="pedidos-ate">Até</label>
-              <input id="pedidos-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
-            </div>
+            <PeriodoFiltro
+              idPrefix="pedidos"
+              de={de}
+              ate={ate}
+              onChange={setPeriodo}
+              onApply={applyPeriodo}
+            />
             <div>
               <button type="submit" className="btn btn-secondary">
                 Buscar

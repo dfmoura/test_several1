@@ -829,6 +829,98 @@ textarea {
   height: 1rem;
 }
 
+/* Filtro de período (listagens ORC/PED/OP/OC/FAT) — ícone discreto + menu */
+.periodo-filtro {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-end;
+  align-self: flex-end;
+  margin-bottom: 0.1rem;
+}
+
+.periodo-filtro__btn.is-active {
+  color: var(--navy);
+  background: rgba(26, 53, 104, 0.08);
+}
+
+.periodo-filtro__btn.is-active::after {
+  content: '';
+  position: absolute;
+  top: 0.28rem;
+  right: 0.28rem;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 50%;
+  background: var(--navy);
+}
+
+.periodo-filtro__btn {
+  position: relative;
+}
+
+.periodo-filtro__menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 40;
+  min-width: 11.5rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border, #d7dde8);
+  border-radius: var(--radius-sm);
+  background: var(--surface, #fff);
+  box-shadow: 0 8px 24px rgba(16, 28, 52, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.periodo-filtro__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.4rem 0.55rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text, #1a2438);
+  font: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.periodo-filtro__item:hover,
+.periodo-filtro__item:focus-visible {
+  background: rgba(26, 53, 104, 0.07);
+  outline: none;
+}
+
+.periodo-filtro__item.is-selected {
+  color: var(--navy);
+  font-weight: 600;
+  background: rgba(26, 53, 104, 0.08);
+}
+
+.periodo-filtro__intervalo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.25rem;
+  padding: 0.45rem 0.35rem 0.25rem;
+  border-top: 1px solid var(--border, #d7dde8);
+}
+
+.periodo-filtro__intervalo .form-group {
+  margin: 0;
+}
+
+.periodo-filtro__intervalo .form-group label {
+  font-size: 0.75rem;
+}
+
+.periodo-filtro__intervalo input[type='date'] {
+  width: 100%;
+}
+
 /* Lista PAR — coluna posição/distância (ícone discreto + cor semântica) */
 th.th-icon,
 td.td-icon {

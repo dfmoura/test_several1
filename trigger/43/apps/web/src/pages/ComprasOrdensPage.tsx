@@ -7,7 +7,8 @@ import { api, type OrdemCompra } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { OC_LISTA_STATUSES, ocStatusLabel } from '../lib/comprasUi';
 import { formatCurrency, formatDate } from '../lib/format';
-import { appendPeriodo, currentMonthRange, hasPeriodo } from '../lib/periodo';
+import { PeriodoFiltro } from '../components/PeriodoFiltro';
+import { appendPeriodo, hasPeriodo, type PeriodoRange } from '../lib/periodo';
 import { useTableSort } from '../lib/useTableSort';
 
 type StatusTab = '' | (typeof OC_LISTA_STATUSES)[number];
@@ -50,13 +51,17 @@ export function ComprasOrdensPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [ordens, setOrdens] = useState<OrdemCompra[]>([]);
   const [q, setQ] = useState('');
-  const mesAtual = currentMonthRange();
-  const [de, setDe] = useState(mesAtual.de);
-  const [ate, setAte] = useState(mesAtual.ate);
+  const [de, setDe] = useState('');
+  const [ate, setAte] = useState('');
   const [status, setStatusState] = useState<StatusTab>(() => parseStatusTab(searchParams.get('status')));
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(ordens, SORT);
+
+  const setPeriodo = (next: PeriodoRange) => {
+    setDe(next.de);
+    setAte(next.ate);
+  };
 
   const load = useCallback(async (search?: string, st?: string, deVal?: string, ateVal?: string) => {
     setLoading(true);
@@ -116,6 +121,11 @@ export function ComprasOrdensPage() {
     void load(q, status || undefined, de, ate);
   };
 
+  const applyPeriodo = (next: PeriodoRange) => {
+    setPeriodo(next);
+    void load(q, status || undefined, next.de, next.ate);
+  };
+
   return (
     <>
       <PageHeader
@@ -159,14 +169,13 @@ export function ComprasOrdensPage() {
                 placeholder="Código, fornecedor…"
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="ordens-compra-de">De</label>
-              <input id="ordens-compra-de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label htmlFor="ordens-compra-ate">Até</label>
-              <input id="ordens-compra-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
-            </div>
+            <PeriodoFiltro
+              idPrefix="ordens-compra"
+              de={de}
+              ate={ate}
+              onChange={setPeriodo}
+              onApply={applyPeriodo}
+            />
             <div>
               <button type="submit" className="btn btn-secondary">
                 Buscar

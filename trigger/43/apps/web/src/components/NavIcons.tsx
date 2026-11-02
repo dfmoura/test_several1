@@ -87,6 +87,15 @@ export function IconCalendario({ className }: IconProps) {
   );
 }
 
+/** Filtro de listagem (período / facets). */
+export function IconFiltro({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M4 5h16l-6 7.5V19l-4 2v-8.5L4 5z" />
+    </IconBase>
+  );
+}
+
 /** Backlog operacional (BLG-). */
 export function IconBacklog({ className }: IconProps) {
   return (
