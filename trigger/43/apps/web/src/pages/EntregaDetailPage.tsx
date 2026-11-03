@@ -218,6 +218,7 @@ export function EntregaDetailPage() {
                 ) : null}
               </div>
               <DocumentosSaidaKit
+                pedidoId={ent.pedido?.id}
                 entregaId={ent.id}
                 faturamentoId={ent.faturamento?.id}
                 nfe={ent.nfe}

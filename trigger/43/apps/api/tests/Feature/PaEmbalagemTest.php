@@ -522,5 +522,14 @@ class PaEmbalagemTest extends TestCase
         $ids = array_column($resumo['embalagens'], 'id');
         $this->assertSame($ids, array_values(array_unique($ids)));
         $this->assertSame($ids, collect($ids)->sort()->values()->all());
+
+        $lote = $this->withHeaders($this->h())
+            ->getJson('/api/v1/pedidos/'.$this->pedido->id.'/embalagem/etiquetas');
+        $lote->assertOk();
+        $this->assertCount(2, $lote->json('data.embalagens'));
+        $this->assertCount(2, $lote->json('data.caixas'));
+        $this->assertCount(7, $lote->json('data.bobinas'));
+        $this->assertSame($this->pedido->codigo, $lote->json('data.pedido.codigo'));
+        $this->assertNull($lote->json('data.embalagem'));
     }
 }

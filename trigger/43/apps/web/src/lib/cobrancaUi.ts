@@ -29,6 +29,11 @@ export function hrefEtiquetasEmbalagem(embalagemId: number): string {
   return `/pa-embalagens/${embalagemId}/etiquetas`;
 }
 
+/** Lote BOB/CX do PED no kit de saída (1 CTA → todas as faces). */
+export function hrefEtiquetasEmbalagemPedido(pedidoId: number): string {
+  return `/pedidos/${pedidoId}/embalagem/etiquetas`;
+}
+
 function embalagemIdValido(id: unknown): id is number {
   return typeof id === 'number' && Number.isFinite(id) && id > 0;
 }

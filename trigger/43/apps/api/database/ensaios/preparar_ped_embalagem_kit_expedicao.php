@@ -280,7 +280,7 @@ echo 'Embalagens imprimíveis: '.implode(', ', array_map(
 ))."\n";
 echo 'URL /expedicao/pedido/'.$ped->id."\n";
 if ($ped->status === Pedido::STATUS_FATURADO) {
-    echo "Kit: deve listar 2 botões Etiquetas EMB… (sem undefined).\n";
+    echo "Kit: 1 botão «Etiquetas da embalagem» → lote com as 2 faces (sem undefined).\n";
 } else {
     echo "Fature o PED e abra a expedição para ver o kit.\n";
 }

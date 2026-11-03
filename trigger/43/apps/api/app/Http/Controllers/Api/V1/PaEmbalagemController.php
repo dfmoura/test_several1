@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Empresa;
 use App\Models\OrdemProducao;
 use App\Models\PaEmbalagem;
+use App\Models\Pedido;
 use App\Services\Producao\PaEmbalagemService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,6 +62,19 @@ class PaEmbalagemController extends Controller
 
         return response()->json([
             'data' => $this->service->etiquetas($this->empresa(), $paEmbalagem),
+        ]);
+    }
+
+    /** Lote BOB/CX do PED — um CTA no kit de saída (N embalagens → uma impressão). */
+    public function etiquetasPedido(Request $request, Pedido $pedido): JsonResponse
+    {
+        $this->authorizeEtiquetas($request);
+        if ($pedido->empresa_id !== $this->empresa()->id) {
+            abort(404);
+        }
+
+        return response()->json([
+            'data' => $this->service->etiquetasDoPedido($this->empresa(), $pedido),
         ]);
     }
 

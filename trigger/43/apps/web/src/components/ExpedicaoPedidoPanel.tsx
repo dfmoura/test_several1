@@ -240,6 +240,7 @@ export function ExpedicaoPedidoPanel({
           : null}
 
         <DocumentosSaidaKit
+          pedidoId={pedidoId}
           entregaId={ent?.id}
           faturamentoId={preview.faturamento?.id}
           nfe={preview.nfe ?? ent?.nfe}

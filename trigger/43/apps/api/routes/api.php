@@ -429,6 +429,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/ordens-producao/{ordemProducao}/embalar', [PaEmbalagemController::class, 'confirmar']);
         Route::get('/pa-embalagens/{paEmbalagem}', [PaEmbalagemController::class, 'show']);
         Route::get('/pa-embalagens/{paEmbalagem}/etiquetas', [PaEmbalagemController::class, 'etiquetas']);
+        Route::get('/pedidos/{pedido}/embalagem/etiquetas', [PaEmbalagemController::class, 'etiquetasPedido']);
         Route::get('/rastreio', [RastreioInsumosController::class, 'buscar']);
         Route::get('/rastreio/ordens-producao/{ordemProducao}', [RastreioInsumosController::class, 'ordemProducao']);
         Route::get('/rastreio/pedidos/{pedido}', [RastreioInsumosController::class, 'pedido']);

@@ -372,6 +372,54 @@ class PaEmbalagemService
     }
 
     /**
+     * Lote BOB/CX do PED (kit de saída): todas as embalagens confirmadas numa impressão.
+     *
+     * @return array<string, mixed>
+     */
+    public function etiquetasDoPedido(Empresa $empresa, Pedido $pedido): array
+    {
+        if ($pedido->empresa_id !== $empresa->id) {
+            abort(404);
+        }
+
+        $todos = $this->confirmadasDoPedido($empresa, $pedido)->sortBy('id')->values();
+        $bobinas = [];
+        $caixas = [];
+        $embsOut = [];
+
+        foreach ($todos as $emb) {
+            if (! $emb instanceof PaEmbalagem) {
+                continue;
+            }
+            $chunk = $this->etiquetas($empresa, $emb);
+            if (isset($chunk['embalagem']) && is_array($chunk['embalagem'])) {
+                $embsOut[] = $chunk['embalagem'];
+            }
+            foreach ($chunk['caixas'] ?? [] as $c) {
+                if (is_array($c)) {
+                    $caixas[] = $c;
+                }
+            }
+            foreach ($chunk['bobinas'] ?? [] as $b) {
+                if (is_array($b)) {
+                    $bobinas[] = $b;
+                }
+            }
+        }
+
+        return [
+            'pedido' => [
+                'id' => $pedido->id,
+                'codigo' => $pedido->codigo,
+            ],
+            'embalagens' => $embsOut,
+            'embalagem' => count($embsOut) === 1 ? $embsOut[0] : null,
+            'bobinas' => $bobinas,
+            'caixas' => $caixas,
+        ];
+    }
+
+    /**
      * Hierarquia da face: modelo (topo) → produto (coluna).
      *
      * @return array{modelo: string|null, produto: string|null, descricao: string|null}

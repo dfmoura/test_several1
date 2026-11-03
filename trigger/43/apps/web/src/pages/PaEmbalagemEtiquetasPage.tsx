@@ -30,17 +30,33 @@ type Face = {
   total_caixas?: number;
 };
 
+type EtiquetasPayload = {
+  embalagem?: { codigo?: string } | null;
+  embalagens?: Array<{ codigo?: string }>;
+  pedido?: { id: number; codigo: string } | null;
+  bobinas: Face[];
+  caixas: Face[];
+};
+
 /**
  * Etiquetas de identificação BOB/CX — mesma mídia Elgin 50×40 do volume MP.
  * Hierarquia: modelo (faixa superior) → QR + produto à direita.
+ * Fontes: OP → 1 emb · embId → 1 emb · pedidoId → lote do PED (kit).
  */
 export function PaEmbalagemEtiquetasPage() {
-  const { id, embId } = useParams();
+  const { id, embId, pedidoId } = useParams();
   const [faces, setFaces] = useState<Face[]>([]);
   const [qrs, setQrs] = useState<Record<string, string>>({});
   const [embCodigo, setEmbCodigo] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const voltarTo = pedidoId
+    ? '/expedicao'
+    : id
+      ? `/ordens-producao/${id}`
+      : '/expedicao';
+  const voltarLabel = id && !pedidoId ? 'Voltar à OP' : 'Voltar à expedição';
 
   useEffect(() => enableVolumeEtiquetaPrintMode(), []);
 
@@ -49,40 +65,77 @@ export function PaEmbalagemEtiquetasPage() {
       setLoading(true);
       setErr(null);
       try {
-        let targetId = embId;
-        if (targetId && !/^\d+$/.test(targetId)) {
-          setErr('Embalagem inválida. Abra as etiquetas pelo kit da expedição ou pela OP.');
-          setFaces([]);
-          return;
-        }
-        if (!targetId && id) {
-          const op = await api.get<{ data: { embalagem?: { id: number; codigo: string } | null } }>(
-            `/ordens-producao/${id}`,
-          );
-          const emb = op.data.embalagem;
-          if (!emb?.id) {
-            setErr('Confirme a embalagem na OP antes de imprimir.');
+        let resData: EtiquetasPayload | null = null;
+
+        if (pedidoId) {
+          if (!/^\d+$/.test(pedidoId)) {
+            setErr('Pedido inválido.');
             setFaces([]);
             return;
           }
-          setEmbCodigo(emb.codigo);
-          targetId = String(emb.id);
+          const res = await api.get<{ data: EtiquetasPayload }>(
+            `/pedidos/${pedidoId}/embalagem/etiquetas`,
+          );
+          resData = res.data;
+          const n = resData.embalagens?.length ?? 0;
+          if (n > 1) {
+            setEmbCodigo(
+              `${resData.pedido?.codigo ?? 'PED'} · ${n} embalagens`,
+            );
+          } else if (resData.embalagem?.codigo) {
+            setEmbCodigo(resData.embalagem.codigo);
+          } else if (resData.embalagens?.[0]?.codigo) {
+            setEmbCodigo(resData.embalagens[0].codigo);
+          }
+        } else {
+          let targetId = embId;
+          if (targetId && !/^\d+$/.test(targetId)) {
+            setErr('Embalagem inválida. Abra as etiquetas pelo kit da expedição ou pela OP.');
+            setFaces([]);
+            return;
+          }
+          if (!targetId && id) {
+            const op = await api.get<{
+              data: { embalagem?: { id: number; codigo: string } | null };
+            }>(`/ordens-producao/${id}`);
+            const emb = op.data.embalagem;
+            if (!emb?.id) {
+              setErr('Confirme a embalagem na OP antes de imprimir.');
+              setFaces([]);
+              return;
+            }
+            setEmbCodigo(emb.codigo);
+            targetId = String(emb.id);
+          }
+          if (!targetId || !/^\d+$/.test(targetId)) {
+            setErr('Embalagem inválida.');
+            setFaces([]);
+            return;
+          }
+          const res = await api.get<{ data: EtiquetasPayload }>(
+            `/pa-embalagens/${targetId}/etiquetas`,
+          );
+          resData = res.data;
+          if (resData.embalagem?.codigo) {
+            setEmbCodigo(resData.embalagem.codigo);
+          }
         }
-        if (!targetId || !/^\d+$/.test(targetId)) {
+
+        if (!resData) {
           setErr('Embalagem inválida.');
           setFaces([]);
           return;
         }
-        const res = await api.get<{
-          data: { embalagem?: { codigo?: string }; bobinas: Face[]; caixas: Face[] };
-        }>(`/pa-embalagens/${targetId}/etiquetas`);
-        if (res.data.embalagem?.codigo) {
-          setEmbCodigo(res.data.embalagem.codigo);
-        }
+
         const all = [
-          ...res.data.caixas.map((c) => ({ ...c, tipo: 'CAIXA' as const })),
-          ...res.data.bobinas.map((b) => ({ ...b, tipo: 'BOBINA' as const })),
+          ...(resData.caixas ?? []).map((c) => ({ ...c, tipo: 'CAIXA' as const })),
+          ...(resData.bobinas ?? []).map((b) => ({ ...b, tipo: 'BOBINA' as const })),
         ];
+        if (all.length === 0) {
+          setErr('Nenhuma etiqueta BOB/CX confirmada neste pedido.');
+          setFaces([]);
+          return;
+        }
         setFaces(all);
         const map: Record<string, string> = {};
         await Promise.all(
@@ -102,7 +155,7 @@ export function PaEmbalagemEtiquetasPage() {
         setLoading(false);
       }
     })();
-  }, [id, embId]);
+  }, [id, embId, pedidoId]);
 
   return (
     <div className="page">
@@ -111,11 +164,8 @@ export function PaEmbalagemEtiquetasPage() {
         description={embCodigo ? `${embCodigo} · ${VOLUME_ETIQUETA_PRINT_HINT}` : VOLUME_ETIQUETA_PRINT_HINT}
         actions={
           <div className="btn-row no-print">
-            <Link
-              to={id ? `/ordens-producao/${id}` : '/expedicao'}
-              className="btn btn-secondary"
-            >
-              {id ? 'Voltar à OP' : 'Voltar à expedição'}
+            <Link to={voltarTo} className="btn btn-secondary">
+              {voltarLabel}
             </Link>
             <button
               type="button"
@@ -139,9 +189,7 @@ export function PaEmbalagemEtiquetasPage() {
           const modelo = f.modelo?.trim() || null;
           const produto = f.produto?.trim() || null;
           const desc = f.descricao?.trim() || null;
-          /** Hero: modelo; senão produto/descrição. */
           const titulo = modelo || produto || desc;
-          /** Coluna direita: produto só quando o hero já é o modelo. */
           const produtoLinha =
             modelo && produto && produto !== modelo ? produto : null;
 

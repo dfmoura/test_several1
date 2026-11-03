@@ -1,7 +1,7 @@
 import type { PaEmbalagemResumo } from '../lib/api';
 import {
   embalagensImprimiveis,
-  hrefEtiquetasEmbalagem,
+  hrefEtiquetasEmbalagemPedido,
   hrefFichaCobranca,
   hrefFichaNfe,
 } from '../lib/cobrancaUi';
@@ -22,6 +22,7 @@ type NfeKit = {
 };
 
 type Props = {
+  pedidoId?: number | null;
   entregaId?: number | null;
   faturamentoId?: number | null;
   nfe?: NfeKit | null;
@@ -32,9 +33,10 @@ type Props = {
 /**
  * Três papéis do despacho: romaneio, DANFE/prévia, cobrança + etiquetas BOB/CX.
  * Só abre fichas existentes. Não baixa título.
- * Etiquetas: um link por pa_embalagens (ADR — rota por embId).
+ * Etiquetas: um CTA do PED (lote completo), não um botão por EMBPA.
  */
 export function DocumentosSaidaKit({
+  pedidoId,
   entregaId,
   faturamentoId,
   nfe,
@@ -44,10 +46,17 @@ export function DocumentosSaidaKit({
   const fatId = faturamentoId ?? nfe?.faturamento_id ?? null;
   const cobrancas = fatId ? (titulos ?? []) : [];
   const embImprimir = embalagensImprimiveis(embalagem);
-  const temAlgo = Boolean(entregaId || (fatId && nfe) || cobrancas.length || embImprimir.length);
+  const podeEtiquetas =
+    embImprimir.length > 0 &&
+    typeof pedidoId === 'number' &&
+    Number.isFinite(pedidoId) &&
+    pedidoId > 0;
+  const temAlgo = Boolean(entregaId || (fatId && nfe) || cobrancas.length || podeEtiquetas);
   if (!temAlgo) {
     return null;
   }
+
+  const hrefEtq = podeEtiquetas ? hrefEtiquetasEmbalagemPedido(pedidoId) : null;
 
   return (
     <div className="form-section" style={{ marginTop: '1rem' }}>
@@ -74,24 +83,20 @@ export function DocumentosSaidaKit({
             Imprimir nota
           </a>
         ) : null}
-        {embImprimir.map((emb) => {
-          const href = hrefEtiquetasEmbalagem(emb.id);
-          const rotulo =
-            embImprimir.length === 1
-              ? 'Etiquetas da embalagem'
-              : `Etiquetas ${emb.codigo}`;
-          return (
-            <a
-              key={emb.id}
-              href={href}
-              className="btn btn-secondary"
-              onClick={(e) => onAbrirFichaClick(e, href)}
-              title={emb.resumo}
-            >
-              {rotulo}
-            </a>
-          );
-        })}
+        {hrefEtq ? (
+          <a
+            href={hrefEtq}
+            className="btn btn-secondary"
+            onClick={(e) => onAbrirFichaClick(e, hrefEtq)}
+            title={
+              embImprimir.length > 1
+                ? embImprimir.map((e) => e.codigo).join(' · ')
+                : embImprimir[0]?.resumo
+            }
+          >
+            Etiquetas da embalagem
+          </a>
+        ) : null}
         {cobrancas.map((t) => (
           <a
             key={t.id}
@@ -104,7 +109,7 @@ export function DocumentosSaidaKit({
           </a>
         ))}
       </div>
-      {embImprimir.length === 0 ? (
+      {!podeEtiquetas ? (
         <p className="form-hint">Confirme a embalagem na OP para imprimir BOB/CX neste kit.</p>
       ) : null}
       {fatId && !nfe ? (

@@ -1071,6 +1071,17 @@ export default function App() {
       />
 
       <Route
+        path="/pedidos/:pedidoId/embalagem/etiquetas"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission={['producao.ler', 'expedicao.ler']}>
+              <PaEmbalagemEtiquetasPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/pedidos/:id/rastreio"
         element={
           <ProtectedRoute>
