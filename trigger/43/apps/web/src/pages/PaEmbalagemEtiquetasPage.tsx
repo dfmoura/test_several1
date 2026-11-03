@@ -22,12 +22,17 @@ type Face = {
   pedido?: string | null;
   op?: string | null;
   descricao?: string | null;
+  /** Nome(s) do arte — hero da face. */
+  modelo?: string | null;
+  /** Medida · papel · cores · acab. */
+  produto?: string | null;
   caixa_medida?: string | null;
   total_caixas?: number;
 };
 
 /**
  * Etiquetas de identificação BOB/CX — mesma mídia Elgin 50×40 do volume MP.
+ * Hierarquia: modelo (faixa superior) → QR + produto à direita.
  */
 export function PaEmbalagemEtiquetasPage() {
   const { id, embId } = useParams();
@@ -130,54 +135,72 @@ export function PaEmbalagemEtiquetasPage() {
         </p>
       ) : null}
       <div className="vol-etiquetas-batch">
-        {faces.map((f) => (
-          <article
-            key={`${f.tipo}-${f.id}`}
-            className="vol-etiqueta-sheet"
-            aria-label={`Etiqueta ${f.tipo} ${f.codigo}`}
-          >
-            <div className="vol-etiqueta-face">
-              <div className="vol-etiqueta-qr">
-                {qrs[f.qr_payload] ? (
-                  <img src={qrs[f.qr_payload]} alt="" width={240} height={240} />
-                ) : (
-                  <div className="vol-etiqueta-qr-ph" aria-hidden />
-                )}
-              </div>
-              <div className="vol-etiqueta-meta">
-                <div className="vol-etiqueta-sku">
-                  {f.tipo === 'CAIXA' ? 'CAIXA' : 'BOBINA'} {f.sequencia}
-                  {f.tipo === 'CAIXA' && f.total_caixas ? `/${f.total_caixas}` : ''}
-                </div>
-                <div className="vol-etiqueta-desc" title={f.descricao ?? ''}>
-                  {f.descricao ?? '—'}
-                </div>
-                <div className="vol-etiqueta-row">
-                  <span className="vol-etiqueta-k">Cód.</span> {f.codigo}
-                </div>
-                <div className="vol-etiqueta-row">
-                  <span className="vol-etiqueta-k">Qtde</span>{' '}
-                  {formatDecimalBr(Number(f.qtde_etiquetas), 0)} etiq.
-                  {f.tipo === 'CAIXA' && f.qtde_bobinas != null
-                    ? ` · ${f.qtde_bobinas} bob.`
-                    : ''}
-                </div>
-                {f.tubete || f.caixa_medida ? (
-                  <div className="vol-etiqueta-row">
-                    <span className="vol-etiqueta-k">Emb.</span>{' '}
-                    {[f.tubete, f.caixa_medida].filter(Boolean).join(' · ')}
+        {faces.map((f) => {
+          const modelo = f.modelo?.trim() || null;
+          const produto = f.produto?.trim() || null;
+          const desc = f.descricao?.trim() || null;
+          /** Hero: modelo; senão produto/descrição. */
+          const titulo = modelo || produto || desc;
+          /** Coluna direita: produto só quando o hero já é o modelo. */
+          const produtoLinha =
+            modelo && produto && produto !== modelo ? produto : null;
+
+          return (
+            <article
+              key={`${f.tipo}-${f.id}`}
+              className="vol-etiqueta-sheet"
+              aria-label={`Etiqueta ${f.tipo} ${f.codigo}`}
+            >
+              <div className="vol-etiqueta-face vol-etiqueta-face--pa">
+                {titulo ? (
+                  <div className="vol-etiqueta-titulo" title={titulo}>
+                    {titulo}
                   </div>
                 ) : null}
-                <div className="vol-etiqueta-row vol-etiqueta-row--muted">
-                  {f.pedido ?? '—'} · {f.op ?? '—'}
+                <div className="vol-etiqueta-qr">
+                  {qrs[f.qr_payload] ? (
+                    <img src={qrs[f.qr_payload]} alt="" width={240} height={240} />
+                  ) : (
+                    <div className="vol-etiqueta-qr-ph" aria-hidden />
+                  )}
+                </div>
+                <div className="vol-etiqueta-meta">
+                  <div className="vol-etiqueta-sku">
+                    {f.tipo === 'CAIXA' ? 'CAIXA' : 'BOBINA'} {f.sequencia}
+                    {f.tipo === 'CAIXA' && f.total_caixas ? `/${f.total_caixas}` : ''}
+                  </div>
+                  {produtoLinha ? (
+                    <div className="vol-etiqueta-desc" title={produtoLinha}>
+                      {produtoLinha}
+                    </div>
+                  ) : null}
+                  <div className="vol-etiqueta-row">
+                    <span className="vol-etiqueta-k">Cód.</span> {f.codigo}
+                  </div>
+                  <div className="vol-etiqueta-row">
+                    <span className="vol-etiqueta-k">Qtde</span>{' '}
+                    {formatDecimalBr(Number(f.qtde_etiquetas), 0)} etiq.
+                    {f.tipo === 'CAIXA' && f.qtde_bobinas != null
+                      ? ` · ${f.qtde_bobinas} bob.`
+                      : ''}
+                  </div>
+                  {f.tubete || f.caixa_medida ? (
+                    <div className="vol-etiqueta-row">
+                      <span className="vol-etiqueta-k">Emb.</span>{' '}
+                      {[f.tubete, f.caixa_medida].filter(Boolean).join(' · ')}
+                    </div>
+                  ) : null}
+                  <div className="vol-etiqueta-row vol-etiqueta-row--muted">
+                    {f.pedido ?? '—'} · {f.op ?? '—'}
+                  </div>
+                </div>
+                <div className="vol-etiqueta-hri" title={f.qr_payload}>
+                  <span className="vol-etiqueta-hri-k">Código</span> {f.qr_payload}
                 </div>
               </div>
-              <div className="vol-etiqueta-hri" title={f.qr_payload}>
-                <span className="vol-etiqueta-hri-k">Código</span> {f.qr_payload}
-              </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </div>
   );

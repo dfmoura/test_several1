@@ -408,6 +408,33 @@ class PaEmbalagemTest extends TestCase
         $this->assertSame('40.0000', EstoqueSaldo::query()->where('produto_id', $caixa->id)->value('qtde'));
     }
 
+    public function test_etiquetas_expoe_modelo_e_produto(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$this->op->id}/embalar", [
+                'qtde_bobinas' => 5,
+                'qtde_caixas' => 1,
+            ])
+            ->assertOk();
+
+        $emb = app(PaEmbalagemService::class)->vigenteDaOp($this->empresa, $this->op->fresh());
+        $this->assertNotNull($emb);
+
+        $res = $this->withHeaders($this->h())
+            ->getJson('/api/v1/pa-embalagens/'.$emb->id.'/etiquetas');
+
+        $res->assertOk();
+        $bob = $res->json('data.bobinas.0');
+        $cx = $res->json('data.caixas.0');
+        $this->assertSame('Frente A / Verso B', $bob['modelo']);
+        $this->assertSame('100X50 · Couchê Brilho · 4 cor(es) · Verniz UV', $bob['produto']);
+        $this->assertSame('Etiqueta teste embalagem', $bob['descricao']);
+        $this->assertSame($bob['modelo'], $cx['modelo']);
+        $this->assertSame($bob['produto'], $cx['produto']);
+    }
+
     public function test_resumo_pedido_unica_inclui_embalagens_com_id(): void
     {
         Sanctum::actingAs($this->user);

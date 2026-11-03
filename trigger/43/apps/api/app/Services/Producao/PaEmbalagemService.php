@@ -305,6 +305,9 @@ class PaEmbalagemService
     }
 
     /**
+     * Faces BOB/CX para impressão Elgin 50×40.
+     * `modelo` = nomes da composição (hero); `produto` = medida/papel/cores/acab (sem repetir modelo).
+     *
      * @return array<string, mixed>
      */
     public function etiquetas(Empresa $empresa, PaEmbalagem $embalagem): array
@@ -313,9 +316,17 @@ class PaEmbalagemService
             abort(404);
         }
 
-        $embalagem->loadMissing(['bobinas', 'caixas', 'pedido:id,codigo', 'ordemProducao:id,codigo', 'pedidoItem:id,descricao']);
+        $embalagem->loadMissing([
+            'bobinas',
+            'caixas',
+            'pedido:id,codigo',
+            'ordemProducao:id,codigo',
+            'pedidoItem:id,descricao,especificacao',
+        ]);
 
-        $bobinas = $embalagem->bobinas->map(function (PaEmbalagemBobina $b) use ($embalagem) {
+        $rotulos = $this->rotulosFaceEtiqueta($embalagem);
+
+        $bobinas = $embalagem->bobinas->map(function (PaEmbalagemBobina $b) use ($embalagem, $rotulos) {
             return [
                 'id' => $b->id,
                 'tipo' => 'BOBINA',
@@ -327,11 +338,13 @@ class PaEmbalagemService
                 'qr_payload' => $b->qrPayload(),
                 'pedido' => $embalagem->pedido?->codigo,
                 'op' => $embalagem->ordemProducao?->codigo,
-                'descricao' => $embalagem->pedidoItem?->descricao,
+                'descricao' => $rotulos['descricao'],
+                'modelo' => $rotulos['modelo'],
+                'produto' => $rotulos['produto'],
             ];
         })->all();
 
-        $caixas = $embalagem->caixas->map(function (PaEmbalagemCaixa $c) use ($embalagem) {
+        $caixas = $embalagem->caixas->map(function (PaEmbalagemCaixa $c) use ($embalagem, $rotulos) {
             return [
                 'id' => $c->id,
                 'tipo' => 'CAIXA',
@@ -342,7 +355,9 @@ class PaEmbalagemService
                 'qr_payload' => $c->qrPayload(),
                 'pedido' => $embalagem->pedido?->codigo,
                 'op' => $embalagem->ordemProducao?->codigo,
-                'descricao' => $embalagem->pedidoItem?->descricao,
+                'descricao' => $rotulos['descricao'],
+                'modelo' => $rotulos['modelo'],
+                'produto' => $rotulos['produto'],
                 'tubete' => $embalagem->tubete,
                 'caixa_medida' => $embalagem->caixa_medida,
                 'total_caixas' => $embalagem->qtde_caixas,
@@ -353,6 +368,61 @@ class PaEmbalagemService
             'embalagem' => $this->toOut($embalagem, false),
             'bobinas' => $bobinas,
             'caixas' => $caixas,
+        ];
+    }
+
+    /**
+     * Hierarquia da face: modelo (topo) → produto (coluna).
+     *
+     * @return array{modelo: string|null, produto: string|null, descricao: string|null}
+     */
+    private function rotulosFaceEtiqueta(PaEmbalagem $embalagem): array
+    {
+        $item = $embalagem->pedidoItem;
+        $desc = $item?->descricao !== null && trim((string) $item->descricao) !== ''
+            ? trim((string) $item->descricao)
+            : null;
+        $spec = is_array($item?->especificacao) ? $item->especificacao : [];
+
+        $nomes = [];
+        $mods = $spec['modelos_composicao'] ?? null;
+        if (is_array($mods)) {
+            foreach ($mods as $m) {
+                if (! is_array($m)) {
+                    continue;
+                }
+                $n = trim((string) ($m['nome'] ?? ''));
+                if ($n !== '') {
+                    $nomes[] = $n;
+                }
+            }
+        }
+        $modelo = $nomes !== []
+            ? implode(' / ', array_slice($nomes, 0, 4))
+            : null;
+
+        $produtoParts = [];
+        $medida = trim((string) ($spec['medida'] ?? ''));
+        if ($medida !== '') {
+            $produtoParts[] = $medida;
+        }
+        $papel = trim((string) ($spec['papel'] ?? ''));
+        if ($papel !== '') {
+            $produtoParts[] = $papel;
+        }
+        if (isset($spec['cores']) && $spec['cores'] !== '' && $spec['cores'] !== null) {
+            $produtoParts[] = $spec['cores'].' cor(es)';
+        }
+        $acab = trim((string) ($spec['acabamento'] ?? ''));
+        if ($acab !== '') {
+            $produtoParts[] = $acab;
+        }
+        $produto = $produtoParts !== [] ? implode(' · ', $produtoParts) : $desc;
+
+        return [
+            'modelo' => $modelo,
+            'produto' => $produto,
+            'descricao' => $desc,
         ];
     }
 
