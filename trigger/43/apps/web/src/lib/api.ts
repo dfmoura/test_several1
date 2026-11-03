@@ -3256,10 +3256,27 @@ export type EntregaNfeKit = {
   numero?: string | null;
 };
 
-export type PaEmbalagemResumo = {
+/** Entrada do kit BOB/CX — sempre com id (rota /pa-embalagens/:id/etiquetas). */
+export type PaEmbalagemImprimivel = {
   id: number;
   codigo: string;
-  status: string;
+  resumo?: string;
+  ordem_producao_id?: number | null;
+  pedido_item_id?: number | null;
+  qtde_bobinas?: number;
+  qtde_caixas?: number;
+};
+
+/**
+ * Resumo no PED/FAT/ENT.
+ * 1 embalagem: campos flat + `embalagens[1]`.
+ * N embalagens: `multipla` + totais + `embalagens[]` (sem `id` no topo).
+ */
+export type PaEmbalagemResumo = {
+  id?: number;
+  codigo?: string;
+  status?: string;
+  multipla?: boolean;
   qtde_etiquetas: string;
   qtde_bobinas: number;
   qtde_caixas: number;
@@ -3276,6 +3293,7 @@ export type PaEmbalagemResumo = {
   confirmada_em?: string | null;
   ordem_producao_id?: number;
   pedido_id?: number;
+  embalagens?: PaEmbalagemImprimivel[];
   bobinas?: Array<{
     id: number;
     codigo: string;

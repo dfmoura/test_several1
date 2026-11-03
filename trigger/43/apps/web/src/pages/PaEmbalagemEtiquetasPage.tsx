@@ -45,12 +45,17 @@ export function PaEmbalagemEtiquetasPage() {
       setErr(null);
       try {
         let targetId = embId;
+        if (targetId && !/^\d+$/.test(targetId)) {
+          setErr('Embalagem inválida. Abra as etiquetas pelo kit da expedição ou pela OP.');
+          setFaces([]);
+          return;
+        }
         if (!targetId && id) {
           const op = await api.get<{ data: { embalagem?: { id: number; codigo: string } | null } }>(
             `/ordens-producao/${id}`,
           );
           const emb = op.data.embalagem;
-          if (!emb) {
+          if (!emb?.id) {
             setErr('Confirme a embalagem na OP antes de imprimir.');
             setFaces([]);
             return;
@@ -58,7 +63,7 @@ export function PaEmbalagemEtiquetasPage() {
           setEmbCodigo(emb.codigo);
           targetId = String(emb.id);
         }
-        if (!targetId) {
+        if (!targetId || !/^\d+$/.test(targetId)) {
           setErr('Embalagem inválida.');
           setFaces([]);
           return;

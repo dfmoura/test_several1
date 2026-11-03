@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stack + SPA + ensaio PED com embalagem PA confirmada (bobinas → NF infAdProd detalhado).
+# Stack + SPA + ensaio kit etiquetas BOB/CX (única e multipla na expedição).
 # Uso (no host): bash scripts/pronto-pa-embalagem.sh  |  make pronto-pa-embalagem
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -14,7 +14,10 @@ echo "ok"
 echo "== Stack up =="
 make up
 
-echo "== Migrate (pa_embalagens / nfe_qtde_modo) =="
+echo "== Rebuild SPA (kit etiquetas multipla + guarda embId) =="
+make web-build
+
+echo "== Migrate (pa_embalagens) =="
 "${COMPOSE[@]}" exec -T app php artisan migrate --force --no-interaction
 
 echo "== Clear caches =="
@@ -22,15 +25,18 @@ echo "== Clear caches =="
 "${COMPOSE[@]}" restart app queue >/dev/null
 sleep 2
 
-echo "== PHPUnit PaEmbalagem + NF volumes/infAd =="
-"${COMPOSE[@]}" exec -T app php vendor/bin/phpunit --filter \
-  'PaEmbalagemTest|test_volumes_caixas_na_nfe_quando_embalagem_confirmada'
+echo "== PHPUnit PaEmbalagem (incl. resumo multipla) =="
+"${COMPOSE[@]}" exec -T app php vendor/bin/phpunit --filter PaEmbalagemTest
 
-echo "== Ensaio PED-2026-EMBNF02 (embalagem confirmada + spec rica) =="
+echo "== Ensaio PED-2026-EMBNF02 (1 embalagem → NF) =="
 "${COMPOSE[@]}" exec -T app \
   php artisan tinker --execute="require base_path('database/ensaios/preparar_ped_embalagem_nfe.php');"
 
-echo "== Health =="
+echo "== Ensaio PED-2026-EMBKIT (2 embalagens → kit expedição) =="
+"${COMPOSE[@]}" exec -T app \
+  php artisan tinker --execute="require base_path('database/ensaios/preparar_ped_embalagem_kit_expedicao.php');"
+
+echo "== Health / doctor =="
 for i in 1 2 3 4 5; do
   if curl -sfS -m 15 http://localhost:8043/api/v1/health >/dev/null; then
     break
@@ -40,25 +46,25 @@ done
 curl -sfS -m 15 http://localhost:8043/api/v1/health
 echo
 curl -sfS -o /dev/null -w "SPA HTTP %{http_code}\n" -m 10 http://localhost:8043/
+make doctor
 
 cat <<'EOF'
 
-Pronto 100% — embalagem PA → NF (ROLO ou ETIQUETA) com obs. detalhada
+Pronto 100% — etiquetas embalagem PA (kit expedição sem undefined)
   App:     http://localhost:8043
   Login:   admin@retaetiquetas.com.br  (senha do lab)
-  Pedido:  Pedidos → PED-2026-EMBNF02
-  OP:      Ordens de produção → OP-2026-EMBNF02 (já CONCLUIDA + embalada)
 
-Roteiro rápido
+Teste do bug (multipla — o que quebrava)
   1. Hard refresh (Ctrl+Shift+R)
-  2. Abrir PED-2026-EMBNF02 → Faturar
-     • default quantidade NF = ROLO (5 RL) se embalagem confirmada
-     • pode trocar para ETIQUETA no FAT enquanto NF não autorizada
-  3. Abrir prévia / ficha da NF-e
-     • modo ROLO: qCom = 5 RL; volumes = 1 CAIXA
-     • obs. item (infAdProd), ex.:
-       "5.000 UN · med 100X50 · Couchê Brilho · 4 cor(es) · Verniz UV · modelo Frente A/Verso B · 1 CX · tubete 3\" · saida ESQUERDA · caixa 500x300 · comp: 5x1000UN"
-  4. (Opcional) OP-2026-EMBNF02 → imprimir etiquetas BOB/CX
+  2. Expedição → PED-2026-EMBKIT  (ou /expedicao/pedido/<id>)
+  3. Documentos da saída → 2 botões "Etiquetas EMB…"
+  4. Abrir cada um → faces BOB/CX · sem erro "PaEmbalagem undefined"
 
-Norma: docs/ADR_PA_EMBALAGEM_BOBINA_CAIXA.md (emendas 2026-09-28 / 09-29)
+Regressão (1 embalagem)
+  · OP-2026-EMBNF02 → Imprimir etiquetas BOB/CX
+  · ou faturar PED-2026-EMBNF02 e abrir kit (1 botão)
+
+Impressora: Elgin L42 Pro Full · 50×40 mm · escala 100%
+
+Norma: docs/ADR_PA_EMBALAGEM_BOBINA_CAIXA.md · docs/ADR_ENTREGA_EXPEDICAO.md
 EOF

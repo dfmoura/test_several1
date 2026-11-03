@@ -1,4 +1,10 @@
-import { hrefEtiquetasEmbalagem, hrefFichaCobranca, hrefFichaNfe } from '../lib/cobrancaUi';
+import type { PaEmbalagemResumo } from '../lib/api';
+import {
+  embalagensImprimiveis,
+  hrefEtiquetasEmbalagem,
+  hrefFichaCobranca,
+  hrefFichaNfe,
+} from '../lib/cobrancaUi';
 import { hrefRomaneio } from '../lib/expedicaoUi';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatCurrency } from '../lib/format';
@@ -15,22 +21,18 @@ type NfeKit = {
   codigo?: string;
 };
 
-type EmbalagemKit = {
-  id: number;
-  codigo?: string;
-};
-
 type Props = {
   entregaId?: number | null;
   faturamentoId?: number | null;
   nfe?: NfeKit | null;
   titulos?: TituloKit[] | null;
-  embalagem?: EmbalagemKit | null;
+  embalagem?: PaEmbalagemResumo | null;
 };
 
 /**
  * Três papéis do despacho: romaneio, DANFE/prévia, cobrança + etiquetas BOB/CX.
  * Só abre fichas existentes. Não baixa título.
+ * Etiquetas: um link por pa_embalagens (ADR — rota por embId).
  */
 export function DocumentosSaidaKit({
   entregaId,
@@ -41,7 +43,8 @@ export function DocumentosSaidaKit({
 }: Props) {
   const fatId = faturamentoId ?? nfe?.faturamento_id ?? null;
   const cobrancas = fatId ? (titulos ?? []) : [];
-  const temAlgo = Boolean(entregaId || (fatId && nfe) || cobrancas.length || embalagem);
+  const embImprimir = embalagensImprimiveis(embalagem);
+  const temAlgo = Boolean(entregaId || (fatId && nfe) || cobrancas.length || embImprimir.length);
   if (!temAlgo) {
     return null;
   }
@@ -71,15 +74,24 @@ export function DocumentosSaidaKit({
             Imprimir nota
           </a>
         ) : null}
-        {embalagem ? (
-          <a
-            href={hrefEtiquetasEmbalagem(embalagem.id)}
-            className="btn btn-secondary"
-            onClick={(e) => onAbrirFichaClick(e, hrefEtiquetasEmbalagem(embalagem.id))}
-          >
-            Etiquetas da embalagem
-          </a>
-        ) : null}
+        {embImprimir.map((emb) => {
+          const href = hrefEtiquetasEmbalagem(emb.id);
+          const rotulo =
+            embImprimir.length === 1
+              ? 'Etiquetas da embalagem'
+              : `Etiquetas ${emb.codigo}`;
+          return (
+            <a
+              key={emb.id}
+              href={href}
+              className="btn btn-secondary"
+              onClick={(e) => onAbrirFichaClick(e, href)}
+              title={emb.resumo}
+            >
+              {rotulo}
+            </a>
+          );
+        })}
         {cobrancas.map((t) => (
           <a
             key={t.id}
@@ -92,7 +104,7 @@ export function DocumentosSaidaKit({
           </a>
         ))}
       </div>
-      {!embalagem ? (
+      {embImprimir.length === 0 ? (
         <p className="form-hint">Confirme a embalagem na OP para imprimir BOB/CX neste kit.</p>
       ) : null}
       {fatId && !nfe ? (

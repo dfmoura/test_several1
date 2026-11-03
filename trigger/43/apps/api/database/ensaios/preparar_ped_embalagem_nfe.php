@@ -73,17 +73,19 @@ $descItem = '100X50 · Couchê Brilho · 4 cor(es) · Verniz UV · Q 5000';
 
 $ped = Pedido::query()->where('empresa_id', $emp->id)->where('codigo', $codigoPed)->first();
 if ($ped === null) {
-    $numero = 99052;
-    while (Orcamento::query()->where('empresa_id', $emp->id)->where('ano', 2026)->where('numero', $numero)->exists()) {
-        $numero++;
-    }
+    $orc = Orcamento::query()->where('empresa_id', $emp->id)->where('codigo', 'ORC-2026-EMBNF02')->first();
+    if ($orc === null) {
+        $numero = 99052;
+        while (Orcamento::query()->where('empresa_id', $emp->id)->where('ano', 2026)->where('numero', $numero)->exists()) {
+            $numero++;
+        }
 
-    $orc = Orcamento::query()->create([
-        'empresa_id' => $emp->id,
-        'ano' => 2026,
-        'numero' => $numero,
-        'codigo' => 'ORC-2026-EMBNF02',
-        'versao' => 1,
+        $orc = Orcamento::query()->create([
+            'empresa_id' => $emp->id,
+            'ano' => 2026,
+            'numero' => $numero,
+            'codigo' => 'ORC-2026-EMBNF02',
+            'versao' => 1,
         'parceiro_id' => $par->id,
         'cliente_nome' => $par->razao_social,
         'status' => Orcamento::STATUS_APROVADO,
@@ -115,9 +117,10 @@ if ($ped === null) {
         ]]],
         'prazo_entrega_dias' => 10,
         'validade_dias' => 7,
-        'tolerancia_qtd_pct' => 20,
-        'observacao' => 'Ensaio embalagem PA → NF ROLO + infAdProd detalhado.',
-    ]);
+            'tolerancia_qtd_pct' => 20,
+            'observacao' => 'Ensaio embalagem PA → NF ROLO + infAdProd detalhado.',
+        ]);
+    }
 
     $ped = Pedido::query()->create([
         'empresa_id' => $emp->id,

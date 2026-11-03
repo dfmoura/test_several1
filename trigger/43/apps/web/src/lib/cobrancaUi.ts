@@ -1,4 +1,10 @@
-import type { DocumentoFiscalSaida, Faturamento, Titulo } from './api';
+import type {
+  DocumentoFiscalSaida,
+  Faturamento,
+  PaEmbalagemImprimivel,
+  PaEmbalagemResumo,
+  Titulo,
+} from './api';
 
 const COB_MORTA = new Set(['CANCELADA', 'ESTORNADA', 'FALHA']);
 
@@ -21,6 +27,30 @@ export function hrefFichaNfe(faturamentoId: number, documentoId: number): string
 
 export function hrefEtiquetasEmbalagem(embalagemId: number): string {
   return `/pa-embalagens/${embalagemId}/etiquetas`;
+}
+
+function embalagemIdValido(id: unknown): id is number {
+  return typeof id === 'number' && Number.isFinite(id) && id > 0;
+}
+
+/**
+ * Embalagens com id para BOB/CX no kit de saída.
+ * Preferência: `embalagens[]` do resumo; fallback ao `id` flat (1 embalagem).
+ */
+export function embalagensImprimiveis(
+  emb: PaEmbalagemResumo | null | undefined,
+): PaEmbalagemImprimivel[] {
+  if (!emb) {
+    return [];
+  }
+  const lista = emb.embalagens ?? [];
+  if (lista.length > 0) {
+    return lista.filter((e) => embalagemIdValido(e.id));
+  }
+  if (embalagemIdValido(emb.id) && emb.codigo) {
+    return [{ id: emb.id, codigo: emb.codigo, resumo: emb.resumo }];
+  }
+  return [];
 }
 
 export function cobrancaVigente(titulo: Titulo): NonNullable<Titulo['cobrancas']>[number] | null {

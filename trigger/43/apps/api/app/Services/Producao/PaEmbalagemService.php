@@ -237,6 +237,10 @@ class PaEmbalagemService
     }
 
     /**
+     * Resumo operacional do PED para FAT/ENT/kit de saída.
+     * Sempre inclui `embalagens[]` com id imprimível (BOB/CX por pa_embalagens/:id).
+     * N>1: agregado `multipla` + totais; sem `id` no topo (não há embalagem única).
+     *
      * @return array<string, mixed>|null
      */
     public function resumoPedido(Empresa $empresa, Pedido $pedido): ?array
@@ -246,11 +250,19 @@ class PaEmbalagemService
             return null;
         }
 
+        $imprimiveis = $todos
+            ->sortBy('id')
+            ->values()
+            ->map(fn (PaEmbalagem $e) => $this->resumoImprimivel($e))
+            ->all();
+
         if ($todos->count() === 1) {
             $emb = $todos->first();
             $emb->loadMissing(['bobinas', 'caixas']);
+            $out = $this->toOut($emb, false);
+            $out['embalagens'] = $imprimiveis;
 
-            return $this->toOut($emb, false);
+            return $out;
         }
 
         $bobinas = (int) $todos->sum('qtde_bobinas');
@@ -270,6 +282,25 @@ class PaEmbalagemService
                 .$bobinas.' bobina'.($bobinas === 1 ? '' : 's').' · '
                 .$caixas.' caixa'.($caixas === 1 ? '' : 's'),
             'pedido_id' => $pedido->id,
+            'embalagens' => $imprimiveis,
+        ];
+    }
+
+    /**
+     * Entrada mínima do kit de etiquetas BOB/CX (ADR_ENTREGA_EXPEDICAO).
+     *
+     * @return array{id: int, codigo: string, resumo: string, ordem_producao_id: int|null, pedido_item_id: int|null, qtde_bobinas: int, qtde_caixas: int}
+     */
+    private function resumoImprimivel(PaEmbalagem $e): array
+    {
+        return [
+            'id' => (int) $e->id,
+            'codigo' => (string) $e->codigo,
+            'resumo' => $e->resumoTexto(),
+            'ordem_producao_id' => $e->ordem_producao_id !== null ? (int) $e->ordem_producao_id : null,
+            'pedido_item_id' => $e->pedido_item_id !== null ? (int) $e->pedido_item_id : null,
+            'qtde_bobinas' => (int) $e->qtde_bobinas,
+            'qtde_caixas' => (int) $e->qtde_caixas,
         ];
     }
 

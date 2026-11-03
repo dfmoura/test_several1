@@ -407,4 +407,93 @@ class PaEmbalagemTest extends TestCase
         $this->assertSame(2, $res->json('data.qtde_caixas'));
         $this->assertSame('40.0000', EstoqueSaldo::query()->where('produto_id', $caixa->id)->value('qtde'));
     }
+
+    public function test_resumo_pedido_unica_inclui_embalagens_com_id(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$this->op->id}/embalar", [
+                'qtde_bobinas' => 5,
+                'qtde_caixas' => 1,
+            ])
+            ->assertOk();
+
+        $resumo = app(PaEmbalagemService::class)->resumoPedido($this->empresa, $this->pedido->fresh());
+        $this->assertIsArray($resumo);
+        $this->assertArrayHasKey('id', $resumo);
+        $this->assertTrue(($resumo['id'] ?? 0) > 0);
+        $this->assertCount(1, $resumo['embalagens'] ?? []);
+        $this->assertSame($resumo['id'], $resumo['embalagens'][0]['id']);
+        $this->assertSame($resumo['codigo'], $resumo['embalagens'][0]['codigo']);
+    }
+
+    public function test_resumo_pedido_multipla_lista_ids_sem_id_no_topo(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$this->op->id}/embalar", [
+                'qtde_bobinas' => 5,
+                'qtde_caixas' => 1,
+            ])
+            ->assertOk();
+
+        $item2 = PedidoItem::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'pedido_id' => $this->pedido->id,
+            'ordem' => 2,
+            'descricao' => 'Etiqueta segunda embalagem',
+            'necessidade' => PedidoItem::NEC_PRODUCAO,
+            'familia_fiscal' => 'PA-ETQ',
+            'unidade' => 'UN',
+            'qtde_pedida' => '2000.0000',
+            'qtde_produzida' => '2000.0000',
+            'qtde_faturavel' => '2000.0000',
+            'status' => PedidoItem::STATUS_PRODUZIDO,
+            'especificacao' => [
+                'medida' => '80X40',
+                'papel' => 'Couchê Brilho',
+                'cores' => 1,
+                'tubete' => '3"',
+                'etiq_por_rolo' => 1000,
+            ],
+        ]);
+
+        $op2 = OrdemProducao::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'OP-2026-EMB02',
+            'pedido_id' => $this->pedido->id,
+            'pedido_item_id' => $item2->id,
+            'status' => OrdemProducao::STATUS_CONCLUIDA,
+            'qtde_planejada' => '2000.0000',
+            'qtde_boa' => '2000.0000',
+            'qtde_refugo' => '0.0000',
+            'concluida_em' => now(),
+        ]);
+
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$op2->id}/embalar", [
+                'qtde_bobinas' => 2,
+                'qtde_caixas' => 1,
+            ])
+            ->assertOk();
+
+        $resumo = app(PaEmbalagemService::class)->resumoPedido($this->empresa, $this->pedido->fresh());
+        $this->assertIsArray($resumo);
+        $this->assertTrue($resumo['multipla'] ?? false);
+        $this->assertArrayNotHasKey('id', $resumo);
+        $this->assertCount(2, $resumo['embalagens'] ?? []);
+        foreach ($resumo['embalagens'] as $linha) {
+            $this->assertTrue(($linha['id'] ?? 0) > 0);
+            $this->assertNotSame('', $linha['codigo'] ?? '');
+            $etiquetas = $this->withHeaders($this->h())
+                ->getJson('/api/v1/pa-embalagens/'.$linha['id'].'/etiquetas');
+            $etiquetas->assertOk();
+            $this->assertNotEmpty($etiquetas->json('data.bobinas'));
+        }
+        $ids = array_column($resumo['embalagens'], 'id');
+        $this->assertSame($ids, array_values(array_unique($ids)));
+        $this->assertSame($ids, collect($ids)->sort()->values()->all());
+    }
 }
