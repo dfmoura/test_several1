@@ -30,17 +30,24 @@ function rangeForPreset(preset: PeriodoPreset, current: PeriodoRange): PeriodoRa
   return current;
 }
 
+function resumoBotao(modo: PeriodoPreset, de: string, ate: string): string {
+  if (modo === 'intervalo' && !hasPeriodo(de, ate)) return 'Período: intervalo';
+  return periodoFiltroResumo(de, ate);
+}
+
 /**
  * Filtro de período discreto para listagens operacionais.
- * Default do produto nestas telas = tudo (sem `de`/`ate`).
+ * Default = tudo. Menu só com presets; Intervalo revela De/Até na barra.
  */
 export function PeriodoFiltro({ idPrefix, de, ate, onChange, onApply }: PeriodoFiltroProps) {
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const deRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [modo, setModo] = useState<PeriodoPreset>(() => resolvePeriodoPreset(de, ate));
-  const ativo = hasPeriodo(de, ate);
-  const resumo = periodoFiltroResumo(de, ate);
+  const ativo = hasPeriodo(de, ate) || modo === 'intervalo';
+  const resumo = resumoBotao(modo, de, ate);
+  const mostrarIntervalo = modo === 'intervalo';
 
   useEffect(() => {
     if (!open) return;
@@ -59,27 +66,54 @@ export function PeriodoFiltro({ idPrefix, de, ate, onChange, onApply }: PeriodoF
   }, [open]);
 
   const escolher = (preset: PeriodoPreset) => {
-    setModo(preset);
     if (preset === 'intervalo') {
-      setOpen(true);
+      setModo('intervalo');
+      setOpen(false);
+      window.setTimeout(() => deRef.current?.focus(), 0);
       return;
     }
+    setModo(preset);
     const next = rangeForPreset(preset, { de, ate });
     onChange(next);
     onApply(next);
     setOpen(false);
   };
 
-  const aplicarIntervalo = () => {
-    setModo('intervalo');
-    onApply({ de, ate });
-    setOpen(false);
+  const abrirMenu = () => {
+    if (!open) {
+      const resolved = resolvePeriodoPreset(de, ate);
+      // Intervalo sem datas ainda é intervalo (não colapsa para "tudo").
+      setModo(resolved === 'tudo' && modo === 'intervalo' ? 'intervalo' : resolved);
+    }
+    setOpen(!open);
   };
-
-  const mostrarIntervalo = open && modo === 'intervalo';
 
   return (
     <div className="periodo-filtro" ref={rootRef}>
+      {mostrarIntervalo ? (
+        <div className="periodo-filtro__intervalo">
+          <div className="form-group">
+            <label htmlFor={`${idPrefix}-de`}>De</label>
+            <input
+              ref={deRef}
+              id={`${idPrefix}-de`}
+              type="date"
+              value={de}
+              onChange={(e) => onChange({ de: e.target.value, ate })}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor={`${idPrefix}-ate`}>Até</label>
+            <input
+              id={`${idPrefix}-ate`}
+              type="date"
+              value={ate}
+              onChange={(e) => onChange({ de, ate: e.target.value })}
+            />
+          </div>
+        </div>
+      ) : null}
+
       <button
         type="button"
         className={`btn-icon periodo-filtro__btn${ativo ? ' is-active' : ''}`}
@@ -88,10 +122,7 @@ export function PeriodoFiltro({ idPrefix, de, ate, onChange, onApply }: PeriodoF
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
-        onClick={() => {
-          if (!open) setModo(resolvePeriodoPreset(de, ate));
-          setOpen(!open);
-        }}
+        onClick={abrirMenu}
       >
         <IconFiltro />
       </button>
@@ -110,50 +141,6 @@ export function PeriodoFiltro({ idPrefix, de, ate, onChange, onApply }: PeriodoF
               {periodoPresetLabel(preset)}
             </button>
           ))}
-
-          {mostrarIntervalo ? (
-            <div className="periodo-filtro__intervalo">
-              <div className="form-group">
-                <label htmlFor={`${idPrefix}-de`}>De</label>
-                <input
-                  id={`${idPrefix}-de`}
-                  type="date"
-                  value={de}
-                  onChange={(e) => {
-                    setModo('intervalo');
-                    onChange({ de: e.target.value, ate });
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      aplicarIntervalo();
-                    }
-                  }}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor={`${idPrefix}-ate`}>Até</label>
-                <input
-                  id={`${idPrefix}-ate`}
-                  type="date"
-                  value={ate}
-                  onChange={(e) => {
-                    setModo('intervalo');
-                    onChange({ de, ate: e.target.value });
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      aplicarIntervalo();
-                    }
-                  }}
-                />
-              </div>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={aplicarIntervalo}>
-                Aplicar
-              </button>
-            </div>
-          ) : null}
         </div>
       ) : null}
     </div>
