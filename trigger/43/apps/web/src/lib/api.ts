@@ -3654,6 +3654,7 @@ export type ProducaoApontamentoCard = {
   status: string;
   qtde_planejada: string;
   pedido: { id: number; codigo: string } | null;
+  pedido_item?: { id: number; descricao: string } | null;
   parceiro: { id: number; codigo: string; razao_social: string } | null;
   linhas_baixadas: number;
   handoff: OpInsumosHandoff;
@@ -3662,7 +3663,9 @@ export type ProducaoApontamentoCard = {
 export type ProducaoApontamentosFila = {
   a_receber: ProducaoApontamentoCard[];
   a_apontar: ProducaoApontamentoCard[];
-  resumo: { a_receber: number; a_apontar: number; total: number };
+  /** Lista única pronta para /fechar (handoff não bloqueia). */
+  a_fechar?: ProducaoApontamentoCard[];
+  resumo: { a_receber: number; a_apontar: number; a_fechar?: number; total: number };
 };
 
 export type RastreioParceiro = {

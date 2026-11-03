@@ -204,7 +204,9 @@ class ProducaoApontamentoChaoTest extends TestCase
         $fila->assertOk();
         $this->assertSame(1, (int) $fila->json('data.resumo.a_receber'));
         $this->assertSame(0, (int) $fila->json('data.resumo.a_apontar'));
+        $this->assertSame(1, (int) $fila->json('data.resumo.a_fechar'));
         $this->assertSame($this->op->id, (int) $fila->json('data.a_receber.0.id'));
+        $this->assertSame($this->op->id, (int) $fila->json('data.a_fechar.0.id'));
 
         $show = $this->withHeaders($this->h())->getJson(
             "/api/v1/ordens-producao/apontamentos/{$this->op->id}"
@@ -217,7 +219,7 @@ class ProducaoApontamentoChaoTest extends TestCase
         $painel->assertOk();
         $curso = collect($painel->json('data.filas'))->firstWhere('id', 'op_curso');
         $this->assertNotNull($curso);
-        $this->assertSame('/ordens-producao', $curso['to']);
+        $this->assertSame('/ordens-producao/a-fechar', $curso['to']);
         $this->assertSame(1, (int) $curso['count']);
 
         $ent = $this->withHeaders($this->h())->postJson(

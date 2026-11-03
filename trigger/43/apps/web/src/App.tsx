@@ -84,6 +84,7 @@ import { PedidoFichaPlanilhaPage } from './pages/PedidoFichaPlanilhaPage';
 import { OrdensProducaoPage } from './pages/OrdensProducaoPage';
 import { OrdemProducaoDetailPage } from './pages/OrdemProducaoDetailPage';
 import { OrdemProducaoFecharPage } from './pages/OrdemProducaoFecharPage';
+import { OpAFecharPage } from './pages/OpAFecharPage';
 import { ProducaoApontamentosPage } from './pages/ProducaoApontamentosPage';
 import { ProducaoApontamentoChaoPage } from './pages/ProducaoApontamentoChaoPage';
 import { OrdemProducaoFichaPage } from './pages/OrdemProducaoFichaPage';
@@ -702,6 +703,14 @@ export default function App() {
           element={
             <PermissionRoute permission="producao.ler">
               <OrdensProducaoPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="ordens-producao/a-fechar"
+          element={
+            <PermissionRoute permission="producao.ler">
+              <OpAFecharPage />
             </PermissionRoute>
           }
         />

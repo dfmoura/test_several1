@@ -1473,6 +1473,16 @@ class ProducaoPedOpEstoqueTest extends TestCase
         $this->assertSame($porModelo[0]['qtde_boa'], $resultado[0]['qtde_boa']);
         $this->assertSame('10.0000', $resultado[0]['qtde_refugo']);
 
+        $item = $pedido->itens()->findOrFail($itemId);
+        $this->assertSame($qtdeBoaTotal, (string) $item->fresh()->qtde_faturavel);
+        $this->assertSame($qtdeBoaTotal, (string) $item->fresh()->qtde_produzida);
+        $readeq = $pedido->fresh()->snapshot['readequacao'] ?? null;
+        $this->assertIsArray($readeq);
+        $this->assertSame($qtdeBoaTotal, $readeq['qtde_boa']);
+        $this->assertIsArray($readeq['modelos']);
+        $this->assertCount($n, $readeq['modelos']);
+        $this->assertSame($porModelo[0]['nome'], $readeq['modelos'][0]['nome']);
+
         $this->assertTrue(
             EstoqueMovimento::query()
                 ->where('empresa_id', $this->empresa->id)

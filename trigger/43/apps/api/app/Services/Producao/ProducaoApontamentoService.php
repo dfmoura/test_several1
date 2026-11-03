@@ -15,7 +15,14 @@ class ProducaoApontamentoService
     public function __construct(private readonly ProducaoColetaService $coleta) {}
 
     /**
-     * @return array{a_receber: list<array<string, mixed>>, a_apontar: list<array<string, mixed>>, resumo: array{a_receber: int, a_apontar: int, total: int}}
+     * Fila do chão (legado a_receber/a_apontar) + lista única a_fechar.
+     *
+     * @return array{
+     *   a_receber: list<array<string, mixed>>,
+     *   a_apontar: list<array<string, mixed>>,
+     *   a_fechar: list<array<string, mixed>>,
+     *   resumo: array{a_receber: int, a_apontar: int, a_fechar: int, total: int}
+     * }
      */
     public function fila(Empresa $empresa): array
     {
@@ -28,6 +35,7 @@ class ProducaoApontamentoService
             ->with([
                 'pedido:id,codigo,status,parceiro_id',
                 'pedido.parceiro:id,codigo,razao_social',
+                'pedidoItem:id,descricao',
                 'materiais:id,ordem_producao_id,saida_movimento_id',
                 'insumosEntreguesPorUser:id,name,codigo',
             ])
@@ -36,6 +44,7 @@ class ProducaoApontamentoService
 
         $aReceber = [];
         $aApontar = [];
+        $aFechar = [];
         foreach ($ops as $op) {
             $baixados = $op->materiais->filter(
                 fn (OrdemProducaoMaterial $m) => $m->saida_movimento_id !== null
@@ -49,6 +58,10 @@ class ProducaoApontamentoService
                     'id' => $op->pedido->id,
                     'codigo' => $op->pedido->codigo,
                 ] : null,
+                'pedido_item' => $op->pedidoItem ? [
+                    'id' => $op->pedidoItem->id,
+                    'descricao' => $op->pedidoItem->descricao,
+                ] : null,
                 'parceiro' => $op->pedido?->parceiro ? [
                     'id' => $op->pedido->parceiro->id,
                     'codigo' => $op->pedido->parceiro->codigo,
@@ -57,6 +70,7 @@ class ProducaoApontamentoService
                 'linhas_baixadas' => $baixados,
                 'handoff' => $this->coleta->handoffToOut($op),
             ];
+            $aFechar[] = $card;
             if ($op->insumos_entregues_em === null) {
                 $aReceber[] = $card;
             } else {
@@ -67,10 +81,12 @@ class ProducaoApontamentoService
         return [
             'a_receber' => $aReceber,
             'a_apontar' => $aApontar,
+            'a_fechar' => $aFechar,
             'resumo' => [
                 'a_receber' => count($aReceber),
                 'a_apontar' => count($aApontar),
-                'total' => count($aReceber) + count($aApontar),
+                'a_fechar' => count($aFechar),
+                'total' => count($aFechar),
             ],
         ];
     }

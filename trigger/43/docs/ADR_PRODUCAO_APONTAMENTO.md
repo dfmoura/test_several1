@@ -90,3 +90,19 @@ modelos[] (boa/refugo por arte)
 | Payload legado sem `modelos[]` | Continua válido (totais só); `resultado_modelos` fica nulo. |
 
 Fora: PA por modelo · MOV por modelo · grade de material no fecho · menu “Na máquina”.
+
+## Emenda 2026-11-03b — menu A fechar + eco no PED
+
+| Porta | Quem | Ação |
+|-------|------|------|
+| Produção · **A fechar** | `producao.ler` | Fila de OP com saída → `/ordens-producao/:id/fechar`. Espelho de Estoque · A buscar. |
+| Painel `op_curso` | Ação de hoje | Mesma fila → `/ordens-producao/a-fechar`. |
+| PED (após `PRODUZIDO`) | Comercial / PCP | Readequação: pedida → faturável + grade por modelo (`snapshot.readequacao.modelos`). Item mostra pedida × faturável. |
+
+```
+fecho por modelo
+  → qtde_faturavel = Σ boas     (motor FAT intacto)
+  → readequacao.modelos no PED  (evidência; sem reescrever modelos_composicao_quantidades)
+```
+
+Não: menu “Na máquina” · FAT por arte · sobrescrever matriz comercial do item.

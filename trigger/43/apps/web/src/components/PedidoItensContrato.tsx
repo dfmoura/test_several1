@@ -182,7 +182,12 @@ function PedidoItemGrupo({
           {isEtiqueta ? `#${faixaIdx + 1}` : '—'}
         </td>
         <td className="num">
-          {formatDecimalBr(Number(item.qtde_pedida), 0)} {item.unidade}
+          <div>{formatDecimalBr(Number(item.qtde_pedida), 0)} {item.unidade}</div>
+          {item.status === 'PRODUZIDO' && item.qtde_faturavel != null ? (
+            <div className="muted" style={{ fontSize: '0.85em' }}>
+              faturável {formatDecimalBr(Number(item.qtde_faturavel), 0)}
+            </div>
+          ) : null}
         </td>
         <td className="num">
           {item.preco_unitario != null ? formatUnitPrice(item.preco_unitario) : '—'}

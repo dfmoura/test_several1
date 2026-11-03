@@ -124,7 +124,19 @@ const NAV_GROUPS: NavGroup[] = [
         icon: IconAsset,
         permission: 'producao.ler',
         isActivePath: (pathname) =>
-          pathname === '/ordens-producao' || pathname.startsWith('/ordens-producao/'),
+          pathname === '/ordens-producao' ||
+          (pathname.startsWith('/ordens-producao/') &&
+            !pathname.startsWith('/ordens-producao/a-fechar')),
+      },
+      {
+        to: '/ordens-producao/a-fechar',
+        label: 'A fechar',
+        icon: IconAsset,
+        permission: 'producao.ler',
+        title: 'Ordens com material na máquina — boas e refugo por modelo',
+        isActivePath: (pathname) =>
+          pathname === '/ordens-producao/a-fechar' ||
+          pathname.startsWith('/ordens-producao/a-fechar/'),
       },
     ],
   },

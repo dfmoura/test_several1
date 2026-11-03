@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 
-/** Atalho antigo. O fecho vive na ordem de produção. */
+/** Atalho antigo “Na máquina” / apontamentos → fila A fechar. */
 export function ProducaoApontamentosPage() {
-  return <Navigate to="/ordens-producao" replace />;
+  return <Navigate to="/ordens-producao/a-fechar" replace />;
 }

@@ -352,8 +352,14 @@ export function PedidoDetailPage() {
                   <div>
                     <span>Readequação</span>
                     <strong>
-                      {String(readeq.qtde_pedida)} →{' '}
-                      {String(readeq.qtde_boa ?? readeq.qtde_executada ?? '—')}
+                      {formatDecimalBr(Number(readeq.qtde_pedida), 0)} →{' '}
+                      {formatDecimalBr(
+                        Number(readeq.qtde_boa ?? readeq.qtde_executada ?? 0),
+                        0,
+                      )}
+                      {readeq.qtde_refugo != null
+                        ? ` · refugo ${formatDecimalBr(Number(readeq.qtde_refugo), 0)}`
+                        : ''}
                     </strong>
                   </div>
                 ) : null}
@@ -370,6 +376,56 @@ export function PedidoDetailPage() {
               )}
             </div>
           </div>
+
+          {readeq && Array.isArray(readeq.modelos) && readeq.modelos.length > 0 ? (
+            <div className="card" style={{ marginBottom: '1rem' }}>
+              <div className="card-body">
+                <div className="form-section">
+                  <h3>Produzido por modelo</h3>
+                  <p className="muted" style={{ marginTop: 0 }}>
+                    Quantidade boa que atualiza o faturável do pedido
+                    {readeq.op_codigo ? ` · ${String(readeq.op_codigo)}` : ''}.
+                  </p>
+                </div>
+                <div className="table-wrap">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Modelo</th>
+                        <th className="num">Planejado</th>
+                        <th className="num">Boas</th>
+                        <th className="num">Refugo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(
+                        readeq.modelos as Array<{
+                          ordem?: number;
+                          nome?: string;
+                          qtde_planejada?: string | number;
+                          qtde_boa?: string | number;
+                          qtde_refugo?: string | number;
+                        }>
+                      ).map((ln, i) => (
+                        <tr key={`${ln.ordem ?? i}-${ln.nome ?? i}`}>
+                          <td>{ln.nome ?? `Modelo ${i + 1}`}</td>
+                          <td className="num">
+                            {formatDecimalBr(Number(ln.qtde_planejada || 0), 0)}
+                          </td>
+                          <td className="num">
+                            {formatDecimalBr(Number(ln.qtde_boa || 0), 0)}
+                          </td>
+                          <td className="num">
+                            {formatDecimalBr(Number(ln.qtde_refugo || 0), 0)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <PedidoItensContrato
             pedido={pedido}
