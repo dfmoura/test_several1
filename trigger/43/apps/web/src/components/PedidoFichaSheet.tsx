@@ -37,6 +37,7 @@ import {
   specOperacional,
 } from '../lib/producaoFicha';
 import { isSaidaEtiqueta, saidaEtiquetaLabelCurto } from '../lib/saidaEtiqueta';
+import { modeloArteCaptionFromMedida, ModeloArteTrigger } from './ModeloArteOverlay';
 import { ModeloTintasTags } from './ModeloTintasTags';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { tipoServicoLabel } from '../lib/operacoesSaida';
@@ -250,7 +251,20 @@ function PedidoTabelaEtiquetas({
               <tbody>
                 {linhas.map((ln) => (
                   <tr key={ln.key}>
-                    <td className="ped-ficha-col-modelo">{ln.modelo}</td>
+                    <td className="ped-ficha-col-modelo">
+                      <span className="orc-modelo-nome-com-arte">
+                        {ln.arteUrl ? (
+                          <ModeloArteTrigger
+                            nome={ln.modelo}
+                            arteUrl={ln.arteUrl}
+                            dense
+                            caption={modeloArteCaptionFromMedida(spec.medida)}
+                            saidaEtiqueta={spec.saidaCodigo}
+                          />
+                        ) : null}
+                        <span>{ln.modelo}</span>
+                      </span>
+                    </td>
                     <td className="ped-ficha-col-tintas">
                       <ModeloTintasTags tintas={ln.tintas} empty="—" />
                     </td>

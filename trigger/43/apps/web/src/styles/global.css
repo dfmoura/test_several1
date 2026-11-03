@@ -10148,6 +10148,18 @@ tr.row-inactive td {
   font-weight: 600;
 }
 
+/* Arte do modelo no formulário PED/OP — thumb denso sem inflar a linha. */
+.ficha-sheet-ped .ped-ficha-col-modelo .orc-modelo-nome-com-arte {
+  gap: 0.35rem;
+}
+
+.ficha-sheet-ped .ped-ficha-col-modelo .modelo-arte-trigger--dense {
+  width: 5.5mm;
+  height: 5.5mm;
+  padding: 0.2mm;
+  border-radius: 1.5px;
+}
+
 .ficha-sheet-ped .ped-ficha-contrato-table--simples .ped-ficha-contrato-grupo:nth-child(even) {
   background: color-mix(in srgb, var(--navy, #1a3568) 2%, #fff);
 }

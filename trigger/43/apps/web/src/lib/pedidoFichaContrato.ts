@@ -43,6 +43,8 @@ export type PedidoFichaEtiquetaLinha = {
   z: number | null;
   faixa: string | null;
   modelo: string;
+  /** Arte do modelo (snapshot) — preview no clique. */
+  arteUrl: string | null;
   tintas: string[];
   valorArte: number;
   etiqPorRolo: number | null;
@@ -109,12 +111,18 @@ export function particionarItensPedido(itens: PedidoItem[]): {
 export function etiquetasPorModeloDoItem(
   pedido: Pedido,
   item: PedidoItem,
-): Array<{ nome: string; etiquetas: number; tintas: string[]; valorArte: number }> {
+): Array<{
+  nome: string;
+  etiquetas: number;
+  tintas: string[];
+  valorArte: number;
+  arteUrl: string | null;
+}> {
   const spec = specOperacional(pedido, item);
   const modelos = modelosDoSnap(spec);
   const qtde = Math.max(0, Math.floor(qtdeFaixaDoItem(pedido, item)) || 0);
   if (modelos.length === 0) {
-    return [{ nome: '—', etiquetas: qtde, tintas: [], valorArte: 0 }];
+    return [{ nome: '—', etiquetas: qtde, tintas: [], valorArte: 0, arteUrl: null }];
   }
   const faixaIdx = faixaIndexDoItem(pedido, item);
   const stored = matrizQuantidadesDoItem(item)?.[faixaIdx];
@@ -127,6 +135,7 @@ export function etiquetasPorModeloDoItem(
     etiquetas: qs[i] ?? 0,
     tintas: m.tintas ?? [],
     valorArte: Math.max(0, Number(m.valor_arte) || 0),
+    arteUrl: (m.arte_url ?? '').trim() || null,
   }));
 }
 
@@ -277,6 +286,7 @@ export function linhasEtiquetaDoItem(
     ...base,
     key: `${item.id}-m-${i}`,
     modelo: a.nome,
+    arteUrl: a.arteUrl,
     tintas: a.tintas,
     valorArte: a.valorArte,
     rolos: rolos[i] ?? null,
