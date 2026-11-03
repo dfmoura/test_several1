@@ -213,7 +213,11 @@ function PedidoTabelaEtiquetas({
                   value={
                     spec.saidaCodigo && isSaidaEtiqueta(spec.saidaCodigo) ? (
                       <span className="ped-ficha-etq-saida">
-                        <SaidaEtiquetaBadge code={spec.saidaCodigo} variant="dense" />
+                        <SaidaEtiquetaBadge
+                          code={spec.saidaCodigo}
+                          variant="dense"
+                          previewable
+                        />
                       </span>
                     ) : (
                       '—'
