@@ -65,11 +65,21 @@ $opsDef = [
             'medida' => '100X50',
             'papel' => 'Couchê Brilho',
             'cores' => 4,
+            'acabamento' => 'Verniz UV',
             'tubete' => '3"',
             'etiq_por_rolo' => 1000,
             'saida_etiqueta' => 'ESQUERDA',
+            'modelos_composicao' => [
+                ['nome' => 'Frente A', 'percentual' => 60],
+                ['nome' => 'Verso B', 'percentual' => 40],
+            ],
         ],
-        'bobinas' => 3,
+        'resultado_modelos' => [
+            ['ordem' => 1, 'nome' => 'Frente A', 'qtde_planejada' => '1800', 'qtde_boa' => '1800.0000', 'qtde_refugo' => '0.0000'],
+            ['ordem' => 2, 'nome' => 'Verso B', 'qtde_planejada' => '1200', 'qtde_boa' => '1200.0000', 'qtde_refugo' => '0.0000'],
+        ],
+        // Natural: 1800→2 rolos + 1200→2 = 4 (1 modelo/rolo). 1 caixa mista.
+        'bobinas' => null,
         'caixas' => 1,
     ],
     [
@@ -86,8 +96,16 @@ $opsDef = [
             'tubete' => '3"',
             'etiq_por_rolo' => 1000,
             'saida_etiqueta' => 'DIREITA',
+            'modelos_composicao' => [
+                ['nome' => 'Arte X', 'percentual' => 50],
+                ['nome' => 'Arte Y', 'percentual' => 50],
+            ],
         ],
-        'bobinas' => 2,
+        'resultado_modelos' => [
+            ['ordem' => 1, 'nome' => 'Arte X', 'qtde_planejada' => '1000', 'qtde_boa' => '1000.0000', 'qtde_refugo' => '0.0000'],
+            ['ordem' => 2, 'nome' => 'Arte Y', 'qtde_planejada' => '1000', 'qtde_boa' => '1000.0000', 'qtde_refugo' => '0.0000'],
+        ],
+        'bobinas' => null,
         'caixas' => 1,
     ],
 ];
@@ -98,45 +116,48 @@ $fat = $ped
     : null;
 
 if ($ped === null) {
-    $numero = 99061;
-    while (Orcamento::query()->where('empresa_id', $emp->id)->where('ano', 2026)->where('numero', $numero)->exists()) {
-        $numero++;
-    }
+    $orc = Orcamento::query()->where('empresa_id', $emp->id)->where('codigo', 'ORC-2026-EMBKIT')->first();
+    if ($orc === null) {
+        $numero = 99061;
+        while (Orcamento::query()->where('empresa_id', $emp->id)->where('ano', 2026)->where('numero', $numero)->exists()) {
+            $numero++;
+        }
 
-    $orc = Orcamento::query()->create([
-        'empresa_id' => $emp->id,
-        'ano' => 2026,
-        'numero' => $numero,
-        'codigo' => 'ORC-2026-EMBKIT',
-        'versao' => 1,
-        'parceiro_id' => $par->id,
-        'cliente_nome' => $par->razao_social,
-        'status' => Orcamento::STATUS_APROVADO,
-        'financeiro_status' => AdiantamentoService::FIN_LIBERADO,
-        'cobra_matriz' => false,
-        'valor_matriz' => '0.00',
-        'input_snapshot' => [
-            'condicao_pagamento' => '28 DDL',
-            'forma_pagamento' => 'PIX',
-            'modo_entrega' => 'RETIRAR',
-            'etiq_por_rolo' => 1000,
-            'tubete' => '3"',
-        ],
-        'result_snapshot' => ['faixas' => [[
-            'quantidade' => 5000,
-            'valor_etiqueta' => '1750.00',
+        $orc = Orcamento::query()->create([
+            'empresa_id' => $emp->id,
+            'ano' => 2026,
+            'numero' => $numero,
+            'codigo' => 'ORC-2026-EMBKIT',
+            'versao' => 1,
+            'parceiro_id' => $par->id,
+            'cliente_nome' => $par->razao_social,
+            'status' => Orcamento::STATUS_APROVADO,
+            'financeiro_status' => AdiantamentoService::FIN_LIBERADO,
+            'cobra_matriz' => false,
             'valor_matriz' => '0.00',
-            'valor_total' => '1750.00',
-            'rolos' => 5,
-            'qtde_caixas' => 2,
-            'rolos_por_caixa' => 12,
-            'caixa_medida' => '500x300',
-        ]]],
-        'prazo_entrega_dias' => 10,
-        'validade_dias' => 7,
-        'tolerancia_qtd_pct' => 20,
-        'observacao' => 'Ensaio kit expedição: 2 embalagens → etiquetas BOB/CX.',
-    ]);
+            'input_snapshot' => [
+                'condicao_pagamento' => '28 DDL',
+                'forma_pagamento' => 'PIX',
+                'modo_entrega' => 'RETIRAR',
+                'etiq_por_rolo' => 1000,
+                'tubete' => '3"',
+            ],
+            'result_snapshot' => ['faixas' => [[
+                'quantidade' => 5000,
+                'valor_etiqueta' => '1750.00',
+                'valor_matriz' => '0.00',
+                'valor_total' => '1750.00',
+                'rolos' => 5,
+                'qtde_caixas' => 2,
+                'rolos_por_caixa' => 12,
+                'caixa_medida' => '500x300',
+            ]]],
+            'prazo_entrega_dias' => 10,
+            'validade_dias' => 7,
+            'tolerancia_qtd_pct' => 20,
+            'observacao' => 'Ensaio kit expedição: 2 embalagens → etiquetas BOB/CX.',
+        ]);
+    }
 
     $ped = Pedido::query()->create([
         'empresa_id' => $emp->id,
@@ -223,26 +244,43 @@ foreach ($opsDef as $def) {
             'qtde_planejada' => $def['qtde'],
             'qtde_boa' => $def['qtde'],
             'qtde_refugo' => '0.0000',
+            'resultado_modelos' => $def['resultado_modelos'],
             'concluida_em' => now(),
         ]);
-    } elseif ($fat === null) {
+    } else {
         $op->status = OrdemProducao::STATUS_CONCLUIDA;
         $op->qtde_boa = $def['qtde'];
         $op->qtde_refugo = '0.0000';
+        $op->resultado_modelos = $def['resultado_modelos'];
         $op->concluida_em = $op->concluida_em ?? now();
         $op->pedido_item_id = $item->id;
         $op->save();
     }
 
+    // Garante espec com modelos mesmo se o PED já existia.
+    $item->descricao = $def['desc'];
+    $item->especificacao = $def['espec'];
+    $item->qtde_produzida = $def['qtde'];
+    $item->qtde_faturavel = $def['qtde'];
+    $item->status = PedidoItem::STATUS_PRODUZIDO;
+    $item->save();
+
     $emb = $embSvc->vigenteDaOp($emp, $op->fresh());
-    if ($emb === null || $emb->status !== PaEmbalagem::STATUS_CONFIRMADA) {
-        $out = $embSvc->confirmar($emp, $op->fresh(['pedido', 'pedidoItem']), [
-            'qtde_bobinas' => $def['bobinas'],
-            'qtde_caixas' => $def['caixas'],
-        ]);
-        echo 'EMB '.$def['codigo'].': '.($out['codigo'] ?? 'ok')."\n";
+    $embDesatualizada = $emb !== null && $emb->bobinas()->whereNull('modelo_nome')->exists();
+    if ($emb === null || $emb->status !== PaEmbalagem::STATUS_CONFIRMADA || $embDesatualizada) {
+        $payload = ['qtde_caixas' => $def['caixas']];
+        if ($def['bobinas'] !== null) {
+            $payload['qtde_bobinas'] = $def['bobinas'];
+        }
+        try {
+            $out = $embSvc->confirmar($emp, $op->fresh(['pedido', 'pedidoItem']), $payload);
+            echo 'EMB '.$def['codigo'].' (modelo/rolo): '.($out['codigo'] ?? 'ok')
+                .' · '.$out['qtde_bobinas'].' bob · '.$out['qtde_caixas']." cx\n";
+        } catch (Throwable $e) {
+            echo 'EMB '.$def['codigo'].' não refeita: '.$e->getMessage()."\n";
+        }
     } else {
-        echo 'EMB '.$def['codigo'].' já: '.$emb->codigo."\n";
+        echo 'EMB '.$def['codigo'].' já c/ modelo: '.$emb->codigo."\n";
     }
 }
 

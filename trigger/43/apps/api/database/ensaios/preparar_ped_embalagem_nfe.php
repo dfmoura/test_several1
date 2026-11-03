@@ -194,6 +194,11 @@ $item->save();
 $ped->status = Pedido::STATUS_PRODUZIDO;
 $ped->save();
 
+$resultadoModelos = [
+    ['ordem' => 1, 'nome' => 'Frente A', 'qtde_planejada' => '3000', 'qtde_boa' => '3000.0000', 'qtde_refugo' => '0.0000'],
+    ['ordem' => 2, 'nome' => 'Verso B', 'qtde_planejada' => '2000', 'qtde_boa' => '2000.0000', 'qtde_refugo' => '0.0000'],
+];
+
 $op = OrdemProducao::query()->where('empresa_id', $emp->id)->where('codigo', $codigoOp)->first();
 if ($op === null) {
     $op = OrdemProducao::query()->create([
@@ -205,12 +210,14 @@ if ($op === null) {
         'qtde_planejada' => $qtde,
         'qtde_boa' => $qtde,
         'qtde_refugo' => '0.0000',
+        'resultado_modelos' => $resultadoModelos,
         'concluida_em' => now(),
     ]);
 } else {
     $op->status = OrdemProducao::STATUS_CONCLUIDA;
     $op->qtde_boa = $qtde;
     $op->qtde_refugo = '0.0000';
+    $op->resultado_modelos = $resultadoModelos;
     $op->concluida_em = $op->concluida_em ?? now();
     $op->pedido_item_id = $item->id;
     $op->save();
@@ -219,13 +226,21 @@ if ($op === null) {
 $fat = Faturamento::query()->where('empresa_id', $emp->id)->where('pedido_id', $ped->id)->first();
 $embSvc = app(PaEmbalagemService::class);
 $emb = $embSvc->vigenteDaOp($emp, $op);
+$embDesatualizada = $emb !== null && $emb->bobinas()->whereNull('modelo_nome')->exists();
 
-if ($fat === null && ($emb === null || $emb->status !== PaEmbalagem::STATUS_CONFIRMADA)) {
-    $out = $embSvc->confirmar($emp, $op->fresh(['pedido', 'pedidoItem']), []);
-    $emb = $embSvc->vigenteDaOp($emp, $op->fresh());
-    echo 'EMB confirmada: '.($out['codigo'] ?? $emb?->codigo)."\n";
+if ($emb === null || $emb->status !== PaEmbalagem::STATUS_CONFIRMADA || $embDesatualizada) {
+    try {
+        $out = $embSvc->confirmar($emp, $op->fresh(['pedido', 'pedidoItem']), []);
+        $emb = $embSvc->vigenteDaOp($emp, $op->fresh());
+        echo 'EMB confirmada (1 bobina=1 modelo): '.($out['codigo'] ?? $emb?->codigo)."\n";
+    } catch (Throwable $e) {
+        echo 'EMB não refeita: '.$e->getMessage()."\n";
+        if ($emb) {
+            echo 'EMB vigente: '.$emb->codigo."\n";
+        }
+    }
 } elseif ($emb) {
-    echo 'EMB já confirmada: '.$emb->codigo."\n";
+    echo 'EMB já confirmada c/ modelo: '.$emb->codigo."\n";
 }
 
 $emb?->load(['bobinas', 'pedidoItem']);

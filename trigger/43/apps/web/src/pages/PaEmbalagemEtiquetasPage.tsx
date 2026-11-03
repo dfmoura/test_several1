@@ -10,6 +10,19 @@ import {
   enableVolumeEtiquetaPrintMode,
 } from '../lib/volumeEtiquetaPrint';
 
+type ConteudoCaixa = {
+  modelo: string;
+  modelo_ordem?: number | null;
+  bobinas: number;
+  etiquetas: string;
+};
+
+type FaceItem = {
+  ordem?: number | null;
+  descricao?: string | null;
+  total_itens?: number | null;
+};
+
 type Face = {
   id: number;
   tipo: 'BOBINA' | 'CAIXA';
@@ -22,12 +35,20 @@ type Face = {
   pedido?: string | null;
   op?: string | null;
   descricao?: string | null;
-  /** Nome(s) do arte — hero da face. */
+  /** Hero da face (modelo do volume). */
   modelo?: string | null;
+  modelo_nome?: string | null;
+  modelo_ordem?: number | null;
+  modelos_item?: string | null;
   /** Medida · papel · cores · acab. */
   produto?: string | null;
   caixa_medida?: string | null;
-  total_caixas?: number;
+  caixa_seq?: number | null;
+  total_caixas?: number | null;
+  total_bobinas?: number | null;
+  conteudo?: ConteudoCaixa[];
+  mista?: boolean;
+  item?: FaceItem | null;
 };
 
 type EtiquetasPayload = {
@@ -36,11 +57,40 @@ type EtiquetasPayload = {
   pedido?: { id: number; codigo: string } | null;
   bobinas: Face[];
   caixas: Face[];
+  faces?: Face[];
 };
+
+function formatConteudoCaixa(conteudo: ConteudoCaixa[] | undefined): string | null {
+  if (!conteudo || conteudo.length === 0) return null;
+  const max = 3;
+  const parts = conteudo.slice(0, max).map((c) => {
+    const etiq = formatDecimalBr(Number(c.etiquetas), 0);
+    return `${c.modelo}: ${c.bobinas} bob · ${etiq}`;
+  });
+  const extra = conteudo.length - parts.length;
+  if (extra > 0) parts.push(`+${extra}`);
+  return parts.join(' | ');
+}
+
+function itemLinha(item: FaceItem | null | undefined): string | null {
+  if (!item) return null;
+  const total = item.total_itens ?? null;
+  const ordem = item.ordem ?? null;
+  if (ordem != null && total != null && total > 1) {
+    const desc = item.descricao?.trim();
+    return desc ? `Item ${ordem}/${total} · ${desc}` : `Item ${ordem}/${total}`;
+  }
+  if (ordem != null && (total == null || total > 1)) {
+    return item.descricao?.trim()
+      ? `Item ${ordem} · ${item.descricao.trim()}`
+      : `Item ${ordem}`;
+  }
+  return null;
+}
 
 /**
  * Etiquetas de identificação BOB/CX — mesma mídia Elgin 50×40 do volume MP.
- * Hierarquia: modelo (faixa superior) → QR + produto à direita.
+ * Hierarquia: modelo do volume (hero) → QR + produto/conteúdo à direita.
  * Fontes: OP → 1 emb · embId → 1 emb · pedidoId → lote do PED (kit).
  */
 export function PaEmbalagemEtiquetasPage() {
@@ -127,10 +177,16 @@ export function PaEmbalagemEtiquetasPage() {
           return;
         }
 
-        const all = [
-          ...(resData.caixas ?? []).map((c) => ({ ...c, tipo: 'CAIXA' as const })),
-          ...(resData.bobinas ?? []).map((b) => ({ ...b, tipo: 'BOBINA' as const })),
-        ];
+        const all: Face[] =
+          resData.faces && resData.faces.length > 0
+            ? resData.faces.map((f) => ({
+                ...f,
+                tipo: f.tipo ?? ('CAIXA' as const),
+              }))
+            : [
+                ...(resData.caixas ?? []).map((c) => ({ ...c, tipo: 'CAIXA' as const })),
+                ...(resData.bobinas ?? []).map((b) => ({ ...b, tipo: 'BOBINA' as const })),
+              ];
         if (all.length === 0) {
           setErr('Nenhuma etiqueta BOB/CX confirmada neste pedido.');
           setFaces([]);
@@ -186,12 +242,26 @@ export function PaEmbalagemEtiquetasPage() {
       ) : null}
       <div className="vol-etiquetas-batch">
         {faces.map((f) => {
+          const modeloNome = f.modelo_nome?.trim() || null;
           const modelo = f.modelo?.trim() || null;
           const produto = f.produto?.trim() || null;
           const desc = f.descricao?.trim() || null;
-          const titulo = modelo || produto || desc;
+          const titulo = modeloNome || modelo || produto || desc;
           const produtoLinha =
-            modelo && produto && produto !== modelo ? produto : null;
+            titulo && produto && produto !== titulo ? produto : null;
+          const conteudoLinha =
+            f.tipo === 'CAIXA' ? formatConteudoCaixa(f.conteudo) : null;
+          const itemTxt = itemLinha(f.item);
+          const totalBob = f.total_bobinas ?? null;
+          const totalCx = f.total_caixas ?? null;
+          const sku =
+            f.tipo === 'CAIXA'
+              ? `CAIXA ${f.sequencia}${totalCx ? `/${totalCx}` : ''}${f.mista ? ' · MISTA' : ''}`
+              : `BOBINA ${f.sequencia}${totalBob ? `/${totalBob}` : ''}${
+                  f.caixa_seq != null
+                    ? ` · CX ${f.caixa_seq}${totalCx ? `/${totalCx}` : ''}`
+                    : ''
+                }`;
 
           return (
             <article
@@ -213,13 +283,20 @@ export function PaEmbalagemEtiquetasPage() {
                   )}
                 </div>
                 <div className="vol-etiqueta-meta">
-                  <div className="vol-etiqueta-sku">
-                    {f.tipo === 'CAIXA' ? 'CAIXA' : 'BOBINA'} {f.sequencia}
-                    {f.tipo === 'CAIXA' && f.total_caixas ? `/${f.total_caixas}` : ''}
-                  </div>
+                  <div className="vol-etiqueta-sku">{sku}</div>
                   {produtoLinha ? (
                     <div className="vol-etiqueta-desc" title={produtoLinha}>
                       {produtoLinha}
+                    </div>
+                  ) : null}
+                  {conteudoLinha ? (
+                    <div className="vol-etiqueta-desc vol-etiqueta-conteudo" title={conteudoLinha}>
+                      {conteudoLinha}
+                    </div>
+                  ) : null}
+                  {itemTxt ? (
+                    <div className="vol-etiqueta-row" title={itemTxt}>
+                      <span className="vol-etiqueta-k">Item</span> {itemTxt.replace(/^Item\s+/i, '')}
                     </div>
                   ) : null}
                   <div className="vol-etiqueta-row">

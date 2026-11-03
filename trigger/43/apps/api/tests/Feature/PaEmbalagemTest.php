@@ -176,10 +176,18 @@ class PaEmbalagemTest extends TestCase
 
         $res->assertOk();
         $plano = $res->json('data.plano');
-        $this->assertSame(5, $plano['qtde_bobinas']);
+        // 2 modelos × 2500 etiq → 3+3 rolos (1 bobina = 1 modelo).
+        $this->assertSame(6, $plano['qtde_bobinas']);
         $this->assertSame(1, $plano['qtde_caixas']);
         $this->assertSame('5000.0000', $plano['qtde_etiquetas']);
-        $this->assertCount(5, $plano['bobinas']);
+        $this->assertCount(6, $plano['bobinas']);
+        $this->assertSame('Frente A', $plano['bobinas'][0]['modelo_nome']);
+        $this->assertSame('Verso B', $plano['bobinas'][3]['modelo_nome']);
+        $this->assertCount(2, $plano['modelos_resumo']);
+        $this->assertSame('Frente A', $plano['modelos_resumo'][0]['nome']);
+        $this->assertSame(3, $plano['modelos_resumo'][0]['bobinas']);
+        $this->assertSame('Verso B', $plano['modelos_resumo'][1]['nome']);
+        $this->assertSame(3, $plano['modelos_resumo'][1]['bobinas']);
         $this->assertNull($plano['encaixe']['texto']);
     }
 
@@ -217,7 +225,7 @@ class PaEmbalagemTest extends TestCase
 
         $ok->assertOk();
         $this->assertSame(1, $ok->json('data.qtde_caixas'));
-        $this->assertSame(5, $ok->json('data.qtde_bobinas'));
+        $this->assertSame(6, $ok->json('data.qtde_bobinas'));
     }
 
     public function test_confirmar_grava_bobinas_caixas_e_qr(): void
@@ -229,20 +237,22 @@ class PaEmbalagemTest extends TestCase
 
         $res->assertOk();
         $this->assertSame(PaEmbalagem::STATUS_CONFIRMADA, $res->json('data.status'));
-        $this->assertSame(5, $res->json('data.qtde_bobinas'));
+        $this->assertSame(6, $res->json('data.qtde_bobinas'));
         $this->assertSame(1, $res->json('data.qtde_caixas'));
-        $this->assertCount(5, $res->json('data.bobinas'));
+        $this->assertCount(6, $res->json('data.bobinas'));
         $this->assertCount(1, $res->json('data.caixas'));
         $this->assertStringStartsWith('BOB:', $res->json('data.bobinas.0.qr_payload'));
         $this->assertStringStartsWith('CX:', $res->json('data.caixas.0.qr_payload'));
+        $this->assertSame('Frente A', $res->json('data.bobinas.0.modelo_nome'));
+        $this->assertSame(1, $res->json('data.bobinas.0.modelo_ordem'));
 
-        $this->assertSame(5, PaEmbalagemBobina::query()->where('empresa_id', $this->empresa->id)->count());
+        $this->assertSame(6, PaEmbalagemBobina::query()->where('empresa_id', $this->empresa->id)->count());
 
         $show = $this->withHeaders($this->h())
             ->getJson("/api/v1/ordens-producao/{$this->op->id}");
         $show->assertOk();
         $this->assertNotNull($show->json('data.embalagem'));
-        $this->assertSame(5, $show->json('data.embalagem.qtde_bobinas'));
+        $this->assertSame(6, $show->json('data.embalagem.qtde_bobinas'));
     }
 
     public function test_soma_bobinas_deve_igualar_qtde_boa(): void
@@ -269,12 +279,15 @@ class PaEmbalagemTest extends TestCase
 
         $sug = $svc->sugerir($this->empresa, $this->op->fresh(['pedido', 'pedidoItem']));
         $plano = $sug['plano'];
-        $this->assertSame(4, $plano['qtde_bobinas']); // 1000+1000+1000+200
+        // 2 modelos × 1600 → 1000+600 cada = 4 rolos.
+        $this->assertSame(4, $plano['qtde_bobinas']);
         $soma = '0';
         foreach ($plano['bobinas'] as $b) {
             $soma = bcadd($soma, $b['qtde_etiquetas'], 4);
         }
         $this->assertSame('3200.0000', $soma);
+        $this->assertSame('Frente A', $plano['bobinas'][0]['modelo_nome']);
+        $this->assertSame('Verso B', $plano['bobinas'][2]['modelo_nome']);
     }
 
     public function test_texto_fiscal_prioriza_bobinas_e_composicao(): void
@@ -290,7 +303,7 @@ class PaEmbalagemTest extends TestCase
 
         $texto = app(PaEmbalagemService::class)->textoFiscal($emb);
         $this->assertNotNull($texto);
-        $this->assertStringContainsString('5 BOB', $texto);
+        $this->assertStringContainsString('6 BOB', $texto);
         $this->assertStringContainsString('med 100X50', $texto);
         $this->assertStringContainsString('Couchê Brilho', $texto);
         $this->assertStringContainsString('4 cor(es)', $texto);
@@ -299,7 +312,7 @@ class PaEmbalagemTest extends TestCase
         $this->assertStringContainsString('1 CX', $texto);
         $this->assertStringContainsString('tubete 3"', $texto);
         $this->assertStringContainsString('saida ESQUERDA', $texto);
-        $this->assertStringContainsString('comp: 5x1000UN', $texto);
+        $this->assertStringContainsString('comp: 4x1000UN+2x500UN', $texto);
         $this->assertStringNotContainsString('etiquetas', $texto);
 
         $ui = $emb->resumoTexto();
@@ -310,7 +323,7 @@ class PaEmbalagemTest extends TestCase
         $this->assertStringContainsString('5.000 UN', $rolo);
         $this->assertStringContainsString('med 100X50', $rolo);
         $this->assertStringContainsString('modelo Frente A/Verso B', $rolo);
-        $this->assertStringContainsString('comp: 5x1000UN', $rolo);
+        $this->assertStringContainsString('comp: 4x1000UN+2x500UN', $rolo);
         $this->assertStringNotContainsString('BOB', $rolo);
     }
 
@@ -329,7 +342,7 @@ class PaEmbalagemTest extends TestCase
         $texto = app(PaEmbalagemService::class)->textoFiscal($emb);
         $this->assertNotNull($texto);
         $this->assertStringContainsString('4 BOB', $texto);
-        $this->assertStringContainsString('comp: 3x1000UN+1x200UN', $texto);
+        $this->assertStringContainsString('comp: 2x1000UN+2x600UN', $texto);
     }
 
     public function test_rolos_e_caixas_reais_repartem_a_quantidade_boa(): void
@@ -344,7 +357,9 @@ class PaEmbalagemTest extends TestCase
         $igual->assertOk();
         $this->assertSame(5, $igual->json('data.qtde_bobinas'));
         $this->assertSame(1, $igual->json('data.qtde_caixas'));
-        $this->assertSame('1000.0000', $igual->json('data.bobinas.0.qtde_etiquetas'));
+        // 5 rolos × 2 modelos (2500/2500) → 3+2; primeiro modelo reparte em 3.
+        $this->assertSame('Frente A', $igual->json('data.bobinas.0.modelo_nome'));
+        $this->assertSame('833.3333', $igual->json('data.bobinas.0.qtde_etiquetas'));
         $this->assertSame(PaEmbalagem::ORIGEM_MANUAL, $igual->json('data.origem'));
 
         $real = $this->withHeaders($this->h())
@@ -358,6 +373,7 @@ class PaEmbalagemTest extends TestCase
         $soma = '0';
         foreach ($real->json('data.bobinas') as $bobina) {
             $soma = bcadd($soma, (string) $bobina['qtde_etiquetas'], 4);
+            $this->assertNotNull($bobina['modelo_nome']);
         }
         $this->assertSame('5000.0000', $soma);
         $this->assertSame(2, (int) $real->json('data.caixas.0.qtde_bobinas'));
@@ -428,11 +444,128 @@ class PaEmbalagemTest extends TestCase
         $res->assertOk();
         $bob = $res->json('data.bobinas.0');
         $cx = $res->json('data.caixas.0');
-        $this->assertSame('Frente A / Verso B', $bob['modelo']);
+        $this->assertSame('Frente A', $bob['modelo']);
+        $this->assertSame('Frente A', $bob['modelo_nome']);
+        $this->assertSame(1, $bob['modelo_ordem']);
+        $this->assertSame(5, $bob['total_bobinas']);
+        $this->assertSame(1, $bob['caixa_seq']);
         $this->assertSame('100X50 · Couchê Brilho · 4 cor(es) · Verniz UV', $bob['produto']);
         $this->assertSame('Etiqueta teste embalagem', $bob['descricao']);
-        $this->assertSame($bob['modelo'], $cx['modelo']);
+        $this->assertSame('Frente A / Verso B', $bob['modelos_item']);
+        $this->assertTrue($cx['mista']);
+        $this->assertCount(2, $cx['conteudo']);
         $this->assertSame($bob['produto'], $cx['produto']);
+        $this->assertNotEmpty($res->json('data.faces'));
+        $this->assertSame('CAIXA', $res->json('data.faces.0.tipo'));
+    }
+
+    public function test_etiquetas_modelo_por_bobina_e_caixa_mista(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->op->resultado_modelos = [
+            ['ordem' => 1, 'nome' => 'Frente A', 'qtde_planejada' => '3000', 'qtde_boa' => '3000.0000', 'qtde_refugo' => '0'],
+            ['ordem' => 2, 'nome' => 'Verso B', 'qtde_planejada' => '2000', 'qtde_boa' => '2000.0000', 'qtde_refugo' => '0'],
+        ];
+        $this->op->save();
+
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$this->op->id}/embalar", [
+                'qtde_caixas' => 1,
+            ])
+            ->assertOk();
+
+        $emb = app(PaEmbalagemService::class)->vigenteDaOp($this->empresa, $this->op->fresh());
+        $this->assertNotNull($emb);
+        // 3000→3 rolos + 2000→2 rolos.
+        $this->assertSame(5, $emb->qtde_bobinas);
+
+        $res = $this->withHeaders($this->h())
+            ->getJson('/api/v1/pa-embalagens/'.$emb->id.'/etiquetas');
+        $res->assertOk();
+
+        $nomes = array_column($res->json('data.bobinas'), 'modelo_nome');
+        $this->assertSame(['Frente A', 'Frente A', 'Frente A', 'Verso B', 'Verso B'], $nomes);
+
+        $cx0 = $res->json('data.caixas.0');
+        $this->assertTrue($cx0['mista']);
+        $this->assertCount(2, $cx0['conteudo']);
+        $this->assertSame('Frente A', $cx0['conteudo'][0]['modelo']);
+        $this->assertSame(3, $cx0['conteudo'][0]['bobinas']);
+        $this->assertSame('Verso B', $cx0['conteudo'][1]['modelo']);
+        $this->assertSame(2, $cx0['conteudo'][1]['bobinas']);
+        $this->assertStringContainsString('Frente A', (string) $cx0['modelo']);
+    }
+
+    public function test_etiquetas_sem_modelos_fallback_produto(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $item = $this->op->pedidoItem;
+        $spec = $item->especificacao;
+        unset($spec['modelos_composicao']);
+        $item->especificacao = $spec;
+        $item->save();
+        $this->op->resultado_modelos = null;
+        $this->op->save();
+
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$this->op->id}/embalar", [
+                'qtde_bobinas' => 5,
+                'qtde_caixas' => 1,
+            ])
+            ->assertOk();
+
+        $emb = app(PaEmbalagemService::class)->vigenteDaOp($this->empresa, $this->op->fresh());
+        $res = $this->withHeaders($this->h())
+            ->getJson('/api/v1/pa-embalagens/'.$emb->id.'/etiquetas');
+        $res->assertOk();
+
+        $bob = $res->json('data.bobinas.0');
+        $this->assertNull($bob['modelo_nome']);
+        $this->assertSame('100X50 · Couchê Brilho · 4 cor(es) · Verniz UV', $bob['modelo']);
+        $this->assertSame(5, $bob['total_bobinas']);
+        $this->assertFalse($res->json('data.caixas.0.mista'));
+    }
+
+    public function test_etiquetas_truncamento_modelos_com_mais(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $item = $this->op->pedidoItem;
+        $spec = $item->especificacao;
+        $spec['modelos_composicao'] = [
+            ['ordem' => 1, 'nome' => 'A1', 'percentual' => 20],
+            ['ordem' => 2, 'nome' => 'A2', 'percentual' => 20],
+            ['ordem' => 3, 'nome' => 'A3', 'percentual' => 20],
+            ['ordem' => 4, 'nome' => 'A4', 'percentual' => 20],
+            ['ordem' => 5, 'nome' => 'A5', 'percentual' => 20],
+        ];
+        $item->especificacao = $spec;
+        $item->save();
+        $this->op->resultado_modelos = [
+            ['ordem' => 1, 'nome' => 'A1', 'qtde_boa' => '1000.0000', 'qtde_refugo' => '0', 'qtde_planejada' => '1000'],
+            ['ordem' => 2, 'nome' => 'A2', 'qtde_boa' => '1000.0000', 'qtde_refugo' => '0', 'qtde_planejada' => '1000'],
+            ['ordem' => 3, 'nome' => 'A3', 'qtde_boa' => '1000.0000', 'qtde_refugo' => '0', 'qtde_planejada' => '1000'],
+            ['ordem' => 4, 'nome' => 'A4', 'qtde_boa' => '1000.0000', 'qtde_refugo' => '0', 'qtde_planejada' => '1000'],
+            ['ordem' => 5, 'nome' => 'A5', 'qtde_boa' => '1000.0000', 'qtde_refugo' => '0', 'qtde_planejada' => '1000'],
+        ];
+        $this->op->save();
+
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$this->op->id}/embalar", [
+                'qtde_caixas' => 1,
+            ])
+            ->assertOk();
+
+        $emb = app(PaEmbalagemService::class)->vigenteDaOp($this->empresa, $this->op->fresh());
+        $res = $this->withHeaders($this->h())
+            ->getJson('/api/v1/pa-embalagens/'.$emb->id.'/etiquetas');
+        $res->assertOk();
+        $this->assertSame('A1 / A2 / A3 / A4 +1', $res->json('data.bobinas.0.modelos_item'));
+        $this->assertSame('A1', $res->json('data.bobinas.0.modelo_nome'));
+        $this->assertTrue($res->json('data.caixas.0.mista'));
+        $this->assertCount(5, $res->json('data.caixas.0.conteudo'));
     }
 
     public function test_resumo_pedido_unica_inclui_embalagens_com_id(): void
@@ -531,5 +664,26 @@ class PaEmbalagemTest extends TestCase
         $this->assertCount(7, $lote->json('data.bobinas'));
         $this->assertSame($this->pedido->codigo, $lote->json('data.pedido.codigo'));
         $this->assertNull($lote->json('data.embalagem'));
+        $faces = $lote->json('data.faces');
+        $this->assertNotEmpty($faces);
+        // Manuseio: CX do item 1, bobinas dele, CX do item 2, bobinas dele.
+        $this->assertSame('CAIXA', $faces[0]['tipo']);
+        $this->assertSame(1, $faces[0]['item']['ordem']);
+        $bobDoItem1 = array_values(array_filter(
+            $faces,
+            static fn ($f) => ($f['tipo'] ?? '') === 'BOBINA' && ($f['item']['ordem'] ?? null) === 1
+        ));
+        $this->assertNotEmpty($bobDoItem1);
+        $this->assertSame('Frente A', $bobDoItem1[0]['modelo_nome']);
+        $item2Face = null;
+        foreach ($faces as $f) {
+            if (($f['item']['ordem'] ?? null) === 2) {
+                $item2Face = $f;
+                break;
+            }
+        }
+        $this->assertNotNull($item2Face);
+        $this->assertSame('Etiqueta segunda embalagem', $item2Face['item']['descricao']);
     }
 }
+

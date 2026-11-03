@@ -50,19 +50,22 @@ make doctor
 
 cat <<'EOF'
 
-Pronto 100% — etiquetas embalagem PA (kit expedição sem undefined)
+Pronto 100% — etiquetas PA (1 bobina = 1 modelo · caixa com conteúdo)
   App:     http://localhost:8043
   Login:   admin@retaetiquetas.com.br  /  Admin@123
 
-Teste do bug (multipla — o que quebrava)
+Teste principal (grupo físico legível)
   1. Hard refresh (Ctrl+Shift+R)
-  2. Expedição → PED-2026-EMBKIT  (ou /expedicao/pedido/<id>)
-  3. Documentos da saída → 2 botões "Etiquetas EMB…"
-  4. Abrir cada um → faces BOB/CX · sem erro "PaEmbalagem undefined"
+  2. OP-2026-EMBNF02 → Embalagem PA → ver "Por modelo" · Imprimir BOB/CX
+     · BOBINA: hero = Frente A ou Verso B (não "A / B" em todo rolo)
+     · CAIXA: MISTA + linha Frente A: N bob · … | Verso B: …
+  3. Expedição → PED-2026-EMBKIT → «Etiquetas da embalagem»
+     · faces na ordem item → caixa → bobinas
+     · Item 1/2 e Item 2/2 visíveis · artes A/B e X/Y
 
-Regressão (1 embalagem)
-  · OP-2026-EMBNF02 → Imprimir etiquetas BOB/CX
-  · ou faturar PED-2026-EMBNF02 e abrir kit (1 botão)
+Regressão
+  · Faturar PED-2026-EMBNF02 (modo ROLO) se ainda PRODUZIDO
+  · Kit multipla sem "undefined"
 
 Impressora: Elgin L42 Pro Full · 50×40 mm · escala 100%
 

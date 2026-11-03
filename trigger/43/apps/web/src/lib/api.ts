@@ -3294,6 +3294,13 @@ export type PaEmbalagemResumo = {
   ordem_producao_id?: number;
   pedido_id?: number;
   embalagens?: PaEmbalagemImprimivel[];
+  /** Repartição 1 bobina = 1 modelo (quando a embalagem tem artes). */
+  modelos_resumo?: Array<{
+    ordem?: number | null;
+    nome: string;
+    bobinas: number;
+    etiquetas: string;
+  }>;
   bobinas?: Array<{
     id: number;
     codigo: string;
@@ -3301,6 +3308,8 @@ export type PaEmbalagemResumo = {
     qtde_etiquetas: string;
     tubete?: string | null;
     caixa_id?: number | null;
+    modelo_ordem?: number | null;
+    modelo_nome?: string | null;
     qr_payload: string;
   }>;
   caixas?: Array<{

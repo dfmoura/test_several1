@@ -4,6 +4,13 @@ import { api, type OrdemProducao, type PaEmbalagemResumo } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
 import { InsumoSkuCombobox, type InsumoSkuOpcao } from './InsumoSkuCombobox';
 
+type ModeloResumo = {
+  ordem?: number | null;
+  nome: string;
+  bobinas: number;
+  etiquetas: string;
+};
+
 type Plano = {
   resumo: string;
   qtde_bobinas: number;
@@ -13,11 +20,22 @@ type Plano = {
   tubete?: string | null;
   caixa_medida?: string | null;
   caixa_planejada_no_orcamento?: boolean;
+  modelos_resumo?: ModeloResumo[];
   encaixe?: {
     status: string;
     texto: string | null;
   } | null;
 };
+
+function textoModelosResumo(rows: ModeloResumo[] | undefined | null): string | null {
+  if (!rows || rows.length === 0) return null;
+  return rows
+    .map(
+      (m) =>
+        `${m.nome}: ${m.bobinas} ${m.bobinas === 1 ? 'rolo' : 'rolos'} · ${formatDecimalBr(Number(m.etiquetas), 0)} etiq.`,
+    )
+    .join(' · ');
+}
 
 type Props = {
   op: OrdemProducao;
@@ -169,10 +187,10 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
         <div className="form-section">
           <h3>Embalagem PA</h3>
           <p className="muted" style={{ marginTop: 0 }}>
-            Rolos reais depois da rebobinação. A caixa é escolhida aqui, antes de faturar, com a
-            quantidade que saiu. A soma dos rolos fica igual às etiquetas boas. A nota usa as
-            caixas como volumes e mantém o preço do pedido. Esta confirmação não baixa o estoque:
-            a caixa sai quando a NF-e fica oficial, pelo custo médio.
+            Rolos reais depois da rebobinação — um modelo por rolo. A caixa é escolhida aqui, antes
+            de faturar, com a quantidade que saiu. A soma dos rolos fica igual às etiquetas boas. A
+            nota usa as caixas como volumes e mantém o preço do pedido. Esta confirmação não baixa
+            o estoque: a caixa sai quando a NF-e fica oficial, pelo custo médio.
           </p>
         </div>
 
@@ -221,6 +239,11 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
             <p className="muted" style={{ marginTop: 0 }}>
               {emb.resumo}
             </p>
+            {textoModelosResumo(emb.modelos_resumo) ? (
+              <p className="muted" style={{ marginTop: 0 }}>
+                Por modelo: {textoModelosResumo(emb.modelos_resumo)}
+              </p>
+            ) : null}
             <div className="btn-row">
               <Link
                 to={`/ordens-producao/${op.id}/embalagem/etiquetas`}
@@ -239,6 +262,11 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
                   {plano.qtde_bobinas === 1 ? 'rolo' : 'rolos'} · {plano.etiq_por_rolo} etiq./rolo
                   {plano.tubete ? ` · tubete ${plano.tubete}` : ''}
                 </p>
+                {textoModelosResumo(plano.modelos_resumo) ? (
+                  <p className="muted" style={{ marginTop: 0, marginBottom: '0.35rem' }}>
+                    Por modelo (1 arte por rolo): {textoModelosResumo(plano.modelos_resumo)}
+                  </p>
+                ) : null}
                 {plano.caixa_planejada_no_orcamento && plano.qtde_caixas > 0 ? (
                   <p className="muted" style={{ marginTop: 0 }}>
                     Este pedido ainda traz a estimativa antiga: {plano.qtde_caixas}{' '}

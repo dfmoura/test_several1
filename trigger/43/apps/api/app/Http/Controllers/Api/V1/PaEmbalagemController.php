@@ -34,6 +34,8 @@ class PaEmbalagemController extends Controller
             'observacao' => ['nullable', 'string', 'max:2000'],
             'bobinas' => ['nullable', 'array', 'min:1', 'max:500'],
             'bobinas.*.qtde_etiquetas' => ['required_with:bobinas', 'numeric'],
+            'bobinas.*.modelo_ordem' => ['nullable', 'integer', 'min:1', 'max:99'],
+            'bobinas.*.modelo_nome' => ['nullable', 'string', 'max:120'],
             'qtde_bobinas' => ['nullable', 'integer', 'min:1', 'max:500'],
             'qtde_caixas' => ['nullable', 'integer', 'min:1', 'max:500'],
             'caixa_produto_id' => ['nullable', 'integer', 'min:1'],

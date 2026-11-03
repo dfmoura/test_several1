@@ -10,12 +10,14 @@ use App\Models\PaEmbalagem;
 use App\Models\PaEmbalagemBobina;
 use App\Models\PaEmbalagemCaixa;
 use App\Models\Pedido;
+use App\Models\PedidoItem;
 use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Estoque\CaixaExpedicao;
 use App\Services\Fiscal\NfePesoExpedicao;
 use App\Services\Fiscal\NfeVolumeNumeracao;
 use App\Support\CaixaMedida;
+use App\Support\ModelosComposicao;
 use App\Support\PadraoDecimal;
 use App\Support\RoloCaixaEncaixe;
 use Illuminate\Support\Facades\Auth;
@@ -28,6 +30,8 @@ use Illuminate\Validation\ValidationException;
  */
 class PaEmbalagemService
 {
+    private const MODELOS_FACE_MAX = 4;
+
     public function __construct(private readonly CodigoGenerator $codigos) {}
 
     /**
@@ -176,6 +180,8 @@ class PaEmbalagemService
                     'codigo' => sprintf('%s-B%03d', $emb->codigo, $bob['sequencia']),
                     'qtde_etiquetas' => $bob['qtde_etiquetas'],
                     'tubete' => $plano['tubete'],
+                    'modelo_ordem' => $bob['modelo_ordem'] ?? null,
+                    'modelo_nome' => $bob['modelo_nome'] ?? null,
                 ]);
             }
 
@@ -215,7 +221,7 @@ class PaEmbalagemService
             ->where('empresa_id', $empresa->id)
             ->where('pedido_id', $pedido->id)
             ->where('status', PaEmbalagem::STATUS_CONFIRMADA)
-            ->with(['bobinas', 'pedidoItem'])
+            ->with(['bobinas', 'pedidoItem:id,pedido_id,ordem,descricao,especificacao'])
             ->orderByDesc('id')
             ->get();
     }
@@ -306,27 +312,50 @@ class PaEmbalagemService
 
     /**
      * Faces BOB/CX para impressão Elgin 50×40.
-     * `modelo` = nomes da composição (hero); `produto` = medida/papel/cores/acab (sem repetir modelo).
+     * Hero da bobina = modelo daquele rolo; caixa declara conteúdo (pura/mista).
      *
      * @return array<string, mixed>
      */
-    public function etiquetas(Empresa $empresa, PaEmbalagem $embalagem): array
+    public function etiquetas(Empresa $empresa, PaEmbalagem $embalagem, bool $pedMultiItem = false): array
     {
         if ($embalagem->empresa_id !== $empresa->id) {
             abort(404);
         }
 
         $embalagem->loadMissing([
-            'bobinas',
+            'bobinas.caixa',
             'caixas',
             'pedido:id,codigo',
             'ordemProducao:id,codigo',
-            'pedidoItem:id,descricao,especificacao',
+            'pedidoItem:id,ordem,descricao,especificacao',
         ]);
 
-        $rotulos = $this->rotulosFaceEtiqueta($embalagem);
+        $base = $this->rotulosFaceEtiqueta($embalagem, $pedMultiItem);
+        $totalBobinas = (int) $embalagem->qtde_bobinas;
+        $totalCaixas = (int) $embalagem->qtde_caixas;
+        $caixaSeqPorId = [];
+        foreach ($embalagem->caixas as $cx) {
+            $caixaSeqPorId[(int) $cx->id] = (int) $cx->sequencia;
+        }
 
-        $bobinas = $embalagem->bobinas->map(function (PaEmbalagemBobina $b) use ($embalagem, $rotulos) {
+        $bobinasSorted = $embalagem->bobinas
+            ->sortBy(fn (PaEmbalagemBobina $b) => sprintf(
+                '%05d-%05d',
+                $b->modelo_ordem ?? 9999,
+                $b->sequencia
+            ))
+            ->values();
+
+        $bobinas = $bobinasSorted->map(function (PaEmbalagemBobina $b) use (
+            $embalagem,
+            $base,
+            $totalBobinas,
+            $totalCaixas,
+            $caixaSeqPorId
+        ) {
+            $hero = $b->modelo_nome ?: $base['produto'] ?: $base['descricao'];
+            $caixaSeq = $b->caixa_id ? ($caixaSeqPorId[(int) $b->caixa_id] ?? null) : null;
+
             return [
                 'id' => $b->id,
                 'tipo' => 'BOBINA',
@@ -335,44 +364,74 @@ class PaEmbalagemService
                 'qtde_etiquetas' => (string) $b->qtde_etiquetas,
                 'tubete' => $b->tubete,
                 'caixa_id' => $b->caixa_id,
+                'caixa_seq' => $caixaSeq,
+                'total_bobinas' => $totalBobinas,
+                'total_caixas' => $totalCaixas > 0 ? $totalCaixas : null,
+                'modelo_ordem' => $b->modelo_ordem,
+                'modelo_nome' => $b->modelo_nome,
                 'qr_payload' => $b->qrPayload(),
                 'pedido' => $embalagem->pedido?->codigo,
                 'op' => $embalagem->ordemProducao?->codigo,
-                'descricao' => $rotulos['descricao'],
-                'modelo' => $rotulos['modelo'],
-                'produto' => $rotulos['produto'],
+                'descricao' => $base['descricao'],
+                'modelo' => $hero,
+                'modelos_item' => $base['modelos_item'],
+                'produto' => $base['produto'],
+                'item' => $base['item'],
             ];
         })->all();
 
-        $caixas = $embalagem->caixas->map(function (PaEmbalagemCaixa $c) use ($embalagem, $rotulos) {
-            return [
-                'id' => $c->id,
-                'tipo' => 'CAIXA',
-                'codigo' => $c->codigo,
-                'sequencia' => $c->sequencia,
-                'qtde_bobinas' => $c->qtde_bobinas,
-                'qtde_etiquetas' => (string) $c->qtde_etiquetas,
-                'qr_payload' => $c->qrPayload(),
-                'pedido' => $embalagem->pedido?->codigo,
-                'op' => $embalagem->ordemProducao?->codigo,
-                'descricao' => $rotulos['descricao'],
-                'modelo' => $rotulos['modelo'],
-                'produto' => $rotulos['produto'],
-                'tubete' => $embalagem->tubete,
-                'caixa_medida' => $embalagem->caixa_medida,
-                'total_caixas' => $embalagem->qtde_caixas,
-            ];
-        })->all();
+        $bobinasPorCaixa = [];
+        foreach ($embalagem->bobinas as $b) {
+            if ($b->caixa_id === null) {
+                continue;
+            }
+            $bobinasPorCaixa[(int) $b->caixa_id][] = $b;
+        }
+
+        $caixas = $embalagem->caixas->sortBy('sequencia')->values()->map(
+            function (PaEmbalagemCaixa $c) use ($embalagem, $base, $totalCaixas, $bobinasPorCaixa, $totalBobinas) {
+                $conteudo = $this->conteudoCaixa($bobinasPorCaixa[(int) $c->id] ?? []);
+                $mista = count($conteudo) > 1;
+                $hero = $this->heroCaixa($conteudo, $base);
+
+                return [
+                    'id' => $c->id,
+                    'tipo' => 'CAIXA',
+                    'codigo' => $c->codigo,
+                    'sequencia' => $c->sequencia,
+                    'qtde_bobinas' => $c->qtde_bobinas,
+                    'qtde_etiquetas' => (string) $c->qtde_etiquetas,
+                    'qr_payload' => $c->qrPayload(),
+                    'pedido' => $embalagem->pedido?->codigo,
+                    'op' => $embalagem->ordemProducao?->codigo,
+                    'descricao' => $base['descricao'],
+                    'modelo' => $hero,
+                    'modelo_nome' => count($conteudo) === 1 ? ($conteudo[0]['modelo'] ?? null) : null,
+                    'modelos_item' => $base['modelos_item'],
+                    'produto' => $base['produto'],
+                    'tubete' => $embalagem->tubete,
+                    'caixa_medida' => $embalagem->caixa_medida,
+                    'total_caixas' => $totalCaixas,
+                    'total_bobinas' => $totalBobinas,
+                    'conteudo' => $conteudo,
+                    'mista' => $mista,
+                    'item' => $base['item'],
+                ];
+            }
+        )->all();
+
+        $faces = $this->facesManuseio($caixas, $bobinas);
 
         return [
             'embalagem' => $this->toOut($embalagem, false),
             'bobinas' => $bobinas,
             'caixas' => $caixas,
+            'faces' => $faces,
         ];
     }
 
     /**
-     * Lote BOB/CX do PED (kit de saída): todas as embalagens confirmadas numa impressão.
+     * Lote BOB/CX do PED (kit de saída): item → modelo → caixa → bobina.
      *
      * @return array<string, mixed>
      */
@@ -382,16 +441,23 @@ class PaEmbalagemService
             abort(404);
         }
 
-        $todos = $this->confirmadasDoPedido($empresa, $pedido)->sortBy('id')->values();
+        $todos = $this->confirmadasDoPedido($empresa, $pedido)
+            ->sortBy(fn (PaEmbalagem $e) => [
+                (int) ($e->pedidoItem?->ordem ?? 9999),
+                (int) $e->id,
+            ])
+            ->values();
+        $multi = $todos->count() > 1;
         $bobinas = [];
         $caixas = [];
+        $faces = [];
         $embsOut = [];
 
         foreach ($todos as $emb) {
             if (! $emb instanceof PaEmbalagem) {
                 continue;
             }
-            $chunk = $this->etiquetas($empresa, $emb);
+            $chunk = $this->etiquetas($empresa, $emb, $multi);
             if (isset($chunk['embalagem']) && is_array($chunk['embalagem'])) {
                 $embsOut[] = $chunk['embalagem'];
             }
@@ -405,6 +471,11 @@ class PaEmbalagemService
                     $bobinas[] = $b;
                 }
             }
+            foreach ($chunk['faces'] ?? [] as $f) {
+                if (is_array($f)) {
+                    $faces[] = $f;
+                }
+            }
         }
 
         return [
@@ -416,15 +487,119 @@ class PaEmbalagemService
             'embalagem' => count($embsOut) === 1 ? $embsOut[0] : null,
             'bobinas' => $bobinas,
             'caixas' => $caixas,
+            'faces' => $faces,
         ];
     }
 
     /**
-     * Hierarquia da face: modelo (topo) → produto (coluna).
-     *
-     * @return array{modelo: string|null, produto: string|null, descricao: string|null}
+     * @param  list<array<string, mixed>>  $caixas
+     * @param  list<array<string, mixed>>  $bobinas
+     * @return list<array<string, mixed>>
      */
-    private function rotulosFaceEtiqueta(PaEmbalagem $embalagem): array
+    private function facesManuseio(array $caixas, array $bobinas): array
+    {
+        $porCaixa = [];
+        $orfas = [];
+        foreach ($bobinas as $b) {
+            $cid = $b['caixa_id'] ?? null;
+            if ($cid === null) {
+                $orfas[] = $b;
+                continue;
+            }
+            $porCaixa[(int) $cid][] = $b;
+        }
+
+        $faces = [];
+        foreach ($caixas as $c) {
+            $faces[] = $c;
+            foreach ($porCaixa[(int) ($c['id'] ?? 0)] ?? [] as $b) {
+                $faces[] = $b;
+            }
+        }
+        foreach ($orfas as $b) {
+            $faces[] = $b;
+        }
+
+        return $faces;
+    }
+
+    /**
+     * @param  list<PaEmbalagemBobina>  $bobinas
+     * @return list<array{modelo: string, modelo_ordem: int|null, bobinas: int, etiquetas: string}>
+     */
+    private function conteudoCaixa(array $bobinas): array
+    {
+        $acc = [];
+        foreach ($bobinas as $b) {
+            $ordem = $b->modelo_ordem;
+            $nome = trim((string) ($b->modelo_nome ?? ''));
+            $key = $ordem !== null ? 'o:'.$ordem : ('n:'.($nome !== '' ? $nome : '_'));
+            if (! isset($acc[$key])) {
+                $acc[$key] = [
+                    'modelo' => $nome !== '' ? $nome : ($ordem !== null ? 'Modelo '.$ordem : '—'),
+                    'modelo_ordem' => $ordem,
+                    'bobinas' => 0,
+                    'etiquetas' => '0',
+                ];
+            }
+            $acc[$key]['bobinas']++;
+            $acc[$key]['etiquetas'] = bcadd(
+                $acc[$key]['etiquetas'],
+                (string) $b->qtde_etiquetas,
+                PadraoDecimal::SCALE_QTY
+            );
+        }
+
+        $out = array_values($acc);
+        usort($out, static function (array $a, array $b) {
+            $oa = $a['modelo_ordem'] ?? 9999;
+            $ob = $b['modelo_ordem'] ?? 9999;
+            if ($oa !== $ob) {
+                return $oa <=> $ob;
+            }
+
+            return strcmp((string) $a['modelo'], (string) $b['modelo']);
+        });
+
+        return $out;
+    }
+
+    /**
+     * @param  list<array{modelo: string, bobinas: int, etiquetas: string}>  $conteudo
+     * @param  array{produto: ?string, descricao: ?string, modelos_item: ?string}  $base
+     */
+    private function heroCaixa(array $conteudo, array $base): ?string
+    {
+        if (count($conteudo) === 0) {
+            return $base['produto'] ?: $base['descricao'];
+        }
+        if (count($conteudo) === 1) {
+            return $conteudo[0]['modelo'] ?: ($base['produto'] ?: $base['descricao']);
+        }
+        $nomes = array_values(array_filter(array_map(
+            static fn (array $c) => trim((string) ($c['modelo'] ?? '')),
+            $conteudo
+        )));
+        if ($nomes === []) {
+            return count($conteudo).' modelos';
+        }
+        $joined = implode(' + ', array_slice($nomes, 0, 2));
+        if (count($nomes) > 2) {
+            return $joined.' +'.(count($nomes) - 2);
+        }
+        if (mb_strlen($joined) <= 42) {
+            return $joined;
+        }
+
+        return count($nomes).' modelos';
+    }
+
+    /**
+     * Hierarquia da face: modelo do volume (topo) → produto (coluna).
+     *
+     * @return array{modelo: string|null, produto: string|null, descricao: string|null, modelos_item: string|null, item: array{ordem: int|null, descricao: string|null, total_itens: int|null}|null}
+     */
+    private function rotulosFaceEtiqueta(PaEmbalagem $embalagem, bool $pedMultiItem = false): array
     {
         $item = $embalagem->pedidoItem;
         $desc = $item?->descricao !== null && trim((string) $item->descricao) !== ''
@@ -445,9 +620,15 @@ class PaEmbalagemService
                 }
             }
         }
-        $modelo = $nomes !== []
-            ? implode(' / ', array_slice($nomes, 0, 4))
-            : null;
+        $modelosItem = null;
+        if ($nomes !== []) {
+            $visiveis = array_slice($nomes, 0, self::MODELOS_FACE_MAX);
+            $modelosItem = implode(' / ', $visiveis);
+            $extra = count($nomes) - count($visiveis);
+            if ($extra > 0) {
+                $modelosItem .= ' +'.$extra;
+            }
+        }
 
         $produtoParts = [];
         $medida = trim((string) ($spec['medida'] ?? ''));
@@ -467,10 +648,30 @@ class PaEmbalagemService
         }
         $produto = $produtoParts !== [] ? implode(' · ', $produtoParts) : $desc;
 
+        $itemOut = null;
+        if ($pedMultiItem || ($item?->ordem !== null)) {
+            $totalItens = null;
+            if ($embalagem->pedido_id) {
+                $totalItens = (int) PedidoItem::query()
+                    ->where('pedido_id', $embalagem->pedido_id)
+                    ->where('empresa_id', $embalagem->empresa_id)
+                    ->count();
+            }
+            if ($pedMultiItem || ($totalItens !== null && $totalItens > 1)) {
+                $itemOut = [
+                    'ordem' => $item?->ordem !== null ? (int) $item->ordem : null,
+                    'descricao' => $desc,
+                    'total_itens' => $totalItens,
+                ];
+            }
+        }
+
         return [
-            'modelo' => $modelo,
+            'modelo' => $modelosItem,
             'produto' => $produto,
             'descricao' => $desc,
+            'modelos_item' => $modelosItem,
+            'item' => $itemOut,
         ];
     }
 
@@ -676,6 +877,8 @@ class PaEmbalagemService
                 'qtde_etiquetas' => (string) $b->qtde_etiquetas,
                 'tubete' => $b->tubete,
                 'caixa_id' => $b->caixa_id,
+                'modelo_ordem' => $b->modelo_ordem,
+                'modelo_nome' => $b->modelo_nome,
                 'qr_payload' => $b->qrPayload(),
             ])->all();
             $out['caixas'] = $e->caixas->map(fn (PaEmbalagemCaixa $c) => [
@@ -686,13 +889,23 @@ class PaEmbalagemService
                 'qtde_etiquetas' => (string) $c->qtde_etiquetas,
                 'qr_payload' => $c->qrPayload(),
             ])->all();
+            $out['modelos_resumo'] = $this->modelosResumoDeLinhas(
+                array_map(
+                    static fn (PaEmbalagemBobina $b) => [
+                        'qtde_etiquetas' => (string) $b->qtde_etiquetas,
+                        'modelo_ordem' => $b->modelo_ordem,
+                        'modelo_nome' => $b->modelo_nome,
+                    ],
+                    $e->bobinas->all()
+                )
+            );
         }
 
         return $out;
     }
 
     /**
-     * @param  list<array{qtde_etiquetas?: mixed}>|null  $bobinasIn
+     * @param  list<array{qtde_etiquetas?: mixed, modelo_ordem?: mixed, modelo_nome?: mixed}>|null  $bobinasIn
      * @return array<string, mixed>
      */
     private function montarPlano(
@@ -729,40 +942,11 @@ class PaEmbalagemService
             $saida = null;
         }
 
-        $qtysSugeridas = $this->distribuirEtiquetas($qtdeBoa, $etiqPorRolo);
-        if ($bobinasIn !== null) {
-            $qtys = [];
-            foreach ($bobinasIn as $i => $row) {
-                if (! is_array($row)) {
-                    continue;
-                }
-                $q = PadraoDecimal::parseStrict((string) ($row['qtde_etiquetas'] ?? ''), PadraoDecimal::SCALE_QTY);
-                if ($q === null || bccomp($q, '0', PadraoDecimal::SCALE_QTY) <= 0) {
-                    throw ValidationException::withMessages([
-                        "bobinas.{$i}.qtde_etiquetas" => ['Quantidade da bobina inválida.'],
-                    ]);
-                }
-                $qtys[] = $q;
-            }
-            if ($qtys === []) {
-                throw ValidationException::withMessages([
-                    'bobinas' => ['Informe ao menos uma bobina.'],
-                ]);
-            }
-        } elseif ($nRolos !== null && $nRolos !== count($qtysSugeridas)) {
-            if ($nRolos < 1 || $nRolos > 500) {
-                throw ValidationException::withMessages([
-                    'qtde_bobinas' => ['Informe entre 1 e 500 rolos.'],
-                ]);
-            }
-            $qtys = $this->distribuirEmN($qtdeBoa, $nRolos);
-        } else {
-            $qtys = $qtysSugeridas;
-        }
+        $linhasBobina = $this->montarLinhasBobina($op, $qtdeBoa, $etiqPorRolo, $bobinasIn, $nRolos);
 
         $soma = '0';
-        foreach ($qtys as $q) {
-            $soma = bcadd($soma, $q, PadraoDecimal::SCALE_QTY);
+        foreach ($linhasBobina as $linha) {
+            $soma = bcadd($soma, $linha['qtde_etiquetas'], PadraoDecimal::SCALE_QTY);
         }
         if (bccomp($soma, $qtdeBoa, PadraoDecimal::SCALE_QTY) !== 0) {
             throw ValidationException::withMessages([
@@ -770,14 +954,16 @@ class PaEmbalagemService
             ]);
         }
 
-        $nBobinas = count($qtys);
+        $nBobinas = count($linhasBobina);
         if ($nCaixasPedidas === null && $capLegada === null) {
             $bobinas = [];
-            foreach ($qtys as $i => $q) {
+            foreach ($linhasBobina as $i => $linha) {
                 $bobinas[] = [
                     'sequencia' => $i + 1,
-                    'qtde_etiquetas' => $q,
+                    'qtde_etiquetas' => $linha['qtde_etiquetas'],
                     'caixa_idx' => 0,
+                    'modelo_ordem' => $linha['modelo_ordem'],
+                    'modelo_nome' => $linha['modelo_nome'],
                 ];
             }
             $caixa = $this->caixaDoEncaixe((int) $op->empresa_id, $caixaMedida);
@@ -801,6 +987,7 @@ class PaEmbalagemService
                 'encaixe' => $encaixe,
                 'bobinas' => $bobinas,
                 'caixas' => [],
+                'modelos_resumo' => $this->modelosResumoDeLinhas($bobinas),
                 'resumo' => number_format((float) $qtdeBoa, 0, ',', '.').' etiquetas · '
                     .$nBobinas.' bobina'.($nBobinas === 1 ? '' : 's'),
             ];
@@ -828,17 +1015,19 @@ class PaEmbalagemService
             ];
         }
 
-        foreach ($qtys as $i => $q) {
+        foreach ($linhasBobina as $i => $linha) {
             $caixaIdx = $mapaCaixas[$i] ?? (int) floor($i / $rolosPorCaixa);
             $bobinas[] = [
                 'sequencia' => $i + 1,
-                'qtde_etiquetas' => $q,
+                'qtde_etiquetas' => $linha['qtde_etiquetas'],
                 'caixa_idx' => $caixaIdx,
+                'modelo_ordem' => $linha['modelo_ordem'],
+                'modelo_nome' => $linha['modelo_nome'],
             ];
             $caixasAcc[$caixaIdx]['qtde_bobinas']++;
             $caixasAcc[$caixaIdx]['qtde_etiquetas'] = bcadd(
                 $caixasAcc[$caixaIdx]['qtde_etiquetas'],
-                $q,
+                $linha['qtde_etiquetas'],
                 PadraoDecimal::SCALE_QTY
             );
         }
@@ -864,10 +1053,402 @@ class PaEmbalagemService
             'encaixe' => $encaixe,
             'bobinas' => $bobinas,
             'caixas' => array_values($caixasAcc),
+            'modelos_resumo' => $this->modelosResumoDeLinhas($bobinas),
             'resumo' => number_format((float) $qtdeBoa, 0, ',', '.').' etiquetas · '
                 .$nBobinas.' bobina'.($nBobinas === 1 ? '' : 's').' · '
                 .$nCaixas.' caixa'.($nCaixas === 1 ? '' : 's'),
         ];
+    }
+
+    /**
+     * @param  list<array{qtde_etiquetas: string, modelo_ordem?: int|null, modelo_nome?: string|null}>  $linhas
+     * @return list<array{ordem: int|null, nome: string, bobinas: int, etiquetas: string}>
+     */
+    private function modelosResumoDeLinhas(array $linhas): array
+    {
+        $acc = [];
+        foreach ($linhas as $l) {
+            $nome = trim((string) ($l['modelo_nome'] ?? ''));
+            $ordem = $l['modelo_ordem'] ?? null;
+            if ($nome === '' && $ordem === null) {
+                continue;
+            }
+            $key = $ordem !== null ? 'o:'.$ordem : 'n:'.$nome;
+            if (! isset($acc[$key])) {
+                $acc[$key] = [
+                    'ordem' => $ordem !== null ? (int) $ordem : null,
+                    'nome' => $nome !== '' ? $nome : ('Modelo '.(string) $ordem),
+                    'bobinas' => 0,
+                    'etiquetas' => '0',
+                ];
+            }
+            $acc[$key]['bobinas']++;
+            $acc[$key]['etiquetas'] = bcadd(
+                $acc[$key]['etiquetas'],
+                (string) $l['qtde_etiquetas'],
+                PadraoDecimal::SCALE_QTY
+            );
+        }
+
+        $out = array_values($acc);
+        usort($out, static function (array $a, array $b) {
+            $oa = $a['ordem'] ?? 9999;
+            $ob = $b['ordem'] ?? 9999;
+            if ($oa !== $ob) {
+                return $oa <=> $ob;
+            }
+
+            return strcmp((string) $a['nome'], (string) $b['nome']);
+        });
+
+        return $out;
+    }
+
+    /**
+     * 1 bobina = 1 modelo. Fonte: resultado_modelos → matriz/% → sem modelo.
+     *
+     * @param  list<array{qtde_etiquetas?: mixed, modelo_ordem?: mixed, modelo_nome?: mixed}>|null  $bobinasIn
+     * @return list<array{qtde_etiquetas: string, modelo_ordem: int|null, modelo_nome: string|null}>
+     */
+    private function montarLinhasBobina(
+        OrdemProducao $op,
+        string $qtdeBoa,
+        int $etiqPorRolo,
+        ?array $bobinasIn,
+        ?int $nRolos,
+    ): array {
+        $modelos = $this->quantidadesPorModelo($op, $qtdeBoa);
+
+        if ($bobinasIn !== null) {
+            $linhas = [];
+            foreach ($bobinasIn as $i => $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                $q = PadraoDecimal::parseStrict((string) ($row['qtde_etiquetas'] ?? ''), PadraoDecimal::SCALE_QTY);
+                if ($q === null || bccomp($q, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                    throw ValidationException::withMessages([
+                        "bobinas.{$i}.qtde_etiquetas" => ['Quantidade da bobina inválida.'],
+                    ]);
+                }
+                $ord = isset($row['modelo_ordem']) ? (int) $row['modelo_ordem'] : null;
+                $nome = isset($row['modelo_nome']) ? trim((string) $row['modelo_nome']) : null;
+                $linhas[] = [
+                    'qtde_etiquetas' => $q,
+                    'modelo_ordem' => $ord !== null && $ord > 0 ? $ord : null,
+                    'modelo_nome' => $nome !== null && $nome !== '' ? $nome : null,
+                ];
+            }
+            if ($linhas === []) {
+                throw ValidationException::withMessages([
+                    'bobinas' => ['Informe ao menos uma bobina.'],
+                ]);
+            }
+
+            return $this->completarModelosNasLinhas($linhas, $modelos);
+        }
+
+        if ($modelos === []) {
+            $qtysSugeridas = $this->distribuirEtiquetas($qtdeBoa, $etiqPorRolo);
+            if ($nRolos !== null && $nRolos !== count($qtysSugeridas)) {
+                if ($nRolos < 1 || $nRolos > 500) {
+                    throw ValidationException::withMessages([
+                        'qtde_bobinas' => ['Informe entre 1 e 500 rolos.'],
+                    ]);
+                }
+                $qtys = $this->distribuirEmN($qtdeBoa, $nRolos);
+            } else {
+                $qtys = $qtysSugeridas;
+            }
+
+            return array_map(
+                static fn (string $q) => [
+                    'qtde_etiquetas' => $q,
+                    'modelo_ordem' => null,
+                    'modelo_nome' => null,
+                ],
+                $qtys
+            );
+        }
+
+        $naturais = [];
+        foreach ($modelos as $m) {
+            foreach ($this->distribuirEtiquetas($m['qtde'], $etiqPorRolo) as $q) {
+                $naturais[] = [
+                    'qtde_etiquetas' => $q,
+                    'modelo_ordem' => $m['ordem'],
+                    'modelo_nome' => $m['nome'],
+                ];
+            }
+        }
+
+        if ($nRolos === null || $nRolos === count($naturais)) {
+            return $naturais;
+        }
+        if ($nRolos < 1 || $nRolos > 500) {
+            throw ValidationException::withMessages([
+                'qtde_bobinas' => ['Informe entre 1 e 500 rolos.'],
+            ]);
+        }
+        $nMod = count($modelos);
+        if ($nRolos < $nMod) {
+            throw ValidationException::withMessages([
+                'qtde_bobinas' => ["Com {$nMod} modelos, informe ao menos {$nMod} rolos (1 por arte)."],
+            ]);
+        }
+
+        $contagens = $this->contagemRolosPorModelo($modelos, $nRolos);
+        $out = [];
+        foreach ($modelos as $i => $m) {
+            $n = $contagens[$i] ?? 0;
+            if ($n < 1) {
+                continue;
+            }
+            foreach ($this->distribuirEmN($m['qtde'], $n) as $q) {
+                $out[] = [
+                    'qtde_etiquetas' => $q,
+                    'modelo_ordem' => $m['ordem'],
+                    'modelo_nome' => $m['nome'],
+                ];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<array{qtde_etiquetas: string, modelo_ordem: int|null, modelo_nome: string|null}>  $linhas
+     * @param  list<array{ordem: int, nome: string, qtde: string}>  $modelos
+     * @return list<array{qtde_etiquetas: string, modelo_ordem: int|null, modelo_nome: string|null}>
+     */
+    private function completarModelosNasLinhas(array $linhas, array $modelos): array
+    {
+        if ($modelos === []) {
+            return $linhas;
+        }
+
+        $porOrdem = [];
+        foreach ($modelos as $m) {
+            $porOrdem[$m['ordem']] = $m;
+        }
+
+        $todasTemModelo = true;
+        foreach ($linhas as $l) {
+            if ($l['modelo_ordem'] === null) {
+                $todasTemModelo = false;
+                break;
+            }
+        }
+        if ($todasTemModelo) {
+            return array_map(function (array $l) use ($porOrdem) {
+                $m = $porOrdem[$l['modelo_ordem']] ?? null;
+                if ($m !== null && ($l['modelo_nome'] === null || $l['modelo_nome'] === '')) {
+                    $l['modelo_nome'] = $m['nome'];
+                }
+
+                return $l;
+            }, $linhas);
+        }
+
+        $idx = 0;
+        $restante = $modelos[0]['qtde'] ?? '0';
+        $out = [];
+        foreach ($linhas as $l) {
+            if ($l['modelo_ordem'] !== null) {
+                $m = $porOrdem[$l['modelo_ordem']] ?? null;
+                $out[] = [
+                    'qtde_etiquetas' => $l['qtde_etiquetas'],
+                    'modelo_ordem' => $l['modelo_ordem'],
+                    'modelo_nome' => $l['modelo_nome'] ?? $m['nome'] ?? null,
+                ];
+                continue;
+            }
+            while ($idx < count($modelos) - 1 && bccomp($restante, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                $idx++;
+                $restante = $modelos[$idx]['qtde'];
+            }
+            $m = $modelos[$idx];
+            $out[] = [
+                'qtde_etiquetas' => $l['qtde_etiquetas'],
+                'modelo_ordem' => $m['ordem'],
+                'modelo_nome' => $m['nome'],
+            ];
+            $restante = bcsub($restante, $l['qtde_etiquetas'], PadraoDecimal::SCALE_QTY);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<array{ordem: int, nome: string, qtde: string}>  $modelos
+     * @return list<int>
+     */
+    private function contagemRolosPorModelo(array $modelos, int $nRolos): array
+    {
+        $n = count($modelos);
+        $base = array_fill(0, $n, 1);
+        $restante = $nRolos - $n;
+        if ($restante <= 0) {
+            return $base;
+        }
+
+        $total = '0';
+        foreach ($modelos as $m) {
+            $total = bcadd($total, $m['qtde'], PadraoDecimal::SCALE_QTY);
+        }
+        if (bccomp($total, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            return $base;
+        }
+
+        $extras = array_fill(0, $n, 0);
+        $alocado = 0;
+        $fracs = [];
+        for ($i = 0; $i < $n; $i++) {
+            $share = (float) bcmul(
+                bcdiv($modelos[$i]['qtde'], $total, 8),
+                (string) $restante,
+                8
+            );
+            $floor = (int) floor($share);
+            $extras[$i] = $floor;
+            $alocado += $floor;
+            $fracs[$i] = $share - $floor;
+        }
+        $sobra = $restante - $alocado;
+        arsort($fracs);
+        foreach (array_keys($fracs) as $i) {
+            if ($sobra <= 0) {
+                break;
+            }
+            $extras[$i]++;
+            $sobra--;
+        }
+
+        $out = [];
+        for ($i = 0; $i < $n; $i++) {
+            $out[] = $base[$i] + $extras[$i];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<array{ordem: int, nome: string, qtde: string}>
+     */
+    private function quantidadesPorModelo(OrdemProducao $op, string $qtdeBoa): array
+    {
+        $resultado = is_array($op->resultado_modelos) ? $op->resultado_modelos : null;
+        if (is_array($resultado) && $resultado !== []) {
+            $out = [];
+            foreach ($resultado as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                $boa = PadraoDecimal::parseStrict((string) ($row['qtde_boa'] ?? ''), PadraoDecimal::SCALE_QTY);
+                if ($boa === null || bccomp($boa, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                    continue;
+                }
+                $ordem = (int) ($row['ordem'] ?? (count($out) + 1));
+                $nome = trim((string) ($row['nome'] ?? ''));
+                if ($nome === '') {
+                    $nome = 'Modelo '.$ordem;
+                }
+                $out[] = [
+                    'ordem' => $ordem > 0 ? $ordem : count($out) + 1,
+                    'nome' => $nome,
+                    'qtde' => PadraoDecimal::roundHalfUp($boa, PadraoDecimal::SCALE_QTY),
+                ];
+            }
+            if ($out !== []) {
+                return $out;
+            }
+        }
+
+        $espec = is_array($op->pedidoItem?->especificacao) ? $op->pedidoItem->especificacao : [];
+        $comp = $espec['modelos_composicao'] ?? null;
+        if (! is_array($comp) || $comp === []) {
+            return [];
+        }
+        $compNorm = [];
+        foreach (array_values($comp) as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $nome = trim((string) ($row['nome'] ?? ''));
+            if ($nome === '') {
+                continue;
+            }
+            $compNorm[] = [
+                'ordem' => (int) ($row['ordem'] ?? $i + 1),
+                'nome' => $nome,
+                'percentual' => (float) ($row['percentual'] ?? 0),
+                'valor_arte' => (float) ($row['valor_arte'] ?? 0),
+                'arte_url' => $row['arte_url'] ?? null,
+                'tintas' => is_array($row['tintas'] ?? null) ? $row['tintas'] : [],
+            ];
+        }
+        if ($compNorm === []) {
+            return [];
+        }
+        if (count($compNorm) === 1 && bccomp($qtdeBoa, '0', PadraoDecimal::SCALE_QTY) > 0) {
+            return [[
+                'ordem' => $compNorm[0]['ordem'],
+                'nome' => $compNorm[0]['nome'],
+                'qtde' => $qtdeBoa,
+            ]];
+        }
+
+        // Sem % explícito: equal-split (legado dos testes / artes só com nome).
+        $semPct = true;
+        foreach ($compNorm as $row) {
+            if (($row['percentual'] ?? 0) > 0) {
+                $semPct = false;
+                break;
+            }
+        }
+        if ($semPct) {
+            $n = count($compNorm);
+            foreach ($compNorm as $i => $_) {
+                $compNorm[$i]['percentual'] = round(100.0 / $n, 4);
+            }
+            $compNorm[$n - 1]['percentual'] = round(
+                100.0 - array_sum(array_column(array_slice($compNorm, 0, $n - 1), 'percentual')),
+                4
+            );
+        }
+
+        $totalInt = (int) floor((float) $qtdeBoa);
+        $faixaIdx = array_key_exists('faixa_index', $espec) && $espec['faixa_index'] !== null
+            ? (int) $espec['faixa_index']
+            : 0;
+        $matriz = is_array($espec['modelos_composicao_quantidades'] ?? null)
+            ? $espec['modelos_composicao_quantidades']
+            : null;
+        $aloc = ModelosComposicao::alocarQuantidadesFaixa($totalInt, $compNorm, $matriz, $faixaIdx);
+        $out = [];
+        $soma = '0';
+        foreach ($aloc as $i => $row) {
+            $qi = (string) max(0, (int) ($row['quantidade'] ?? 0));
+            if ($i === count($aloc) - 1) {
+                $qi = bcsub($qtdeBoa, $soma, PadraoDecimal::SCALE_QTY);
+                if (bccomp($qi, '0', PadraoDecimal::SCALE_QTY) < 0) {
+                    $qi = '0';
+                }
+            } else {
+                $soma = bcadd($soma, PadraoDecimal::roundHalfUp($qi, PadraoDecimal::SCALE_QTY), PadraoDecimal::SCALE_QTY);
+                $qi = PadraoDecimal::roundHalfUp($qi, PadraoDecimal::SCALE_QTY);
+            }
+            if (bccomp($qi, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                continue;
+            }
+            $out[] = [
+                'ordem' => (int) ($row['ordem'] ?? $i + 1),
+                'nome' => trim((string) ($row['nome'] ?? 'Modelo '.($i + 1))),
+                'qtde' => $qi,
+            ];
+        }
+
+        return $out;
     }
 
     private function capacidadeCaixaDoSnapshot(OrdemProducao $op): ?int

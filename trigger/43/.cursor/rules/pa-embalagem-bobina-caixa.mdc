@@ -38,6 +38,9 @@ OP CONCLUIDA (ENTRADA_PA flat em etiquetas)
 - Modalidade NF: `ROLO` (exige embalagem) ou `ETIQUETA`; default inteligente.
 - `infAdProd` com **spec do PED** (medida · papel · cores · acabamento · modelos) + bobinas/comp.
 - Na NF-e oficial, a caixa EMB-CX escolhida sai no mesmo `SAIDA_VENDA`, na quantidade confirmada, pelo custo médio e pelo escritor único. Unidade já saída na OP como componente CAIXA não sai de novo. Sem SKU, a nota segue e avisa.
+- **1 bobina = 1 modelo** (`modelo_ordem`/`modelo_nome` persistidos). Fonte: `resultado_modelos` → matriz → %.
+- Face BOB: hero = modelo daquele rolo. Face CX: conteúdo por modelo; `MISTA` se >1 arte.
+- Kit: impressão item → modelo → caixa → bobina. Truncar com `+N`, nunca em silêncio.
 
 ## Não faça
 
@@ -47,5 +50,7 @@ OP CONCLUIDA (ENTRADA_PA flat em etiquetas)
 - Misturar bobina de PA com bobina de insumo Exact.
 - Explodir SKU por bobina/caixa.
 - Inventar rolos sem embalagem confirmada.
+- Repetir a lista de todas as artes em toda face (hero = volume na mão).
+- Misturar artes no mesmo tubete.
 
 Se a tarefa exigir violar isto → parar e citar `docs/ADR_PA_EMBALAGEM_BOBINA_CAIXA.md`.

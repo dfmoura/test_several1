@@ -185,3 +185,23 @@ A escolha da caixa (SKU EMB-CX e quantidade) continua na OP concluída, antes de
 Quando a NF-e fica oficial, o mesmo `SAIDA_VENDA` que baixa as etiquetas do produto acabado baixa também essa caixa, pelo escritor único, valorizada pelo custo médio vigente. O cancelamento oficial devolve as caixas junto com o produto acabado. A chave da nota no movimento de estoque fica única por tipo, para a saída e o estorno conviverem.
 
 Se a OP já baixou unidades como componente CAIXA, essa quantidade não sai de novo na nota — vale para qualquer SKU já requisitado naquela ordem. Embalagem antiga sem SKU de caixa não bloqueia o faturamento: a nota segue e avisa que as caixas não serão baixadas.
+
+## Emenda 2026-11-03 — etiqueta = volume na mão (modelo → rolo → caixa)
+
+Hierarquia real do cliente: **1..N itens × 1..N modelos × 1..N rolos × 1..N caixas**.
+
+A face Elgin descreve o **volume físico**, não o pedido inteiro.
+
+| Regra | Decisão |
+|-------|---------|
+| Bobina | **1 bobina = 1 modelo** (nunca misturar artes no mesmo tubete) |
+| Caixa | Pode ser **pura** ou **mista**; se mista, a face declara o conteúdo |
+| Persistência | `pa_embalagem_bobinas.modelo_ordem` + `modelo_nome` no `confirmar` |
+| Fonte da qtde por arte | `resultado_modelos` (boa); fallback matriz/`modelos_composicao`; senão sem modelo |
+| Plano | Rolos gerados **por modelo** (`etiq_por_rolo`); Σ bobinas = `qtde_boa` |
+| Face BOB | Hero = nome do modelo daquele rolo; `BOBINA n/N` · `CX k/M`; qtde; produto; Item se PED multi-item |
+| Face CX | Hero = nome se pura, ou `N modelos` + `MISTA`; linha de conteúdo `A: 2 bob · 2.000 \| …` com `+N` explícito |
+| Kit PED | Ordem de impressão: **item → modelo → caixa → bobina** |
+| Truncamento | Hero ≤ 2 linhas; nunca cortar lista de modelos em silêncio |
+
+**Proibido (inalterado):** explodir SKU por arte/bobina; mudar `qCom`/preço/TIT; alterar formato QR `BOB:`/`CX:`; segundo escritor de saldo.

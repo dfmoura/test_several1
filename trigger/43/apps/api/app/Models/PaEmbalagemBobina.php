@@ -18,6 +18,8 @@ class PaEmbalagemBobina extends Model
         'codigo',
         'qtde_etiquetas',
         'tubete',
+        'modelo_ordem',
+        'modelo_nome',
         'qr_token',
     ];
 
@@ -25,6 +27,7 @@ class PaEmbalagemBobina extends Model
     {
         return [
             'sequencia' => 'integer',
+            'modelo_ordem' => 'integer',
             'qtde_etiquetas' => 'decimal:'.PadraoDecimal::SCALE_QTY,
         ];
     }

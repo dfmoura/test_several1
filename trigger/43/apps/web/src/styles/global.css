@@ -17525,6 +17525,13 @@ a.linkish.linkish--meta:hover {
   -webkit-line-clamp: 2;
 }
 
+.vol-etiqueta-face--pa .vol-etiqueta-conteudo {
+  font-size: 1.7mm;
+  max-height: 3.6mm;
+  -webkit-line-clamp: 2;
+  color: #111;
+}
+
 .vol-etiqueta-face--pa .vol-etiqueta-row {
   font-size: 1.95mm;
 }
