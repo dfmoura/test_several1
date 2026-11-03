@@ -184,7 +184,10 @@ class OrdemProducaoController extends Controller
         $this->assertEmpresa($ordemProducao);
 
         $data = $request->validate([
-            'qtde_boa' => array_merge(['required'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)),
+            'qtde_boa' => array_merge(
+                ['required_without:modelos'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)
+            ),
             'qtde_refugo' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
             'aceitar_fora_tolerancia' => ['sometimes', 'boolean'],
             'motivo_fora_tolerancia' => ['nullable', 'string', 'max:255'],
@@ -194,6 +197,21 @@ class OrdemProducaoController extends Controller
             'materiais.*.produto_id' => ['nullable', 'integer'],
             'materiais.*.qtde_retorno' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
             'materiais.*.qtde_perda' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
+            'modelos' => ['nullable', 'array', 'min:1'],
+            'modelos.*.ordem' => ['nullable', 'integer', 'min:1'],
+            'modelos.*.nome' => ['required_with:modelos', 'string', 'max:120'],
+            'modelos.*.qtde_planejada' => array_merge(
+                ['nullable'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)
+            ),
+            'modelos.*.qtde_boa' => array_merge(
+                ['required_with:modelos'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)
+            ),
+            'modelos.*.qtde_refugo' => array_merge(
+                ['nullable'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)
+            ),
         ]);
 
         return response()->json([

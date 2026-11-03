@@ -63,3 +63,30 @@ O menu **Na máquina** sai. A API `/ordens-producao/apontamentos` permanece.
 | Painel `op_curso` | Ação de hoje | Mesma fila (OP com saída) → `/ordens-producao`. |
 
 Handoff (`entregar-insumos`) não bloqueia o fecho e não tem cartão próprio.
+
+## Emenda 2026-11-03 — fecho por modelo (satélite)
+
+O card embutido na ficha da OP deixa de digitar boas/refugo. A porta de fecho vira satélite:
+
+| Porta | Quem | Ação |
+|-------|------|------|
+| OP | Produção (`producao.ler`) | CTA **Fechar a ordem** → `/ordens-producao/:id/fechar`. Depois de `CONCLUIDA`: **Resultado** com totais + grade por modelo. Embalagem segue na OP. |
+| `/ordens-producao/:id/fechar` | Produção (`producao.escrever`) | Grade **1 linha por modelo** (mesmo grão da Ficha da OP / planilha PED): planejado · boas · refugo. Totais = soma. Tolerância ±N% no **total**. Override + motivo iguais aos de hoje. |
+
+```
+modelos[] (boa/refugo por arte)
+  → soma → qtde_boa / qtde_refugo
+  → POST …/concluir (único motor)
+  → 1× ENTRADA_PA no PA-ETQ do item
+  → resultado_modelos JSON na OP (evidência)
+```
+
+| Invariante | Motivo |
+|------------|--------|
+| Um `POST …/concluir` | Sem segundo writer, sem doc `APONT-`, sem MES. |
+| Totais no motor | Tolerância, PA, PED `qtde_produzida`/`qtde_faturavel` e readequação continuam no agregado. |
+| `resultado_modelos` só evidência | Auditoria + Resultado. Não explode `PA-ETQ` por arte. |
+| Sem modelos no item | Uma linha sintética (item) — mesma tela. |
+| Payload legado sem `modelos[]` | Continua válido (totais só); `resultado_modelos` fica nulo. |
+
+Fora: PA por modelo · MOV por modelo · grade de material no fecho · menu “Na máquina”.

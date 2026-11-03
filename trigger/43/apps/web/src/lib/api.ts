@@ -3462,6 +3462,15 @@ export type OrdemProducaoDisponibilidade = {
   }>;
 };
 
+/** Linha de fecho / resultado por modelo (ADR_PRODUCAO_APONTAMENTO 2026-11-03). */
+export type OpFechoModeloLinha = {
+  ordem: number;
+  nome: string;
+  qtde_planejada: string;
+  qtde_boa?: string;
+  qtde_refugo?: string;
+};
+
 export type OrdemProducao = {
   id: number;
   codigo: string;
@@ -3469,6 +3478,7 @@ export type OrdemProducao = {
   qtde_planejada: string;
   qtde_boa: string | null;
   qtde_refugo: string;
+  resultado_modelos?: OpFechoModeloLinha[] | null;
   fora_tolerancia: boolean;
   motivo_fora_tolerancia: string | null;
   custo_materiais: string | null;
@@ -3505,6 +3515,10 @@ export type OrdemProducao = {
   handoff?: OpInsumosHandoff;
   pode_entregar_insumos?: boolean;
   ficha_retirada?: OpFichaRetiradaDto;
+  /** Planejado por modelo — disponível no detalhe (antes/depois do fecho). */
+  fecho_modelos?: OpFechoModeloLinha[];
+  /** Material já saiu e OP aberta — CTA Fechar a ordem. */
+  pode_fechar?: boolean;
 };
 
 export type OpFichaRetiradaLinha = {

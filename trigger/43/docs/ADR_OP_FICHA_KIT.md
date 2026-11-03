@@ -95,6 +95,10 @@ Ordem concluída não é recalculada. SKU já gravado e linha já saída não s�
 
 A porta **Na máquina** sai do menu. O fecho (etiquetas boas, refugo, tolerância) fica na OP. A grade Material / Saiu / Rasgou / Sobra / Perda / Usou não volta para esse cartão. Sobra e rasgo continuam em Estoque · **A buscar**. Rolos reais e caixas alocadas são o passo seguinte, na mesma ordem, depois de `CONCLUIDA`.
 
+## Emenda 2026-11-03 — fecho por modelo (satélite)
+
+O digitável boas/refugo sai do card da ficha e vai para `/ordens-producao/:id/fechar` — grade por modelo (grão da Ficha da OP). Totais alimentam o mesmo `POST …/concluir`; detalhe em `resultado_modelos`. Norma: `ADR_PRODUCAO_APONTAMENTO.md` (emenda 2026-11-03). Sem PA por arte.
+
 ## Emenda 2026-10-20 — fichas de chão (Impressão / Acabamento)
 
 Satélites paisagem da ficha flexo, sem preço e sem mexer no kit. (Substituída pela emenda 2026-10-29.)

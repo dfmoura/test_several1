@@ -16,6 +16,7 @@ use App\Models\Pedido;
 use App\Models\Produto;
 use App\Models\User;
 use App\Services\Comercial\PedidoService;
+use App\Support\PadraoDecimal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
@@ -1391,6 +1392,96 @@ class ProducaoPedOpEstoqueTest extends TestCase
      * @param  array<string, string>  $h
      * @return array{0: Pedido, 1: int, 2: int}
      */
+    public function test_conclusao_por_modelo_persiste_resultado_e_soma_totais(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [$pedido, $itemId, $opId] = $this->abrirOpAprovada($h);
+
+        Sanctum::actingAs($this->producao);
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $show->assertOk();
+        $fecho = $show->json('data.fecho_modelos');
+        $this->assertIsArray($fecho);
+        $this->assertNotEmpty($fecho);
+        $this->assertFalse($show->json('data.pode_fechar'));
+
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+            'produto_id' => $this->mp->id,
+        ])->assertOk();
+
+        $show2 = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $this->assertTrue($show2->json('data.pode_fechar'));
+        $fecho = $show2->json('data.fecho_modelos');
+        $n = count($fecho);
+        $this->assertGreaterThanOrEqual(1, $n);
+
+        $pedida = (string) $pedido->itens()->findOrFail($itemId)->qtde_pedida;
+        $qtdeBoaTotal = bcmul($pedida, '0.90', 4);
+        $porModelo = [];
+        $resto = $qtdeBoaTotal;
+        for ($i = 0; $i < $n; $i++) {
+            $ln = $fecho[$i];
+            if ($i === $n - 1) {
+                $boa = $resto;
+            } else {
+                $boa = PadraoDecimal::roundHalfUp(
+                    bcdiv($qtdeBoaTotal, (string) $n, PadraoDecimal::SCALE_QTY + 4),
+                    PadraoDecimal::SCALE_QTY
+                );
+                $resto = bcsub($resto, $boa, PadraoDecimal::SCALE_QTY);
+            }
+            $porModelo[] = [
+                'ordem' => (int) $ln['ordem'],
+                'nome' => (string) $ln['nome'],
+                'qtde_planejada' => (string) $ln['qtde_planejada'],
+                'qtde_boa' => $boa,
+                'qtde_refugo' => $i === 0 ? '10.0000' : '0',
+            ];
+        }
+
+        $mismatch = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/concluir", [
+            'modelos' => $porModelo,
+            'qtde_boa' => '1.0000',
+            'qtde_refugo' => '0',
+        ]);
+        $mismatch->assertStatus(422);
+
+        $conc = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/concluir", [
+            'modelos' => $porModelo,
+            'qtde_boa' => $qtdeBoaTotal,
+            'qtde_refugo' => '10.0000',
+            'materiais' => [
+                [
+                    'produto_id' => $this->mp->id,
+                    'qtde_retorno' => '0',
+                    'qtde_perda' => '0',
+                ],
+            ],
+        ]);
+        $conc->assertOk();
+        $this->assertSame('CONCLUIDA', $conc->json('data.status'));
+        $this->assertSame($qtdeBoaTotal, $conc->json('data.qtde_boa'));
+        $this->assertSame('10.0000', $conc->json('data.qtde_refugo'));
+        $resultado = $conc->json('data.resultado_modelos');
+        $this->assertIsArray($resultado);
+        $this->assertCount($n, $resultado);
+        $this->assertSame($porModelo[0]['nome'], $resultado[0]['nome']);
+        $this->assertSame($porModelo[0]['qtde_boa'], $resultado[0]['qtde_boa']);
+        $this->assertSame('10.0000', $resultado[0]['qtde_refugo']);
+
+        $this->assertTrue(
+            EstoqueMovimento::query()
+                ->where('empresa_id', $this->empresa->id)
+                ->where('tipo', EstoqueMovimento::TIPO_ENTRADA_PA)
+                ->where('ordem_producao_id', $opId)
+                ->exists()
+        );
+    }
+
     private function abrirOpAprovada(array $h): array
     {
         $orcId = (int) $this->withHeaders($h)

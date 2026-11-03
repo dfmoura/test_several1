@@ -18,6 +18,7 @@ use App\Services\Estoque\EstoqueCongelamento;
 use App\Services\Estoque\EstoqueSaldoWriter;
 use App\Services\Producao\RastreioInsumosService;
 use App\Support\ListPeriodo;
+use App\Support\ModelosComposicao;
 use App\Support\PadraoDecimal;
 use App\Support\UnidadesMedida;
 use Illuminate\Support\Facades\Auth;
@@ -1395,17 +1396,36 @@ class OrdemProducaoService
             ]);
         }
 
-        $qtdeBoa = PadraoDecimal::parseStrict((string) ($data['qtde_boa'] ?? ''), PadraoDecimal::SCALE_QTY);
-        if ($qtdeBoa === null || bccomp($qtdeBoa, '0', PadraoDecimal::SCALE_QTY) <= 0) {
-            throw ValidationException::withMessages([
-                'qtde_boa' => ['Informe a quantidade boa produzida.'],
-            ]);
+        $fechadoPorModelo = $this->normalizarResultadoModelos($data['modelos'] ?? null);
+        if ($fechadoPorModelo !== null) {
+            $qtdeBoa = $fechadoPorModelo['qtde_boa'];
+            $qtdeRefugo = $fechadoPorModelo['qtde_refugo'];
+            $resultadoModelos = $fechadoPorModelo['linhas'];
+            $totaisCliente = [
+                'qtde_boa' => isset($data['qtde_boa']) ? (string) $data['qtde_boa'] : null,
+                'qtde_refugo' => isset($data['qtde_refugo']) ? (string) $data['qtde_refugo'] : null,
+            ];
+            $this->assertTotaisBatemComModelos($qtdeBoa, $qtdeRefugo, $totaisCliente);
+        } else {
+            $qtdeBoa = PadraoDecimal::parseStrict((string) ($data['qtde_boa'] ?? ''), PadraoDecimal::SCALE_QTY);
+            if ($qtdeBoa === null || bccomp($qtdeBoa, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                throw ValidationException::withMessages([
+                    'qtde_boa' => ['Informe a quantidade boa produzida.'],
+                ]);
+            }
+
+            $qtdeRefugo = PadraoDecimal::parseStrict((string) ($data['qtde_refugo'] ?? '0'), PadraoDecimal::SCALE_QTY) ?? '0';
+            if (bccomp($qtdeRefugo, '0', PadraoDecimal::SCALE_QTY) < 0) {
+                throw ValidationException::withMessages([
+                    'qtde_refugo' => ['Refugo não pode ser negativo.'],
+                ]);
+            }
+            $resultadoModelos = null;
         }
 
-        $qtdeRefugo = PadraoDecimal::parseStrict((string) ($data['qtde_refugo'] ?? '0'), PadraoDecimal::SCALE_QTY) ?? '0';
-        if (bccomp($qtdeRefugo, '0', PadraoDecimal::SCALE_QTY) < 0) {
+        if (bccomp($qtdeBoa, '0', PadraoDecimal::SCALE_QTY) <= 0) {
             throw ValidationException::withMessages([
-                'qtde_refugo' => ['Refugo não pode ser negativo.'],
+                'qtde_boa' => ['Informe a quantidade boa produzida.'],
             ]);
         }
 
@@ -1422,6 +1442,7 @@ class OrdemProducaoService
             $op,
             $qtdeBoa,
             $qtdeRefugo,
+            $resultadoModelos,
             $aceitarFora,
             $motivoFora,
             $materiaisIn,
@@ -1691,6 +1712,7 @@ class OrdemProducaoService
 
             $op->qtde_boa = $qtdeBoa;
             $op->qtde_refugo = $qtdeRefugo;
+            $op->resultado_modelos = $resultadoModelos;
             $op->fora_tolerancia = $fora;
             $op->motivo_fora_tolerancia = $fora ? $motivoFora : null;
             $op->custo_materiais = $custoMateriais;
@@ -1726,9 +1748,11 @@ class OrdemProducaoService
                 'op_codigo' => $op->codigo,
                 'qtde_pedida' => $pedida,
                 'qtde_boa' => $qtdeBoa,
+                'qtde_refugo' => $qtdeRefugo,
                 'tolerancia_qtd_pct' => $tolPct,
                 'fora_tolerancia' => $fora,
                 'motivo' => $fora ? $motivoFora : null,
+                'modelos' => $resultadoModelos,
                 'em' => now()->toIso8601String(),
             ];
             $pedido->snapshot = $snap;
@@ -1738,6 +1762,218 @@ class OrdemProducaoService
         });
 
         return $this->show($op->fresh());
+    }
+
+    /**
+     * Grade de fecho: 1 linha por modelo do item (ou linha sintética).
+     *
+     * @return list<array{ordem: int, nome: string, qtde_planejada: string}>
+     */
+    public function modelosParaFecho(OrdemProducao $o): array
+    {
+        $o->loadMissing('pedidoItem');
+        $item = $o->pedidoItem;
+        if (! $item) {
+            return [[
+                'ordem' => 1,
+                'nome' => 'Item',
+                'qtde_planejada' => PadraoDecimal::roundHalfUp(
+                    (string) $o->qtde_planejada,
+                    PadraoDecimal::SCALE_QTY
+                ),
+            ]];
+        }
+
+        $spec = is_array($item->especificacao) ? $item->especificacao : [];
+        $comp = $spec['modelos_composicao'] ?? null;
+        $total = (int) floor((float) $o->qtde_planejada);
+
+        if (! is_array($comp) || $comp === []) {
+            $nome = trim((string) ($item->descricao ?? ''));
+
+            return [[
+                'ordem' => 1,
+                'nome' => $nome !== '' ? $nome : 'Item',
+                'qtde_planejada' => PadraoDecimal::roundHalfUp(
+                    (string) $o->qtde_planejada,
+                    PadraoDecimal::SCALE_QTY
+                ),
+            ]];
+        }
+
+        $qs = $this->quantidadesPlanejadasPorModelo($spec, $comp, $total);
+        $out = [];
+        foreach (array_values($comp) as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $ordem = (int) ($row['ordem'] ?? $i + 1);
+            $nome = trim((string) ($row['nome'] ?? ''));
+            $q = $qs[$i] ?? 0;
+            $out[] = [
+                'ordem' => $ordem > 0 ? $ordem : $i + 1,
+                'nome' => $nome !== '' ? $nome : 'Modelo '.($i + 1),
+                'qtde_planejada' => PadraoDecimal::roundHalfUp(
+                    (string) $q,
+                    PadraoDecimal::SCALE_QTY
+                ),
+            ];
+        }
+
+        return $out !== [] ? $out : [[
+            'ordem' => 1,
+            'nome' => 'Item',
+            'qtde_planejada' => PadraoDecimal::roundHalfUp(
+                (string) $o->qtde_planejada,
+                PadraoDecimal::SCALE_QTY
+            ),
+        ]];
+    }
+
+    /**
+     * @param  array<string, mixed>  $spec
+     * @param  list<mixed>  $comp
+     * @return list<int>
+     */
+    private function quantidadesPlanejadasPorModelo(array $spec, array $comp, int $total): array
+    {
+        $n = count($comp);
+        $faixaIdx = array_key_exists('faixa_index', $spec) && $spec['faixa_index'] !== null
+            ? (int) $spec['faixa_index']
+            : 0;
+        $matriz = $spec['modelos_composicao_quantidades'] ?? null;
+        if (is_array($matriz)
+            && isset($matriz[$faixaIdx])
+            && is_array($matriz[$faixaIdx])
+            && count($matriz[$faixaIdx]) === $n
+        ) {
+            $qs = [];
+            $editaveis = 0;
+            for ($i = 0; $i < $n; $i++) {
+                $qi = max(0, (int) floor((float) ($matriz[$faixaIdx][$i] ?? 0)));
+                $qs[] = $qi;
+                if ($i < $n - 1) {
+                    $editaveis += $qi;
+                }
+            }
+            if ($n === 1) {
+                return [$total];
+            }
+            $qs[$n - 1] = max(0, $total - $editaveis);
+
+            return $qs;
+        }
+
+        $aloc = ModelosComposicao::alocarQuantidades($total, array_values(array_filter(
+            $comp,
+            static fn ($r) => is_array($r)
+        )));
+
+        return array_map(
+            static fn (array $r) => (int) ($r['quantidade'] ?? 0),
+            $aloc
+        );
+    }
+
+    /**
+     * Normaliza modelos[] do fecho → totais + linhas persistíveis.
+     *
+     * @param  mixed  $raw
+     * @return array{qtde_boa: string, qtde_refugo: string, linhas: list<array{ordem: int, nome: string, qtde_planejada: string, qtde_boa: string, qtde_refugo: string}>}|null
+     */
+    private function normalizarResultadoModelos(mixed $raw): ?array
+    {
+        if (! is_array($raw) || $raw === []) {
+            return null;
+        }
+
+        $linhas = [];
+        $sumBoa = '0';
+        $sumRef = '0';
+        foreach (array_values($raw) as $i => $row) {
+            if (! is_array($row)) {
+                throw ValidationException::withMessages([
+                    "modelos.{$i}" => ['Linha de modelo inválida.'],
+                ]);
+            }
+            $nome = trim((string) ($row['nome'] ?? ''));
+            if ($nome === '') {
+                throw ValidationException::withMessages([
+                    "modelos.{$i}.nome" => ['Informe o nome do modelo.'],
+                ]);
+            }
+            $boa = PadraoDecimal::parseStrict(
+                (string) ($row['qtde_boa'] ?? ''),
+                PadraoDecimal::SCALE_QTY
+            );
+            if ($boa === null || bccomp($boa, '0', PadraoDecimal::SCALE_QTY) < 0) {
+                throw ValidationException::withMessages([
+                    "modelos.{$i}.qtde_boa" => ['Quantidade boa do modelo inválida.'],
+                ]);
+            }
+            $ref = PadraoDecimal::parseStrict(
+                (string) ($row['qtde_refugo'] ?? '0'),
+                PadraoDecimal::SCALE_QTY
+            ) ?? '0';
+            if (bccomp($ref, '0', PadraoDecimal::SCALE_QTY) < 0) {
+                throw ValidationException::withMessages([
+                    "modelos.{$i}.qtde_refugo" => ['Refugo do modelo não pode ser negativo.'],
+                ]);
+            }
+            $planRaw = $row['qtde_planejada'] ?? null;
+            $plan = $planRaw !== null && $planRaw !== ''
+                ? (PadraoDecimal::parseStrict((string) $planRaw, PadraoDecimal::SCALE_QTY) ?? '0')
+                : '0';
+            if (bccomp($plan, '0', PadraoDecimal::SCALE_QTY) < 0) {
+                $plan = '0';
+            }
+            $ordem = (int) ($row['ordem'] ?? $i + 1);
+            $linhas[] = [
+                'ordem' => $ordem > 0 ? $ordem : $i + 1,
+                'nome' => $nome,
+                'qtde_planejada' => PadraoDecimal::roundHalfUp($plan, PadraoDecimal::SCALE_QTY),
+                'qtde_boa' => PadraoDecimal::roundHalfUp($boa, PadraoDecimal::SCALE_QTY),
+                'qtde_refugo' => PadraoDecimal::roundHalfUp($ref, PadraoDecimal::SCALE_QTY),
+            ];
+            $sumBoa = bcadd($sumBoa, $boa, PadraoDecimal::SCALE_QTY + 4);
+            $sumRef = bcadd($sumRef, $ref, PadraoDecimal::SCALE_QTY + 4);
+        }
+
+        return [
+            'qtde_boa' => PadraoDecimal::roundHalfUp($sumBoa, PadraoDecimal::SCALE_QTY),
+            'qtde_refugo' => PadraoDecimal::roundHalfUp($sumRef, PadraoDecimal::SCALE_QTY),
+            'linhas' => $linhas,
+        ];
+    }
+
+    /**
+     * @param  array{qtde_boa: ?string, qtde_refugo: ?string}  $totaisCliente
+     */
+    private function assertTotaisBatemComModelos(
+        string $qtdeBoa,
+        string $qtdeRefugo,
+        array $totaisCliente,
+    ): void {
+        if ($totaisCliente['qtde_boa'] !== null && $totaisCliente['qtde_boa'] !== '') {
+            $cli = PadraoDecimal::parseStrict($totaisCliente['qtde_boa'], PadraoDecimal::SCALE_QTY);
+            if ($cli !== null && bccomp($cli, $qtdeBoa, PadraoDecimal::SCALE_QTY) !== 0) {
+                throw ValidationException::withMessages([
+                    'qtde_boa' => [
+                        "Total de etiquetas boas ({$cli}) difere da soma dos modelos ({$qtdeBoa}).",
+                    ],
+                ]);
+            }
+        }
+        if ($totaisCliente['qtde_refugo'] !== null && $totaisCliente['qtde_refugo'] !== '') {
+            $cli = PadraoDecimal::parseStrict($totaisCliente['qtde_refugo'], PadraoDecimal::SCALE_QTY);
+            if ($cli !== null && bccomp($cli, $qtdeRefugo, PadraoDecimal::SCALE_QTY) !== 0) {
+                throw ValidationException::withMessages([
+                    'qtde_refugo' => [
+                        "Total de refugo ({$cli}) difere da soma dos modelos ({$qtdeRefugo}).",
+                    ],
+                ]);
+            }
+        }
     }
 
     /**
@@ -1849,6 +2085,7 @@ class OrdemProducaoService
             'qtde_planejada' => (string) $o->qtde_planejada,
             'qtde_boa' => $o->qtde_boa !== null ? (string) $o->qtde_boa : null,
             'qtde_refugo' => (string) $o->qtde_refugo,
+            'resultado_modelos' => is_array($o->resultado_modelos) ? $o->resultado_modelos : null,
             'fora_tolerancia' => (bool) $o->fora_tolerancia,
             'motivo_fora_tolerancia' => $o->motivo_fora_tolerancia,
             'custo_materiais' => $o->custo_materiais !== null ? (string) $o->custo_materiais : null,
@@ -1906,6 +2143,11 @@ class OrdemProducaoService
                 && $o->insumos_entregues_em === null
                 && $o->materiais->contains(fn (OrdemProducaoMaterial $m) => $m->saida_movimento_id !== null);
             $out['ficha_retirada'] = $this->coleta->fichaDe($emp, $o, $dispon['materiais']);
+            $out['fecho_modelos'] = $this->modelosParaFecho($o);
+            $out['pode_fechar'] = in_array($o->status, OrdemProducao::STATUSES_ABERTOS, true)
+                && $o->materiais->contains(
+                    fn (OrdemProducaoMaterial $m) => $m->saida_movimento_id !== null
+                );
         }
 
         return $out;

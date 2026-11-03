@@ -162,11 +162,7 @@ export function OrdemProducaoDetailPage() {
             onOp={setOp}
           />
 
-          <OpFecharOrdem
-            op={op}
-            canWrite={hasPermission('producao.escrever')}
-            onOp={setOp}
-          />
+          <OpFecharOrdem op={op} canWrite={hasPermission('producao.escrever')} />
 
           {op.status === 'CONCLUIDA' ? (
             <div className="card" style={{ marginBottom: '1rem' }}>
@@ -189,6 +185,36 @@ export function OrdemProducaoDetailPage() {
                     <strong>{formatDecimalBr(Number(op.qtde_refugo || 0), 0)}</strong>
                   </div>
                 </div>
+                {op.resultado_modelos && op.resultado_modelos.length > 0 ? (
+                  <div className="table-wrap">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Modelo</th>
+                          <th className="num">Planejado</th>
+                          <th className="num">Boas</th>
+                          <th className="num">Refugo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {op.resultado_modelos.map((ln) => (
+                          <tr key={`${ln.ordem}-${ln.nome}`}>
+                            <td>{ln.nome}</td>
+                            <td className="num">
+                              {formatDecimalBr(Number(ln.qtde_planejada || 0), 0)}
+                            </td>
+                            <td className="num">
+                              {formatDecimalBr(Number(ln.qtde_boa || 0), 0)}
+                            </td>
+                            <td className="num">
+                              {formatDecimalBr(Number(ln.qtde_refugo || 0), 0)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
