@@ -10066,6 +10066,31 @@ tr.row-inactive td {
   color: var(--navy-dark, #1a3568);
 }
 
+/* Saída: badge denso na célula do formulário — mesma escala da planilha/chão. */
+.ficha-sheet-ped .ped-ficha-etq-saida {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.ficha-sheet-ped .ped-ficha-etq-saida .saida-etiqueta-badge--dense {
+  gap: 0.2rem;
+  padding: 0.05rem 0.22rem 0.05rem 0.05rem;
+  max-width: 100%;
+}
+
+.ficha-sheet-ped .ped-ficha-etq-saida .saida-etiqueta-badge--dense .saida-etiqueta-badge__img {
+  width: 3.6mm;
+  height: 4mm;
+  border-radius: 1px;
+}
+
+.ficha-sheet-ped .ped-ficha-etq-saida .saida-etiqueta-badge--dense .saida-etiqueta-badge__text {
+  font-size: 6.5pt;
+  line-height: 1.1;
+}
+
 .ficha-sheet-ped .ped-ficha-etq-num {
   font-variant-numeric: tabular-nums;
 }

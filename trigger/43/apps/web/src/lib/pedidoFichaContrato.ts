@@ -29,7 +29,10 @@ export type PedidoFichaEtiquetaLinha = {
   acabamento: string | null;
   tubete: string | null;
   cores: string | null;
+  /** Rótulo curto (Esquerda / Direita / …) — texto / fallback. */
   saida: string | null;
+  /** Código canônico ESQUERDA|DIREITA|DEITADA|PE — badge. */
+  saidaCodigo: string | null;
   maquina: string | null;
   nFaca: string | null;
   faca: string | null;
@@ -216,6 +219,7 @@ export function linhasEtiquetaDoItem(
   item: PedidoItem,
   visual: {
     saida: string | null;
+    saidaCodigo?: string | null;
     faca: string | null;
   },
 ): PedidoFichaEtiquetaLinha[] {
@@ -254,6 +258,7 @@ export function linhasEtiquetaDoItem(
     tubete: desc.tubete ?? null,
     cores: desc.cores ?? null,
     saida: visual.saida,
+    saidaCodigo: visual.saidaCodigo ?? null,
     maquina: maquinaRaw || null,
     nFaca,
     faca: visual.faca,

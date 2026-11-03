@@ -36,8 +36,9 @@ import {
   qtdeFaixaDoItem,
   specOperacional,
 } from '../lib/producaoFicha';
-import { saidaEtiquetaLabelCurto } from '../lib/saidaEtiqueta';
+import { isSaidaEtiqueta, saidaEtiquetaLabelCurto } from '../lib/saidaEtiqueta';
 import { ModeloTintasTags } from './ModeloTintasTags';
+import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { tipoServicoLabel } from '../lib/operacoesSaida';
 
 /**
@@ -61,17 +62,20 @@ function dashCell(value: string | null | undefined): string {
   return s && s !== '—' ? s : '—';
 }
 
-function visualEtiqueta(pedido: Pedido, item: PedidoItem): { saida: string | null; faca: string | null } {
+function visualEtiqueta(
+  pedido: Pedido,
+  item: PedidoItem,
+): { saida: string | null; saidaCodigo: string | null; faca: string | null } {
   const spec = specOperacional(pedido, item);
   const desc = descricaoFromPedidoSpec(spec);
-  const saida = saidaEtiquetaLabelCurto(
-    String(spec.saida_etiqueta ?? desc.saida_etiqueta ?? ''),
-  );
+  const saidaCodigoRaw = String(spec.saida_etiqueta ?? desc.saida_etiqueta ?? '');
+  const saidaCodigo = isSaidaEtiqueta(saidaCodigoRaw) ? saidaCodigoRaw : null;
+  const saida = saidaEtiquetaLabelCurto(saidaCodigo);
   const formato = spec.formato_faca != null ? String(spec.formato_faca) : '';
   const faca = formato
     ? `${formatoLabel(formato)}${spec.faca_nova ? ' · nova' : ''}`
     : null;
-  return { saida: saida || null, faca };
+  return { saida: saida || null, saidaCodigo, faca };
 }
 
 function fmtQtdInt(value: number | null | undefined): string {
@@ -204,7 +208,18 @@ function PedidoTabelaEtiquetas({
                         : 'Não'
                   }
                 />
-                <FichaKv label="Saída" value={dashCell(spec.saida)} />
+                <FichaKv
+                  label="Saída"
+                  value={
+                    spec.saidaCodigo && isSaidaEtiqueta(spec.saidaCodigo) ? (
+                      <span className="ped-ficha-etq-saida">
+                        <SaidaEtiquetaBadge code={spec.saidaCodigo} variant="dense" />
+                      </span>
+                    ) : (
+                      '—'
+                    )
+                  }
+                />
                 <FichaKv label="Máq." value={dashCell(spec.maquina)} />
               </div>
             </div>
