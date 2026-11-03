@@ -454,6 +454,7 @@ class PaEmbalagemTest extends TestCase
         $this->assertSame('Frente A / Verso B', $bob['modelos_item']);
         $this->assertTrue($cx['mista']);
         $this->assertCount(2, $cx['conteudo']);
+        $this->assertNull($cx['modelo_nome']);
         $this->assertSame($bob['produto'], $cx['produto']);
         $this->assertNotEmpty($res->json('data.faces'));
         $this->assertSame('CAIXA', $res->json('data.faces.0.tipo'));
@@ -494,7 +495,8 @@ class PaEmbalagemTest extends TestCase
         $this->assertSame(3, $cx0['conteudo'][0]['bobinas']);
         $this->assertSame('Verso B', $cx0['conteudo'][1]['modelo']);
         $this->assertSame(2, $cx0['conteudo'][1]['bobinas']);
-        $this->assertStringContainsString('Frente A', (string) $cx0['modelo']);
+        $this->assertNull($cx0['modelo_nome']);
+        $this->assertStringContainsString('Frente A', (string) ($cx0['hero'] ?? ''));
     }
 
     public function test_etiquetas_sem_modelos_fallback_produto(): void
@@ -523,7 +525,8 @@ class PaEmbalagemTest extends TestCase
 
         $bob = $res->json('data.bobinas.0');
         $this->assertNull($bob['modelo_nome']);
-        $this->assertSame('100X50 · Couchê Brilho · 4 cor(es) · Verniz UV', $bob['modelo']);
+        $this->assertNull($bob['modelo']);
+        $this->assertSame('100X50 · Couchê Brilho · 4 cor(es) · Verniz UV', $bob['produto']);
         $this->assertSame(5, $bob['total_bobinas']);
         $this->assertFalse($res->json('data.caixas.0.mista'));
     }

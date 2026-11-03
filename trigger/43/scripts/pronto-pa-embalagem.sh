@@ -56,12 +56,11 @@ Pronto 100% — etiquetas PA (1 bobina = 1 modelo · caixa com conteúdo)
 
 Teste principal (grupo físico legível)
   1. Hard refresh (Ctrl+Shift+R)
-  2. OP-2026-EMBNF02 → Embalagem PA → ver "Por modelo" · Imprimir BOB/CX
-     · BOBINA: hero = Frente A ou Verso B (não "A / B" em todo rolo)
-     · CAIXA: MISTA + linha Frente A: N bob · … | Verso B: …
+  2. OP-2026-EMBNF02 → Embalagem PA → Imprimir BOB/CX
+     · BOBINA: hero = produto · linha «Mod. Frente A» (arte do rolo)
+     · CAIXA MISTA: hero resumo · conteúdo Frente A 3×… · Verso B 2×…
   3. Expedição → PED-2026-EMBKIT → «Etiquetas da embalagem»
-     · faces na ordem item → caixa → bobinas
-     · Item 1/2 e Item 2/2 visíveis · artes A/B e X/Y
+     · faces item → caixa → bobinas · Item 1/2 e 2/2 · artes A/B e X/Y
 
 Regressão
   · Faturar PED-2026-EMBNF02 (modo ROLO) se ainda PRODUZIDO

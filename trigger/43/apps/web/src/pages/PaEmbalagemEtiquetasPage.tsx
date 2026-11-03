@@ -35,13 +35,15 @@ type Face = {
   pedido?: string | null;
   op?: string | null;
   descricao?: string | null;
-  /** Hero da face (modelo do volume). */
+  /** Arte do volume (bobina / caixa pura). */
   modelo?: string | null;
   modelo_nome?: string | null;
   modelo_ordem?: number | null;
   modelos_item?: string | null;
   /** Medida · papel · cores · acab. */
   produto?: string | null;
+  /** Caixa: título sugerido (mista / pura). */
+  hero?: string | null;
   caixa_medida?: string | null;
   caixa_seq?: number | null;
   total_caixas?: number | null;
@@ -240,16 +242,35 @@ export function PaEmbalagemEtiquetasPage() {
       ) : null}
       <div className="vol-etiquetas-print-grid">
         {faces.map((f) => {
-          const modeloNome = f.modelo_nome?.trim() || null;
-          const modelo = f.modelo?.trim() || null;
+          const modeloNome =
+            f.modelo_nome?.trim() || f.modelo?.trim() || null;
           const produto = f.produto?.trim() || null;
           const desc = f.descricao?.trim() || null;
-          // Texto integral no DOM; tipografia/clamp da face cortam sem inventar "…" no JS.
-          const titulo = modeloNome || modelo || produto || desc;
+          // Bobina: produto no hero · arte na linha Mod. (não misturar).
+          // Caixa: hero API (mista/pura) · Mod. só se pura · conteúdo se mista.
+          const modeloLinha =
+            f.tipo === 'BOBINA'
+              ? modeloNome
+              : f.tipo === 'CAIXA' && !f.mista
+                ? modeloNome ||
+                  (f.conteudo?.length === 1 ? f.conteudo[0].modelo.trim() : null)
+                : null;
+          const titulo =
+            f.tipo === 'CAIXA' && f.mista
+              ? f.hero?.trim() ||
+                (f.conteudo && f.conteudo.length > 0
+                  ? `${f.conteudo.length} modelos`
+                  : null) ||
+                produto ||
+                desc
+              : produto || desc || modeloLinha;
+          // Produto já é hero em bobina/caixa pura; em mista pode repetir abaixo do hero.
           const produtoLinha =
-            titulo && produto && produto !== titulo ? produto : null;
+            f.tipo === 'CAIXA' && f.mista && produto && produto !== titulo
+              ? produto
+              : null;
           const conteudoLinha =
-            f.tipo === 'CAIXA' ? formatConteudoCaixa(f.conteudo) : null;
+            f.tipo === 'CAIXA' && f.mista ? formatConteudoCaixa(f.conteudo) : null;
           const itemTxt = itemCurto(f.item);
           const totalBob = f.total_bobinas ?? null;
           const totalCx = f.total_caixas ?? null;
@@ -296,6 +317,14 @@ export function PaEmbalagemEtiquetasPage() {
                   <div className="vol-etiqueta-sku" title={sku}>
                     {sku}
                   </div>
+                  {modeloLinha ? (
+                    <div
+                      className="vol-etiqueta-row vol-etiqueta-row--wrap vol-etiqueta-modelo"
+                      title={modeloLinha}
+                    >
+                      <span className="vol-etiqueta-k">Mod.</span> {modeloLinha}
+                    </div>
+                  ) : null}
                   {produtoLinha ? (
                     <div className="vol-etiqueta-desc" title={produtoLinha}>
                       {produtoLinha}

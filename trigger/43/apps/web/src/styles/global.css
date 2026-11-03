@@ -17530,6 +17530,15 @@ a.linkish.linkish--meta:hover {
   text-overflow: clip;
 }
 
+/* Arte do rolo — linha explícita na bobina (além do hero). */
+.vol-etiqueta-face--pa .vol-etiqueta-modelo {
+  font-size: 1.45mm;
+  font-weight: 700;
+  -webkit-line-clamp: 2;
+  max-height: 3.15mm;
+  color: #000;
+}
+
 .vol-etiqueta-face--pa .vol-etiqueta-desc,
 .vol-etiqueta-face--pa .vol-etiqueta-conteudo {
   overflow: hidden;

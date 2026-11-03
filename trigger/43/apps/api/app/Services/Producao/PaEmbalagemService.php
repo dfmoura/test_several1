@@ -312,7 +312,8 @@ class PaEmbalagemService
 
     /**
      * Faces BOB/CX para impressão Elgin 50×40.
-     * Hero da bobina = modelo daquele rolo; caixa declara conteúdo (pura/mista).
+     * Bobina: `modelo`/`modelo_nome` = arte do rolo (UI: linha Mod.); produto à parte.
+     * Caixa: conteúdo por modelo (pura/mista).
      *
      * @return array<string, mixed>
      */
@@ -326,7 +327,7 @@ class PaEmbalagemService
             'bobinas.caixa',
             'caixas',
             'pedido:id,codigo',
-            'ordemProducao:id,codigo',
+            'ordemProducao:id,codigo,resultado_modelos,qtde_boa,empresa_id',
             'pedidoItem:id,ordem,descricao,especificacao',
         ]);
 
@@ -346,14 +347,25 @@ class PaEmbalagemService
             ))
             ->values();
 
-        $bobinas = $bobinasSorted->map(function (PaEmbalagemBobina $b) use (
+        // Legado sem modelo_nome: deriva na leitura (não regrava) para a face indicar a arte.
+        $modelosFace = $this->modelosFaceBobinas($embalagem, $bobinasSorted);
+
+        $bobinas = $bobinasSorted->values()->map(function (PaEmbalagemBobina $b, int $i) use (
             $embalagem,
             $base,
             $totalBobinas,
             $totalCaixas,
-            $caixaSeqPorId
+            $caixaSeqPorId,
+            $modelosFace
         ) {
-            $hero = $b->modelo_nome ?: $base['produto'] ?: $base['descricao'];
+            $modeloOrdem = $b->modelo_ordem ?? ($modelosFace[$i]['modelo_ordem'] ?? null);
+            $modeloNome = $b->modelo_nome ?? ($modelosFace[$i]['modelo_nome'] ?? null);
+            if (is_string($modeloNome)) {
+                $modeloNome = trim($modeloNome);
+                if ($modeloNome === '') {
+                    $modeloNome = null;
+                }
+            }
             $caixaSeq = $b->caixa_id ? ($caixaSeqPorId[(int) $b->caixa_id] ?? null) : null;
 
             return [
@@ -367,31 +379,39 @@ class PaEmbalagemService
                 'caixa_seq' => $caixaSeq,
                 'total_bobinas' => $totalBobinas,
                 'total_caixas' => $totalCaixas > 0 ? $totalCaixas : null,
-                'modelo_ordem' => $b->modelo_ordem,
-                'modelo_nome' => $b->modelo_nome,
+                'modelo_ordem' => $modeloOrdem,
+                'modelo_nome' => $modeloNome,
                 'qr_payload' => $b->qrPayload(),
                 'pedido' => $embalagem->pedido?->codigo,
                 'op' => $embalagem->ordemProducao?->codigo,
                 'descricao' => $base['descricao'],
-                'modelo' => $hero,
+                // Só a arte — nunca produto/descrição (UI usa Mod. + hero de produto).
+                'modelo' => $modeloNome,
                 'modelos_item' => $base['modelos_item'],
                 'produto' => $base['produto'],
                 'item' => $base['item'],
             ];
         })->all();
 
+        // Conteúdo da caixa a partir do payload (já enriquecido), não só do DB cru.
         $bobinasPorCaixa = [];
-        foreach ($embalagem->bobinas as $b) {
-            if ($b->caixa_id === null) {
+        foreach ($bobinas as $bOut) {
+            $cid = $bOut['caixa_id'] ?? null;
+            if ($cid === null) {
                 continue;
             }
-            $bobinasPorCaixa[(int) $b->caixa_id][] = $b;
+            $bobinasPorCaixa[(int) $cid][] = [
+                'modelo_ordem' => $bOut['modelo_ordem'] ?? null,
+                'modelo_nome' => $bOut['modelo_nome'] ?? null,
+                'qtde_etiquetas' => $bOut['qtde_etiquetas'],
+            ];
         }
 
         $caixas = $embalagem->caixas->sortBy('sequencia')->values()->map(
             function (PaEmbalagemCaixa $c) use ($embalagem, $base, $totalCaixas, $bobinasPorCaixa, $totalBobinas) {
-                $conteudo = $this->conteudoCaixa($bobinasPorCaixa[(int) $c->id] ?? []);
+                $conteudo = $this->conteudoCaixaPayload($bobinasPorCaixa[(int) $c->id] ?? []);
                 $mista = count($conteudo) > 1;
+                $modeloPuro = count($conteudo) === 1 ? ($conteudo[0]['modelo'] ?? null) : null;
                 $hero = $this->heroCaixa($conteudo, $base);
 
                 return [
@@ -405,8 +425,8 @@ class PaEmbalagemService
                     'pedido' => $embalagem->pedido?->codigo,
                     'op' => $embalagem->ordemProducao?->codigo,
                     'descricao' => $base['descricao'],
-                    'modelo' => $hero,
-                    'modelo_nome' => count($conteudo) === 1 ? ($conteudo[0]['modelo'] ?? null) : null,
+                    'modelo' => $modeloPuro,
+                    'modelo_nome' => $modeloPuro,
                     'modelos_item' => $base['modelos_item'],
                     'produto' => $base['produto'],
                     'tubete' => $embalagem->tubete,
@@ -415,6 +435,7 @@ class PaEmbalagemService
                     'total_bobinas' => $totalBobinas,
                     'conteudo' => $conteudo,
                     'mista' => $mista,
+                    'hero' => $hero,
                     'item' => $base['item'],
                 ];
             }
@@ -524,15 +545,82 @@ class PaEmbalagemService
     }
 
     /**
+     * Deriva modelo por bobina na leitura quando a embalagem legado não persistiu.
+     *
+     * @param  \Illuminate\Support\Collection<int, PaEmbalagemBobina>  $bobinasSorted
+     * @return list<array{modelo_ordem: int|null, modelo_nome: string|null}>
+     */
+    private function modelosFaceBobinas(PaEmbalagem $embalagem, $bobinasSorted): array
+    {
+        $n = $bobinasSorted->count();
+        if ($n === 0) {
+            return [];
+        }
+
+        $todasComModelo = $bobinasSorted->every(
+            static fn (PaEmbalagemBobina $b) => $b->modelo_nome !== null && trim((string) $b->modelo_nome) !== ''
+        );
+        if ($todasComModelo) {
+            return $bobinasSorted->map(static fn (PaEmbalagemBobina $b) => [
+                'modelo_ordem' => $b->modelo_ordem,
+                'modelo_nome' => $b->modelo_nome,
+            ])->values()->all();
+        }
+
+        $op = $embalagem->ordemProducao;
+        if ($op === null) {
+            return array_fill(0, $n, ['modelo_ordem' => null, 'modelo_nome' => null]);
+        }
+
+        $qtdeBoa = (string) ($op->qtde_boa ?? $embalagem->qtde_etiquetas ?? '0');
+        $modelos = $this->quantidadesPorModelo($op, $qtdeBoa);
+        if ($modelos === []) {
+            return array_fill(0, $n, ['modelo_ordem' => null, 'modelo_nome' => null]);
+        }
+
+        $linhas = $bobinasSorted->map(static fn (PaEmbalagemBobina $b) => [
+            'qtde_etiquetas' => (string) $b->qtde_etiquetas,
+            'modelo_ordem' => $b->modelo_ordem,
+            'modelo_nome' => $b->modelo_nome,
+        ])->values()->all();
+
+        return array_map(
+            static fn (array $l) => [
+                'modelo_ordem' => $l['modelo_ordem'],
+                'modelo_nome' => $l['modelo_nome'],
+            ],
+            $this->completarModelosNasLinhas($linhas, $modelos)
+        );
+    }
+
+    /**
      * @param  list<PaEmbalagemBobina>  $bobinas
      * @return list<array{modelo: string, modelo_ordem: int|null, bobinas: int, etiquetas: string}>
      */
     private function conteudoCaixa(array $bobinas): array
     {
+        $rows = [];
+        foreach ($bobinas as $b) {
+            $rows[] = [
+                'modelo_ordem' => $b->modelo_ordem,
+                'modelo_nome' => $b->modelo_nome,
+                'qtde_etiquetas' => (string) $b->qtde_etiquetas,
+            ];
+        }
+
+        return $this->conteudoCaixaPayload($rows);
+    }
+
+    /**
+     * @param  list<array{modelo_ordem?: int|null, modelo_nome?: string|null, qtde_etiquetas: string}>  $bobinas
+     * @return list<array{modelo: string, modelo_ordem: int|null, bobinas: int, etiquetas: string}>
+     */
+    private function conteudoCaixaPayload(array $bobinas): array
+    {
         $acc = [];
         foreach ($bobinas as $b) {
-            $ordem = $b->modelo_ordem;
-            $nome = trim((string) ($b->modelo_nome ?? ''));
+            $ordem = $b['modelo_ordem'] ?? null;
+            $nome = trim((string) ($b['modelo_nome'] ?? ''));
             $key = $ordem !== null ? 'o:'.$ordem : ('n:'.($nome !== '' ? $nome : '_'));
             if (! isset($acc[$key])) {
                 $acc[$key] = [
@@ -545,7 +633,7 @@ class PaEmbalagemService
             $acc[$key]['bobinas']++;
             $acc[$key]['etiquetas'] = bcadd(
                 $acc[$key]['etiquetas'],
-                (string) $b->qtde_etiquetas,
+                (string) $b['qtde_etiquetas'],
                 PadraoDecimal::SCALE_QTY
             );
         }
