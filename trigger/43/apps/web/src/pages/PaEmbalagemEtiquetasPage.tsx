@@ -60,38 +60,36 @@ type EtiquetasPayload = {
   faces?: Face[];
 };
 
+/**
+ * Conteúdo da caixa compacto (estrutura, não truncagem): `Frente A 3×3.000 · Verso B 2×2.000`.
+ * Até 4 artes; depois `+N`. Overflow visual fica no CSS (line-clamp).
+ */
 function formatConteudoCaixa(conteudo: ConteudoCaixa[] | undefined): string | null {
   if (!conteudo || conteudo.length === 0) return null;
-  const max = 3;
+  const max = 4;
   const parts = conteudo.slice(0, max).map((c) => {
     const etiq = formatDecimalBr(Number(c.etiquetas), 0);
-    return `${c.modelo}: ${c.bobinas} bob · ${etiq}`;
+    return `${c.modelo.trim()} ${c.bobinas}×${etiq}`;
   });
   const extra = conteudo.length - parts.length;
   if (extra > 0) parts.push(`+${extra}`);
-  return parts.join(' | ');
+  return parts.join(' · ');
 }
 
-function itemLinha(item: FaceItem | null | undefined): string | null {
+/** Só índice do item no PED multi — descrição completa já está em produto/modelo. */
+function itemCurto(item: FaceItem | null | undefined): string | null {
   if (!item) return null;
   const total = item.total_itens ?? null;
   const ordem = item.ordem ?? null;
-  if (ordem != null && total != null && total > 1) {
-    const desc = item.descricao?.trim();
-    return desc ? `Item ${ordem}/${total} · ${desc}` : `Item ${ordem}/${total}`;
-  }
-  if (ordem != null && (total == null || total > 1)) {
-    return item.descricao?.trim()
-      ? `Item ${ordem} · ${item.descricao.trim()}`
-      : `Item ${ordem}`;
-  }
+  if (ordem == null) return null;
+  if (total != null && total > 1) return `${ordem}/${total}`;
+  if (total == null || total > 1) return String(ordem);
   return null;
 }
 
 /**
- * Etiquetas de identificação BOB/CX — mesma mídia Elgin 50×40 do volume MP.
- * Hierarquia: modelo do volume (hero) → QR + produto/conteúdo à direita.
- * Fontes: OP → 1 emb · embId → 1 emb · pedidoId → lote do PED (kit).
+ * Etiquetas de identificação BOB/CX — mídia Elgin 50×40.
+ * Hierarquia: modelo do volume (hero) → QR + meta densa à direita.
  */
 export function PaEmbalagemEtiquetasPage() {
   const { id, embId, pedidoId } = useParams();
@@ -240,28 +238,40 @@ export function PaEmbalagemEtiquetasPage() {
           {err}
         </p>
       ) : null}
-      <div className="vol-etiquetas-batch">
+      <div className="vol-etiquetas-print-grid">
         {faces.map((f) => {
           const modeloNome = f.modelo_nome?.trim() || null;
           const modelo = f.modelo?.trim() || null;
           const produto = f.produto?.trim() || null;
           const desc = f.descricao?.trim() || null;
+          // Texto integral no DOM; tipografia/clamp da face cortam sem inventar "…" no JS.
           const titulo = modeloNome || modelo || produto || desc;
           const produtoLinha =
             titulo && produto && produto !== titulo ? produto : null;
           const conteudoLinha =
             f.tipo === 'CAIXA' ? formatConteudoCaixa(f.conteudo) : null;
-          const itemTxt = itemLinha(f.item);
+          const itemTxt = itemCurto(f.item);
           const totalBob = f.total_bobinas ?? null;
           const totalCx = f.total_caixas ?? null;
           const sku =
             f.tipo === 'CAIXA'
-              ? `CAIXA ${f.sequencia}${totalCx ? `/${totalCx}` : ''}${f.mista ? ' · MISTA' : ''}`
-              : `BOBINA ${f.sequencia}${totalBob ? `/${totalBob}` : ''}${
+              ? `CX ${f.sequencia}${totalCx ? `/${totalCx}` : ''}${f.mista ? ' MISTA' : ''}`
+              : `BOB ${f.sequencia}${totalBob ? `/${totalBob}` : ''}${
                   f.caixa_seq != null
                     ? ` · CX ${f.caixa_seq}${totalCx ? `/${totalCx}` : ''}`
                     : ''
                 }`;
+          const qtdeTxt = [
+            `${formatDecimalBr(Number(f.qtde_etiquetas), 0)} etiq.`,
+            f.tipo === 'CAIXA' && f.qtde_bobinas != null
+              ? `${f.qtde_bobinas} bob.`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(' · ');
+          const embTxt = [f.tubete, f.caixa_medida].filter(Boolean).join(' · ');
+          const qtdeEmb = embTxt ? `${qtdeTxt} · ${embTxt}` : qtdeTxt;
+          const pedOp = [f.pedido, f.op].filter(Boolean).join(' · ') || '—';
 
           return (
             <article
@@ -283,44 +293,49 @@ export function PaEmbalagemEtiquetasPage() {
                   )}
                 </div>
                 <div className="vol-etiqueta-meta">
-                  <div className="vol-etiqueta-sku">{sku}</div>
+                  <div className="vol-etiqueta-sku" title={sku}>
+                    {sku}
+                  </div>
                   {produtoLinha ? (
                     <div className="vol-etiqueta-desc" title={produtoLinha}>
                       {produtoLinha}
                     </div>
                   ) : null}
                   {conteudoLinha ? (
-                    <div className="vol-etiqueta-desc vol-etiqueta-conteudo" title={conteudoLinha}>
+                    <div
+                      className="vol-etiqueta-desc vol-etiqueta-conteudo"
+                      title={
+                        f.conteudo
+                          ?.map(
+                            (c) =>
+                              `${c.modelo}: ${c.bobinas} bob · ${formatDecimalBr(Number(c.etiquetas), 0)}`,
+                          )
+                          .join(' | ') ?? conteudoLinha
+                      }
+                    >
                       {conteudoLinha}
                     </div>
                   ) : null}
                   {itemTxt ? (
-                    <div className="vol-etiqueta-row" title={itemTxt}>
-                      <span className="vol-etiqueta-k">Item</span> {itemTxt.replace(/^Item\s+/i, '')}
+                    <div
+                      className="vol-etiqueta-row"
+                      title={`Item ${itemTxt}${f.item?.descricao ? ` · ${f.item.descricao}` : ''}`}
+                    >
+                      <span className="vol-etiqueta-k">Item</span> {itemTxt}
                     </div>
                   ) : null}
-                  <div className="vol-etiqueta-row">
+                  <div className="vol-etiqueta-row vol-etiqueta-row--wrap" title={f.codigo}>
                     <span className="vol-etiqueta-k">Cód.</span> {f.codigo}
                   </div>
-                  <div className="vol-etiqueta-row">
-                    <span className="vol-etiqueta-k">Qtde</span>{' '}
-                    {formatDecimalBr(Number(f.qtde_etiquetas), 0)} etiq.
-                    {f.tipo === 'CAIXA' && f.qtde_bobinas != null
-                      ? ` · ${f.qtde_bobinas} bob.`
-                      : ''}
+                  <div className="vol-etiqueta-row vol-etiqueta-row--wrap" title={qtdeEmb}>
+                    <span className="vol-etiqueta-k">Qtde</span> {qtdeEmb}
                   </div>
-                  {f.tubete || f.caixa_medida ? (
-                    <div className="vol-etiqueta-row">
-                      <span className="vol-etiqueta-k">Emb.</span>{' '}
-                      {[f.tubete, f.caixa_medida].filter(Boolean).join(' · ')}
-                    </div>
-                  ) : null}
-                  <div className="vol-etiqueta-row vol-etiqueta-row--muted">
-                    {f.pedido ?? '—'} · {f.op ?? '—'}
+                  <div className="vol-etiqueta-row vol-etiqueta-row--muted" title={pedOp}>
+                    {pedOp}
                   </div>
                 </div>
                 <div className="vol-etiqueta-hri" title={f.qr_payload}>
-                  <span className="vol-etiqueta-hri-k">Código</span> {f.qr_payload}
+                  {f.qr_payload}
                 </div>
               </div>
             </article>
