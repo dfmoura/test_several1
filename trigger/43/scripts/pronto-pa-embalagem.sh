@@ -52,7 +52,7 @@ cat <<'EOF'
 
 Pronto 100% — etiquetas embalagem PA (kit expedição sem undefined)
   App:     http://localhost:8043
-  Login:   admin@retaetiquetas.com.br  (senha do lab)
+  Login:   admin@retaetiquetas.com.br  /  Admin@123
 
 Teste do bug (multipla — o que quebrava)
   1. Hard refresh (Ctrl+Shift+R)
