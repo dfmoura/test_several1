@@ -14225,6 +14225,10 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   flex-shrink: 0;
 }
 
+.op-escolha__progresso--metragem {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 .op-escolha__progresso.is-ok {
   border-color: #2f6b4f;
   background: #f1f8f4;
@@ -14252,6 +14256,18 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
 }
 
 .op-escolha__progresso.is-ok .op-escolha__progresso-item:last-child strong {
+  color: #2f6b4f;
+}
+
+.op-escolha__progresso-item--falta strong {
+  color: #1a3568;
+}
+
+.op-escolha__progresso-item--passa strong {
+  color: var(--warning, #b7791f);
+}
+
+.op-escolha__progresso-item--coberto strong {
   color: #2f6b4f;
 }
 

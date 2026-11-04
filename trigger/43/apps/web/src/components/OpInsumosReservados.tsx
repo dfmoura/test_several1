@@ -1639,6 +1639,9 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                 busy={busy || overlayBusy}
                 modo="debita"
                 mostrarProduto
+                metragem={
+                  insumoComMetragem(material) ? { material, op } : null
+                }
                 hint={
                   emReposicao
                     ? overlayBusy

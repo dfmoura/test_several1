@@ -1,6 +1,13 @@
 import type { OpRetiradaVolume } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
-import type { VolumePickMarca, VolumePickModo } from '../lib/producaoPick';
+import {
+  areaM2Volume,
+  formatMetrosLineares,
+  formatQtdePick,
+  formatVolumeDimensao,
+  type VolumePickMarca,
+  type VolumePickModo,
+} from '../lib/producaoPick';
 
 type Props = {
   marcas: VolumePickMarca[];
@@ -10,13 +17,21 @@ type Props = {
   modo?: VolumePickModo;
   /** OP: a lista pode trazer mais de um produto. Revenda fica no SKU da linha. */
   mostrarProduto?: boolean;
+  /**
+   * Bobina/papel: Dimensão · Área · Rolo (m). Sem coluna Quantidade —
+   * a bobina sai inteira (qtde = volume).
+   */
+  mostrarMetragem?: boolean;
+  /** Largura da pista/SKU para derivar metros quando o volume não traz comprimento. */
+  larguraMmFallback?: number;
   onToggle: (loteId: number, marcado: boolean) => void;
   onQtde: (loteId: number, qtde: string) => void;
 };
 
 /**
  * Tabela canônica Levar / Local / Volume / No volume / Quantidade.
- * Usada por A separar (REV). A buscar (OP) permanece no kit multi-linha até adoção futura.
+ * Com `mostrarMetragem`: Dimensão · Área · Rolo no lugar de No volume / Quantidade.
+ * Usada por A separar (REV) e Ficha da OP (+ volume).
  */
 export function VolumePickTable({
   marcas,
@@ -24,6 +39,8 @@ export function VolumePickTable({
   busy = false,
   modo = 'snapshot',
   mostrarProduto = false,
+  mostrarMetragem = false,
+  larguraMmFallback = 0,
   onToggle,
   onQtde,
 }: Props) {
@@ -32,7 +49,7 @@ export function VolumePickTable({
   }
 
   return (
-    <div className="table-wrap" data-pick-modo={modo}>
+    <div className="table-wrap" data-pick-modo={modo} data-pick-metragem={mostrarMetragem ? '1' : '0'}>
       <table className="data-table">
         <thead>
           <tr>
@@ -40,13 +57,26 @@ export function VolumePickTable({
             <th>Local</th>
             {mostrarProduto ? <th>Produto</th> : null}
             <th>Volume</th>
-            <th>No volume</th>
-            <th>Quantidade</th>
+            {mostrarMetragem ? (
+              <>
+                <th>Dimensão</th>
+                <th>Área</th>
+                <th>Rolo</th>
+              </>
+            ) : (
+              <>
+                <th>No volume</th>
+                <th>Quantidade</th>
+              </>
+            )}
           </tr>
         </thead>
         <tbody>
           {marcas.map((m) => {
             const vol = volDo(m.lote_id);
+            const dim = vol ? formatVolumeDimensao(vol) : null;
+            const area = vol ? areaM2Volume(vol) : null;
+            const metros = vol ? formatMetrosLineares(vol, larguraMmFallback) : null;
             return (
               <tr key={m.lote_id}>
                 <td>
@@ -75,21 +105,38 @@ export function VolumePickTable({
                   </td>
                 ) : null}
                 <td>{vol?.codigo ?? '—'}</td>
-                <td>
-                  {vol?.qtde_volume != null
-                    ? `${formatDecimalBr(vol.qtde_volume, 4, { stripTrailingZeros: true })} ${vol.unidade ?? ''}`
-                    : '—'}
-                </td>
-                <td>
-                  <input
-                    className="input"
-                    inputMode="decimal"
-                    value={m.qtde}
-                    disabled={busy || !m.marcado}
-                    aria-label={`Quantidade do volume ${vol?.codigo ?? m.lote_id}`}
-                    onChange={(e) => onQtde(m.lote_id, e.target.value)}
-                  />
-                </td>
+                {mostrarMetragem ? (
+                  <>
+                    <td>
+                      {dim ?? '—'}
+                      {metros && dim ? (
+                        <div className="muted" style={{ fontSize: '0.85em' }}>
+                          {metros} de rolo
+                        </div>
+                      ) : null}
+                    </td>
+                    <td>{area != null ? formatQtdePick(area, 'm²') : '—'}</td>
+                    <td>{metros ?? '—'}</td>
+                  </>
+                ) : (
+                  <>
+                    <td>
+                      {vol?.qtde_volume != null
+                        ? `${formatDecimalBr(vol.qtde_volume, 4, { stripTrailingZeros: true })} ${vol.unidade ?? ''}`
+                        : '—'}
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        inputMode="decimal"
+                        value={m.qtde}
+                        disabled={busy || !m.marcado}
+                        aria-label={`Quantidade do volume ${vol?.codigo ?? m.lote_id}`}
+                        onChange={(e) => onQtde(m.lote_id, e.target.value)}
+                      />
+                    </td>
+                  </>
+                )}
               </tr>
             );
           })}

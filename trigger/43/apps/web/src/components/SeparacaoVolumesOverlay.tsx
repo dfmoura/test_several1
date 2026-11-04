@@ -7,9 +7,13 @@ import {
   type VolumeFiltroEstado,
 } from './OpFiltroVolumes';
 import { VolumePickTable } from './VolumePickTable';
-import type { OpRetiradaVolume } from '../lib/api';
+import type { OpRetiradaVolume, OrdemProducao, OrdemProducaoMaterial } from '../lib/api';
 import {
+  balancoMetragem,
+  larguraMmDoMaterial,
   ordenarMarcasPorLocal,
+  qtdeVolumeTotal,
+  textoBalancoSaida,
   type VolumePickMarca,
   type VolumePickModo,
 } from '../lib/producaoPick';
@@ -28,6 +32,11 @@ type Props = {
   hint?: string;
   modo?: VolumePickModo;
   mostrarProduto?: boolean;
+  /**
+   * Bobina (papel/acabamento): balanço Precisa · Escolhido · Falta e colunas
+   * Dimensão / Área / Rolo. Sem isto = overlay REV / unidade (inalterado).
+   */
+  metragem?: { material: OrdemProducaoMaterial; op: OrdemProducao } | null;
   /** CTA do rodapé (ex.: reposição após perda). Sem isto = «Usar estes volumes» só fecha. */
   confirmLabel?: string;
   onConfirm?: () => void;
@@ -50,6 +59,7 @@ export function SeparacaoVolumesOverlay({
   hint = 'Marque um ou mais volumes. A confirmação fica na tela anterior.',
   modo = 'snapshot',
   mostrarProduto = false,
+  metragem = null,
   confirmLabel,
   onConfirm,
   onChangeMarcas,
@@ -59,6 +69,8 @@ export function SeparacaoVolumesOverlay({
   const [qr, setQr] = useState('');
   const [errLocal, setErrLocal] = useState<string | null>(null);
   const qrRef = useRef<HTMLInputElement>(null);
+  const comMetragem = Boolean(metragem);
+  const larguraFallback = metragem ? larguraMmDoMaterial(metragem.material) : 0;
 
   const volDo = (loteId: number) => volumes.find((v) => v.lote_id === loteId);
 
@@ -84,6 +96,25 @@ export function SeparacaoVolumesOverlay({
   }, [volumes, marcas, filtro]);
 
   const nMarcados = marcas.filter((m) => m.marcado && parseQtdeDigitada(m.qtde) > 0).length;
+
+  const balanco = useMemo(() => {
+    if (!metragem) return null;
+    const linhas = marcas
+      .filter((m) => m.marcado)
+      .map((m) => {
+        const vol = volumes.find((v) => v.lote_id === m.lote_id);
+        const total = vol ? qtdeVolumeTotal(vol) : 0;
+        const digitada = parseQtdeDigitada(m.qtde);
+        return {
+          vol,
+          qtde: total > 0 ? total : digitada,
+        };
+      })
+      .filter((l) => (typeof l.qtde === 'number' ? l.qtde > 0 : parseQtdeDigitada(l.qtde) > 0));
+    return balancoMetragem(metragem.material, metragem.op, linhas);
+  }, [metragem, marcas, volumes]);
+
+  const textoBalanco = balanco ? textoBalancoSaida(balanco, false) : null;
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -164,9 +195,9 @@ export function SeparacaoVolumesOverlay({
           </div>
           <div className="op-escolha__head-side">
             <div className="op-escolha__precisa">
-              <span>Pedido</span>
+              <span>{comMetragem ? 'A ordem pede' : 'Pedido'}</span>
               <strong>
-                {pedidoQtde} {unidade}
+                {textoBalanco ? textoBalanco.precisa : `${pedidoQtde} ${unidade}`}
               </strong>
             </div>
             <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>
@@ -174,6 +205,31 @@ export function SeparacaoVolumesOverlay({
             </button>
           </div>
         </header>
+
+        {textoBalanco ? (
+          <div
+            className={`op-escolha__progresso op-escolha__progresso--metragem${
+              textoBalanco.tom === 'coberto' ? ' is-ok' : ''
+            }`}
+            aria-live="polite"
+            title="Precisa é a metragem da ordem. Escolhido é a bobina inteira: metro do rolo e área do volume."
+          >
+            <div className="op-escolha__progresso-item">
+              <span>Precisa</span>
+              <strong>{textoBalanco.precisa}</strong>
+            </div>
+            <div className="op-escolha__progresso-item">
+              <span>{textoBalanco.marcadoRotulo}</span>
+              <strong>{nMarcados === 0 ? '—' : textoBalanco.marcado}</strong>
+            </div>
+            <div
+              className={`op-escolha__progresso-item op-escolha__progresso-item--${textoBalanco.tom}`}
+            >
+              <span>{nMarcados === 0 ? 'Situação' : textoBalanco.coberturaRotulo}</span>
+              <strong>{nMarcados === 0 ? 'Vazio' : textoBalanco.cobertura}</strong>
+            </div>
+          </div>
+        ) : null}
 
         {errLocal ? <div className="alert alert-danger">{errLocal}</div> : null}
 
@@ -209,7 +265,20 @@ export function SeparacaoVolumesOverlay({
             busy={busy}
             modo={modo}
             mostrarProduto={mostrarProduto}
-            onToggle={(loteId, marcado) => upsertMarca(loteId, { marcado })}
+            mostrarMetragem={comMetragem}
+            larguraMmFallback={larguraFallback}
+            onToggle={(loteId, marcado) => {
+              if (comMetragem && marcado) {
+                const vol = volDo(loteId);
+                const total = vol ? qtdeVolumeTotal(vol) : 0;
+                upsertMarca(loteId, {
+                  marcado: true,
+                  ...(total > 0 ? { qtde: String(total) } : {}),
+                });
+                return;
+              }
+              upsertMarca(loteId, { marcado });
+            }}
             onQtde={(loteId, qtde) => {
               const max = parseQtdeDigitada(volDo(loteId)?.qtde_volume);
               const n = parseQtdeDigitada(qtde);
@@ -223,7 +292,17 @@ export function SeparacaoVolumesOverlay({
           <p className="op-escolha__soma">
             {nMarcados === 0
               ? 'Nenhum volume marcado'
-              : `${nMarcados} volume${nMarcados === 1 ? '' : 's'} marcado${nMarcados === 1 ? '' : 's'}`}
+              : textoBalanco
+                ? `${nMarcados} volume${nMarcados === 1 ? '' : 's'} · ${textoBalanco.marcado}${
+                    textoBalanco.tom === 'coberto'
+                      ? ' · coberto'
+                      : textoBalanco.tom === 'falta'
+                        ? ` · falta ${textoBalanco.cobertura}`
+                        : textoBalanco.tom === 'passa'
+                          ? ` · passa ${textoBalanco.cobertura}`
+                          : ''
+                  }`
+                : `${nMarcados} volume${nMarcados === 1 ? '' : 's'} marcado${nMarcados === 1 ? '' : 's'}`}
           </p>
           <div className="op-escolha__foot-actions">
             {onConfirm ? (
