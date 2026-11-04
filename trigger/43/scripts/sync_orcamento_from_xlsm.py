@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Sincroniza catalog_oficial.json (+ mapa_facas.json) a partir do ORcAMENTO_OFICIAL rv4.
+Sincroniza catalog_oficial.json (+ mapa_facas.json) a partir do orca_oficial_v8.
 
-Fonte canônica: sheet ORÇAMENTO e abas referenciadas por ela (rv4).
+Fonte canônica: sheet ORÇAMENTO e abas referenciadas (rv8 ≡ álgebra rv7).
 Mapa de facas: sheet 'MAPA DE FACAS 20260715 ATUAL' (pivot MAPA_DE_FACAS → ORÇAMENTO).
+Norma: docs/ADR_ORC_MOTOR_V4_RV8.md
 
 Uso:
   python3 scripts/sync_orcamento_from_xlsm.py \\
-    --xlsm /caminho/ORcAMENTO_OFICIAL_rv4.xlsm
+    --xlsm apps/api/resources/data/orcamento/orca_oficial_v8.xlsm
   python3 scripts/sync_orcamento_from_xlsm.py --skip-mapa
 """
 
@@ -27,15 +28,16 @@ except ImportError as e:  # pragma: no cover
     raise SystemExit("Instale openpyxl: pip install openpyxl") from e
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_XLSM = ROOT / "apps/api/resources/data/orcamento/ORcAMENTO_OFICIAL_rv4.xlsm"
+DEFAULT_XLSM = ROOT / "apps/api/resources/data/orcamento/orca_oficial_v8.xlsm"
 if not DEFAULT_XLSM.exists():
-    DEFAULT_XLSM = Path("/home/dfmoura/Downloads/ORcAMENTO_OFICIAL_rv4.xlsm")
+    DEFAULT_XLSM = Path("/home/dfmoura/Downloads/orca_oficial_v8.xlsm")
 OUT_CAT = ROOT / "apps/api/resources/data/orcamento/catalog_oficial.json"
 OUT_MAPA = ROOT / "apps/api/resources/data/orcamento/mapa_facas.json"
 
 SHEET_MAPA = "MAPA DE FACAS 20260715 ATUAL"
-SHEET_PERDA_MAQ = "PERDA DE ACERTO "
-SHEET_PERDA_TROCA = "PERDA DE ACERTO"
+SHEET_PERDA_ACERTO_OK = "PERDA DE ACERTO OK"
+# Fator estrutural J (ORÇAMENTO): (larg/100)×colunas×7×(modelos−1)
+FATOR_PERDA_TROCA_PRODUTO_M = 7.0
 
 MAQ_MAP = {
     "BETAFLEX": "BETA",
@@ -88,12 +90,30 @@ def _to_float(v):
 
 
 def _cores_key(raw) -> str:
+    """Normaliza chave de cores; Excel 4.1 ≡ sistema 4V."""
     if raw is None:
         return ""
     if isinstance(raw, str):
-        return raw.strip().upper()
-    if isinstance(raw, float) and raw == int(raw):
-        return str(int(raw))
+        s = raw.strip().upper().replace(",", ".")
+        if s in ("4.1", "4,1"):
+            return "4V"
+        if s == "4V":
+            return "4V"
+        if s.replace(".", "", 1).isdigit():
+            f = float(s)
+            if abs(f - 4.1) < 1e-9:
+                return "4V"
+            if f == int(f):
+                return str(int(f))
+        return s
+    if isinstance(raw, float):
+        if abs(raw - 4.1) < 1e-9:
+            return "4V"
+        if raw == int(raw):
+            return str(int(raw))
+        return str(raw).strip()
+    if isinstance(raw, int):
+        return str(raw)
     return str(raw).strip()
 
 
@@ -277,51 +297,71 @@ def _read_hora_maquina(ws) -> dict[str, dict[str, float]]:
     for alias in ("160", "250", "ETIRAMA"):
         if alias not in out and shared:
             out[alias] = dict(shared)
+    # BATIDA na planilha só lista 1–2 cores; lisa (0) permanece taxa de produto
+    # herdada (rv4 = 190) para não quebrar ORCs lisa na BATIDA.
+    if "BATIDA" in out and "0" not in out["BATIDA"]:
+        out["BATIDA"]["0"] = 190.0
     return out
 
 
-def _read_perda_troca(ws) -> dict[str, float]:
-    """PERDA DE ACERTO — col E (m² fator @ largura ref) × larg/100 × modelos (ORÇAMENTO I14+)."""
+def _read_perda_acerto_ok(ws) -> dict[str, float]:
+    """PERDA DE ACERTO OK — col C = ml por cores (R6: (larg/100)×ml×colunas)."""
     out: dict[str, float] = {}
     for r in range(2, ws.max_row + 1):
         cores = ws.cell(r, 1).value
-        fator = ws.cell(r, 5).value
-        if cores is None:
+        ml = ws.cell(r, 3).value
+        if cores is None or ml is None:
             continue
         key = _cores_key(cores)
-        out[key] = 0.0 if fator is None else float(fator)
+        if key == "":
+            continue
+        out[key] = float(ml)
     return out
 
 
-def _read_perda_maquina(ws) -> tuple[dict[str, float], dict[str, float]]:
-    """PERDA DE ACERTO (espaço) — m² fixos 0–3 (col D) e ml 4+ (col B)."""
-    fixed: dict[str, float] = {}
-    ml_4plus: dict[str, float] = {}
-    for r in range(2, ws.max_row + 1):
-        cores = ws.cell(r, 1).value
-        ml = ws.cell(r, 2).value
-        m2 = ws.cell(r, 4).value
-        if cores is None:
-            continue
-        key = _cores_key(cores)
-        if key in ("0", "1", "2", "3") and m2 is not None:
-            fixed[key] = float(m2)
-        elif ml is not None:
-            ml_4plus[key] = float(ml)
-    return fixed, ml_4plus
-
-
 def _read_tinta_matriz(ws) -> dict:
-    thresholds: list[float] = []
-    rates: dict[str, list[float]] = {"1": [], "2": [], "3": [], "4": []}
+    """TINTA (2) rv8: thresholds em A; rates expandidos em H–P (1..8 + 4.1)."""
+    # Header row 1 cols H–P = 1,2,3,4,4.1,5,6,7,8
+    col_keys: list[str] = []
+    for c in range(8, 17):
+        h = ws.cell(1, c).value
+        if h is None:
+            continue
+        key = _cores_key(h)
+        # Mantém "4.1" como chave de rate (motor mapeia 4V → 4.1)
+        if str(h).strip() in ("4.1", "4,1") or (isinstance(h, float) and abs(h - 4.1) < 1e-9):
+            key = "4.1"
+        col_keys.append(key)
+
+    if len(col_keys) < 4:
+        # Fallback rv4: B–E = 1,2,3,CROMIA→4
+        thresholds: list[float] = []
+        rates: dict[str, list[float]] = {"1": [], "2": [], "3": [], "4": []}
+        for r in range(2, ws.max_row + 1):
+            th = ws.cell(r, 1).value
+            if th is None:
+                continue
+            thresholds.append(float(th))
+            for i, col_key in enumerate(["1", "2", "3", "4"], start=2):
+                val = ws.cell(r, i).value
+                rates[col_key].append(float(val) if val is not None else 0.0)
+        return {"thresholds": thresholds, "rates": rates}
+
+    thresholds = []
+    rates: dict[str, list[float]] = {k: [] for k in col_keys}
     for r in range(2, ws.max_row + 1):
-        th = ws.cell(r, 1).value
+        th = ws.cell(r, 7).value  # G = MTS espelho; fallback A
+        if th is None:
+            th = ws.cell(r, 1).value
         if th is None:
             continue
         thresholds.append(float(th))
-        for i, col_key in enumerate(["1", "2", "3", "4"], start=2):
-            val = ws.cell(r, i).value
+        for i, col_key in enumerate(col_keys):
+            val = ws.cell(r, 8 + i).value
             rates[col_key].append(float(val) if val is not None else 0.0)
+    # Alias 4V → mesma série que 4.1 (UI)
+    if "4.1" in rates and "4V" not in rates:
+        rates["4V"] = list(rates["4.1"])
     return {"thresholds": thresholds, "rates": rates}
 
 
@@ -337,8 +377,8 @@ def _read_caixas(ws) -> dict[str, int]:
 
 
 def sync_catalog(wb, cat: dict) -> dict:
-    cat["fonte_xlsm"] = "ORcAMENTO_OFICIAL_rv4"
-    cat["motor_version_catalogo"] = 2
+    cat["fonte_xlsm"] = "orca_oficial_v8"
+    cat["motor_version_catalogo"] = 4
 
     cat["hora_maquina"] = _read_hora_maquina(wb["HORA MÁQUINA "])
     cat["maquinas"] = ["BETA", "160", "250", "ETIRAMA", "BATIDA", "MODULAR"]
@@ -378,6 +418,7 @@ def sync_catalog(wb, cat: dict) -> dict:
         if not nome or val is None:
             continue
         if isinstance(val, str) and val.startswith("="):
+            # COLD STAMP + VERNIZ = 2.8+0.7
             val = 3.5
         acab[_norm_spaces(nome)] = float(val)
     cat["acabamentos"] = acab
@@ -388,7 +429,10 @@ def sync_catalog(wb, cat: dict) -> dict:
         nome, val = ws_pa.cell(r, 1).value, ws_pa.cell(r, 2).value
         if not nome or val is None:
             continue
-        perda_ac[_norm_spaces(nome)] = float(val)
+        # Resolve fórmula =ACABAMENTOS!A2 etc. quando data_only já resolveu o nome
+        if isinstance(nome, str) and nome.startswith("="):
+            continue
+        perda_ac[_norm_spaces(str(nome))] = float(val)
     cat["perda_acabamento"] = perda_ac
 
     ws_p = wb["PAPEL"]
@@ -400,22 +444,24 @@ def sync_catalog(wb, cat: dict) -> dict:
         papel[_norm_spaces(nome)] = float(val)
     cat["papel"] = papel
 
-    perda03, ml4 = _read_perda_maquina(wb[SHEET_PERDA_MAQ])
-    cat["perda_papel_0_3"] = perda03
-    # ORÇAMENTO J14+ usa metros fixos 4V–8 (não col B da aba de perda).
-    cat["perda_papel_f6"] = float(ml4.get("4", 150.0))
-    cat["perda_acerto_m_4v"] = 250.0
-    cat["perda_acerto_m_5"] = 250.0
-    cat["perda_acerto_m_6"] = 260.0
-    cat["perda_acerto_m_7"] = 270.0
-    cat["perda_acerto_m_8"] = 280.0
-
-    cat["perda_troca_m2_fator"] = _read_perda_troca(wb[SHEET_PERDA_TROCA])
-    # Compat legado (ml ≈ fator / 0.085 ref rv4)
-    cat["perda_papel_acerto_ml"] = {
-        k: (0.0 if v == 0 else round(v / 0.085, 6))
-        for k, v in cat["perda_troca_m2_fator"].items()
+    # rv8: uma aba OK com ml por cores (R6). Escalares 0–3/F6/4V–8 ficam como
+    # fallback legado / overlay EMP — motor v4 usa perda_papel_acerto_ml.
+    if SHEET_PERDA_ACERTO_OK not in wb.sheetnames:
+        raise SystemExit(f"Sheet ausente: {SHEET_PERDA_ACERTO_OK}")
+    ml_ok = _read_perda_acerto_ok(wb[SHEET_PERDA_ACERTO_OK])
+    cat["perda_papel_acerto_ml"] = ml_ok
+    # Compat: fator troca legado = 7 para cores>0 (documental; motor v4 usa constante ×(modelos−1))
+    cat["perda_troca_m2_fator"] = {
+        k: (0.0 if k in ("0", "") else FATOR_PERDA_TROCA_PRODUTO_M) for k in ml_ok
     }
+    # Escalares legados (overlay EMP / UI) — espelham ml; R6 v4 usa perda_papel_acerto_ml.
+    cat["perda_papel_0_3"] = {k: float(ml_ok[k]) for k in ("0", "1", "2", "3") if k in ml_ok}
+    cat["perda_papel_f6"] = float(ml_ok.get("4", 150.0))
+    cat["perda_acerto_m_4v"] = float(ml_ok.get("4V", 200.0))
+    cat["perda_acerto_m_5"] = float(ml_ok.get("5", 210.0))
+    cat["perda_acerto_m_6"] = float(ml_ok.get("6", 220.0))
+    cat["perda_acerto_m_7"] = float(ml_ok.get("7", 230.0))
+    cat["perda_acerto_m_8"] = float(ml_ok.get("8", 240.0))
 
     ws_hp = wb["HORA PARADA"]
     hora_parada = {}

@@ -211,7 +211,7 @@ final class OrcamentoCatalogo
         foreach ($raw['hora_maquina'] as $m => $rates) {
             $bloco = [];
             foreach ($rates as $c => $t) {
-                $bloco[(string) $c] = (float) $t;
+                $bloco[self::loadCoresKey((string) $c)] = (float) $t;
             }
             $horaMaquina[self::norm((string) $m)] = $bloco;
         }
@@ -708,16 +708,18 @@ final class OrcamentoCatalogo
     }
 
     /**
+     * rv8 ORÇAMENTO K: tabela × (larg/100) × modelos.
+     *
      * @param  array<string, mixed>  $input
      */
-    public function perdaAcabM2Efetiva(array $input, float $larguraCm, int $colunas): float
+    public function perdaAcabM2Efetiva(array $input, float $larguraCm, int $modelos): float
     {
         $perda = $this->perdaAcabEfetiva($input);
         if ($perda <= 0.0) {
             return 0.0;
         }
 
-        return $perda * ($larguraCm / 100.0) * max(0, $colunas);
+        return $perda * ($larguraCm / 100.0) * max(0, $modelos);
     }
 
     public function perdaAcab(string $nome): float
@@ -725,14 +727,14 @@ final class OrcamentoCatalogo
         return (float) $this->lookup($this->perdaAcabamento, $nome);
     }
 
-    /** rv4: PERDA ACABAMENTO × (largura/100) × colunas (ORÇAMENTO K). */
-    public function perdaAcabM2(string $nome, float $larguraCm, int $colunas): float
+    /** rv8: PERDA ACABAMENTO × (largura/100) × modelos (ORÇAMENTO K). */
+    public function perdaAcabM2(string $nome, float $larguraCm, int $modelos): float
     {
         if ($this->perdaAcab($nome) <= 0.0) {
             return 0.0;
         }
 
-        return $this->perdaAcab($nome) * ($larguraCm / 100.0) * max(0, $colunas);
+        return $this->perdaAcab($nome) * ($larguraCm / 100.0) * max(0, $modelos);
     }
 
     public function perdaTrocaM2Fator(mixed $cores): float
@@ -749,7 +751,7 @@ final class OrcamentoCatalogo
     }
 
     /**
-     * rv4 TINTA (2): INDEX por faixa MTS × coluna de cor.
+     * rv8 TINTA (2): INDEX por faixa MTS × coluna 1–8 / 4.1 (4V → 4.1).
      */
     public function tintaMatrizRate(float $areaM2, mixed $cores): float
     {
@@ -767,10 +769,7 @@ final class OrcamentoCatalogo
         if ($k === '0' || $k === '') {
             return 0.0;
         }
-        $col = ((int) $k) >= 4 || $k === '4V' ? '4' : $k;
-        if (! isset($rates[$col])) {
-            $col = '4';
-        }
+        $col = $this->tintaMatrizColuna($k, $rates);
         $colRates = $rates[$col];
 
         $idx = count($thresholds) - 1;
@@ -788,24 +787,49 @@ final class OrcamentoCatalogo
         return (float) ($colRates[$idx] ?? $this->tintaAcimaM2);
     }
 
+    /**
+     * @param  array<string, list<float>>  $rates
+     */
+    private function tintaMatrizColuna(string $coresKey, array $rates): string
+    {
+        // rv8: coluna nomeada; 4V ≡ Excel 4.1
+        $prefer = $coresKey === '4V' ? '4.1' : $coresKey;
+        if (isset($rates[$prefer])) {
+            return $prefer;
+        }
+        if ($coresKey === '4V' && isset($rates['4V'])) {
+            return '4V';
+        }
+        // Catálogo legado (só 1–4 / CROMIA): ≥4 colapsa em 4
+        if (((int) $coresKey) >= 4 || $coresKey === '4V') {
+            if (isset($rates['4'])) {
+                return '4';
+            }
+        }
+        if (isset($rates[$coresKey])) {
+            return $coresKey;
+        }
+
+        if (isset($rates['4'])) {
+            return '4';
+        }
+        $first = array_key_first($rates);
+
+        return $first !== null ? (string) $first : '4';
+    }
+
     public function usaTintaMatriz(): bool
     {
         return $this->tintaMatriz !== null;
     }
 
-    public function perdaPapelAcertoMetros(mixed $cores): float
+    /**
+     * ml de acerto por cores (rv8 PERDA DE ACERTO OK). Inclui lisa (0).
+     */
+    public function perdaAcertoMl(mixed $cores): float
     {
-        if ($cores === null) {
-            return 0.0;
-        }
-        if (is_string($cores)) {
-            $k = strtoupper(trim($cores));
-        } elseif (is_float($cores) && $cores == (int) $cores) {
-            $k = (string) (int) $cores;
-        } else {
-            $k = trim((string) $cores);
-        }
-        if (in_array($k, ['0', '0.0', ''], true)) {
+        $k = self::normalizeCoresKey($cores);
+        if ($k === '') {
             return 0.0;
         }
         if (! array_key_exists($k, $this->perdaPapelAcertoMl)) {
@@ -813,6 +837,17 @@ final class OrcamentoCatalogo
         }
 
         return (float) $this->perdaPapelAcertoMl[$k];
+    }
+
+    /** @deprecated use perdaAcertoMl — nome legado; retorna ml (não metros). */
+    public function perdaPapelAcertoMetros(mixed $cores): float
+    {
+        $k = self::normalizeCoresKey($cores);
+        if (in_array($k, ['0', ''], true) && ! array_key_exists($k, $this->perdaPapelAcertoMl)) {
+            return 0.0;
+        }
+
+        return $this->perdaAcertoMl($cores);
     }
 
     public function precoTubete(string $tamanho): float
@@ -837,12 +872,7 @@ final class OrcamentoCatalogo
     public function taxaHoraMaquina(string $maquina, mixed $cores): float
     {
         $bloco = $this->lookupMaquina($maquina);
-        $key = trim((string) $cores);
-        if (! array_key_exists($key, $bloco)) {
-            if (is_numeric($key)) {
-                $key = (string) (int) (float) $key;
-            }
-        }
+        $key = self::normalizeCoresKey($cores);
         if (! array_key_exists($key, $bloco)) {
             throw new \InvalidArgumentException("cores={$key} não encontrado em HORA MÁQUINA para {$maquina}");
         }
@@ -1209,9 +1239,44 @@ final class OrcamentoCatalogo
 
     private static function loadCoresKey(string $k): string
     {
-        $key = strtoupper(trim($k));
-        if ($key !== '4V' && is_numeric($key)) {
-            return (string) (int) (float) $key;
+        return self::normalizeCoresKey($k);
+    }
+
+    /** Excel 4.1 ≡ sistema 4V; inteiros sem decimais. */
+    public static function normalizeCoresKey(mixed $cores): string
+    {
+        if ($cores === null) {
+            return '';
+        }
+        if (is_int($cores)) {
+            return (string) $cores;
+        }
+        if (is_float($cores)) {
+            if (abs($cores - 4.1) < 1e-9) {
+                return '4V';
+            }
+            if ($cores == (int) $cores) {
+                return (string) (int) $cores;
+            }
+
+            return rtrim(rtrim(sprintf('%.10F', $cores), '0'), '.');
+        }
+
+        $key = strtoupper(trim(str_replace(',', '.', (string) $cores)));
+        if ($key === '' || $key === '4V') {
+            return $key === '4V' ? '4V' : '';
+        }
+        if ($key === '4.1') {
+            return '4V';
+        }
+        if (is_numeric($key)) {
+            $f = (float) $key;
+            if (abs($f - 4.1) < 1e-9) {
+                return '4V';
+            }
+            if ($f == (int) $f) {
+                return (string) (int) $f;
+            }
         }
 
         return $key;
@@ -1219,20 +1284,7 @@ final class OrcamentoCatalogo
 
     private function coresKeyRaw(mixed $cores): string
     {
-        if ($cores === null) {
-            return '';
-        }
-        if (is_string($cores)) {
-            return strtoupper(trim($cores));
-        }
-        if (is_float($cores) && $cores == (int) $cores) {
-            return (string) (int) $cores;
-        }
-        if (is_int($cores)) {
-            return (string) $cores;
-        }
-
-        return trim((string) $cores);
+        return self::normalizeCoresKey($cores);
     }
 
     /**

@@ -314,7 +314,7 @@ class OrcamentoCatalogoTest extends TestCase
         $this->asComercial()
             ->getJson('/api/v1/orcamento-catalogo/regras')
             ->assertOk()
-            ->assertJsonPath('data.motor_version', 3)
+            ->assertJsonPath('data.motor_version', 4)
             ->assertJsonFragment(['id' => 'R1_metragem'])
             ->assertJsonFragment(['id' => 'FECHAMENTO']);
 
@@ -354,7 +354,7 @@ class OrcamentoCatalogoTest extends TestCase
         $this->assertSame(1.0, $catB->setupHoras);
     }
 
-    public function test_estruturas_rv4_editaveis_e_motor_usa_db(): void
+    public function test_estruturas_rv8_editaveis_e_motor_usa_db(): void
     {
         $service = app(OrcamentoCatalogoAdminService::class);
         $service->seedFromJson(null, false, $this->empresa->id);
@@ -373,6 +373,11 @@ class OrcamentoCatalogoTest extends TestCase
                 '2' => [0.9, 0.8],
                 '3' => [1.0, 0.9],
                 '4' => [2.0, 1.6],
+                '4.1' => [2.0, 1.6],
+                '5' => [2.0, 1.6],
+                '6' => [2.0, 1.6],
+                '7' => [2.0, 1.6],
+                '8' => [2.0, 1.6],
             ],
         ];
 
@@ -384,6 +389,7 @@ class OrcamentoCatalogoTest extends TestCase
         $cat = OrcamentoCatalogo::load(null, $this->empresa->id);
         $this->assertTrue($cat->usaTintaMatriz());
         $this->assertSame(0.7, $cat->tintaMatrizRate(25.0, 1));
+        $this->assertSame(1.6, $cat->tintaMatrizRate(25.0, '4V'));
 
         $this->asAdmin()
             ->putJson('/api/v1/orcamento-catalogo/estruturas/perda_troca_m2_fator', [
@@ -404,6 +410,43 @@ class OrcamentoCatalogoTest extends TestCase
 
         $cat3 = OrcamentoCatalogo::load(null, $this->empresa->id);
         $this->assertSame(10, $cat3->rolosPorCaixa('3"'));
+    }
+
+    public function test_seed_soft_merge_acrescenta_colunas_tinta_rv8_sem_sobrescrever(): void
+    {
+        $legado = [
+            'thresholds' => [20.0, 30.0, 50.0],
+            'rates' => [
+                '1' => [0.8, 0.7, 0.6],
+                '2' => [0.9, 0.8, 0.7],
+                '3' => [1.0, 0.9, 0.8],
+                '4' => [9.9, 9.8, 9.7], // valor “editado” pela EMP — deve permanecer
+            ],
+        ];
+        $oficial = [
+            'thresholds' => [20.0, 30.0, 50.0],
+            'rates' => [
+                '1' => [0.8, 0.7, 0.6],
+                '2' => [0.9, 0.8, 0.7],
+                '3' => [1.0, 0.9, 0.8],
+                '4' => [2.0, 1.6, 1.0],
+                '4.1' => [2.0, 1.6, 1.0],
+                '5' => [2.0, 1.6, 1.0],
+                '6' => [2.0, 1.6, 1.0],
+                '7' => [2.0, 1.6, 1.0],
+                '8' => [2.0, 1.6, 1.0],
+            ],
+        ];
+
+        $merged = OrcamentoCatalogoAdminService::mergeTintaMatrizMissingColumns($legado, $oficial);
+        $this->assertNotNull($merged);
+        $this->assertSame([9.9, 9.8, 9.7], $merged['rates']['4']);
+        $this->assertArrayHasKey('4.1', $merged['rates']);
+        $this->assertArrayHasKey('8', $merged['rates']);
+        $this->assertSame([2.0, 1.6, 1.0], $merged['rates']['5']);
+
+        // Segunda passagem: nada a acrescentar
+        $this->assertNull(OrcamentoCatalogoAdminService::mergeTintaMatrizMissingColumns($merged, $oficial));
     }
 
     public function test_medida_da_caixa_acompanha_o_cadastro_e_os_rolos_ficam(): void

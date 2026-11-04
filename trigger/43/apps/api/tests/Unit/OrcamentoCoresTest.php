@@ -21,6 +21,8 @@ class OrcamentoCoresTest extends TestCase
     {
         $this->assertSame('4V', OrcamentoCores::chave('4v'));
         $this->assertSame('4V', OrcamentoCores::chave('4V'));
+        $this->assertSame('4V', OrcamentoCores::chave('4.1'));
+        $this->assertSame('4V', OrcamentoCores::chave(4.1));
         $this->assertSame('5', OrcamentoCores::chave(5));
         $this->assertTrue(OrcamentoCores::isInformada('4V'));
         $this->assertFalse(OrcamentoCores::isLisa(4));

@@ -2511,7 +2511,7 @@ export type OrcamentoFaixaResult = {
   hora_maq: number;
   hora_troca_prod: number;
   hora_troca_bobina: number;
-  /** R5: `hora_parada` | `cromia_preto_inteiro` (motor_version ≥ 3). */
+  /** R5: `hora_parada` | `cromia_preto_inteiro` (motor_version ≥ 3). Perdas/tinta rv8 = motor_version ≥ 4. */
   troca_produto_modo?: 'hora_parada' | 'cromia_preto_inteiro' | string;
   /** Cromia CEILING R$1 — base do PRETO INTEIRO. */
   cromia_referencia?: number;

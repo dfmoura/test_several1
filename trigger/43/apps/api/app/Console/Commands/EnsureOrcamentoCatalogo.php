@@ -71,7 +71,8 @@ class EnsureOrcamentoCatalogo extends Command
 
         $this->info('Seed catálogo (criados): '.json_encode($totais, JSON_UNESCAPED_UNICODE));
         $this->info('Resumo (contexto CLI / template): '.json_encode($service->resumo(), JSON_UNESCAPED_UNICODE));
-        $this->comment('UI: Administração → Catálogo ORC → Tinta (rv4) · Perdas · Embalagem · Como calcula');
+        $this->comment('UI: Administração → Catálogo ORC → Tinta (rv8) · Perdas · Embalagem · Como calcula');
+        $this->comment('Sem --force: preços da EMP intactos; tinta_matriz só ganha colunas rv8 ausentes.');
 
         return self::SUCCESS;
     }

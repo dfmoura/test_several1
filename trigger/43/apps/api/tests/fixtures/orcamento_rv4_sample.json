@@ -1,6 +1,6 @@
 {
-  "arquivo": "ORcAMENTO_OFICIAL_rv4.xlsm",
-  "fonte": "ORÇAMENTO linha 13 — motor v2 (fórmulas canônicas linha 14+). Etiqueta sem o valor de caixa.",
+  "arquivo": "orca_oficial_v8.xlsm (inputs históricos rv4 linha 13)",
+  "fonte": "Inputs SABORIO rv4 recalculados no motor v4 / álgebra rv8. Etiqueta sem caixa.",
   "cliente": "SABORIO",
   "medida": "4,8 REDONDA",
   "largura_cm": 8.5,
@@ -23,16 +23,17 @@
     {
       "quantidade": 40000,
       "comissao_pct": 0.0,
-      "motor_v2": {
-        "etiqueta": 3490.0,
+      "motor_v4": {
+        "etiqueta": 3750.0,
         "matriz": 0.0,
-        "total": 3490.0,
-        "m2": 280.4,
-        "metragem": 1099.45333333333,
-        "hora_maq": 2.09945333333333,
-        "perda_papel_troca_produto": 5.41875,
-        "valor_tinta": 139.138589025,
-        "valor_servico": 3027.64332719167
+        "total": 3750.0,
+        "m2": 280.40000000000003,
+        "metragem": 1099.4533333333334,
+        "hora_maq": 2.0994533333333334,
+        "perda_papel_troca_produto": 1.7850000000000001,
+        "perda_acerto": 56.10000000000001,
+        "valor_tinta": 152.80340152500006,
+        "valor_servico": 3228.1870341361114
       }
     }
   ]

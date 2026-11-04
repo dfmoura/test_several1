@@ -25,9 +25,11 @@ O produto **Regras do cálculo ORC** expõe o motor R1–R20 de forma auditável
 
 ## `motor_version`
 
-Todo resultado do motor inclui `motor_version` no snapshot (atual: **3**). Mudança de álgebra exige ADR novo + golden BRAHVA + incremento de versão — não edição na UI.
+Todo resultado do motor inclui `motor_version` no snapshot (atual: **4**). Mudança de álgebra exige ADR novo + golden BRAHVA + incremento de versão — não edição na UI.
 
 Emenda R5 (`motor_version` 3): `ADR_ORC_TROCA_PRETO_INTEIRO_CROMIA.md` — PRETO INTEIRO = `(modelos−1)×(cromia÷4)`.
+
+Emenda perdas/tinta (`motor_version` 4): `ADR_ORC_MOTOR_V4_RV8.md` — paridade Excel rv8 (acerto ml×larg×col; troca ×7×(modelos−1); acab ×modelos; tinta colunas 1–8/4.1).
 
 ---
 

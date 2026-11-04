@@ -10,7 +10,7 @@ use App\Models\OrcCatalogoParametro;
  */
 final class OrcamentoMotorRegras
 {
-    public const MOTOR_VERSION = 3;
+    public const MOTOR_VERSION = 4;
 
     /**
      * @return array{
@@ -52,6 +52,13 @@ final class OrcamentoMotorRegras
                     'valor' => 5,
                     'formula' => '5 × (largura − 0,75) × colunas ÷ 100 × (metragem ÷ 1000)',
                     'nota' => 'Coeficiente geométrico estrutural; limite e minutos de troca são parametrizados.',
+                ],
+                [
+                    'id' => 'perda_troca_produto_fator_m',
+                    'rotulo' => 'Fator perda troca produto (m)',
+                    'valor' => 7,
+                    'formula' => '(largura ÷ 100) × colunas × 7 × (modelos − 1)',
+                    'nota' => 'R5b motor v4 — ADR_ORC_MOTOR_V4_RV8. Com 1 modelo = 0.',
                 ],
             ],
         ];
@@ -129,9 +136,9 @@ final class OrcamentoMotorRegras
                 'id' => 'R5b_perda_troca_produto_m2',
                 'grupo' => 'perdas',
                 'titulo' => 'Perda troca produto (m²)',
-                'resumo' => 'rv4 col. E — fator m² × largura × colunas.',
-                'formula' => '(largura ÷ 100) × fator(cores) × colunas',
-                'parametrizado' => true,
+                'resumo' => 'rv8 — (larg/100)×colunas×7×(modelos−1). 1 modelo = 0.',
+                'formula' => '(largura ÷ 100) × colunas × 7 × max(0, modelos − 1)',
+                'parametrizado' => false,
                 'parametros' => [],
                 'catalogo_tab' => 'perdas',
             ],
@@ -139,8 +146,8 @@ final class OrcamentoMotorRegras
                 'id' => 'R6_perda_acerto',
                 'grupo' => 'perdas',
                 'titulo' => 'Perda de acerto',
-                'resumo' => 'Papel de acerto conforme cores.',
-                'formula' => '0–3: m² fixos · 4: (larg+1)/100 × F6 · 4V–8: (larg/100) × metros',
+                'resumo' => 'rv8 — (larg/100)×ml(cores)×colunas (aba PERDA DE ACERTO OK).',
+                'formula' => '(largura ÷ 100) × ml(cores) × colunas · 4V ≡ 4.1',
                 'parametrizado' => true,
                 'parametros' => [
                     OrcCatalogoParametro::CHAVE_PERDA_PAPEL_0,
@@ -160,8 +167,8 @@ final class OrcamentoMotorRegras
                 'id' => 'R7_perda_acabamento',
                 'grupo' => 'perdas',
                 'titulo' => 'Perda de acabamento',
-                'resumo' => 'm² extras do acabamento escolhido.',
-                'formula' => 'perda_acabamento = tabela do acabamento',
+                'resumo' => 'rv8 — tabela × (larg/100) × modelos.',
+                'formula' => 'tabela(acabamento) × (largura ÷ 100) × modelos',
                 'parametrizado' => true,
                 'parametros' => [],
                 'catalogo_tab' => 'acabamentos',
@@ -210,8 +217,8 @@ final class OrcamentoMotorRegras
                 'id' => 'CUSTO_tinta',
                 'grupo' => 'custos',
                 'titulo' => 'Valor tinta',
-                'resumo' => 'Matriz TINTA (2) rv4 ou faixa legada v1.',
-                'formula' => 'v2: taxa(MTS×cor) × área (matriz TINTA (2) rv4)',
+                'resumo' => 'Matriz TINTA (2) rv8 (cols 1–8/4.1) ou faixa legada v1.',
+                'formula' => 'taxa(MTS×cor) × área · 4V→coluna 4.1 (motor v4)',
                 'parametrizado' => true,
                 'parametros' => [],
                 'catalogo_tab' => 'tinta',

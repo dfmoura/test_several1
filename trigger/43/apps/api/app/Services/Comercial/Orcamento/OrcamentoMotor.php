@@ -5,10 +5,11 @@ namespace App\Services\Comercial\Orcamento;
 use App\Support\OrcamentoCores;
 
 /**
- * Motor R1–R20 — port fiel de trigger/36 calculator.py + matrix_key.py.
+ * Motor R1–R20 — port fiel do Excel oficial (rv8) + matrix_key.
  * Intermediários espelham o Excel (float); teto comercial (ceiling) no fechamento.
  *
  * R5 especial: PRETO INTEIRO → (modelos−1)×(cromia_ceil÷4) — ADR_ORC_TROCA_PRETO_INTEIRO_CROMIA.
+ * v4: perdas/tinta rv8 — ADR_ORC_MOTOR_V4_RV8.
  */
 final class OrcamentoMotor
 {
@@ -17,6 +18,9 @@ final class OrcamentoMotor
 
     /** Divisor estrutural: fração da cromia cobrada por modelo extra. */
     public const FRACAO_CROMIA_PRETO_INTEIRO = 4.0;
+
+    /** R5b rv8: metros de perda por coluna e modelo extra (ORÇAMENTO J). */
+    public const FATOR_PERDA_TROCA_PRODUTO_M = 7.0;
 
     public function excelCeiling(float $number, float $significance): float
     {
@@ -141,6 +145,7 @@ final class OrcamentoMotor
                 'ceiling_etiqueta' => $cat->ceilingEtiqueta,
                 'perda_papel_f6' => $cat->perdaPapelF6,
                 'perda_papel_0_3' => $cat->perdaPapel03,
+                'perda_papel_acerto_ml' => $cat->perdaPapelAcertoMl,
                 'perda_acerto_m' => [
                     '4V' => $cat->perdaAcertoM4v,
                     '5' => $cat->perdaAcertoM5,
@@ -170,15 +175,13 @@ final class OrcamentoMotor
         if ($z === null || $z < 1) {
             return 0.0;
         }
-        $coresStr = strtoupper(trim((string) $cores));
+        $coresStr = OrcamentoCatalogo::normalizeCoresKey($cores);
         if ($coresStr === '4V') {
             $ncores = 4.0;
+        } elseif ($coresStr === '' || $coresStr === '0') {
+            $ncores = 0.0;
         } else {
-            try {
-                $ncores = (float) $cores;
-            } catch (\Throwable) {
-                $ncores = 0.0;
-            }
+            $ncores = (float) $coresStr;
         }
         $larguraMatriz = $larguraCm * $colunas;
 
@@ -227,11 +230,11 @@ final class OrcamentoMotor
         }
         // R5 — horas de parada (guia/OP); valor monetário pode usar cromia (PRETO INTEIRO).
         $horaTrocaProd = $cat->horaParada($tipoTroca) * $extrasModelo;
-        // R6–R8
-        $perdaAcerto = $this->perdaAcertoM2($inp['cores'], $largura, $cat);
+        // R6–R8 (v4 / rv8)
+        $perdaAcerto = $this->perdaAcertoM2($inp['cores'], $largura, $colunas, $cat);
         $perdaTroca = $this->perdaTrocaProdutoM2($inp['cores'], $largura, $modelos, $colunas, $cat);
         $perdaAcab = $cat->usaTintaMatriz()
-            ? $cat->perdaAcabM2Efetiva($inp, $largura, $colunas)
+            ? $cat->perdaAcabM2Efetiva($inp, $largura, $modelos)
             : $cat->perdaAcabEfetiva($inp);
         if ($metragem <= $limite) {
             $perdaBobinaM2 = 0.0;
@@ -334,8 +337,20 @@ final class OrcamentoMotor
         ];
     }
 
-    public function perdaAcertoM2(mixed $cores, float $larguraCm, OrcamentoCatalogo $cat): float
+    /**
+     * R6 — rv8: (larg/100)×ml(cores)×colunas. Legado v1 (sem tinta_matriz) mantém ramos antigos.
+     */
+    public function perdaAcertoM2(mixed $cores, float $larguraCm, int $colunas, OrcamentoCatalogo $cat): float
     {
+        if ($cat->usaTintaMatriz()) {
+            if ($colunas <= 0) {
+                return 0.0;
+            }
+            $ml = $cat->perdaAcertoMl($cores);
+
+            return ($larguraCm / 100.0) * $ml * $colunas;
+        }
+
         $k = $this->coresKey($cores);
         if (in_array($k, ['0', '1', '2', '3'], true)) {
             return (float) $cat->perdaPapel03[$k];
@@ -361,6 +376,9 @@ final class OrcamentoMotor
         throw new \InvalidArgumentException("Cores não suportadas: {$k}");
     }
 
+    /**
+     * R5b — rv8: (larg/100)×colunas×7×(modelos−1). Legado v1 sem tinta_matriz.
+     */
     public function perdaTrocaProdutoM2(
         mixed $cores,
         float $larguraCm,
@@ -369,12 +387,12 @@ final class OrcamentoMotor
         OrcamentoCatalogo $cat,
     ): float {
         if ($cat->usaTintaMatriz()) {
-            if ($colunas <= 0) {
+            $extras = max(0, $modelos - 1);
+            if ($colunas <= 0 || $extras === 0) {
                 return 0.0;
             }
-            $fator = $cat->perdaTrocaM2Fator($cores);
 
-            return ($larguraCm / 100.0) * $fator * $colunas;
+            return ($larguraCm / 100.0) * $colunas * self::FATOR_PERDA_TROCA_PRODUTO_M * $extras;
         }
 
         return $this->perdaPapelTrocaProdutoM2($cores, $larguraCm, $modelos, $cat);
@@ -401,17 +419,7 @@ final class OrcamentoMotor
 
     private function coresKey(mixed $cores): string
     {
-        if (is_string($cores)) {
-            return strtoupper(trim($cores));
-        }
-        if (is_float($cores) && $cores == (int) $cores) {
-            return (string) (int) $cores;
-        }
-        if (is_int($cores)) {
-            return (string) $cores;
-        }
-
-        return trim((string) $cores);
+        return OrcamentoCatalogo::normalizeCoresKey($cores);
     }
 
     /**

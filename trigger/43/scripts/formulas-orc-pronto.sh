@@ -26,12 +26,12 @@ if ! $COMPOSE ps --status running 2>/dev/null | grep -qE 'erp43_app|app'; then
 fi
 
 echo ""
-echo "== Sync catálogo ORC a partir do xlsm oficial (rv4) =="
-XLSM_DEFAULT="$ROOT/apps/api/resources/data/orcamento/ORcAMENTO_OFICIAL_rv4.xlsm"
+echo "== Sync catálogo ORC a partir do xlsm oficial (rv8) =="
+XLSM_DEFAULT="$ROOT/apps/api/resources/data/orcamento/orca_oficial_v8.xlsm"
 if [[ -z "${ORC_XLSM:-}" && -f "$XLSM_DEFAULT" ]]; then
   ORC_XLSM="$XLSM_DEFAULT"
 elif [[ -z "${ORC_XLSM:-}" ]]; then
-  ORC_XLSM="/home/dfmoura/Downloads/ORcAMENTO_OFICIAL_rv4.xlsm"
+  ORC_XLSM="/home/dfmoura/Downloads/orca_oficial_v8.xlsm"
 fi
 python3 scripts/sync_orcamento_from_xlsm.py --xlsm "$ORC_XLSM"
 

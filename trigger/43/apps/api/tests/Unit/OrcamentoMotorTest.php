@@ -20,7 +20,7 @@ class OrcamentoMotorTest extends TestCase
         $this->assertTrue($result['cobra_matriz']);
         $this->assertSame(536.0, $result['valor_matriz']);
         $this->assertSame(536.0, $result['cromia_referencia']);
-        $this->assertSame(3, $result['motor_version']);
+        $this->assertSame(4, $result['motor_version']);
         $this->assertCount(3, $result['faixas']);
 
         foreach ($fx['faixas'] as $i => $faixaFx) {
@@ -88,7 +88,7 @@ class OrcamentoMotorTest extends TestCase
         $this->assertEqualsWithDelta(0.0, $umModelo['faixas'][0]['valor_troca_produto'], 0.01);
     }
 
-    public function test_rv4_amostra_oficial_motor_v2(): void
+    public function test_rv4_amostra_recalculada_motor_v4(): void
     {
         $fixturePath = dirname(__DIR__).'/fixtures/orcamento_rv4_sample.json';
         $fx = json_decode((string) file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
@@ -97,15 +97,88 @@ class OrcamentoMotorTest extends TestCase
         $cat = OrcamentoCatalogo::loadFromJson();
         $result = $this->calcularComFixture($motor, $cat, $fx);
 
-        $this->assertSame(3, $result['motor_version']);
+        $this->assertSame(4, $result['motor_version']);
         $this->assertFalse($result['cobra_matriz']);
         $got = $result['faixas'][0];
-        $ref = $fx['faixas'][0]['motor_v2'];
+        $ref = $fx['faixas'][0]['motor_v4'];
         $this->assertEqualsWithDelta($ref['etiqueta'], $got['valor_etiqueta'], 0.01);
         $this->assertEqualsWithDelta($ref['m2'], $got['m2'], 0.05);
         $this->assertEqualsWithDelta($ref['perda_papel_troca_produto'], $got['perda_papel_troca_produto'], 0.01);
+        $this->assertEqualsWithDelta($ref['perda_acerto'], $got['perda_acerto'], 0.01);
         $this->assertEqualsWithDelta($ref['valor_tinta'], $got['valor_tinta'], 0.05);
         $this->assertSame('hora_parada', $got['troca_produto_modo']);
+    }
+
+    public function test_rv8_goldens_controlados(): void
+    {
+        $fixturePath = dirname(__DIR__).'/fixtures/orcamento_rv8_goldens.json';
+        $fx = json_decode((string) file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+
+        $motor = new OrcamentoMotor;
+        $cat = OrcamentoCatalogo::loadFromJson();
+        $this->assertSame(4, $fx['motor_version']);
+
+        foreach ($fx['casos'] as $caso) {
+            $result = $motor->calcular([
+                'cliente' => 'GOLDEN',
+                'medida' => 'TEST',
+                'largura_cm' => $caso['largura_cm'],
+                'puxada_cm' => $caso['puxada_cm'],
+                'cores' => $caso['cores'],
+                'papel' => $caso['papel'],
+                'acabamento' => $caso['acabamento'],
+                'modelos' => $caso['modelos'],
+                'colunas' => $caso['colunas'],
+                'etiq_por_rolo' => 1000,
+                'tubete' => '3"',
+                'z' => $caso['z'] ?? null,
+                'maquina' => $caso['maquina'],
+                'imposto_pct' => 16,
+                'matriz' => $caso['matriz'],
+                'tipo_troca_produto' => $caso['tipo_troca_produto'],
+                'rpm' => 1000,
+                'faixas' => [['quantidade' => $caso['quantidade'], 'comissao_pct' => 0]],
+            ], $cat);
+
+            $this->assertSame(4, $result['motor_version'], $caso['id']);
+            $got = $result['faixas'][0];
+            $exp = $caso['esperado'];
+            $this->assertEqualsWithDelta($exp['m2'], $got['m2'], 0.05, $caso['id'].' m2');
+            $this->assertEqualsWithDelta($exp['perda_acerto'], $got['perda_acerto'], 0.01, $caso['id'].' acerto');
+            $this->assertEqualsWithDelta($exp['perda_papel_troca_produto'], $got['perda_papel_troca_produto'], 0.01, $caso['id'].' troca');
+            $this->assertEqualsWithDelta($exp['perda_bobina_m2'], $got['perda_bobina_m2'], 0.01, $caso['id'].' bobina');
+            $this->assertEqualsWithDelta($exp['valor_tinta'], $got['valor_tinta'], 0.05, $caso['id'].' tinta');
+            $this->assertEqualsWithDelta($exp['valor_etiqueta'], $got['valor_etiqueta'], 0.01, $caso['id'].' etiqueta');
+            $this->assertEqualsWithDelta($exp['valor_troca_produto'], $got['valor_troca_produto'], 0.05, $caso['id'].' vtroca');
+            $this->assertEqualsWithDelta($exp['valor_matriz'], $got['valor_matriz'], 0.01, $caso['id'].' matriz');
+        }
+    }
+
+    public function test_perda_troca_zero_com_um_modelo(): void
+    {
+        $motor = new OrcamentoMotor;
+        $cat = OrcamentoCatalogo::loadFromJson();
+        $this->assertEqualsWithDelta(
+            0.0,
+            $motor->perdaTrocaProdutoM2(6, 8.5, 1, 3, $cat),
+            0.0001,
+        );
+        $this->assertEqualsWithDelta(
+            (8.5 / 100.0) * 3 * 7 * 1,
+            $motor->perdaTrocaProdutoM2(6, 8.5, 2, 3, $cat),
+            0.0001,
+        );
+    }
+
+    public function test_perda_acerto_ml_vezes_largura_colunas(): void
+    {
+        $motor = new OrcamentoMotor;
+        $cat = OrcamentoCatalogo::loadFromJson();
+        // ml(6)=220 → (8.5/100)*220*3
+        $this->assertEqualsWithDelta(56.1, $motor->perdaAcertoM2(6, 8.5, 3, $cat), 0.01);
+        // 4V ≡ 4.1 ml=200 → (5.5/100)*200*1
+        $this->assertEqualsWithDelta(11.0, $motor->perdaAcertoM2('4V', 5.5, 1, $cat), 0.01);
+        $this->assertEqualsWithDelta(11.0, $motor->perdaAcertoM2(4.1, 5.5, 1, $cat), 0.01);
     }
 
     /**
@@ -206,11 +279,12 @@ class OrcamentoMotorTest extends TestCase
             'faixas' => [['quantidade' => $fx['faixas'][0]['quantidade'], 'comissao_pct' => 0]],
         ], $cat);
 
-        $this->assertSame(3, $result['motor_version']);
+        $this->assertSame(4, $result['motor_version']);
         $this->assertArrayHasKey('setup_horas', $result['catalog_snapshot']);
         $this->assertArrayHasKey('ceiling_etiqueta', $result['catalog_snapshot']);
         $this->assertArrayHasKey('minutos_troca_bobina', $result['catalog_snapshot']);
-        $this->assertSame(3, $result['catalog_snapshot']['motor_version']);
+        $this->assertArrayHasKey('perda_papel_acerto_ml', $result['catalog_snapshot']);
+        $this->assertSame(4, $result['catalog_snapshot']['motor_version']);
         $this->assertArrayHasKey('cromia_referencia', $result['catalog_snapshot']);
         $this->assertSame(536.0, $result['catalog_snapshot']['cromia_referencia']);
         $this->assertArrayHasKey('tarifas_resolvidas', $result['catalog_snapshot']);

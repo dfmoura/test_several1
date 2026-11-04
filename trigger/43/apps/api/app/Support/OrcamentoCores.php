@@ -25,8 +25,11 @@ final class OrcamentoCores
             return null;
         }
 
-        $k = strtoupper(trim((string) $cores));
-        if ($k !== '4V' && is_numeric($k)) {
+        $k = strtoupper(trim(str_replace(',', '.', (string) $cores)));
+        // Excel rv8: 4.1 ≡ 4V (4 cores + verniz)
+        if ($k === '4.1' || (is_numeric($k) && abs((float) $k - 4.1) < 1e-9)) {
+            $k = '4V';
+        } elseif ($k !== '4V' && is_numeric($k)) {
             $k = (string) (int) (float) $k;
         }
 

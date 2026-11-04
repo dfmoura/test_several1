@@ -177,6 +177,17 @@ class OrcamentoCatalogoAdminService
                         $existentes['estruturas']++;
                         if ($forceOverwrite) {
                             $row->update(['payload' => $payload]);
+                        } elseif ($chave === OrcCatalogoEstrutura::CHAVE_TINTA_MATRIZ) {
+                            // Soft-upgrade rv8: só acrescenta colunas ausentes (4.1/5–8);
+                            // não sobrescreve tarifas que a EMP já editou.
+                            $merged = self::mergeTintaMatrizMissingColumns(
+                                is_array($row->payload) ? $row->payload : null,
+                                is_array($payload) ? $payload : [],
+                            );
+                            if ($merged !== null) {
+                                $row->update(['payload' => $merged]);
+                                $criados['estruturas_tinta_cols'] = ($criados['estruturas_tinta_cols'] ?? 0) + 1;
+                            }
                         }
                         continue;
                     }
@@ -1139,6 +1150,60 @@ class OrcamentoCatalogoAdminService
     }
 
     /**
+     * Acrescenta colunas de rate ausentes (rv8: 4.1/5–8) sem alterar tarifas já editadas.
+     *
+     * @param  array<string, mixed>|null  $existing
+     * @param  array<string, mixed>  $official
+     * @return array{thresholds: list<float>, rates: array<string, list<float>>}|null null se nada mudou
+     */
+    public static function mergeTintaMatrizMissingColumns(?array $existing, array $official): ?array
+    {
+        $of = OrcamentoCatalogo::normalizeTintaMatrizPayload($official);
+        if ($of === null) {
+            return null;
+        }
+        $ex = $existing !== null ? OrcamentoCatalogo::normalizeTintaMatrizPayload($existing) : null;
+        if ($ex === null) {
+            return $of;
+        }
+
+        $rates = $ex['rates'];
+        $n = count($ex['thresholds']);
+        $changed = false;
+        foreach ($of['rates'] as $col => $vals) {
+            $colKey = (string) $col;
+            if (isset($rates[$colKey])) {
+                continue;
+            }
+            $aligned = [];
+            $last = 0.0;
+            for ($i = 0; $i < $n; $i++) {
+                if (isset($vals[$i])) {
+                    $last = (float) $vals[$i];
+                } elseif (isset($of['rates'][$colKey][min($i, count($vals) - 1)])) {
+                    $last = (float) $vals[min($i, max(0, count($vals) - 1))];
+                }
+                $aligned[] = isset($vals[$i]) ? (float) $vals[$i] : $last;
+            }
+            // Se thresholds oficiais coincidem em tamanho, copia direto.
+            if (count($vals) === $n) {
+                $aligned = array_map(static fn ($x) => (float) $x, $vals);
+            }
+            $rates[$colKey] = $aligned;
+            $changed = true;
+        }
+
+        if (! $changed) {
+            return null;
+        }
+
+        return [
+            'thresholds' => $ex['thresholds'],
+            'rates' => $rates,
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $raw
      * @return array<string, array<string, mixed>|list<mixed>|null>
      */
@@ -1185,9 +1250,10 @@ class OrcamentoCatalogoAdminService
         $normalized = OrcamentoCatalogo::normalizeTintaMatrizPayload($payload);
         if ($normalized === null) {
             throw ValidationException::withMessages([
-                'payload' => ['Matriz de tinta inválida: thresholds e rates (1–4) devem ter o mesmo tamanho.'],
+                'payload' => ['Matriz de tinta inválida: thresholds e rates (1–8 / 4.1) devem ter o mesmo tamanho.'],
             ]);
         }
+        $colsOk = ['1', '2', '3', '4', '4.1', '4V', '5', '6', '7', '8'];
         foreach ($normalized['thresholds'] as $i => $t) {
             if ($t < 0) {
                 throw ValidationException::withMessages(['payload' => ["Threshold #{$i} inválido."]]);
@@ -1195,7 +1261,7 @@ class OrcamentoCatalogoAdminService
         }
         foreach ($normalized['rates'] as $col => $vals) {
             $colKey = (string) $col;
-            if (! in_array($colKey, ['1', '2', '3', '4'], true)) {
+            if (! in_array($colKey, $colsOk, true)) {
                 throw ValidationException::withMessages(['payload' => ["Coluna de cores inválida: {$colKey}."]]);
             }
             foreach ($vals as $rate) {

@@ -117,13 +117,13 @@ const TABS: Array<{ id: TabId; label: string; hint: string }> = [
   },
   {
     id: 'tinta',
-    label: 'Tinta (rv4)',
-    hint: 'Matriz TINTA (2): faixa MTS × cores → R$/m² — motor v2',
+    label: 'Tinta (rv8)',
+    hint: 'Matriz TINTA (2): faixa MTS × cores 1–8 / 4.1 → R$/m² — motor v4',
   },
   {
     id: 'perdas',
     label: 'Perdas',
-    hint: 'Acerto por cores + troca produto (fator m² rv4)',
+    hint: 'Acerto (ml rv8) no motor v4 · escalares legados só fallback',
   },
   {
     id: 'embalagem',
@@ -145,11 +145,18 @@ const GRUPO_POR_TAB: Partial<Record<TabId, string[]>> = {
   embalagem: ['embalagem'],
 };
 
-const CORES_TROCA_PRODUTO = ['0', '1', '2', '3', '4', '5', '6', '7', '8'];
+const CORES_TROCA_PRODUTO = ['0', '1', '2', '3', '4', '4V', '5', '6', '7', '8'];
 
-const CORES_TINTA_MATRIZ = ['1', '2', '3', '4'];
+/** Colunas canônicas rv8 (Excel 4.1 ≡ UI 4V no motor). */
+const CORES_TINTA_MATRIZ = ['1', '2', '3', '4', '4.1', '5', '6', '7', '8'];
 
 const CORES_PADRAO = ['0', '1', '2', '3', '4', '4V', '5', '6', '7', '8'];
+
+/** Ordem estável: canônicas primeiro; extras do payload preservados (exceto alias 4V). */
+function colunasTintaMatriz(rates: Record<string, number[]>): string[] {
+  const extras = Object.keys(rates).filter((c) => c !== '4V' && !CORES_TINTA_MATRIZ.includes(c));
+  return [...CORES_TINTA_MATRIZ, ...extras.sort()];
+}
 
 function fieldErrors(err: unknown): string {
   if (err instanceof ApiError && err.details) {
@@ -442,14 +449,22 @@ export function OrcamentoCatalogoPage() {
           {tab === 'parametros' || tab === 'perdas' || tab === 'embalagem' ? (
             <>
               {tab === 'perdas' ? (
-                <PerdaTrocaProdutoPanel
-                  estruturas={estruturas}
-                  onSaved={async (msg) => {
-                    setMessage(msg);
-                    await load();
-                  }}
-                  onError={setError}
-                />
+                <>
+                  <p className="catalogo-nota" style={{ margin: '0 0 0.75rem' }}>
+                    Motor v4 (R6): acerto = (larg/100)×ml(cores)×colunas a partir da tabela oficial
+                    PERDA DE ACERTO OK (`perda_papel_acerto_ml` no JSON). Os escalares abaixo
+                    (perda_papel_0… / perda_acerto_m_*) são legado/fallback — não alteram o preço
+                    enquanto a matriz de tinta estiver ativa.
+                  </p>
+                  <PerdaTrocaProdutoPanel
+                    estruturas={estruturas}
+                    onSaved={async (msg) => {
+                      setMessage(msg);
+                      await load();
+                    }}
+                    onError={setError}
+                  />
+                </>
               ) : null}
               <ParametrosGrupoPanel
                 rows={parametros}
@@ -696,18 +711,21 @@ function TintaMatrizPanel({
     });
   };
 
+  const cols = colunasTintaMatriz(rates);
+
   const save = async () => {
     setSaving(true);
     onError('');
     try {
+      // Preserva colunas extras já no payload; garante canônicas rv8.
       const payload: TintaMatrizPayload = {
         thresholds,
         rates: Object.fromEntries(
-          CORES_TINTA_MATRIZ.map((col) => [col, rates[col] ?? thresholds.map(() => 0)]),
+          cols.map((col) => [col, rates[col] ?? thresholds.map(() => 0)]),
         ),
       };
       await api.put('/orcamento-catalogo/estruturas/tinta_matriz', { payload });
-      await onSaved('Matriz de tinta (rv4) atualizada.');
+      await onSaved('Matriz de tinta (rv8) atualizada.');
     } catch (e) {
       onError(fieldErrors(e));
     } finally {
@@ -719,7 +737,7 @@ function TintaMatrizPanel({
     return (
       <div className="card">
         <div className="card-body empty-state">
-          Matriz TINTA (2) ausente — use “Completar itens ausentes” ou sincronize o catálogo rv4.
+          Matriz TINTA (2) ausente — use “Completar itens ausentes” ou sincronize o catálogo rv8.
         </div>
       </div>
     );
@@ -729,16 +747,16 @@ function TintaMatrizPanel({
     <div className="card" style={{ marginBottom: '1rem' }}>
       <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
         <p className="catalogo-nota" style={{ margin: 0 }}>
-          Planilha rv4 · aba TINTA (2). O motor v2 usa esta matriz para calcular o valor da tinta
-          (R$/m² por faixa de metragem × número de cores). Substitui os parâmetros legados de tinta.
+          Planilha oficial rv8 · aba TINTA (2). Motor v4: R$/m² por faixa MTS × coluna de cores
+          (1–8 e 4.1; na UI de orçamento, 4V = 4.1). Salvar não remove colunas extras já gravadas.
         </p>
         <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
                 <th>Faixa MTS (até m²)</th>
-                {CORES_TINTA_MATRIZ.map((c) => (
-                  <th key={c}>{c} cor(es)</th>
+                {cols.map((c) => (
+                  <th key={c}>{c === '4.1' ? '4.1 (4V)' : `${c} cor(es)`}</th>
                 ))}
               </tr>
             </thead>
@@ -746,7 +764,7 @@ function TintaMatrizPanel({
               {thresholds.map((t, idx) => (
                 <tr key={`${t}-${idx}`}>
                   <td>{t}</td>
-                  {CORES_TINTA_MATRIZ.map((col) => (
+                  {cols.map((col) => (
                     <td key={col}>
                       <input
                         type="number"
@@ -809,7 +827,7 @@ function PerdaTrocaProdutoPanel({
     onError('');
     try {
       await api.put('/orcamento-catalogo/estruturas/perda_troca_m2_fator', { payload });
-      await onSaved('Fatores de troca produto (rv4) atualizados.');
+      await onSaved('Fatores de troca produto (legado) gravados — sem efeito no motor v4.');
     } catch (e) {
       onError(fieldErrors(e));
     } finally {
@@ -820,10 +838,11 @@ function PerdaTrocaProdutoPanel({
   return (
     <div className="card" style={{ marginBottom: '1rem' }}>
       <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
-        <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--navy)' }}>Troca produto (rv4)</h3>
+        <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--navy)' }}>Troca produto (legado)</h3>
         <p className="catalogo-nota" style={{ margin: 0 }}>
-          Planilha rv4 · PERDA DE ACERTO col. E. Fator m² por quantidade de cores — distinto das
-          perdas de acerto abaixo.
+          Motor v4 (R5b): perda = (larg/100)×colunas×7×(modelos−1) — constante estrutural, não
+          esta tabela. Os fatores abaixo ficam no catálogo só para auditoria/legado; não alteram
+          o preço no motor atual.
         </p>
         <div className="table-wrap">
           <table className="data-table">
