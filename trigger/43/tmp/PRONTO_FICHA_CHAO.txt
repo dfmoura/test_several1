@@ -1,6 +1,16 @@
-READY 2026-10-30T20:00:21-03:00
-Stack HOST: erp43_web :8043 (bind apps/web/dist) · API :8040 · MySQL :33073
-SPA: index-GZ-roR8I.js
-API: volumeToOut + qr_payload
-Docker CLI no agent: sem sock (não precisa — stack já no ar)
-Test: http://localhost:8043/ordens-producao → Ficha da OP (Ctrl+Shift+R)
+READY 2026-11-04T10:23:30-03:00
+SPA built: apps/web/dist → index-X4wEaZk1.js (assinaturas + data/hora)
+Agent: sem docker.sock / sem systemd — stack :8043 NÃO no ar daqui.
+
+No TERMINAL DO HOST (fora do agent):
+  sudo systemctl start docker   # se sock sumiu
+  cd /home/dfmoura/Documents/test_several1/trigger/43
+  make pronto-ficha-chao
+  # ou, se dist já ok e só precisa subir:
+  make up && make doctor
+
+Teste:
+  http://localhost:8043/login
+  http://localhost:8043/ordens-producao
+  OP → Ficha da OP → Ctrl+Shift+R
+  Ao final: impressão · acabamento · data/hora inicial/final

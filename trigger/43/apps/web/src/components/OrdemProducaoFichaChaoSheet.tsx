@@ -352,6 +352,30 @@ export function OrdemProducaoFichaChaoSheet({
         )}
       </FichaSection>
 
+      {/* Conferência no papel — espelha Impressão / Acabamento. Sem campo no motor. */}
+      <div className="ficha-oc-assinaturas op-chao-assinaturas" aria-label="Conferência de produção">
+        <div className="ficha-oc-assinatura">
+          <span className="ficha-oc-assinatura-linha" aria-hidden />
+          <strong>Responsável pela impressão</strong>
+          <span>Nome</span>
+        </div>
+        <div className="ficha-oc-assinatura">
+          <span className="ficha-oc-assinatura-linha" aria-hidden />
+          <strong>Responsável pelo acabamento</strong>
+          <span>Nome</span>
+        </div>
+      </div>
+      <div className="op-chao-producao-tempo" aria-label="Tempo de produção">
+        <div className="op-chao-producao-tempo-campo">
+          <strong>Data/hora inicial</strong>
+          <span className="op-chao-producao-tempo-linha" aria-hidden />
+        </div>
+        <div className="op-chao-producao-tempo-campo">
+          <strong>Data/hora final</strong>
+          <span className="op-chao-producao-tempo-linha" aria-hidden />
+        </div>
+      </div>
+
       <RegistroMetaStrip
         registro={{
           criado_por: o.criado_por,

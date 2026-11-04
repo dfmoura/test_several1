@@ -10457,6 +10457,38 @@ tr.row-inactive td {
   margin-top: 2mm;
 }
 
+/* Conferência no papel (impressão / acabamento + tempo) — só preenchimento à mão. */
+.ficha-sheet-op-chao .op-chao-assinaturas {
+  margin-top: 3mm;
+  gap: 12mm;
+}
+
+.ficha-sheet-op-chao .op-chao-producao-tempo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12mm;
+  margin-top: 2.5mm;
+  break-inside: avoid;
+}
+
+.ficha-sheet-op-chao .op-chao-producao-tempo-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6mm;
+}
+
+.ficha-sheet-op-chao .op-chao-producao-tempo-campo strong {
+  font-size: 7pt;
+  color: var(--navy-dark);
+  letter-spacing: 0.02em;
+}
+
+.ficha-sheet-op-chao .op-chao-producao-tempo-linha {
+  display: block;
+  border-bottom: 0.6pt solid var(--border-strong);
+  min-height: 7mm;
+}
+
 /* Banda de rebobinação enxuta (só exclusivos) — não estica a página. */
 .ficha-sheet-op-chao--unificada .op-chao-table--acabamento {
   width: auto;
@@ -11979,7 +12011,9 @@ tr.row-inactive td {
   }
 
   body.ficha-print-mode .ficha-sheet-oc .ficha-oc-assinaturas,
-  body.ficha-print-mode .ficha-sheet-op .ficha-oc-assinaturas {
+  body.ficha-print-mode .ficha-sheet-op .ficha-oc-assinaturas,
+  body.ficha-print-mode .ficha-sheet-op-chao .op-chao-assinaturas,
+  body.ficha-print-mode .ficha-sheet-op-chao .op-chao-producao-tempo {
     break-inside: avoid;
   }
 

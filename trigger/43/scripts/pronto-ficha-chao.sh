@@ -51,9 +51,13 @@ Roteiro
        Levado · Local · Volume · Material · Dimensão · Levar · M² · Validade
        Bobina: Levar = metro linear (m); M² e Dimensão L×C
        Tubete/caixa: Levar = qtde+un; M²/Dimensão = —
-  8. Imprimir / conferir A4 paisagem
-  9. URLs antigas → /ficha-chao
+  8. Ao final (antes do rodapé):
+       Responsável pela impressão · Responsável pelo acabamento (assinatura)
+       Data/hora inicial · Data/hora final (linhas em branco)
+  9. Imprimir / conferir A4 paisagem
+ 10. URLs antigas → /ficha-chao
 
 Confirmar saída continua só em Estoque · A buscar (ficha é guia).
+Assinaturas = só papel; sem campo no motor.
 
 EOF
