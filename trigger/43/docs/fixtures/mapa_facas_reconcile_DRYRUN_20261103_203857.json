@@ -1,0 +1,786 @@
+{
+  "fonte": "MAPA DE FACAS 20261103 XLSX",
+  "xlsx": "/home/dfmoura/Downloads/mapa_facas.xlsx",
+  "json": "/home/dfmoura/Documents/test_several1/trigger/43/apps/api/resources/data/orcamento/mapa_facas.json",
+  "gerado_em": "20261103_203857",
+  "resumo": {
+    "excel": 476,
+    "json_antes": 462,
+    "json_depois": 594,
+    "matched": 344,
+    "created": 132,
+    "retained_absent_from_xlsx": 118,
+    "meta_updates": 4,
+    "match_via": {
+      "geom": 197,
+      "medium": 147,
+      "new": 132
+    }
+  },
+  "created_sample": [
+    {
+      "id": 493,
+      "maquina_catalogo": "250",
+      "formato": "ESPECIAL",
+      "medida": "5X7",
+      "n_facas": 23,
+      "cliente_nota": "START",
+      "label": "5X7 · ESPECIAL · 250 · Z=69 · REP=3 · pux=7,2944"
+    },
+    {
+      "id": 494,
+      "maquina_catalogo": "250",
+      "formato": "ESPECIAL",
+      "medida": "10,5X19,7",
+      "n_facas": 39,
+      "cliente_nota": "ESPETO MANIA",
+      "label": "10,5X19,7 · ESPECIAL · 250 · Z=63 · REP=1 · pux=19,9804"
+    },
+    {
+      "id": 495,
+      "maquina_catalogo": "250",
+      "formato": "ESPECIAL",
+      "medida": "12,8X10",
+      "n_facas": 48,
+      "cliente_nota": "MARTINS COM SERRILHA",
+      "label": "12,8X10 · ESPECIAL · 250 · Z=83 · REP=2 · pux=13,1617"
+    },
+    {
+      "id": 496,
+      "maquina_catalogo": "250",
+      "formato": "ESPECIAL",
+      "medida": "14,6X2",
+      "n_facas": 4,
+      "cliente_nota": "LACRE DE QUALIDADE",
+      "label": "14,6X2 · ESPECIAL · 250 · Z=47 · REP=1 · pux=14,906"
+    },
+    {
+      "id": 497,
+      "maquina_catalogo": "250",
+      "formato": "ESPECIAL",
+      "medida": "19,7X9",
+      "n_facas": 49,
+      "cliente_nota": "INATA AUTOGENA",
+      "label": "19,7X9 · ESPECIAL · 250 · Z=63 · REP=1 · pux=19,9804"
+    },
+    {
+      "id": 498,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "4,3X6,3",
+      "n_facas": 46,
+      "cliente_nota": "LEAL / LUNASA",
+      "label": "4,3X6,3 · DESENHADA · 250 · Z=63 · REP=3 · pux=6,6601"
+    },
+    {
+      "id": 499,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "4,7X3",
+      "n_facas": 26,
+      "cliente_nota": "ABELHINHA",
+      "label": "4,7X3 · DESENHADA · 250 · Z=47 · REP=3 · pux=4,9687"
+    },
+    {
+      "id": 500,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "5,2X7,8",
+      "n_facas": 50,
+      "cliente_nota": "REDE LUCAS SUCOS",
+      "label": "5,2X7,8 · DESENHADA · 250 · Z=51 · REP=2 · pux=8,0873"
+    },
+    {
+      "id": 501,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "6,7X9,7",
+      "n_facas": 46,
+      "cliente_nota": "REDE LUCAS SUCOS",
+      "label": "6,7X9,7 · DESENHADA · 250 · Z=63 · REP=2 · pux=9,9902"
+    },
+    {
+      "id": 502,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "8,7X14,6",
+      "n_facas": 42,
+      "cliente_nota": "GERRE",
+      "label": "8,7X14,6 · DESENHADA · 250 · Z=47 · REP=1 · pux=14,906"
+    },
+    {
+      "id": 503,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "9,6X5,8",
+      "n_facas": 51,
+      "cliente_nota": "JOSE OLIMPIO RAPADURA",
+      "label": "9,6X5,8 · DESENHADA · 250 · Z=57 · REP=3 · pux=6,0259"
+    },
+    {
+      "id": 504,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "14,6X7,4",
+      "n_facas": 26,
+      "cliente_nota": "ABELHINHA",
+      "label": "14,6X7,4 · DESENHADA · 250 · Z=47 · REP=1 · pux=14,906"
+    },
+    {
+      "id": 505,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "14,6X10,5",
+      "n_facas": 42,
+      "cliente_nota": "CASINHA",
+      "label": "14,6X10,5 · DESENHADA · 250 · Z=47 · REP=1 · pux=14,906"
+    },
+    {
+      "id": 506,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "14,6X12,3",
+      "n_facas": 2,
+      "cliente_nota": "TERRA MINEIRA",
+      "label": "14,6X12,3 · DESENHADA · 250 · Z=47 · REP=1 · pux=14,906"
+    },
+    {
+      "id": 507,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "14,6X13",
+      "n_facas": 41,
+      "cliente_nota": "VO CLEUSA",
+      "label": "14,6X13 · DESENHADA · 250 · Z=47 · REP=1 · pux=14,906"
+    },
+    {
+      "id": 508,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "19,5X6",
+      "n_facas": 21,
+      "cliente_nota": "DOCES BARBAROS",
+      "label": "19,5X6 · DESENHADA · 250 · Z=63 · REP=9 · pux=2,22"
+    },
+    {
+      "id": 509,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "19,7X5",
+      "n_facas": 49,
+      "cliente_nota": "REDE LUCAS - QUALIDADE",
+      "label": "19,7X5 · DESENHADA · 250 · Z=63 · REP=1 · pux=19,9804"
+    },
+    {
+      "id": 510,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "22X5",
+      "n_facas": 36,
+      "cliente_nota": "REDE LUCAS",
+      "label": "22X5 · DESENHADA · 250 · Z=51 · REP=3 · pux=5,3916"
+    },
+    {
+      "id": 511,
+      "maquina_catalogo": "250",
+      "formato": "CORTE LONGITUDINAL",
+      "medida": "CORTE LONGITUDINAL",
+      "n_facas": 41,
+      "cliente_nota": null,
+      "label": "CORTE LONGITUDINAL · CORTE LONGITUDINAL · 250 · Z=64 · pux=MANUAL"
+    },
+    {
+      "id": 512,
+      "maquina_catalogo": "160",
+      "formato": "RETA",
+      "medida": "7,5X0,97",
+      "n_facas": 1,
+      "cliente_nota": null,
+      "label": "7,5X0,97 · RETA · 160 · Z=43 · REP=14 · pux=0,9741"
+    },
+    {
+      "id": 513,
+      "maquina_catalogo": "160",
+      "formato": "RETA",
+      "medida": "5,3X14,9",
+      "n_facas": 15,
+      "cliente_nota": null,
+      "label": "5,3X14,9 · RETA · 160 · Z=47 · REP=1 · pux=14,906"
+    },
+    {
+      "id": 514,
+      "maquina_catalogo": "160",
+      "formato": "RETA",
+      "medida": "9,5X20",
+      "n_facas": 16,
+      "cliente_nota": "DAKI",
+      "label": "9,5X20 · RETA · 160 · Z=63 · REP=1 · pux=19,9804"
+    },
+    {
+      "id": 515,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 1,2",
+      "n_facas": 26,
+      "cliente_nota": null,
+      "label": "Ø 1,2 · REDONDA · 160 · Z=57 · REP=15 · pux=1,2052 · diâmetro"
+    },
+    {
+      "id": 516,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 2",
+      "n_facas": 17,
+      "cliente_nota": null,
+      "label": "Ø 2 · REDONDA · 160 · Z=43 · REP=6 · pux=2,2729 · diâmetro"
+    },
+    {
+      "id": 517,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 2,5",
+      "n_facas": 18,
+      "cliente_nota": "INDUSAT",
+      "label": "Ø 2,5 · REDONDA · 160 · Z=43 · REP=5 · pux=2,7275 · diâmetro"
+    },
+    {
+      "id": 518,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 3,1",
+      "n_facas": 17,
+      "cliente_nota": null,
+      "label": "Ø 3,1 · REDONDA · 160 · Z=43 · REP=4 · pux=3,4094 · diâmetro"
+    },
+    {
+      "id": 519,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 3,1",
+      "n_facas": 58,
+      "cliente_nota": null,
+      "label": "Ø 3,1 · REDONDA · 160 · Z=43 · REP=4 · pux=3,4094 · diâmetro"
+    },
+    {
+      "id": 520,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 3,7",
+      "n_facas": 20,
+      "cliente_nota": "GRAF. CONFIANÇA",
+      "label": "Ø 3,7 · REDONDA · 160 · Z=51 · REP=4 · pux=4,0437 · diâmetro"
+    },
+    {
+      "id": 521,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 4,3",
+      "n_facas": 21,
+      "cliente_nota": "NIWNEY/NAGLE",
+      "label": "Ø 4,3 · REDONDA · 160 · Z=43 · REP=3 · pux=4,5458 · diâmetro"
+    },
+    {
+      "id": 522,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 4,3",
+      "n_facas": 1,
+      "cliente_nota": "EMPORIO CASTANHAS",
+      "label": "Ø 4,3 · REDONDA · 160 · Z=43 · REP=3 · pux=4,5458 · diâmetro"
+    },
+    {
+      "id": 523,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 4,8",
+      "n_facas": 23,
+      "cliente_nota": null,
+      "label": "Ø 4,8 · REDONDA · 160 · Z=47 · REP=3 · pux=4,9687 · diâmetro"
+    },
+    {
+      "id": 524,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 6,3",
+      "n_facas": 69,
+      "cliente_nota": null,
+      "label": "Ø 6,3 · REDONDA · 160 · Z=63 · REP=3 · pux=6,6601 · diâmetro"
+    },
+    {
+      "id": 525,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 6,45",
+      "n_facas": 24,
+      "cliente_nota": "SORV. MATIAS",
+      "label": "Ø 6,45 · REDONDA · 160 · Z=63 · REP=3 · pux=6,6601 · diâmetro"
+    },
+    {
+      "id": 526,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 7,8",
+      "n_facas": 25,
+      "cliente_nota": "BOTTONS",
+      "label": "Ø 7,8 · REDONDA · 160 · Z=51 · REP=2 · pux=8,0873 · diâmetro"
+    },
+    {
+      "id": 527,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 7,8",
+      "n_facas": 3,
+      "cliente_nota": null,
+      "label": "Ø 7,8 · REDONDA · 160 · Z=51 · REP=2 · pux=8,0873 · diâmetro"
+    },
+    {
+      "id": 528,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 7,8",
+      "n_facas": 125,
+      "cliente_nota": "1 COLUNA ESTRAGADA",
+      "label": "Ø 7,8 · REDONDA · 160 · Z=51 · REP=2 · pux=8,0873 · diâmetro"
+    },
+    {
+      "id": 529,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 9,2",
+      "n_facas": 27,
+      "cliente_nota": "DAKI",
+      "label": "Ø 9,2 · REDONDA · 160 · Z=60 · REP=2 · pux=9,5145 · diâmetro"
+    },
+    {
+      "id": 530,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 9,7",
+      "n_facas": 28,
+      "cliente_nota": "FRUTOS DA TERRA",
+      "label": "Ø 9,7 · REDONDA · 160 · Z=63 · REP=2 · pux=9,9902 · diâmetro"
+    },
+    {
+      "id": 531,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 13,3",
+      "n_facas": 29,
+      "cliente_nota": "BOX CHICO/QUEIJO",
+      "label": "Ø 13,3 · REDONDA · 160 · Z=43 · REP=1 · pux=13,6375 · diâmetro"
+    },
+    {
+      "id": 532,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 12,5",
+      "n_facas": 30,
+      "cliente_nota": "FRUTOS DA TERRA",
+      "label": "Ø 12,5 · REDONDA · 160 · Z=43 · REP=1 · pux=13,6375 · diâmetro"
+    }
+  ],
+  "retained_sample": [
+    {
+      "id": 21,
+      "maquina_catalogo": "BETA",
+      "formato": "REDONDA",
+      "medida": "Ø 0,9",
+      "n_facas": 18,
+      "cliente_nota": null,
+      "label": "Ø 0,9 · REDONDA · BETA · Z=40 · REP=11 · pux=1,2 · diâmetro"
+    },
+    {
+      "id": 22,
+      "maquina_catalogo": "BETA",
+      "formato": "REDONDA",
+      "medida": "Ø 2",
+      "n_facas": 25,
+      "cliente_nota": "SOUZA CRUZ",
+      "label": "Ø 2 · REDONDA · BETA · Z=43 · REP=6 · pux=2,3 · diâmetro"
+    },
+    {
+      "id": 23,
+      "maquina_catalogo": "BETA",
+      "formato": "REDONDA",
+      "medida": "Ø 3,2",
+      "n_facas": 19,
+      "cliente_nota": null,
+      "label": "Ø 3,2 · REDONDA · BETA · Z=57 · REP=5 · pux=3,5 · diâmetro"
+    },
+    {
+      "id": 24,
+      "maquina_catalogo": "BETA",
+      "formato": "REDONDA",
+      "medida": "Ø 4,2",
+      "n_facas": 20,
+      "cliente_nota": "SORVETERIAS",
+      "label": "Ø 4,2 · REDONDA · BETA · Z=42 · REP=3 · pux=4,5 · diâmetro"
+    },
+    {
+      "id": 25,
+      "maquina_catalogo": "BETA",
+      "formato": "REDONDA",
+      "medida": "Ø 4,5",
+      "n_facas": 21,
+      "cliente_nota": "SORVETERIAS",
+      "label": "Ø 4,5 · REDONDA · BETA · Z=45 · REP=3 · pux=4,8 · diâmetro"
+    },
+    {
+      "id": 26,
+      "maquina_catalogo": "BETA",
+      "formato": "REDONDA",
+      "medida": "Ø 5",
+      "n_facas": 22,
+      "cliente_nota": "2 COL 1 ESTRAGADA",
+      "label": "Ø 5 · REDONDA · BETA · Z=50 · REP=3 · pux=5,3 · diâmetro"
+    },
+    {
+      "id": 27,
+      "maquina_catalogo": "BETA",
+      "formato": "REDONDA",
+      "medida": "Ø 6",
+      "n_facas": 23,
+      "cliente_nota": "SORVETERIAS 2 FACAS IGUAIS",
+      "label": "Ø 6 · REDONDA · BETA · Z=40 · REP=3 · pux=6,3 · diâmetro"
+    },
+    {
+      "id": 28,
+      "maquina_catalogo": "BETA",
+      "formato": "REDONDA",
+      "medida": "Ø 9",
+      "n_facas": 24,
+      "cliente_nota": "SORVETERIAS",
+      "label": "Ø 9 · REDONDA · BETA · Z=57 · REP=11 · pux=9,3 · diâmetro"
+    },
+    {
+      "id": 31,
+      "maquina_catalogo": "BETA",
+      "formato": "OVAL",
+      "medida": "2,7X4,6",
+      "n_facas": 29,
+      "cliente_nota": "MEGA FRUTAS - PIC NA FACA",
+      "label": "2,7X4,6 · OVAL · BETA · Z=57 · REP=6 · pux=2,984425"
+    },
+    {
+      "id": 33,
+      "maquina_catalogo": "BETA",
+      "formato": "OVAL",
+      "medida": "4,0X2,2",
+      "n_facas": 26,
+      "cliente_nota": null,
+      "label": "4,0X2,2 · OVAL · BETA · Z=42 · REP=3 · pux=4,3981"
+    },
+    {
+      "id": 37,
+      "maquina_catalogo": "BETA",
+      "formato": "OVAL",
+      "medida": "5,8X3,8",
+      "n_facas": 28,
+      "cliente_nota": "CALU",
+      "label": "5,8X3,8 · OVAL · BETA · Z=57 · REP=3 · pux=5,96885"
+    },
+    {
+      "id": 41,
+      "maquina_catalogo": "BETA",
+      "formato": "ESPECIAL",
+      "medida": "2,0X1,5",
+      "n_facas": 81,
+      "cliente_nota": "IMUNO VIDA",
+      "label": "2,0X1,5 · ESPECIAL · BETA · Z=49 · REP=9 · pux=1,710372"
+    },
+    {
+      "id": 43,
+      "maquina_catalogo": "BETA",
+      "formato": "ESPECIAL",
+      "medida": "3,0X2,0",
+      "n_facas": 84,
+      "cliente_nota": "D VILLE",
+      "label": "3,0X2,0 · ESPECIAL · BETA · Z=44 · REP=6 · pux=2,303767"
+    },
+    {
+      "id": 53,
+      "maquina_catalogo": "BETA",
+      "formato": "ESPECIAL",
+      "medida": "4,0X4,0",
+      "n_facas": 73,
+      "cliente_nota": "SUPER MAXI LACRE",
+      "label": "4,0X4,0 · ESPECIAL · BETA · Z=41 · REP=3 · pux=4,293383"
+    },
+    {
+      "id": 67,
+      "maquina_catalogo": "BETA",
+      "formato": "ESPECIAL",
+      "medida": "7,3X5,2",
+      "n_facas": 93,
+      "cliente_nota": null,
+      "label": "7,3X5,2 · ESPECIAL · BETA · Z=52 · REP=3 · pux=5,5"
+    },
+    {
+      "id": 69,
+      "maquina_catalogo": "BETA",
+      "formato": "ESPECIAL",
+      "medida": "8,0X7,5",
+      "n_facas": 46,
+      "cliente_nota": "TITA",
+      "label": "8,0X7,5 · ESPECIAL · BETA · Z=50 · REP=2 · pux=7,85375"
+    },
+    {
+      "id": 73,
+      "maquina_catalogo": "BETA",
+      "formato": "ESPECIAL",
+      "medida": "8,5X6,0",
+      "n_facas": 72,
+      "cliente_nota": "SOUZA CRUZ",
+      "label": "8,5X6,0 · ESPECIAL · BETA · Z=56 · REP=3 · pux=5,864133"
+    },
+    {
+      "id": 81,
+      "maquina_catalogo": "BETA",
+      "formato": "ESPECIAL",
+      "medida": "10,0X7,5",
+      "n_facas": 94,
+      "cliente_nota": "VIVA ESQUADRIAS",
+      "label": "10,0X7,5 · ESPECIAL · BETA · Z=50 · REP=2 · pux=7,85375"
+    },
+    {
+      "id": 90,
+      "maquina_catalogo": "BETA",
+      "formato": "ESPECIAL",
+      "medida": "15,0X3,0",
+      "n_facas": 62,
+      "cliente_nota": "C/ PICOTE SUNQ",
+      "label": "15,0X3,0 · ESPECIAL · BETA · Z=49 · REP=1 · pux=15,39335"
+    },
+    {
+      "id": 100,
+      "maquina_catalogo": "BETA",
+      "formato": "DESENHADA",
+      "medida": "5,7X3,0",
+      "n_facas": 29,
+      "cliente_nota": "GABRIELA FLORES",
+      "label": "5,7X3,0 · DESENHADA · BETA · Z=57 · REP=3 · pux=5,96885"
+    },
+    {
+      "id": 104,
+      "maquina_catalogo": "BETA",
+      "formato": "DESENHADA",
+      "medida": "17,7X3,5",
+      "n_facas": 19,
+      "cliente_nota": "TABAJARAS",
+      "label": "17,7X3,5 · DESENHADA · BETA · Z=57 · REP=1 · pux=17,90655"
+    },
+    {
+      "id": 124,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "REDONDA",
+      "medida": "Ø 6",
+      "n_facas": 8,
+      "cliente_nota": "REDE INTEGRAÇÃO",
+      "label": "Ø 6 · REDONDA · ETIRAMA · Z=59 · REP=3 · pux=6,3 · diâmetro"
+    },
+    {
+      "id": 125,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "REDONDA",
+      "medida": "Ø 6,9",
+      "n_facas": 9,
+      "cliente_nota": "SIGNO PLUS",
+      "label": "Ø 6,9 · REDONDA · ETIRAMA · Z=68 · REP=3 · pux=7,2 · diâmetro"
+    },
+    {
+      "id": 126,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "REDONDA",
+      "medida": "Ø 10,5",
+      "n_facas": 9,
+      "cliente_nota": "PRO SABOR",
+      "label": "Ø 10,5 · REDONDA · ETIRAMA · Z=68 · REP=2 · pux=10,8 · diâmetro"
+    },
+    {
+      "id": 127,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "REDONDA",
+      "medida": "Ø 9,1",
+      "n_facas": 10,
+      "cliente_nota": "CREMOSINHO",
+      "label": "Ø 9,1 · REDONDA · ETIRAMA · Z=59 · REP=2 · pux=9,4 · diâmetro"
+    },
+    {
+      "id": 133,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "3,2X1,2",
+      "n_facas": 12,
+      "cliente_nota": "MADRECOR",
+      "label": "3,2X1,2 · ESPECIAL · ETIRAMA · Z=47 · REP=10 · pux=1,49225"
+    },
+    {
+      "id": 139,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "4,0X3,9",
+      "n_facas": 16,
+      "cliente_nota": "TÉRMICA",
+      "label": "4,0X3,9 · ESPECIAL · ETIRAMA · Z=54 · REP=4 · pux=4,28625"
+    },
+    {
+      "id": 140,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "4,0X3,9",
+      "n_facas": 16,
+      "cliente_nota": "TÉRMICA",
+      "label": "4,0X3,9 · ESPECIAL · ETIRAMA · Z=54 · REP=4 · pux=4,28625"
+    },
+    {
+      "id": 142,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "5,0X3,0",
+      "n_facas": 14,
+      "cliente_nota": "IPAC",
+      "label": "5,0X3,0 · ESPECIAL · ETIRAMA · Z=63 · REP=6 · pux=3,33375"
+    },
+    {
+      "id": 143,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "5,0X3,0",
+      "n_facas": 15,
+      "cliente_nota": "FACA",
+      "label": "5,0X3,0 · ESPECIAL · ETIRAMA · Z=63 · REP=6 · pux=3,33375"
+    },
+    {
+      "id": 144,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "5,0X3,0",
+      "n_facas": 15,
+      "cliente_nota": null,
+      "label": "5,0X3,0 · ESPECIAL · ETIRAMA · Z=63 · REP=6 · pux=3,33375"
+    },
+    {
+      "id": 149,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "6,0X3,0",
+      "n_facas": 17,
+      "cliente_nota": "TÉRMICA",
+      "label": "6,0X3,0 · ESPECIAL · ETIRAMA · Z=63 · REP=6 · pux=3,33375"
+    },
+    {
+      "id": 150,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "6,0X3,0",
+      "n_facas": 21,
+      "cliente_nota": "TERMICA AMASSOU 1C",
+      "label": "6,0X3,0 · ESPECIAL · ETIRAMA · Z=63 · REP=6 · pux=3,33375"
+    },
+    {
+      "id": 151,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "6,0X3,0",
+      "n_facas": 57,
+      "cliente_nota": "TERMICA",
+      "label": "6,0X3,0 · ESPECIAL · ETIRAMA · Z=63 · REP=6 · pux=3,33375"
+    },
+    {
+      "id": 153,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "6,0X4,0",
+      "n_facas": 22,
+      "cliente_nota": "TÉRMICA",
+      "label": "6,0X4,0 · ESPECIAL · ETIRAMA · Z=54 · REP=4 · pux=4,28625"
+    },
+    {
+      "id": 154,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "6,0X4,0",
+      "n_facas": 22,
+      "cliente_nota": "TÉRMICA",
+      "label": "6,0X4,0 · ESPECIAL · ETIRAMA · Z=54 · REP=4 · pux=4,28625"
+    },
+    {
+      "id": 155,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "6,0X4,0",
+      "n_facas": 22,
+      "cliente_nota": "TÉRMICA",
+      "label": "6,0X4,0 · ESPECIAL · ETIRAMA · Z=54 · REP=4 · pux=4,28625"
+    },
+    {
+      "id": 157,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "6,0X9,8",
+      "n_facas": 6,
+      "cliente_nota": "CASA FRANGO",
+      "label": "6,0X9,8 · ESPECIAL · ETIRAMA · Z=63 · REP=2 · pux=10,00125"
+    },
+    {
+      "id": 158,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "6,0X11,5",
+      "n_facas": 54,
+      "cliente_nota": "SUPER MAXI",
+      "label": "6,0X11,5 · ESPECIAL · ETIRAMA · Z=74 · REP=2 · pux=11,7475"
+    },
+    {
+      "id": 159,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "6,0X11,5",
+      "n_facas": 54,
+      "cliente_nota": "SUPER MAXI",
+      "label": "6,0X11,5 · ESPECIAL · ETIRAMA · Z=74 · REP=2 · pux=11,7475"
+    }
+  ],
+  "meta_updates_sample": [
+    {
+      "id": 380,
+      "diff": {
+        "cliente_nota": {
+          "de": "ATÉ 10,0 LARGURA",
+          "para": "ATÉ 1, LARGURA"
+        }
+      },
+      "label": "10X10 · RETA · 250 · Z=63 · REP=2 · pux=9,9902"
+    },
+    {
+      "id": 49,
+      "diff": {
+        "colunas_mapa": {
+          "de": "1",
+          "para": "3"
+        }
+      },
+      "label": "3,2X1,2 · ESPECIAL · BETA · Z=47 · REP=10 · pux=1,4765"
+    },
+    {
+      "id": 491,
+      "diff": {
+        "colunas_mapa": {
+          "de": "1",
+          "para": "2"
+        }
+      },
+      "label": "5,9X4,0 · TAG · MODULAR · Z=74 · REP=4 · pux=5,8673"
+    },
+    {
+      "id": 492,
+      "diff": {
+        "colunas_mapa": {
+          "de": "1",
+          "para": "2"
+        }
+      },
+      "label": "11,7X4,6 · TAG · MODULAR · Z=74 · REP=2 · pux=11,7346"
+    }
+  ]
+}

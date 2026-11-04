@@ -12,9 +12,9 @@ use Illuminate\Console\Command;
  */
 class EnsureFacasMapa extends Command
 {
-    protected $signature = 'facas:ensure-mapa {--force : Sobrescreve facas já cadastradas com o JSON oficial}';
+    protected $signature = 'facas:ensure-mapa {--force : Sobrescreve facas já cadastradas com o JSON oficial (geometria; preferir facas:aplicar-catalogo)}';
 
-    protected $description = 'Semeia o mapa oficial de facas (orc_mapa_facas) a partir do JSON — template + EMPs';
+    protected $description = 'Semeia o mapa oficial de facas (orc_mapa_facas) a partir do JSON — template + EMPs. Para atualizar inventário com segurança use facas:aplicar-catalogo';
 
     public function handle(FacasMapaService $service): int
     {

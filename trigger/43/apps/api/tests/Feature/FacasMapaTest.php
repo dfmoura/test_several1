@@ -438,6 +438,41 @@ class FacasMapaTest extends TestCase
         );
     }
 
+    public function test_aplicar_catalogo_seguro_aditivo_e_metadados(): void
+    {
+        $service = app(FacasMapaService::class);
+        $jsonCount = count(json_decode(
+            (string) file_get_contents(resource_path('data/orcamento/mapa_facas.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        ));
+        $this->assertGreaterThanOrEqual(470, $jsonCount);
+
+        $first = $service->aplicarCatalogoSeguro($this->empresa->id);
+        // Chave natural (medida+formato+faca+máquina) pode colapsar linhas do JSON na EMP.
+        $this->assertSame($jsonCount, $first['seed']['criados'] + $first['seed']['existentes']);
+        $this->assertGreaterThan(400, $first['seed']['criados']);
+        $this->assertSame(FacasMapaService::FONTE_CATALOGO, $first['seed']['fonte']);
+        $owned = OrcMapaFaca::query()->where('empresa_id', $this->empresa->id)->count();
+        $this->assertSame($first['seed']['criados'], $owned);
+
+        $alvo = OrcMapaFaca::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('completa', true)
+            ->orderBy('id')
+            ->firstOrFail();
+        $alvo->cliente_nota = 'NOTA-ANTIGA-TESTE';
+        $alvo->save();
+
+        $second = $service->aplicarCatalogoSeguro($this->empresa->id);
+        $this->assertSame(0, $second['seed']['criados']);
+        $this->assertSame($jsonCount, $second['seed']['criados'] + $second['seed']['existentes']);
+        $this->assertGreaterThanOrEqual(1, $second['metadados']['atualizados']);
+        $alvo->refresh();
+        $this->assertNotSame('NOTA-ANTIGA-TESTE', (string) $alvo->cliente_nota);
+    }
+
     public function test_posicao_faca_persiste_no_mapa(): void
     {
         Sanctum::actingAs($this->comercial);

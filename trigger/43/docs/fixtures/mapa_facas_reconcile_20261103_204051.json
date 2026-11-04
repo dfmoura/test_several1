@@ -1,0 +1,800 @@
+{
+  "fonte": "MAPA DE FACAS 20261103 XLSX",
+  "xlsx": "/home/dfmoura/Downloads/mapa_facas.xlsx",
+  "json": "/home/dfmoura/Documents/test_several1/trigger/43/apps/api/resources/data/orcamento/mapa_facas.json",
+  "gerado_em": "20261103_204051",
+  "resumo": {
+    "excel": 476,
+    "json_antes": 462,
+    "json_depois": 479,
+    "matched": 459,
+    "created": 17,
+    "retained_absent_from_xlsx": 3,
+    "meta_updates": 7,
+    "geom_updates": 63,
+    "match_via": {
+      "geom": 400,
+      "identity": 51,
+      "new": 17,
+      "medium": 8
+    }
+  },
+  "created_sample": [
+    {
+      "id": 493,
+      "maquina_catalogo": "250",
+      "formato": "DESENHADA",
+      "medida": "9,6X5,8",
+      "n_facas": 51,
+      "cliente_nota": "JOSE OLIMPIO RAPADURA",
+      "label": "9,6X5,8 · DESENHADA · 250 · Z=57 · REP=3 · pux=6,0259"
+    },
+    {
+      "id": 494,
+      "maquina_catalogo": "250",
+      "formato": "CORTE LONGITUDINAL",
+      "medida": "CORTE LONGITUDINAL",
+      "n_facas": 41,
+      "cliente_nota": null,
+      "label": "CORTE LONGITUDINAL · CORTE LONGITUDINAL · 250 · Z=64 · pux=MANUAL"
+    },
+    {
+      "id": 495,
+      "maquina_catalogo": "160",
+      "formato": "REDONDA",
+      "medida": "Ø 6,3",
+      "n_facas": 69,
+      "cliente_nota": null,
+      "label": "Ø 6,3 · REDONDA · 160 · Z=63 · REP=3 · pux=6,6601 · diâmetro"
+    },
+    {
+      "id": 496,
+      "maquina_catalogo": "160",
+      "formato": "ESPECIAL",
+      "medida": "19,7X10,5",
+      "n_facas": 71,
+      "cliente_nota": "ESPETO MANIA",
+      "label": "19,7X10,5 · ESPECIAL · 160 · Z=63 · REP=1 · pux=19,9804"
+    },
+    {
+      "id": 497,
+      "maquina_catalogo": "BETA",
+      "formato": "ESPECIAL",
+      "medida": "13,2X5,5",
+      "n_facas": null,
+      "cliente_nota": "SUPERBIJOU",
+      "label": "13,2X5,5 · ESPECIAL · BETA · Z=42 · REP=3 · pux=13,5"
+    },
+    {
+      "id": 498,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "4X10,5",
+      "n_facas": 29,
+      "cliente_nota": "REMALINA JUNCO",
+      "label": "4X10,5 · ESPECIAL · ETIRAMA · Z=68 · REP=5 · pux=4,318"
+    },
+    {
+      "id": 499,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "ESPECIAL",
+      "medida": "10,6X6,5",
+      "n_facas": 32,
+      "cliente_nota": "CORREIOS",
+      "label": "10,6X6,5 · ESPECIAL · ETIRAMA · Z=60 · REP=3 · pux=6,35"
+    },
+    {
+      "id": 500,
+      "maquina_catalogo": "ETIRAMA",
+      "formato": "PICOTE",
+      "medida": "0,8X0,8",
+      "n_facas": 49,
+      "cliente_nota": null,
+      "label": "0,8X0,8 · PICOTE · ETIRAMA · Z=49 · pux=MANUAL"
+    },
+    {
+      "id": 501,
+      "maquina_catalogo": "MODULAR",
+      "formato": "REDONDA",
+      "medida": "Ø 8,3",
+      "n_facas": 11,
+      "cliente_nota": "SEM DONO",
+      "label": "Ø 8,3 · REDONDA · MODULAR · Z=54 · REP=2 · pux=8,5631 · diâmetro"
+    },
+    {
+      "id": 502,
+      "maquina_catalogo": "MODULAR",
+      "formato": "ESPECIAL",
+      "medida": "6,5X2,4",
+      "n_facas": 2,
+      "cliente_nota": "LAUDO",
+      "label": "6,5X2,4 · ESPECIAL · MODULAR · Z=86 · REP=4 · pux=6,8187"
+    },
+    {
+      "id": 503,
+      "maquina_catalogo": "MODULAR",
+      "formato": "ESPECIAL",
+      "medida": "6,7X2,4",
+      "n_facas": 14,
+      "cliente_nota": "LAUDO",
+      "label": "6,7X2,4 · ESPECIAL · MODULAR · Z=66 · REP=3 · pux=6,9773"
+    },
+    {
+      "id": 504,
+      "maquina_catalogo": "MODULAR",
+      "formato": "ESPECIAL",
+      "medida": "9X20,5",
+      "n_facas": 14,
+      "cliente_nota": "LAUDO",
+      "label": "9X20,5 · ESPECIAL · MODULAR · Z=66 · REP=1 · pux=20,9319"
+    },
+    {
+      "id": 505,
+      "maquina_catalogo": "MODULAR",
+      "formato": "ESPECIAL",
+      "medida": "10,5X19,7",
+      "n_facas": 13,
+      "cliente_nota": "LAUDO",
+      "label": "10,5X19,7 · ESPECIAL · MODULAR · Z=63 · REP=1 · pux=19,9804"
+    },
+    {
+      "id": 506,
+      "maquina_catalogo": "MODULAR",
+      "formato": "ESPECIAL",
+      "medida": "12,8X10",
+      "n_facas": 12,
+      "cliente_nota": "MARTINS C/ SERRILHA",
+      "label": "12,8X10 · ESPECIAL · MODULAR · Z=83 · REP=2 · pux=13,1617"
+    },
+    {
+      "id": 507,
+      "maquina_catalogo": "MODULAR",
+      "formato": "DESENHADA",
+      "medida": "8X12,4",
+      "n_facas": 9,
+      "cliente_nota": "BRAHVA",
+      "label": "8X12,4 · DESENHADA · MODULAR · Z=80 · REP=2 · pux=12,686"
+    },
+    {
+      "id": 508,
+      "maquina_catalogo": "MODULAR",
+      "formato": "DESENHADA",
+      "medida": "5X14,9",
+      "n_facas": 10,
+      "cliente_nota": "REI DA PIMENTA TAG",
+      "label": "5X14,9 · DESENHADA · MODULAR · Z=47 · REP=1 · pux=14,906"
+    },
+    {
+      "id": 509,
+      "maquina_catalogo": "MODULAR",
+      "formato": "DESENHADA",
+      "medida": "5,4X6",
+      "n_facas": 11,
+      "cliente_nota": "TODO SEU",
+      "label": "5,4X6 · DESENHADA · MODULAR · Z=54 · REP=3 · pux=5,7087"
+    }
+  ],
+  "retained_sample": [
+    {
+      "id": 287,
+      "maquina_catalogo": "160",
+      "formato": "ESPECIAL",
+      "medida": "19,7X10,0",
+      "n_facas": 71,
+      "cliente_nota": "ESPETO MANIA",
+      "label": "19,7X10,0 · ESPECIAL · 160 · Z=63 · REP=1 · pux=19,98045"
+    },
+    {
+      "id": 471,
+      "maquina_catalogo": "MODULAR",
+      "formato": "CORTE LONGITUDINAL",
+      "medida": "",
+      "n_facas": 41,
+      "cliente_nota": null,
+      "label": "CORTE LONGITUDINAL · MODULAR · Z=64 · pux=MANUAL"
+    },
+    {
+      "id": 481,
+      "maquina_catalogo": "MODULAR",
+      "formato": "DESENHADA",
+      "medida": "8,0X12,4",
+      "n_facas": 6,
+      "cliente_nota": "BRAHVA",
+      "label": "8,0X12,4 · DESENHADA · MODULAR · Z=78 · REP=2 · pux=12,36885"
+    }
+  ],
+  "meta_updates_sample": [
+    {
+      "id": 380,
+      "diff": {
+        "cliente_nota": {
+          "de": "ATÉ 10,0 LARGURA",
+          "para": "ATÉ 1, LARGURA"
+        }
+      },
+      "label": "10X10 · RETA · 250 · Z=63 · REP=2 · pux=9,9902"
+    },
+    {
+      "id": 286,
+      "diff": {
+        "conjugada": {
+          "de": "19,7X6,9",
+          "para": "redonda 6,3cm"
+        }
+      },
+      "label": "19,7X7,9 · ESPECIAL · 160 · Z=63 · REP=1 · pux=19,9804"
+    },
+    {
+      "id": 28,
+      "diff": {
+        "cliente_nota": {
+          "de": "SORVETERIAS",
+          "para": "SORVETERIAS - SEM INTERVALO"
+        }
+      },
+      "label": "Ø 9 · REDONDA · BETA · Z=57 · REP=2 · pux=8,9533 · diâmetro"
+    },
+    {
+      "id": 41,
+      "diff": {
+        "colunas_mapa": {
+          "de": "3",
+          "para": "2"
+        }
+      },
+      "label": "2X1,5 · ESPECIAL · BETA · Z=49 · REP=9 · pux=1,7104"
+    },
+    {
+      "id": 49,
+      "diff": {
+        "colunas_mapa": {
+          "de": "1",
+          "para": "3"
+        }
+      },
+      "label": "3,2X1,2 · ESPECIAL · BETA · Z=47 · REP=10 · pux=1,4765"
+    },
+    {
+      "id": 491,
+      "diff": {
+        "colunas_mapa": {
+          "de": "1",
+          "para": "2"
+        }
+      },
+      "label": "5,9X4 · TAG · MODULAR · Z=74 · REP=4 · pux=5,8673"
+    },
+    {
+      "id": 492,
+      "diff": {
+        "colunas_mapa": {
+          "de": "1",
+          "para": "2"
+        }
+      },
+      "label": "11,7X4,6 · TAG · MODULAR · Z=74 · REP=2 · pux=11,7346"
+    }
+  ],
+  "geom_updates_sample": [
+    {
+      "id": 412,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 12.36885,
+          "para": 13.161725
+        },
+        "z": {
+          "de": 78.0,
+          "para": 83.0
+        }
+      },
+      "label": "12,8X10 · ESPECIAL · 250 · Z=83 · REP=2 · pux=13,1617"
+    },
+    {
+      "id": 465,
+      "via": "identity",
+      "diff": {
+        "largura_faca": {
+          "de": 13.0,
+          "para": 5.5
+        }
+      },
+      "label": "4,3X6,3 · DESENHADA · 250 · Z=63 · REP=3 · pux=6,6601"
+    },
+    {
+      "id": 427,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 16.17465,
+          "para": 8.087325
+        },
+        "repeticao": {
+          "de": 1.0,
+          "para": 2.0
+        }
+      },
+      "label": "5,2X7,8 · DESENHADA · 250 · Z=51 · REP=2 · pux=8,0873"
+    },
+    {
+      "id": 464,
+      "via": "identity",
+      "diff": {
+        "largura_faca": {
+          "de": 13.0,
+          "para": 8.0
+        }
+      },
+      "label": "6,7X9,7 · DESENHADA · 250 · Z=63 · REP=2 · pux=9,9902"
+    },
+    {
+      "id": 202,
+      "via": "geom",
+      "diff": {
+        "puxada": {
+          "de": 0.97,
+          "para": 0.9741035714285715
+        }
+      },
+      "label": "7,5X0,97 · RETA · 160 · Z=43 · REP=14 · pux=0,9741"
+    },
+    {
+      "id": 216,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 14.9,
+          "para": 14.906049999999999
+        }
+      },
+      "label": "5,3X14,9 · RETA · 160 · Z=47 · REP=1 · pux=14,906"
+    },
+    {
+      "id": 217,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 20.0,
+          "para": 19.980449999999998
+        }
+      },
+      "label": "9,5X20 · RETA · 160 · Z=63 · REP=1 · pux=19,9804"
+    },
+    {
+      "id": 219,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 1.5,
+          "para": 1.20517
+        },
+        "repeticao": {
+          "de": 15.064625,
+          "para": 15.0
+        }
+      },
+      "label": "Ø 1,2 · REDONDA · 160 · Z=57 · REP=15 · pux=1,2052 · diâmetro"
+    },
+    {
+      "id": 220,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 2.3,
+          "para": 2.2729083333333335
+        }
+      },
+      "label": "Ø 2 · REDONDA · 160 · Z=43 · REP=6 · pux=2,2729 · diâmetro"
+    },
+    {
+      "id": 221,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 2.8,
+          "para": 2.7274900000000004
+        },
+        "repeticao": {
+          "de": 5.45498,
+          "para": 5.0
+        }
+      },
+      "label": "Ø 2,5 · REDONDA · 160 · Z=43 · REP=5 · pux=2,7275 · diâmetro"
+    },
+    {
+      "id": 222,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 3.4,
+          "para": 3.4093625000000003
+        },
+        "repeticao": {
+          "de": 4.39917741935484,
+          "para": 4.0
+        }
+      },
+      "label": "Ø 3,1 · REDONDA · 160 · Z=43 · REP=4 · pux=3,4094 · diâmetro"
+    },
+    {
+      "id": 223,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 3.4,
+          "para": 3.4093625000000003
+        },
+        "repeticao": {
+          "de": 4.39917741935484,
+          "para": 4.0
+        }
+      },
+      "label": "Ø 3,1 · REDONDA · 160 · Z=43 · REP=4 · pux=3,4094 · diâmetro"
+    },
+    {
+      "id": 224,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 4.0,
+          "para": 4.0436625
+        },
+        "repeticao": {
+          "de": 4.37152702702703,
+          "para": 4.0
+        }
+      },
+      "label": "Ø 3,7 · REDONDA · 160 · Z=51 · REP=4 · pux=4,0437 · diâmetro"
+    },
+    {
+      "id": 225,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 4.6,
+          "para": 4.545816666666667
+        },
+        "repeticao": {
+          "de": 3.1715,
+          "para": 3.0
+        }
+      },
+      "label": "Ø 4,3 · REDONDA · 160 · Z=43 · REP=3 · pux=4,5458 · diâmetro"
+    },
+    {
+      "id": 226,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 4.6,
+          "para": 4.545816666666667
+        },
+        "repeticao": {
+          "de": 3.1715,
+          "para": 3.0
+        }
+      },
+      "label": "Ø 4,3 · REDONDA · 160 · Z=43 · REP=3 · pux=4,5458 · diâmetro"
+    },
+    {
+      "id": 227,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 5.1,
+          "para": 4.968683333333333
+        },
+        "repeticao": {
+          "de": 3.10542708333333,
+          "para": 3.0
+        }
+      },
+      "label": "Ø 4,8 · REDONDA · 160 · Z=47 · REP=3 · pux=4,9687 · diâmetro"
+    },
+    {
+      "id": 228,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 6.75,
+          "para": 6.66015
+        },
+        "repeticao": {
+          "de": 3.09774418604651,
+          "para": 3.0
+        }
+      },
+      "label": "Ø 6,45 · REDONDA · 160 · Z=63 · REP=3 · pux=6,6601 · diâmetro"
+    },
+    {
+      "id": 229,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 8.1,
+          "para": 8.087325
+        },
+        "repeticao": {
+          "de": 2.07367307692308,
+          "para": 2.0
+        }
+      },
+      "label": "Ø 7,8 · REDONDA · 160 · Z=51 · REP=2 · pux=8,0873 · diâmetro"
+    },
+    {
+      "id": 230,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 8.1,
+          "para": 8.087325
+        },
+        "repeticao": {
+          "de": 2.07367307692308,
+          "para": 2.0
+        }
+      },
+      "label": "Ø 7,8 · REDONDA · 160 · Z=51 · REP=2 · pux=8,0873 · diâmetro"
+    },
+    {
+      "id": 231,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 8.1,
+          "para": 8.087325
+        },
+        "repeticao": {
+          "de": 2.07367307692308,
+          "para": 2.0
+        }
+      },
+      "label": "Ø 7,8 · REDONDA · 160 · Z=51 · REP=2 · pux=8,0873 · diâmetro"
+    },
+    {
+      "id": 232,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 9.5,
+          "para": 9.5145
+        },
+        "repeticao": {
+          "de": 2.06836956521739,
+          "para": 2.0
+        }
+      },
+      "label": "Ø 9,2 · REDONDA · 160 · Z=60 · REP=2 · pux=9,5145 · diâmetro"
+    },
+    {
+      "id": 233,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 10.0,
+          "para": 9.990224999999999
+        },
+        "repeticao": {
+          "de": 2.05984020618557,
+          "para": 2.0
+        }
+      },
+      "label": "Ø 9,7 · REDONDA · 160 · Z=63 · REP=2 · pux=9,9902 · diâmetro"
+    },
+    {
+      "id": 234,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 13.6,
+          "para": 13.637450000000001
+        },
+        "repeticao": {
+          "de": 1.02537218045113,
+          "para": 1.0
+        }
+      },
+      "label": "Ø 13,3 · REDONDA · 160 · Z=43 · REP=1 · pux=13,6375 · diâmetro"
+    },
+    {
+      "id": 235,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 13.6,
+          "para": 13.637450000000001
+        },
+        "repeticao": {
+          "de": 1.090996,
+          "para": 1.0
+        }
+      },
+      "label": "Ø 12,5 · REDONDA · 160 · Z=43 · REP=1 · pux=13,6375 · diâmetro"
+    },
+    {
+      "id": 237,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 2.72749,
+          "para": 3.4093625000000003
+        },
+        "repeticao": {
+          "de": 5.0,
+          "para": 4.0
+        }
+      },
+      "label": "1,5X2,7 · OVAL · 160 · Z=43 · REP=4 · pux=3,4094"
+    },
+    {
+      "id": 374,
+      "via": "medium",
+      "diff": {
+        "medida": {
+          "de": "",
+          "para": "SERRILHA"
+        }
+      },
+      "label": "SERRILHA · SERRILHA · 160 · Z=98 · pux=MANUAL"
+    },
+    {
+      "id": 376,
+      "via": "medium",
+      "diff": {
+        "medida": {
+          "de": "",
+          "para": "CORTE TOTAL"
+        }
+      },
+      "label": "CORTE TOTAL · CORTE TOTAL · 160 · Z=64 · pux=MANUAL"
+    },
+    {
+      "id": 21,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 1.2,
+          "para": 1.1423636363636365
+        }
+      },
+      "label": "Ø 0,9 · REDONDA · BETA · Z=40 · REP=11 · pux=1,1424 · diâmetro"
+    },
+    {
+      "id": 22,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 2.3,
+          "para": 2.2514083333333335
+        }
+      },
+      "label": "Ø 2 · REDONDA · BETA · Z=43 · REP=6 · pux=2,2514 · diâmetro"
+    },
+    {
+      "id": 23,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 3.5,
+          "para": 3.5813100000000007
+        }
+      },
+      "label": "Ø 3,2 · REDONDA · BETA · Z=57 · REP=5 · pux=3,5813 · diâmetro"
+    },
+    {
+      "id": 24,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 4.5,
+          "para": 4.3981
+        }
+      },
+      "label": "Ø 4,2 · REDONDA · BETA · Z=42 · REP=3 · pux=4,3981 · diâmetro"
+    },
+    {
+      "id": 25,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 4.8,
+          "para": 4.71225
+        }
+      },
+      "label": "Ø 4,5 · REDONDA · BETA · Z=45 · REP=3 · pux=4,7123 · diâmetro"
+    },
+    {
+      "id": 26,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 5.3,
+          "para": 5.235833333333334
+        }
+      },
+      "label": "Ø 5 · REDONDA · BETA · Z=50 · REP=3 · pux=5,2358 · diâmetro"
+    },
+    {
+      "id": 27,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 6.3,
+          "para": 4.188666666666667
+        }
+      },
+      "label": "Ø 6 · REDONDA · BETA · Z=40 · REP=3 · pux=4,1887 · diâmetro"
+    },
+    {
+      "id": 28,
+      "via": "identity",
+      "diff": {
+        "puxada": {
+          "de": 9.3,
+          "para": 8.953275000000001
+        },
+        "repeticao": {
+          "de": 11.0,
+          "para": 2.0
+        }
+      },
+      "label": "Ø 9 · REDONDA · BETA · Z=57 · REP=2 · pux=8,9533 · diâmetro"
+    },
+    {
+      "id": 31,
+      "via": "identity",
+      "diff": {
+        "largura_faca": {
+          "de": 5.0,
+          "para": 5.3
+        }
+      },
+      "label": "2,7X4,6 · OVAL · BETA · Z=57 · REP=6 · pux=2,9844"
+    },
+    {
+      "id": 33,
+      "via": "identity",
+      "diff": {
+        "largura_faca": {
+          "de": 2.7,
+          "para": 3.0
+        }
+      },
+      "label": "4X2,2 · OVAL · BETA · Z=42 · REP=3 · pux=4,3981"
+    },
+    {
+      "id": 41,
+      "via": "identity",
+      "diff": {
+        "largura_faca": {
+          "de": 7.5,
+          "para": 6.0
+        }
+      },
+      "label": "2X1,5 · ESPECIAL · BETA · Z=49 · REP=9 · pux=1,7104"
+    },
+    {
+      "id": 43,
+      "via": "identity",
+      "diff": {
+        "largura_faca": {
+          "de": 10.0,
+          "para": 10.5
+        }
+      },
+      "label": "3X2 · ESPECIAL · BETA · Z=44 · REP=6 · pux=2,3038"
+    },
+    {
+      "id": 53,
+      "via": "identity",
+      "diff": {
+        "largura_faca": {
+          "de": 900.0,
+          "para": 9.0
+        }
+      },
+      "label": "4X4 · ESPECIAL · BETA · Z=41 · REP=3 · pux=4,2934"
+    }
+  ]
+}

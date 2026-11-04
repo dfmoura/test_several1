@@ -26,6 +26,9 @@ class FacasMapaService
     /** Vocabulário visual canônico; a EMP pode ter formatos extras no mapa. */
     public const FORMATOS_CANONICOS = ['RETA', 'REDONDA', 'OVAL', 'DESENHADA', 'ESPECIAL', 'LACRE'];
 
+    /** Rótulo da fonte do inventário oficial (seed JSON). */
+    public const FONTE_CATALOGO = 'MAPA DE FACAS 20261103 XLSX';
+
     /** @var list<array<string, mixed>>|null */
     private static ?array $jsonCache = null;
 
@@ -81,15 +84,31 @@ class FacasMapaService
                 $payload = $this->normalizeRow($row, forSeed: true);
                 $payload['empresa_id'] = $empresaId;
                 // Sem fallback ao template: senão EMP vazia “enxerga” o compartilhado e nunca materializa.
-                $existing = $empresaId === null
-                    ? OrcMapaFaca::query()->find($id)
-                    : OrcMapaFaca::query()
+                // Template: escopar empresa_id nulo — find($id) cruza com PK da EMP (AI compartilhado).
+                if ($empresaId === null) {
+                    $existing = OrcMapaFaca::query()->whereNull('empresa_id')->whereKey($id)->first();
+                    if (! $existing) {
+                        $existing = OrcMapaFaca::query()
+                            ->whereNull('empresa_id')
+                            ->where('medida', $payload['medida'] ?? null)
+                            ->where('formato', $payload['formato'] ?? null)
+                            ->where('faca', $payload['faca'] ?? null)
+                            ->where('maquina_catalogo', $payload['maquina_catalogo'] ?? null)
+                            ->when(
+                                ($payload['n_facas'] ?? null) !== null,
+                                static fn ($q) => $q->where('n_facas', (int) $payload['n_facas']),
+                            )
+                            ->first();
+                    }
+                } else {
+                    $existing = OrcMapaFaca::query()
                         ->where('empresa_id', $empresaId)
                         ->where('medida', $payload['medida'] ?? null)
                         ->where('formato', $payload['formato'] ?? null)
                         ->where('faca', $payload['faca'] ?? null)
                         ->where('maquina_catalogo', $payload['maquina_catalogo'] ?? null)
                         ->first();
+                }
                 if ($existing) {
                     $existentes++;
                     if ($forceOverwrite) {
@@ -99,7 +118,8 @@ class FacasMapaService
                     continue;
                 }
                 $faca = new OrcMapaFaca($payload);
-                if ($empresaId === null) {
+                // Só fixa o id do JSON se a PK estiver livre (EMP pode ter consumido o AI).
+                if ($empresaId === null && ! OrcMapaFaca::query()->whereKey($id)->exists()) {
                     $faca->id = $id;
                 }
                 $faca->save();
@@ -109,13 +129,17 @@ class FacasMapaService
 
         // Seed por EMP não usa o id do JSON. ALTER TABLE no MySQL faz COMMIT implícito
         // e derruba a transação da alta (`There is no active transaction`).
+        // Só sobe AI se o teto do JSON for maior que o max atual da tabela.
         if (
             $empresaId === null
             && $maxId > 0
             && DB::getDriverName() === 'mysql'
             && DB::transactionLevel() === 0
         ) {
-            DB::statement('ALTER TABLE orc_mapa_facas AUTO_INCREMENT = '.($maxId + 1));
+            $dbMax = (int) (OrcMapaFaca::query()->max('id') ?? 0);
+            if ($maxId >= $dbMax) {
+                DB::statement('ALTER TABLE orc_mapa_facas AUTO_INCREMENT = '.($maxId + 1));
+            }
         }
 
         self::$jsonCache = null;
@@ -123,7 +147,147 @@ class FacasMapaService
         return [
             'criados' => $criados,
             'existentes' => $existentes,
-            'fonte' => 'MAPA DE FACAS 20260715 ATUAL',
+            'fonte' => self::FONTE_CATALOGO,
+        ];
+    }
+
+    /**
+     * Aplica o JSON oficial com segurança: seed aditivo (sem --force) + metadados
+     * nas linhas já casadas. Nunca apaga; não sobrescreve geometria da EMP.
+     *
+     * @return array{
+     *   seed: array{criados: int, existentes: int, fonte: string},
+     *   metadados: array{atualizados: int, sem_match: int, iguais: int},
+     *   resumo: array{total: int, ativas: int, inativas: int, completas: int, incompletas: int, fonte: string}
+     * }
+     */
+    public function aplicarCatalogoSeguro(?int $empresaId = null): array
+    {
+        $empresaId ??= CatalogoOrcEmpresa::id();
+        // Template (empresa_id nulo): pode espelhar o JSON com force — não há ORC amarrado.
+        // EMP: seed aditivo sem force (geometria imutável na operação).
+        $forceTemplate = $empresaId === null;
+        $seed = $this->seedFromJson(null, $forceTemplate, $empresaId);
+        $meta = $this->reconciliarMetadadosDoJson($empresaId);
+
+        return [
+            'seed' => $seed,
+            'metadados' => $meta,
+            'resumo' => $this->resumo(),
+        ];
+    }
+
+    /**
+     * Propaga só campos editáveis do JSON → EMP (conjugada, fornecedor, cliente, etc.).
+     * Match por medida+formato+faca+máquina (+ N FACA quando ambos têm). Geometria intacta.
+     *
+     * @return array{atualizados: int, sem_match: int, iguais: int}
+     */
+    public function reconciliarMetadadosDoJson(?int $empresaId = null): array
+    {
+        if (! $this->tablesReady()) {
+            throw ValidationException::withMessages([
+                'mapa' => 'Tabela orc_mapa_facas ausente — rode as migrations.',
+            ]);
+        }
+
+        $empresaId ??= CatalogoOrcEmpresa::id();
+        $items = $this->allFromJson();
+        $atualizados = 0;
+        $semMatch = 0;
+        $iguais = 0;
+
+        foreach ($items as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $payload = $this->normalizeRow($row, forSeed: true);
+            $q = $empresaId === null
+                ? OrcMapaFaca::query()
+                : OrcMapaFaca::query()->where('empresa_id', $empresaId);
+            $q->where('medida', $payload['medida'] ?? null)
+                ->where('formato', $payload['formato'] ?? null)
+                ->where('faca', $payload['faca'] ?? null)
+                ->where('maquina_catalogo', $payload['maquina_catalogo'] ?? null);
+
+            if (($payload['n_facas'] ?? null) !== null) {
+                $q->where('n_facas', (int) $payload['n_facas']);
+            }
+
+            $existing = $q->first();
+            if (! $existing) {
+                $semMatch++;
+
+                continue;
+            }
+
+            $meta = [
+                'conjugada' => $payload['conjugada'] ?? null,
+                'fornecedor' => $payload['fornecedor'] ?? null,
+                'cliente_nota' => $payload['cliente_nota'] ?? null,
+                'cilindro' => $payload['cilindro'] ?? null,
+                'colunas_mapa' => $payload['colunas_mapa'] ?? null,
+                'maquina_origem' => $payload['maquina_origem'] ?? null,
+                'n_facas' => $payload['n_facas'] ?? null,
+            ];
+
+            $changed = false;
+            foreach ($meta as $col => $val) {
+                $cur = $existing->{$col};
+                if ($col === 'n_facas') {
+                    $curN = $cur === null ? null : (int) $cur;
+                    $valN = $val === null ? null : (int) $val;
+                    if ($curN !== $valN) {
+                        $changed = true;
+                        break;
+                    }
+                } else {
+                    $curS = $cur === null || trim((string) $cur) === '' ? null : trim((string) $cur);
+                    $valS = $val === null || trim((string) $val) === '' ? null : trim((string) $val);
+                    if ($curS !== $valS) {
+                        $changed = true;
+                        break;
+                    }
+                }
+            }
+
+            if (! $changed) {
+                $iguais++;
+
+                continue;
+            }
+
+            // updateMetadados exige contexto EMP / escrita — aplica direto no model com audit.
+            $de = $this->toArray($existing);
+            foreach ($meta as $col => $val) {
+                $existing->{$col} = $val;
+            }
+            $existing->label = $this->buildLabel(
+                (string) $existing->medida,
+                (string) $existing->formato,
+                (string) ($existing->maquina_catalogo ?? ''),
+                $existing->z !== null ? (float) $existing->z : null,
+                $existing->repeticao !== null ? (float) $existing->repeticao : null,
+                $existing->puxada !== null ? (float) $existing->puxada : null,
+                (bool) $existing->completa,
+            );
+            $existing->save();
+            $this->audit->log(
+                'mapa_facas.metadados',
+                'orc_mapa_facas',
+                $existing->id,
+                $de,
+                $this->toArray($existing),
+            );
+            $atualizados++;
+        }
+
+        self::$jsonCache = null;
+
+        return [
+            'atualizados' => $atualizados,
+            'sem_match' => $semMatch,
+            'iguais' => $iguais,
         ];
     }
 
@@ -194,7 +358,7 @@ class FacasMapaService
             return [
                 'criados' => 0,
                 'existentes' => $ownedCount,
-                'fonte' => 'MAPA DE FACAS 20260715 ATUAL',
+                'fonte' => self::FONTE_CATALOGO,
                 'materializado' => false,
             ];
         }
@@ -868,7 +1032,7 @@ class FacasMapaService
     private function meta(string $fonte): array
     {
         return [
-            'fonte' => 'MAPA DE FACAS 20260715 ATUAL',
+            'fonte' => self::FONTE_CATALOGO,
             'persistencia' => $fonte,
             'pivot' => 'MAPA_DE_FACAS',
             'nota_redonda' => 'Formato REDONDA: TAMANHO = diâmetro (Ø).',
