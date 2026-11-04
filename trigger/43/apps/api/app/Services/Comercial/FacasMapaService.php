@@ -101,12 +101,20 @@ class FacasMapaService
                             ->first();
                     }
                 } else {
+                    // Só casa ativas: inativa + nova é o ciclo canônico (geometria imutável).
+                    // Inclui N FACA — inventário oficial distingue ferramental pelo número.
                     $existing = OrcMapaFaca::query()
                         ->where('empresa_id', $empresaId)
+                        ->where('ativo', true)
                         ->where('medida', $payload['medida'] ?? null)
                         ->where('formato', $payload['formato'] ?? null)
                         ->where('faca', $payload['faca'] ?? null)
                         ->where('maquina_catalogo', $payload['maquina_catalogo'] ?? null)
+                        ->when(
+                            ($payload['n_facas'] ?? null) !== null,
+                            static fn ($q) => $q->where('n_facas', (int) $payload['n_facas']),
+                            static fn ($q) => $q->whereNull('n_facas'),
+                        )
                         ->first();
                 }
                 if ($existing) {
@@ -178,6 +186,96 @@ class FacasMapaService
     }
 
     /**
+     * Limpa o inventário ativo da EMP e rematerializa a partir do JSON oficial.
+     * 1) inativa todas as ativas da EMP (nunca apaga no passo 1)
+     * 2) seed aditivo (casa só ativas → recria o catálogo)
+     * 3) opcional: purge das inativas da EMP (homolog limpo; sem FK para o mapa)
+     *
+     * Não toca no template (empresa_id nulo). Não usa --force de geometria.
+     *
+     * @return array{
+     *   empresa_id: int,
+     *   inativadas: int,
+     *   seed: array{criados: int, existentes: int, fonte: string},
+     *   purgadas: int,
+     *   ativas: int,
+     *   inativas: int,
+     *   total: int
+     * }
+     */
+    public function substituirInventarioEmpresa(int $empresaId, bool $purgeInativas = false): array
+    {
+        if (! $this->tablesReady()) {
+            throw ValidationException::withMessages([
+                'mapa' => 'Tabela orc_mapa_facas ausente — rode as migrations.',
+            ]);
+        }
+        if ($empresaId <= 0) {
+            throw ValidationException::withMessages([
+                'empresa' => 'Empresa é obrigatória para substituir o inventário do mapa.',
+            ]);
+        }
+
+        $antesAtivas = OrcMapaFaca::query()
+            ->where('empresa_id', $empresaId)
+            ->where('ativo', true)
+            ->count();
+
+        $inativadas = OrcMapaFaca::query()
+            ->where('empresa_id', $empresaId)
+            ->where('ativo', true)
+            ->update(['ativo' => false]);
+
+        $seed = $this->seedFromJson(null, false, $empresaId);
+
+        $purgadas = 0;
+        if ($purgeInativas) {
+            $purgadas = OrcMapaFaca::query()
+                ->where('empresa_id', $empresaId)
+                ->where('ativo', false)
+                ->delete();
+        }
+
+        $ativas = OrcMapaFaca::query()
+            ->where('empresa_id', $empresaId)
+            ->where('ativo', true)
+            ->count();
+        $inativas = OrcMapaFaca::query()
+            ->where('empresa_id', $empresaId)
+            ->where('ativo', false)
+            ->count();
+
+        $this->audit->log(
+            'mapa_facas.substituir_inventario',
+            'orc_mapa_facas',
+            $empresaId,
+            [
+                'antes_ativas' => $antesAtivas,
+                'purge' => $purgeInativas,
+            ],
+            [
+                'inativadas' => $inativadas,
+                'seed' => $seed,
+                'purgadas' => $purgadas,
+                'ativas' => $ativas,
+                'inativas' => $inativas,
+            ],
+        );
+
+        self::$jsonCache = null;
+
+        return [
+            'empresa_id' => $empresaId,
+            'inativadas' => $inativadas,
+            'seed' => $seed,
+            'purgadas' => $purgadas,
+            'ativas' => $ativas,
+            'inativas' => $inativas,
+            'total' => $ativas + $inativas,
+        ];
+    }
+
+    /**
      * Propaga só campos editáveis do JSON → EMP (conjugada, fornecedor, cliente, etc.).
      * Match por medida+formato+faca+máquina (+ N FACA quando ambos têm). Geometria intacta.
      *
@@ -203,8 +301,8 @@ class FacasMapaService
             }
             $payload = $this->normalizeRow($row, forSeed: true);
             $q = $empresaId === null
-                ? OrcMapaFaca::query()
-                : OrcMapaFaca::query()->where('empresa_id', $empresaId);
+                ? OrcMapaFaca::query()->whereNull('empresa_id')
+                : OrcMapaFaca::query()->where('empresa_id', $empresaId)->where('ativo', true);
             $q->where('medida', $payload['medida'] ?? null)
                 ->where('formato', $payload['formato'] ?? null)
                 ->where('faca', $payload['faca'] ?? null)

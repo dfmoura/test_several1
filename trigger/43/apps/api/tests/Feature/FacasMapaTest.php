@@ -438,6 +438,46 @@ class FacasMapaTest extends TestCase
         );
     }
 
+    public function test_substituir_inventario_empresa_rematerializa_limpo(): void
+    {
+        $service = app(FacasMapaService::class);
+        $jsonCount = count(json_decode(
+            (string) file_get_contents(resource_path('data/orcamento/mapa_facas.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        ));
+
+        $service->seedFromJson(null, false, $this->empresa->id);
+        $antes = OrcMapaFaca::query()->where('empresa_id', $this->empresa->id)->where('ativo', true)->count();
+        $this->assertGreaterThan(100, $antes);
+
+        // Simula sujeira: duplicata ativa extra
+        OrcMapaFaca::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'medida' => '99X99-SUJA',
+            'formato' => 'RETA',
+            'faca' => 'RETA',
+            'maquina_catalogo' => 'BETA',
+            'puxada' => 9.9,
+            'z' => 99,
+            'completa' => true,
+            'ativo' => true,
+            'label' => 'SUJA',
+        ]);
+
+        $result = $service->substituirInventarioEmpresa($this->empresa->id, purgeInativas: true);
+        $this->assertGreaterThan(0, $result['inativadas']);
+        $this->assertGreaterThan(0, $result['purgadas']);
+        $this->assertSame(0, $result['inativas']);
+        $this->assertSame($result['ativas'], OrcMapaFaca::query()->where('empresa_id', $this->empresa->id)->where('ativo', true)->count());
+        $this->assertSame(0, OrcMapaFaca::query()->where('empresa_id', $this->empresa->id)->where('medida', '99X99-SUJA')->count());
+        $this->assertSame($jsonCount, $result['seed']['criados'] + $result['seed']['existentes']);
+        $this->assertGreaterThan(400, $result['ativas']);
+        // Template intacto
+        $this->assertSame(0, OrcMapaFaca::query()->whereNull('empresa_id')->where('medida', '99X99-SUJA')->count());
+    }
+
     public function test_aplicar_catalogo_seguro_aditivo_e_metadados(): void
     {
         $service = app(FacasMapaService::class);
