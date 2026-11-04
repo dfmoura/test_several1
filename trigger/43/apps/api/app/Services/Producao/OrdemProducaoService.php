@@ -1508,6 +1508,8 @@ class OrdemProducaoService
 
         $fechadoPorModelo = $this->normalizarResultadoModelos($data['modelos'] ?? null);
         if ($fechadoPorModelo !== null) {
+            // Planejado = alocação da OP (ORC→PED→OP). Cliente só informa boas/refugo.
+            $fechadoPorModelo = $this->carimbarPlanejadaDoServidor($op, $fechadoPorModelo);
             $qtdeBoa = $fechadoPorModelo['qtde_boa'];
             $qtdeRefugo = $fechadoPorModelo['qtde_refugo'];
             $resultadoModelos = $fechadoPorModelo['linhas'];
@@ -1987,6 +1989,7 @@ class OrdemProducaoService
 
     /**
      * Normaliza modelos[] do fecho → totais + linhas persistíveis.
+     * `qtde_planejada` do cliente é ignorada — carimbo em `carimbarPlanejadaDoServidor`.
      *
      * @param  mixed  $raw
      * @return array{qtde_boa: string, qtde_refugo: string, linhas: list<array{ordem: int, nome: string, qtde_planejada: string, qtde_boa: string, qtde_refugo: string}>}|null
@@ -2030,18 +2033,11 @@ class OrdemProducaoService
                     "modelos.{$i}.qtde_refugo" => ['Refugo do modelo não pode ser negativo.'],
                 ]);
             }
-            $planRaw = $row['qtde_planejada'] ?? null;
-            $plan = $planRaw !== null && $planRaw !== ''
-                ? (PadraoDecimal::parseStrict((string) $planRaw, PadraoDecimal::SCALE_QTY) ?? '0')
-                : '0';
-            if (bccomp($plan, '0', PadraoDecimal::SCALE_QTY) < 0) {
-                $plan = '0';
-            }
             $ordem = (int) ($row['ordem'] ?? $i + 1);
             $linhas[] = [
                 'ordem' => $ordem > 0 ? $ordem : $i + 1,
                 'nome' => $nome,
-                'qtde_planejada' => PadraoDecimal::roundHalfUp($plan, PadraoDecimal::SCALE_QTY),
+                'qtde_planejada' => '0.0000',
                 'qtde_boa' => PadraoDecimal::roundHalfUp($boa, PadraoDecimal::SCALE_QTY),
                 'qtde_refugo' => PadraoDecimal::roundHalfUp($ref, PadraoDecimal::SCALE_QTY),
             ];
@@ -2054,6 +2050,43 @@ class OrdemProducaoService
             'qtde_refugo' => PadraoDecimal::roundHalfUp($sumRef, PadraoDecimal::SCALE_QTY),
             'linhas' => $linhas,
         ];
+    }
+
+    /**
+     * Carimba `qtde_planejada` com a grade canônica da OP (`modelosParaFecho`).
+     * Quantidade comercial ORC→PED→OP não muda no fecho — só boas/refugo.
+     *
+     * @param  array{qtde_boa: string, qtde_refugo: string, linhas: list<array{ordem: int, nome: string, qtde_planejada: string, qtde_boa: string, qtde_refugo: string}>}  $fechado
+     * @return array{qtde_boa: string, qtde_refugo: string, linhas: list<array{ordem: int, nome: string, qtde_planejada: string, qtde_boa: string, qtde_refugo: string}>}
+     */
+    private function carimbarPlanejadaDoServidor(OrdemProducao $op, array $fechado): array
+    {
+        $canon = $this->modelosParaFecho($op);
+        $linhas = $fechado['linhas'];
+
+        if (count($linhas) !== count($canon)) {
+            throw ValidationException::withMessages([
+                'modelos' => [
+                    'Quantidade de modelos no fecho difere do planejado da ordem ('.count($canon).').',
+                ],
+            ]);
+        }
+
+        $byOrdem = [];
+        foreach ($canon as $c) {
+            $byOrdem[(int) $c['ordem']] = (string) $c['qtde_planejada'];
+        }
+
+        foreach ($linhas as $i => $ln) {
+            $ordem = (int) $ln['ordem'];
+            $linhas[$i]['qtde_planejada'] = isset($byOrdem[$ordem])
+                ? $byOrdem[$ordem]
+                : (string) $canon[$i]['qtde_planejada'];
+        }
+
+        $fechado['linhas'] = $linhas;
+
+        return $fechado;
     }
 
     /**

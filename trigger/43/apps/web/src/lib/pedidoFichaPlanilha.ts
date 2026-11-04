@@ -28,7 +28,11 @@ export type PedidoPlanilhaComercialLinha = {
   itemOrdem: number;
   /** Primeira linha do documento (obs do PED quando o item não tem obs). */
   primeiraDoDocumento: boolean;
-  /** Primeira linha do item (eco residual; medida/largura/puxada/material repetem). */
+  /**
+   * Primeira linha do item. Dado de setup (medida/largura/puxada/material) já vem
+   * em todas as linhas — Ficha da OP e planilha PED imprimem em todos os modelos.
+   * Flag residual para consumidores que queiram deduplicar visualmente.
+   */
   primeiraDoItem: boolean;
   quant: number | null;
   medida: string | null;

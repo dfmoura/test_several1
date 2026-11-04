@@ -88,8 +88,13 @@ modelos[] (boa/refugo por arte)
 | `resultado_modelos` só evidência | Auditoria + Resultado. Não explode `PA-ETQ` por arte. |
 | Sem modelos no item | Uma linha sintética (item) — mesma tela. |
 | Payload legado sem `modelos[]` | Continua válido (totais só); `resultado_modelos` fica nulo. |
+| `qtde_planejada` só do servidor | Cliente informa boas/refugo. Planejado = `modelosParaFecho` (ORC→PED→OP). Payload forjado é ignorado. |
 
 Fora: PA por modelo · MOV por modelo · grade de material no fecho · menu “Na máquina”.
+
+## Emenda 2026-11-04 — planejado imutável no fecho
+
+No `POST …/concluir` com `modelos[]`, o motor carimba `qtde_planejada` com a grade canônica da OP. A quantidade comercial da etiqueta (faixa aceita → `qtde_pedida` → `qtde_planejada`) não muda antes do fecho; o digitável continua só boas/refugo (±tol no total).
 
 ## Emenda 2026-11-03b — menu A fechar + eco no PED
 

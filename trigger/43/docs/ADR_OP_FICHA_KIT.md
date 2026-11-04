@@ -168,6 +168,10 @@ Só copy/UX: botão da toolbar, título do documento impresso e rodapé passam a
 
 **Retirada · prateleira** deixa de imprimir QR (`qr_payload`). Colunas: Levado · Local · Volume · Material · Dimensão · Levar · M² · Validade. Identidade do volume continua pelo código **Volume**. QR de etiqueta/estoque (A buscar, etiquetas de volume) permanece. Sem writer.
 
+## Emenda 2026-11-04b — identidade: medida em todos os modelos
+
+Na **Identidade do item** da Ficha da OP, Medida · Largura · Puxada · Material repetem em cada linha de modelo (setup da faca/item — igual à planilha PED). Quant. e Cores continuam por modelo. Sem campo novo.
+
 ## Emenda 2026-11-04 — prontidão crítica antes da saída
 
 Linhas de kit **PAPEL** e **ACABAMENTO** (`qtde_planejada > 0`, ainda sem saída) precisam de **SKU escolhido** e **saldo suficiente** antes de qualquer `SAIDA_PRODUCAO` da OP — inclusive parcial de outros itens (caixa, tinta, extra).

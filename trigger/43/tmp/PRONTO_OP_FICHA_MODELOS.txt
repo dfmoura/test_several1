@@ -1,0 +1,14 @@
+Pronto no código + SPA rebuildada (dist/).
+O agente Cursor não enxerga /var/run/docker.sock — rode NO TERMINAL DO HOST:
+
+  cd /home/dfmoura/Documents/test_several1/trigger/43
+  make pronto-op-ficha-modelos
+
+Isso sobe Docker, migrate, rebuild SPA, phpunit do fecho, ensaio OP-2026-FECHO01
+e imprime os links (OP · Ficha · Fechar).
+
+Se Docker estiver parado:
+  sudo systemctl start docker
+  make pronto-op-ficha-modelos
+
+App: http://localhost:8043

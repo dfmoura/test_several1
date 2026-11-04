@@ -44,7 +44,7 @@ Roteiro
   1. Hard refresh (Ctrl+Shift+R) — SPA nova (dist bind-mount)
   2. Ordens de produção → OP de etiqueta com N modelos
   3. Toolbar → Ficha da OP
-  4. Identidade: 1 linha/modelo com Quant em todas
+  4. Identidade: 1 linha/modelo — Quant · Medida · Largura · Puxada · Material em TODAS
   5. Impressão · máquina: coluna Modelo + N linhas (rolos rateados)
   6. Acabamento · rebobinação: coluna Modelo + N linhas
   7. Retirada · prateleira:

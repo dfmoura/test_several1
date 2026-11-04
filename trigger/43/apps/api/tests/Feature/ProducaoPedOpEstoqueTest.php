@@ -1440,7 +1440,8 @@ class ProducaoPedOpEstoqueTest extends TestCase
             $porModelo[] = [
                 'ordem' => (int) $ln['ordem'],
                 'nome' => (string) $ln['nome'],
-                'qtde_planejada' => (string) $ln['qtde_planejada'],
+                // Forja planejado — servidor deve carimbar o canônico da OP.
+                'qtde_planejada' => '999999.0000',
                 'qtde_boa' => $boa,
                 'qtde_refugo' => $i === 0 ? '10.0000' : '0',
             ];
@@ -1475,6 +1476,15 @@ class ProducaoPedOpEstoqueTest extends TestCase
         $this->assertSame($porModelo[0]['nome'], $resultado[0]['nome']);
         $this->assertSame($porModelo[0]['qtde_boa'], $resultado[0]['qtde_boa']);
         $this->assertSame('10.0000', $resultado[0]['qtde_refugo']);
+        // Planejado persistido = grade canônica (fecho_modelos), não o 999999 forjado.
+        foreach ($resultado as $i => $row) {
+            $this->assertSame(
+                (string) $fecho[$i]['qtde_planejada'],
+                (string) $row['qtde_planejada'],
+                "planejada do modelo {$i} deve vir da OP"
+            );
+            $this->assertNotSame('999999.0000', (string) $row['qtde_planejada']);
+        }
 
         $item = $pedido->itens()->findOrFail($itemId);
         $this->assertSame($qtdeBoaTotal, (string) $item->fresh()->qtde_faturavel);
