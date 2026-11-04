@@ -388,6 +388,29 @@ class OrdemProducaoService
             ? $this->coleta->produtoIdDosVolumes($empresa, $volumesIn)
             : null;
 
+        // Complementar (reposição após perda) não reabre o gate — a 1ª saída do kit crítico já ocorreu.
+        if (! $complementar) {
+            $liberando = [];
+            if ($materialId > 0) {
+                $matGate = OrdemProducaoMaterial::query()
+                    ->where('ordem_producao_id', $op->id)
+                    ->where('id', $materialId)
+                    ->first(['id', 'componente', 'produto_id']);
+                if ($matGate) {
+                    $compGate = strtoupper((string) $matGate->componente);
+                    if (in_array($compGate, ['PAPEL', 'ACABAMENTO'], true)) {
+                        $temSku = (int) $matGate->produto_id > 0
+                            || $produtoId > 0
+                            || $produtoDosVolumes !== null;
+                        if ($temSku) {
+                            $liberando[] = (int) $matGate->id;
+                        }
+                    }
+                }
+            }
+            $this->assertProntidaoCriticaKit($empresa, $op, $liberando);
+        }
+
         /** @var OrdemProducaoMaterial|null $matPendente */
         $matPendente = null;
         if ($materialId > 0) {
@@ -671,6 +694,9 @@ class OrdemProducaoService
             ]);
         }
 
+        // Papel/acabamento do kit sem SKU ou sem saldo bloqueiam qualquer baixa em lote.
+        $this->assertProntidaoCriticaKit($empresa, $op);
+
         $pendentes = OrdemProducaoMaterial::query()
             ->with('produto:id,codigo,controla_lote,grupo_id,unidade_interna')
             ->where('ordem_producao_id', $op->id)
@@ -679,13 +705,8 @@ class OrdemProducaoService
             ->orderBy('ordem')
             ->get()
             ->reject(function (OrdemProducaoMaterial $mat): bool {
-                $comp = strtoupper((string) $mat->componente);
                 // Tubete fora do kit/baixa da OP — pacote = ajuste manual depois.
-                if ($comp === 'TUBETE') {
-                    return true;
-                }
-
-                return (int) $mat->produto_id <= 0 && in_array($comp, ['PAPEL', 'ACABAMENTO'], true);
+                return strtoupper((string) $mat->componente) === 'TUBETE';
             })
             ->values();
 
@@ -705,6 +726,95 @@ class OrdemProducaoService
         }
 
         return $this->show($op->fresh());
+    }
+
+    /**
+     * Papel e acabamento do kit precisam de SKU + saldo antes de qualquer SAIDA_PRODUCAO.
+     * Linhas desta requisição que já trazem SKU/volumes entram em $liberandoMaterialIds.
+     *
+     * @param  list<int>  $liberandoMaterialIds
+     */
+    private function assertProntidaoCriticaKit(Empresa $empresa, OrdemProducao $op, array $liberandoMaterialIds = []): void
+    {
+        $liberando = array_values(array_unique(array_map('intval', $liberandoMaterialIds)));
+
+        $criticos = OrdemProducaoMaterial::query()
+            ->with('produto:id,codigo,controla_lote,grupo_id,unidade_interna')
+            ->where('ordem_producao_id', $op->id)
+            ->whereNull('saida_movimento_id')
+            ->where('qtde_planejada', '>', 0)
+            ->orderBy('ordem')
+            ->get()
+            ->filter(function (OrdemProducaoMaterial $mat): bool {
+                return in_array(strtoupper((string) $mat->componente), ['PAPEL', 'ACABAMENTO'], true);
+            })
+            ->values();
+
+        if ($criticos->isEmpty()) {
+            return;
+        }
+
+        $faltamEscolha = [];
+        $faltamSaldo = [];
+
+        foreach ($criticos as $mat) {
+            $id = (int) $mat->id;
+            if (in_array($id, $liberando, true)) {
+                continue;
+            }
+
+            $rotulo = strtoupper((string) $mat->componente) === 'PAPEL' ? 'papel' : 'acabamento';
+            $produtoId = (int) $mat->produto_id;
+            if ($produtoId <= 0 || ! $mat->produto) {
+                $faltamEscolha[$rotulo] = true;
+
+                continue;
+            }
+
+            $planejada = PadraoDecimal::roundHalfUp((string) $mat->qtde_planejada, PadraoDecimal::SCALE_QTY);
+            $produto = $mat->produto;
+            if ($this->coleta->baixaVolumeInteiro($produto)) {
+                $plano = $this->coleta->planejarBobinaInteira($empresa, $op, $produto, $planejada);
+                if (! $plano['cobre']) {
+                    $faltamSaldo[$rotulo] = true;
+                }
+
+                continue;
+            }
+
+            $disponivel = EstoqueSaldo::query()
+                ->where('empresa_id', $empresa->id)
+                ->where('produto_id', $produto->id)
+                ->value('qtde');
+            $disponivel = PadraoDecimal::roundHalfUp((string) ($disponivel ?? '0'), PadraoDecimal::SCALE_QTY);
+            if (bccomp($disponivel, $planejada, PadraoDecimal::SCALE_QTY) < 0) {
+                $faltamSaldo[$rotulo] = true;
+            }
+        }
+
+        $msgs = [];
+        if ($faltamEscolha !== []) {
+            $quais = array_keys($faltamEscolha);
+            $msgs[] = count($quais) === 2
+                ? 'Escolha o papel e o acabamento antes de confirmar a saída.'
+                : ($quais[0] === 'papel'
+                    ? 'Escolha o papel antes de confirmar a saída.'
+                    : 'Escolha o acabamento antes de confirmar a saída.');
+        }
+        if ($faltamSaldo !== []) {
+            $quais = array_keys($faltamSaldo);
+            $msgs[] = count($quais) === 2
+                ? 'Sem estoque suficiente de papel e acabamento — não confirme a saída enquanto faltar material.'
+                : ($quais[0] === 'papel'
+                    ? 'Sem estoque suficiente de papel — não confirme a saída enquanto faltar material.'
+                    : 'Sem estoque suficiente de acabamento — não confirme a saída enquanto faltar material.');
+        }
+
+        if ($msgs !== []) {
+            throw ValidationException::withMessages([
+                'materiais' => $msgs,
+            ]);
+        }
     }
 
     /**

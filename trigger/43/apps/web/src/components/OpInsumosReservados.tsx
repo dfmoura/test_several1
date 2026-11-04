@@ -13,6 +13,7 @@ import {
 import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
 import {
   balancoMetragem,
+  bloqueioSaidaKitCritico,
   formatLeituraBobina,
   textoBalancoSaida,
   formatLotePick,
@@ -481,6 +482,21 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
     const opcao = (m.opcoes ?? []).find((o) => o.produto_id === produtoId);
     return Boolean(opcao && parseQtdeDigitada(opcao.qtde_disponivel) > 0);
   });
+  /** Linhas críticas que esta tela já montou (SKU/volume) — liberam o gate (espelho da API). */
+  const liberandoCritico = (materiais ?? [])
+    .filter((m) => {
+      const comp = (m.componente ?? '').toUpperCase();
+      if (comp !== 'PAPEL' && comp !== 'ACABAMENTO') return false;
+      if (opKitEstado(m) === 'ja_saiu') return false;
+      const precisaLiberar =
+        Boolean(m.escolher_produto) || !m.produto?.id || opKitEstado(m) === 'sem_estoque';
+      if (!precisaLiberar) return false;
+      const produtoLocal = produtos[m.id] ?? 0;
+      const vols = (volumes[m.id] ?? []).filter((v) => parseQtdeDigitada(v.qtde) > 0);
+      return produtoLocal > 0 || vols.length > 0;
+    })
+    .map((m) => m.id);
+  const bloqueioKit = bloqueioSaidaKitCritico(materiais, liberandoCritico);
 
   const lembrar = (lista: OpRetiradaVolume[]) => {
     setConhecidos((prev) => {
@@ -753,6 +769,10 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
   };
 
   const confirmar = async () => {
+    if (bloqueioKit) {
+      setErr(bloqueioKit);
+      return;
+    }
     type Linha = {
       material_id: number;
       qtde: string;
@@ -1526,18 +1546,27 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
         ))}
 
       {aberta && canWrite && pendentes.length > 0 ? (
-        <div className="btn-row">
-          <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void confirmar()}>
+        <div className="btn-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
+          {bloqueioKit ? <p className="muted" style={{ margin: 0 }}>{bloqueioKit}</p> : null}
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={busy || Boolean(bloqueioKit)}
+            onClick={() => void confirmar()}
+          >
             Confirmar saída
           </button>
         </div>
       ) : null}
 
       {aberta && !canWrite && pendentes.length > 0 && podeEstoque ? (
-        <div className="btn-row">
-          <Link to={hrefFichaEstoque(op.id)} className="btn btn-primary">
-            Confirmar saída no estoque
-          </Link>
+        <div className="btn-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
+          {bloqueioKit ? <p className="muted" style={{ margin: 0 }}>{bloqueioKit}</p> : null}
+          {bloqueioKit ? null : (
+            <Link to={hrefFichaEstoque(op.id)} className="btn btn-primary">
+              Confirmar saída no estoque
+            </Link>
+          )}
         </div>
       ) : null}
 

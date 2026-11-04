@@ -5,6 +5,7 @@ import { api, type OrdemProducao, type OrdemProducaoMaterial, type Pedido } from
 import { formatDecimalBr } from '../lib/format';
 import { linhaImpressaoFlexo } from '../lib/opFichaFlexo';
 import {
+  bloqueioSaidaKitCritico,
   formatLotePick,
   formatVolumeDimensao,
   leituraNecessidadeOp,
@@ -78,6 +79,7 @@ export function OpKitPainel({
   const atual = opPassoAtual(op);
   const pendentes = linhas.filter((m) => opKitEstado(m) === 'falta_pegar');
   const falta = pendentes.length > 0;
+  const bloqueioKit = bloqueioSaidaKitCritico(op.materiais);
   const noEstoque = porta === 'chao';
 
   useEffect(() => {
@@ -93,6 +95,10 @@ export function OpKitPainel({
   }, [materialInicialId, op.materiais]);
 
   const confirmarLinha = async (m: OrdemProducaoMaterial) => {
+    if (bloqueioKit) {
+      setErr(bloqueioKit);
+      return;
+    }
     const linha = linhaConfirmarSugerida(m);
     if (!linha) {
       setErr('Sem sugestão FEFO neste material — use «Outro volume».');
@@ -113,6 +119,10 @@ export function OpKitPainel({
   };
 
   const confirmarTudo = async () => {
+    if (bloqueioKit) {
+      setErr(bloqueioKit);
+      return;
+    }
     setBusy(true);
     setErr(null);
     try {
@@ -172,7 +182,11 @@ export function OpKitPainel({
             const porVolume = modoRetirada(m) === 'volume';
             const vols = volumesSugeridosLinha(m);
             const podeSair =
-              noEstoque && canWrite && estado === 'falta_pegar' && Boolean(linhaConfirmarSugerida(m));
+              noEstoque &&
+              canWrite &&
+              !bloqueioKit &&
+              estado === 'falta_pegar' &&
+              Boolean(linhaConfirmarSugerida(m));
             const podeOutro =
               noEstoque && canWrite && (estado === 'falta_pegar' || estado === 'sem_estoque');
             const podeDevolver = canWrite && estado === 'ja_saiu';
@@ -305,10 +319,11 @@ export function OpKitPainel({
 
       {noEstoque && canWrite && falta ? (
         <div className="op-kit__cta">
+          {bloqueioKit ? <p className="muted" style={{ marginTop: 0 }}>{bloqueioKit}</p> : null}
           <button
             type="button"
             className="btn btn-primary"
-            disabled={busy}
+            disabled={busy || Boolean(bloqueioKit)}
             onClick={() => void confirmarTudo()}
           >
             Confirmar saída sugerida ({pendentes.length})

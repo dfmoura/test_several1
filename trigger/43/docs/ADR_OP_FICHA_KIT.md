@@ -168,4 +168,15 @@ Só copy/UX: botão da toolbar, título do documento impresso e rodapé passam a
 
 **Retirada · prateleira** deixa de imprimir QR (`qr_payload`). Colunas: Levado · Local · Volume · Material · Dimensão · Levar · M² · Validade. Identidade do volume continua pelo código **Volume**. QR de etiqueta/estoque (A buscar, etiquetas de volume) permanece. Sem writer.
 
+## Emenda 2026-11-04 — prontidão crítica antes da saída
+
+Linhas de kit **PAPEL** e **ACABAMENTO** (`qtde_planejada > 0`, ainda sem saída) precisam de **SKU escolhido** e **saldo suficiente** antes de qualquer `SAIDA_PRODUCAO` da OP — inclusive parcial de outros itens (caixa, tinta, extra).
+
+| Quem | Onde |
+|------|------|
+| Motor | `OrdemProducaoService::assertProntidaoCriticaKit` em `requisitarMaterial` e `requisitarPendentes` (422). Complementar (reposição após perda) não reabre o gate. A própria linha crítica pode sair na mesma requisição se já trouxer SKU/volumes. |
+| UX | OP (`OpInsumosReservados`) e Estoque · A buscar (`OpKitPainel`): CTA **Confirmar saída** desabilitado + motivo curto. |
+
+Guia apontada (acabamento sem linha de kit) não participa. Fecho da OP (papel já saído) permanece na regra própria. Sem segundo writer.
+
 Alterar esta ADR exige decisão explícita (produção + estoque + UX).

@@ -316,6 +316,109 @@ class ProducaoColetaDirigidaTest extends TestCase
         $again->assertStatus(422);
     }
 
+    public function test_saida_bloqueada_enquanto_acabamento_sem_sku(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $grupo = ProdutoGrupo::query()->create([
+            'codigo' => 'MP-FLM',
+            'nome' => 'Filmes',
+            'familia' => 'MP',
+            'natureza' => 'COMPRA',
+            'tipo_item_sped' => '01',
+            'situacao' => 'ATIVO',
+        ]);
+        $filme = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MP-FLM-GATE',
+            'familia' => 'MP',
+            'grupo_id' => $grupo->id,
+            'descricao_fiscal' => 'BOPP GATE',
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'controla_lote' => true,
+            'custo_medio' => '4.000000',
+        ]);
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $filme->id,
+            'qtde' => '80.0000',
+            'unidade' => 'M2',
+            'custo_medio' => '4.000000',
+        ]);
+        $end = $this->endereco('P09-C01-L01', 9, 1, 1);
+        EstoqueLote::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $filme->id,
+            'codigo' => 'LOT-GATE-FLM',
+            'qtde' => '80.0000',
+            'unidade' => 'M2',
+            'data_entrada' => '2026-01-01',
+            'data_validade' => '2027-06-01',
+            'origem_tipo' => EstoqueLote::ORIGEM_VIRADA,
+            'largura_mm' => '250',
+            'comprimento_m' => '320',
+            'endereco_id' => $end->id,
+        ]);
+
+        $acab = OrdemProducaoMaterial::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'ordem_producao_id' => $this->op->id,
+            'produto_id' => null,
+            'grupo_id' => $grupo->id,
+            'qtde_planejada' => '12.0000',
+            'qtde_requisitada' => '0',
+            'qtde_consumida' => '0',
+            'qtde_retorno' => '0',
+            'qtde_perda' => '0',
+            'unidade' => 'M2',
+            'componente' => 'ACABAMENTO',
+            'origem_texto' => 'LAMINAÇÃO',
+            'ordem' => 3,
+        ]);
+
+        $caixaAntes = (string) EstoqueSaldo::query()->where('produto_id', $this->emb->id)->value('qtde');
+
+        $parcial = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/confirmar",
+            ['linhas' => [['material_id' => $this->matCaixa->id]]],
+        );
+        $parcial->assertStatus(422);
+        $parcial->assertJsonFragment([
+            'materiais' => ['Escolha o acabamento antes de confirmar a saída.'],
+        ]);
+        $this->assertSame(
+            $caixaAntes,
+            (string) EstoqueSaldo::query()->where('produto_id', $this->emb->id)->value('qtde'),
+        );
+
+        $lote = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/confirmar-pendentes"
+        );
+        $lote->assertStatus(422);
+        $lote->assertJsonFragment([
+            'materiais' => ['Escolha o acabamento antes de confirmar a saída.'],
+        ]);
+
+        $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/escolha",
+            ['material_id' => $acab->id, 'produto_id' => $filme->id],
+        )->assertOk();
+
+        $ok = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/confirmar-pendentes"
+        );
+        $ok->assertOk();
+        $this->assertFalse(
+            collect($ok->json('data.materiais'))->firstWhere('id', $this->matCaixa->id)['pendente']
+        );
+        $this->assertFalse(
+            collect($ok->json('data.materiais'))->firstWhere('id', $acab->id)['pendente']
+        );
+    }
+
     public function test_requisitar_com_volumes_da_sugestao_debita_exato(): void
     {
         Sanctum::actingAs($this->user);

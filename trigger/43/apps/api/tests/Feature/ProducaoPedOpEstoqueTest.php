@@ -1369,9 +1369,12 @@ class ProducaoPedOpEstoqueTest extends TestCase
         Sanctum::actingAs($this->producao);
         $fail = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar-pendentes");
         $fail->assertStatus(422);
-        $this->assertStringContainsString(
-            'Saldo insuficiente',
-            (string) $fail->json('message').json_encode($fail->json('errors'))
+        $blob = (string) $fail->json('message').json_encode($fail->json('errors'));
+        // Gate de prontidão crítica (papel/acabamento) ou pré-checagem de saldo do lote.
+        $this->assertTrue(
+            str_contains($blob, 'Sem estoque suficiente de papel')
+            || str_contains($blob, 'Saldo insuficiente'),
+            "Esperava bloqueio de saída por falta de papel/saldo; veio: {$blob}"
         );
 
         $this->assertFalse(

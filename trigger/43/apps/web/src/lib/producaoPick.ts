@@ -48,6 +48,52 @@ export function volumesFefoConfirm(preview?: OpRetiradaPreview | null): { lote_i
 }
 
 /**
+ * Papel/acabamento do kit sem SKU ou sem estoque bloqueiam Confirmar saída (API + UX).
+ * Vocabulário: escolha · sem estoque — sem jargão de motor.
+ * `liberandoIds`: linhas desta confirmação que já trazem SKU/volume (mesmo critério da API).
+ */
+export function bloqueioSaidaKitCritico(
+  materiais: OrdemProducaoMaterial[] | null | undefined,
+  liberandoIds?: Iterable<number>,
+): string | null {
+  const liberando = new Set(liberandoIds ?? []);
+  const faltamEscolha: string[] = [];
+  const faltamSaldo: string[] = [];
+  for (const m of materiais ?? []) {
+    const comp = (m.componente ?? '').toUpperCase();
+    if (comp !== 'PAPEL' && comp !== 'ACABAMENTO') continue;
+    if (!(parseQtdeDigitada(m.qtde_planejada) > 0)) continue;
+    if (opKitEstado(m) === 'ja_saiu') continue;
+    if (liberando.has(m.id)) continue;
+    const rotulo = comp === 'PAPEL' ? 'papel' : 'acabamento';
+    if (m.escolher_produto || !m.produto?.id) {
+      if (!faltamEscolha.includes(rotulo)) faltamEscolha.push(rotulo);
+      continue;
+    }
+    if (opKitEstado(m) === 'sem_estoque') {
+      if (!faltamSaldo.includes(rotulo)) faltamSaldo.push(rotulo);
+    }
+  }
+  if (faltamEscolha.length === 2) {
+    return 'Escolha o papel e o acabamento antes de confirmar a saída.';
+  }
+  if (faltamEscolha.length === 1) {
+    return faltamEscolha[0] === 'papel'
+      ? 'Escolha o papel antes de confirmar a saída.'
+      : 'Escolha o acabamento antes de confirmar a saída.';
+  }
+  if (faltamSaldo.length === 2) {
+    return 'Sem estoque suficiente de papel e acabamento — não confirme a saída enquanto faltar material.';
+  }
+  if (faltamSaldo.length === 1) {
+    return faltamSaldo[0] === 'papel'
+      ? 'Sem estoque suficiente de papel — não confirme a saída enquanto faltar material.'
+      : 'Sem estoque suficiente de acabamento — não confirme a saída enquanto faltar material.';
+  }
+  return null;
+}
+
+/**
  * Payload de uma linha para POST /estoque/retiradas/{op}/confirmar (happy path FEFO).
  * Volume: volumes sugeridos; unidade: só qtde planejada (writer escolhe FEFO).
  */
