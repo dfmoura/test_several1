@@ -28,6 +28,29 @@ Caminho fechado do projeto `trigger/39`. Ajuste sempre **local**, valide, depois
 
 Instância alvo alinhada: **2 GB RAM · 2 vCPU · 60 GB SSD · 3 TB transfer**.
 
+## Patches de segurança (Lightsail)
+
+Esta instalação **não** é Bitnami nem PHP-FPM no host. PHP roda nos containers `app` / `queue` / `scheduler` ([`docker/php/Dockerfile`](../docker/php/Dockerfile), pin `8.4.27-cli-bookworm`). O kernel Ubuntu do host é compartilhado pelos containers.
+
+Ordem canônica (sempre snapshot Lightsail + dump MySQL externo antes):
+
+1. **CVE kernel (ex.: CVE-2026-98432)** — se o apt ainda não tiver `linux-image-aws` corrigido (`7.0.0-1017+`):
+   ```bash
+   sudo bash scripts/lightsail-cve-2026-98432.sh
+   # valida 80/443; nftables.service deve permanecer disabled
+   ```
+   Quando o kernel corrigido existir: upgrade → reboot → remoção completa do interim:
+   ```bash
+   sudo bash scripts/lightsail-cve-2026-98432.sh --remove
+   ```
+2. **CVE PHP (ex.: CVE-2026-109618 / CVE-2026-109619)** — pin no Dockerfile + rebuild:
+   ```bash
+   make aws-check
+   make up-aws
+   make php-cve-check          # app + queue + scheduler ≥ 8.4.27
+   ```
+   `php -v` no host **não** prova a correção. Não rotacionar `APP_KEY` no patch.
+
 ## Local (todos os dias)
 
 ```bash
@@ -202,6 +225,7 @@ Infra mínima abaixo. Aceite completo (multi-empresa + key user): [`MODELO_INSTA
 | `make up` | Local |
 | `make up-aws` | AWS com `.env.aws` |
 | `make aws-check` | Valida `.env.aws` |
+| `make php-cve-check` | PHP ≥ 8.4.27 em `app`/`queue`/`scheduler` |
 | `make export-envio-proposta` | Extrai SMTP/ViaZap do `apps/api/.env` local para colar no `.env.aws` |
 | `make promote-prod` | Checklist de virada |
 | `make ensaio-asaas` | Valida tunnel + ASAAS (webhook/Checkout) |

@@ -461,11 +461,11 @@ export function OrcamentoFormPage() {
   const puxadaManual = !facaSel || facaIncompleta || facaSel.puxada == null || facaNova;
   const zManual = !facaSel || facaIncompleta || facaSel.z == null || facaNova;
   const medidaManual = !facaSel || facaNova;
-  /** Campos já no card do picker — só abrem quando o operador precisa editar. */
-  const showMedidaField = Boolean(facaSel) && medidaManual;
+  /** Linha Medida | Largura | Puxada após faca; Formato/Z só quando manuais. */
+  const showGeoRow = Boolean(facaSel);
   const showFormatoField = Boolean(facaSel) && facaNova;
-  const showPuxadaField = Boolean(facaSel) && puxadaManual;
   const showZField = Boolean(facaSel) && zManual;
+  const showManualExtras = showFormatoField || showZField;
 
   useEffect(() => {
     const prazoFaca =
@@ -1593,90 +1593,105 @@ export function OrcamentoFormPage() {
               canWrite={canWrite}
               umaPorItem
             />
-            <div className="form-grid faca-auto-fields">
-              {showFormatoField ? (
-                <div className="form-group manual-field">
-                  <label>
-                    Formato <span className="field-note">faca nova</span>
-                  </label>
-                  <input
-                    list="orc-formatos-faca"
-                    value={form.formato_faca || 'RETA'}
-                    onChange={(e) => {
-                      const fmt = e.target.value.toUpperCase();
-                      setField('formato_faca', fmt);
-                      setFacaSel((prev) =>
-                        prev ? { ...prev, formato: fmt, faca: fmt, faca_nova: true } : prev,
-                      );
-                    }}
-                    disabled={!canWrite}
-                  />
-                  <datalist id="orc-formatos-faca">
-                    {mergeVocabulario(
-                      FORMATOS_CANONICOS,
-                      form.formato_faca ? [form.formato_faca] : [],
-                    ).map((f) => (
-                      <option key={f} value={f} />
-                    ))}
-                  </datalist>
-                </div>
-              ) : null}
-              {showMedidaField ? (
-                <div className="form-group manual-field">
-                  <label>
-                    Medida *{' '}
-                    <span className="field-note">{facaNova ? 'faca nova' : 'manual'}</span>
+            {showGeoRow ? (
+              <div className="orc-geo-row faca-auto-fields">
+                <div className={`form-group${medidaManual ? ' manual-field' : ' auto-field'}`}>
+                  <label title={medidaManual ? undefined : 'Medida da faca selecionada'}>
+                    Medida
+                    {medidaManual ? (
+                      <span className="field-note">
+                        {' '}
+                        * {facaNova ? 'faca nova' : 'manual'}
+                      </span>
+                    ) : null}
                   </label>
                   <input
                     value={form.medida}
                     onChange={(e) => setField('medida', e.target.value)}
                     placeholder="ex.: 8,0X12,4"
+                    disabled={!canWrite || !medidaManual}
+                    readOnly={!medidaManual}
+                  />
+                </div>
+                <div className="form-group">
+                  <label title="Sugestão da faca — ajuste se preciso">
+                    Largura papel (cm) *{' '}
+                    <span className="field-note">sugestão da faca</span>
+                  </label>
+                  <NumericInput
+                    step="0.01"
+                    value={form.largura_cm}
+                    emptyCommit={0}
+                    blankZero
+                    onCommit={(v) => setField('largura_cm', v === '' ? 0 : v)}
                     disabled={!canWrite}
                   />
                 </div>
-              ) : null}
-              <div className="form-group">
-                <label>
-                  Largura papel (cm) *{' '}
-                  <span className="field-note">sugestão da faca — ajuste se preciso</span>
-                </label>
-                <NumericInput
-                  step="0.01"
-                  value={form.largura_cm}
-                  emptyCommit={0}
-                  blankZero
-                  onCommit={(v) => setField('largura_cm', v === '' ? 0 : v)}
-                  disabled={!canWrite}
-                />
-              </div>
-              {showPuxadaField ? (
-                <div className="form-group manual-field">
-                  <label>Puxada (cm) *</label>
+                <div className={`form-group${puxadaManual ? ' manual-field' : ' auto-field'}`}>
+                  <label title={puxadaManual ? undefined : 'Puxada da faca selecionada'}>
+                    Puxada (cm)
+                    {puxadaManual ? (
+                      <span className="field-note"> * manual</span>
+                    ) : (
+                      <span className="field-note"> — da faca</span>
+                    )}
+                  </label>
                   <NumericInput
                     step="0.00001"
                     value={form.puxada_cm}
                     emptyCommit={0}
                     blankZero
                     onCommit={(v) => setField('puxada_cm', v === '' ? 0 : v)}
-                    disabled={!canWrite}
+                    disabled={!canWrite || !puxadaManual}
                   />
                 </div>
-              ) : null}
-              {showZField ? (
-                <div className="form-group manual-field">
-                  <label>
-                    Z (dentes) <span className="field-note">matriz / cilindro</span>
-                  </label>
-                  <NumericInput
-                    step="0.1"
-                    value={form.z}
-                    emptyCommit=""
-                    onCommit={(v) => setField('z', v)}
-                    disabled={!canWrite}
-                  />
-                </div>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
+            {showManualExtras ? (
+              <div className="form-grid faca-auto-fields">
+                {showFormatoField ? (
+                  <div className="form-group manual-field">
+                    <label>
+                      Formato <span className="field-note">faca nova</span>
+                    </label>
+                    <input
+                      list="orc-formatos-faca"
+                      value={form.formato_faca || 'RETA'}
+                      onChange={(e) => {
+                        const fmt = e.target.value.toUpperCase();
+                        setField('formato_faca', fmt);
+                        setFacaSel((prev) =>
+                          prev ? { ...prev, formato: fmt, faca: fmt, faca_nova: true } : prev,
+                        );
+                      }}
+                      disabled={!canWrite}
+                    />
+                    <datalist id="orc-formatos-faca">
+                      {mergeVocabulario(
+                        FORMATOS_CANONICOS,
+                        form.formato_faca ? [form.formato_faca] : [],
+                      ).map((f) => (
+                        <option key={f} value={f} />
+                      ))}
+                    </datalist>
+                  </div>
+                ) : null}
+                {showZField ? (
+                  <div className="form-group manual-field">
+                    <label>
+                      Z (dentes) <span className="field-note">matriz / cilindro</span>
+                    </label>
+                    <NumericInput
+                      step="0.1"
+                      value={form.z}
+                      emptyCommit=""
+                      onCommit={(v) => setField('z', v)}
+                      disabled={!canWrite}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </section>
 
           {/* 3. Especificação técnica — máquina → material → setup → ferramental → pad interno */}

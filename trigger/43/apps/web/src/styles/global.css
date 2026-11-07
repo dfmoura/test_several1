@@ -8221,6 +8221,31 @@ button.saida-etiqueta-badge--previewable:focus-visible {
   margin-top: 0.5rem;
 }
 
+/* Medida | Largura papel | Puxada — uma linha no desktop; labels sem quebra. */
+.orc-geo-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+  align-items: start;
+}
+
+.orc-geo-row > .form-group > label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 720px) {
+  .orc-geo-row {
+    grid-template-columns: 1fr;
+  }
+
+  .orc-geo-row > .form-group > label {
+    white-space: normal;
+  }
+}
+
 .orc-facas-composicao {
   display: flex;
   flex-direction: column;

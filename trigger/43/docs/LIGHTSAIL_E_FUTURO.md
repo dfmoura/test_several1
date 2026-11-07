@@ -72,6 +72,8 @@ Antes de `make up-aws`:
 sudo bash scripts/lightsail-setup-swap.sh
 ```
 
+Patches CVE (kernel host + PHP nos containers): seção **Patches de segurança** em [`DEPLOY_LOCAL_AWS.md`](DEPLOY_LOCAL_AWS.md). Interim kernel: `scripts/lightsail-cve-2026-98432.sh` (`--remove` após kernel corrigido).
+
 ## Memória (host 2 GB)
 
 | Serviço | mem_limit | Papel |
