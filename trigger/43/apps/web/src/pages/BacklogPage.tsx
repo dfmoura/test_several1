@@ -1,11 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type BacklogItem } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatDateTime } from '../lib/format';
+import { useTableSort } from '../lib/useTableSort';
 
 type SituacaoFiltro = 'abertos' | 'concluidos' | 'todos';
+
+const SORT = {
+  codigo: (r: BacklogItem) => r.codigo,
+  tarefa: (r: BacklogItem) => r.tarefa,
+  lancada: (r: BacklogItem) => r.lancado_em,
+  concluida: (r: BacklogItem) => r.concluido_em,
+  observacao: (r: BacklogItem) => r.observacao_conclusao,
+  situacao: (r: BacklogItem) => r.situacao,
+};
 
 export function BacklogPage() {
   const { hasGrantedPermission, refresh } = useAuth();
@@ -23,6 +34,10 @@ export function BacklogPage() {
   const [savingId, setSavingId] = useState<number | null>(null);
   const [novaTarefa, setNovaTarefa] = useState('');
   const [creating, setCreating] = useState(false);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, SORT, {
+    initialKey: 'lancada',
+    initialDir: 'desc',
+  });
 
   const load = useCallback(
     async (opts?: { q?: string; situacao?: SituacaoFiltro }) => {
@@ -243,17 +258,47 @@ export function BacklogPage() {
             <table className="data-table nat-table">
               <thead>
                 <tr>
-                  <th style={{ width: '7rem' }}>Código</th>
-                  <th>Tarefa</th>
-                  <th style={{ width: '9rem' }}>Lançada em</th>
-                  <th style={{ width: '9rem' }}>Concluída em</th>
-                  <th>Observação da conclusão</th>
-                  <th style={{ width: '7rem' }}>Situação</th>
+                  <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Código
+                  </SortableTh>
+                  <SortableTh column="tarefa" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Tarefa
+                  </SortableTh>
+                  <SortableTh column="lancada" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Lançada em
+                  </SortableTh>
+                  <SortableTh
+                    column="concluida"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Concluída em
+                  </SortableTh>
+                  <SortableTh
+                    column="observacao"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Observação da conclusão
+                  </SortableTh>
+                  <SortableTh
+                    column="situacao"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Situação
+                  </SortableTh>
                   {canWrite ? <th style={{ width: '14rem' }}>Ações</th> : null}
                 </tr>
               </thead>
               <tbody>
-                {!loading && rows.length === 0 ? (
+                {!loading && sorted.length === 0 ? (
                   <tr>
                     <td colSpan={canWrite ? 7 : 6} className="muted" style={{ padding: '1.25rem' }}>
                       Nenhuma tarefa neste filtro.
@@ -261,7 +306,7 @@ export function BacklogPage() {
                     </td>
                   </tr>
                 ) : (
-                  rows.map((row) => {
+                  sorted.map((row) => {
                     const isEditing = editingId === row.id;
                     const isConcluding = concludingId === row.id;
                     const saving = savingId === row.id;

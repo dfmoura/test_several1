@@ -1,6 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { SortableTh } from './SortableTh';
 import { linhasConsolidado, type LinhaConsolidado } from '../lib/estoqueUi';
 import { formatQty } from '../lib/format';
+import { useTableSort } from '../lib/useTableSort';
 import { formatVolumeDimensao } from '../lib/volumeEtiquetaPrint';
 import type { EstoqueSaldo } from '../lib/api';
 
@@ -28,9 +30,18 @@ function CelulaVazia() {
   return <span className="muted">—</span>;
 }
 
+const SORT = {
+  produto: (l: LinhaConsolidado<EstoqueSaldo>) => rotuloProduto(l.saldo),
+  dimensao: (l: LinhaConsolidado<EstoqueSaldo>) =>
+    formatVolumeDimensao(l.largura_mm, l.comprimento_m),
+  qtde: (l: LinhaConsolidado<EstoqueSaldo>) => Number(l.qtde),
+  volumes: (l: LinhaConsolidado<EstoqueSaldo>) => l.volumes,
+};
+
 export function EstoqueConsolidadoPanel({ saldos, q, familia }: Props) {
   const navigate = useNavigate();
   const linhas = linhasConsolidado(saldos, q, familia);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(linhas, SORT);
 
   if (linhas.length === 0) {
     return <div className="empty-state">Nenhum item nesta posição com o filtro atual.</div>;
@@ -42,15 +53,37 @@ export function EstoqueConsolidadoPanel({ saldos, q, familia }: Props) {
         <table className="data-table estoque-dense-table estoque-posicao-table">
           <thead>
             <tr>
-              <th>Produto</th>
-              <th>Dimensão</th>
-              <th className="num">Quantidade</th>
-              <th className="num">Volumes</th>
+              <SortableTh column="produto" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                Produto
+              </SortableTh>
+              <SortableTh column="dimensao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                Dimensão
+              </SortableTh>
+              <SortableTh
+                column="qtde"
+                sorts={sorts}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={requestSort}
+                className="num"
+              >
+                Quantidade
+              </SortableTh>
+              <SortableTh
+                column="volumes"
+                sorts={sorts}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={requestSort}
+                className="num"
+              >
+                Volumes
+              </SortableTh>
               <th className="acoes" />
             </tr>
           </thead>
           <tbody>
-            {linhas.map((linha) => (
+            {sorted.map((linha) => (
               <Linha key={linha.key} linha={linha} onOpen={(to) => navigate(to)} />
             ))}
           </tbody>

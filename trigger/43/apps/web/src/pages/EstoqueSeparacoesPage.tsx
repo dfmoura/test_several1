@@ -1,9 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { api, type EstoqueSeparacaoCard, type EstoqueSeparacaoFila } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
+import { useTableSort } from '../lib/useTableSort';
+
+const SORT = {
+  pedido: (c: EstoqueSeparacaoCard) => c.pedido_codigo,
+  cliente: (c: EstoqueSeparacaoCard) => c.parceiro?.razao_social,
+  produto: (c: EstoqueSeparacaoCard) =>
+    c.produto ? `${c.produto.codigo} · ${c.produto.descricao}` : c.descricao,
+  qtde: (c: EstoqueSeparacaoCard) => Number(c.qtde),
+  local: (c: EstoqueSeparacaoCard) => c.primeiro_local,
+};
 
 /**
  * Porta do estoque para revenda.
@@ -34,6 +45,8 @@ export function EstoqueSeparacoesPage() {
   }, []);
 
   const n = fila?.resumo.a_separar ?? 0;
+  const rows = useMemo(() => fila?.a_separar ?? [], [fila]);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, SORT);
 
   return (
     <div className="page">
@@ -60,21 +73,62 @@ export function EstoqueSeparacoesPage() {
                 ? 'Nada de revenda para separar nesta empresa.'
                 : `${n} item${n === 1 ? '' : 's'} a separar.`}
             </p>
-            {fila.a_separar.length === 0 ? null : (
+            {sorted.length === 0 ? null : (
               <div className="table-wrap">
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Pedido</th>
-                      <th>Cliente</th>
-                      <th>Produto</th>
-                      <th>Quantidade</th>
-                      <th>Primeiro local</th>
+                      <SortableTh
+                        column="pedido"
+                        sorts={sorts}
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={requestSort}
+                      >
+                        Pedido
+                      </SortableTh>
+                      <SortableTh
+                        column="cliente"
+                        sorts={sorts}
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={requestSort}
+                      >
+                        Cliente
+                      </SortableTh>
+                      <SortableTh
+                        column="produto"
+                        sorts={sorts}
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={requestSort}
+                      >
+                        Produto
+                      </SortableTh>
+                      <SortableTh
+                        column="qtde"
+                        sorts={sorts}
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={requestSort}
+                        className="num"
+                      >
+                        Quantidade
+                      </SortableTh>
+                      <SortableTh
+                        column="local"
+                        sorts={sorts}
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={requestSort}
+                      >
+                        Primeiro local
+                      </SortableTh>
                       <th className="acoes" />
                     </tr>
                   </thead>
                   <tbody>
-                    {fila.a_separar.map((c) => (
+                    {sorted.map((c) => (
                       <Linha key={c.pedido_item_id} card={c} />
                     ))}
                   </tbody>

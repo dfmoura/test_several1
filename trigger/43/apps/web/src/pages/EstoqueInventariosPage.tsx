@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEven
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import {
   ApiError,
@@ -20,6 +21,17 @@ import {
   invTipoLabel,
 } from '../lib/comprasUi';
 import { formatDateTime, formatQty } from '../lib/format';
+import { useTableSort } from '../lib/useTableSort';
+
+const LISTA_SORT = {
+  codigo: (inv: EstoqueInventario) => inv.codigo,
+  tipo: (inv: EstoqueInventario) => inv.tipo,
+  status: (inv: EstoqueInventario) => inv.status,
+  skus: (inv: EstoqueInventario) => inv.itens_count,
+  acuracidade: (inv: EstoqueInventario) =>
+    inv.acuracidade_pct != null ? Number(inv.acuracidade_pct) : null,
+  inicio: (inv: EstoqueInventario) => inv.iniciado_em,
+};
 
 type ItemAction = 'contar1' | 'contar2' | 'gerar';
 
@@ -65,6 +77,10 @@ function InventarioList() {
   const [selected, setSelected] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [cancelingId, setCancelingId] = useState<number | null>(null);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(lista, LISTA_SORT, {
+    initialKey: 'inicio',
+    initialDir: 'desc',
+  });
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -261,31 +277,75 @@ function InventarioList() {
         <div className="table-wrap table-wrap--freeze">
           {loading ? (
             <div className="loading">Carregando…</div>
-          ) : lista.length === 0 ? (
+          ) : sorted.length === 0 ? (
             <div className="empty-state">Nenhum inventário.</div>
           ) : (
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Código</th>
-                  <th>Tipo</th>
-                  <th>Status</th>
-                  <th>SKUs</th>
-                  <th>Acuracidade</th>
-                  <th>Início</th>
+                  <SortableTh
+                    column="codigo"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Código
+                  </SortableTh>
+                  <SortableTh column="tipo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Tipo
+                  </SortableTh>
+                  <SortableTh
+                    column="status"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Status
+                  </SortableTh>
+                  <SortableTh
+                    column="skus"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                    className="num"
+                  >
+                    SKUs
+                  </SortableTh>
+                  <SortableTh
+                    column="acuracidade"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                    className="num"
+                  >
+                    Acuracidade
+                  </SortableTh>
+                  <SortableTh
+                    column="inicio"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Início
+                  </SortableTh>
                   <th />
                 </tr>
               </thead>
               <tbody>
-                {lista.map((inv) => (
+                {sorted.map((inv) => (
                   <tr key={inv.id}>
                     <td>{inv.codigo}</td>
                     <td>{invTipoLabel(inv.tipo)}</td>
                     <td>
                       <StatusPill status={invStatusLabel(inv.status)} />
                     </td>
-                    <td>{inv.itens_count}</td>
-                    <td>{inv.acuracidade_pct ? `${inv.acuracidade_pct}%` : '—'}</td>
+                    <td className="num">{inv.itens_count}</td>
+                    <td className="num">{inv.acuracidade_pct ? `${inv.acuracidade_pct}%` : '—'}</td>
                     <td>{formatDateTime(inv.iniciado_em)}</td>
                     <td>
                       <div className="table-actions">

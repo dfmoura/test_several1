@@ -5,6 +5,7 @@ import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
 import { EstoqueQrFilaPanel } from '../components/EstoqueQrFilaPanel';
 import { IconAlertCircle, IconBan, IconCheck, IconEye, IconTag } from '../components/NavIcons';
 import { ProdutoCombobox } from '../components/ProdutoCombobox';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { useEstoqueQrFila } from '../hooks/useEstoqueQrFila';
 import {
@@ -41,6 +42,19 @@ import {
   proximoCodigoVolume,
   reservarCodigoVolume,
 } from '../lib/volumeCodigoSequencia';
+import { useTableSort } from '../lib/useTableSort';
+
+const AJUSTES_SORT = {
+  aju: (a: EstoqueAjuste) => a.codigo,
+  sku: (a: EstoqueAjuste) => a.produto?.codigo,
+  sist: (a: EstoqueAjuste) => Number(a.qtde_sistema),
+  cont: (a: EstoqueAjuste) => Number(a.qtde_contada),
+  delta: (a: EstoqueAjuste) => Number(a.qtde_diferenca),
+  valor: (a: EstoqueAjuste) => (a.valor_ajuste != null ? Number(a.valor_ajuste) : null),
+  motivo: (a: EstoqueAjuste) => a.motivo_codigo,
+  alcada: (a: EstoqueAjuste) => a.alcada,
+  status: (a: EstoqueAjuste) => a.status,
+};
 
 /** Normaliza un. para comparar M2 (aceita M² / m²). */
 function normUnidadeAjuste(u: string | null | undefined): string {
@@ -366,6 +380,10 @@ export function EstoqueAjustesPage() {
   const [de, setDe] = useState('');
   const [ate, setAte] = useState('');
   const [statusFiltro, setStatusFiltro] = useState('PENDENTE');
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(ajustes, AJUSTES_SORT, {
+    initialKey: 'aju',
+    initialDir: 'desc',
+  });
 
   const [produto, setProduto] = useState<Produto | null>(null);
   const [motivo, setMotivo] = useState('A01');
@@ -1712,7 +1730,7 @@ export function EstoqueAjustesPage() {
           <div className="table-wrap table-wrap--freeze" style={{ margin: 0 }}>
             {loading ? (
               <div className="loading">Carregando…</div>
-            ) : ajustes.length === 0 ? (
+            ) : sorted.length === 0 ? (
               <div className="empty-state">
                 {statusFiltro === 'PENDENTE'
                   ? 'Nenhum ajuste pendente de aprovação.'
@@ -1722,20 +1740,84 @@ export function EstoqueAjustesPage() {
               <table className="data-table estoque-ajustes-table">
                 <thead>
                   <tr>
-                    <th>AJU</th>
-                    <th>SKU</th>
-                    <th className="num">Sist.</th>
-                    <th className="num">Cont.</th>
-                    <th className="num">Δ</th>
-                    <th className="num">R$</th>
-                    <th>Motivo</th>
-                    <th>Alçada</th>
-                    <th>Status</th>
+                    <SortableTh column="aju" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      AJU
+                    </SortableTh>
+                    <SortableTh column="sku" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      SKU
+                    </SortableTh>
+                    <SortableTh
+                      column="sist"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      className="num"
+                    >
+                      Sist.
+                    </SortableTh>
+                    <SortableTh
+                      column="cont"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      className="num"
+                    >
+                      Cont.
+                    </SortableTh>
+                    <SortableTh
+                      column="delta"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      className="num"
+                    >
+                      Δ
+                    </SortableTh>
+                    <SortableTh
+                      column="valor"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      className="num"
+                    >
+                      R$
+                    </SortableTh>
+                    <SortableTh
+                      column="motivo"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                    >
+                      Motivo
+                    </SortableTh>
+                    <SortableTh
+                      column="alcada"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                    >
+                      Alçada
+                    </SortableTh>
+                    <SortableTh
+                      column="status"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                    >
+                      Status
+                    </SortableTh>
                     <th className="acoes" />
                   </tr>
                 </thead>
                 <tbody>
-                  {ajustes.map((a) => {
+                  {sorted.map((a) => {
                     const resumoVolumes = ajuResumoVolumesLinha(a);
                     const aguardandoAlcada =
                       a.status === 'PENDENTE' &&

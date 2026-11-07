@@ -4,6 +4,7 @@ import { PageHeader } from '../components/PageHeader';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
 import { IconTag } from '../components/NavIcons';
 import { LocalSaldoCampo, type LocalSaldo } from '../components/LocalSaldoCampo';
+import { SortableTh } from '../components/SortableTh';
 import {
   api,
   ApiError,
@@ -15,6 +16,7 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatQty } from '../lib/format';
+import { useTableSort } from '../lib/useTableSort';
 import { formatVolumeDimensao } from '../lib/volumeEtiquetaPrint';
 
 const LOCAIS_INICIAIS = 72;
@@ -47,6 +49,18 @@ type LinhaSaldoLocal = {
   qtde: string;
   unidade: string;
   etiquetaId: number | null;
+};
+
+const SEM_LOCAL_SORT = {
+  item: (i: EstoqueMapaItemSemVolume) => i.codigo,
+  qtde: (i: EstoqueMapaItemSemVolume) => Number(i.qtde),
+};
+
+const SALDO_LOCAL_SORT = {
+  codigo: (l: LinhaSaldoLocal) => l.codigo,
+  descricao: (l: LinhaSaldoLocal) => l.descricao,
+  medida: (l: LinhaSaldoLocal) => l.medida,
+  qtde: (l: LinhaSaldoLocal) => Number(l.qtde),
 };
 
 /** Saldo do local numa lista só: item sem volume e volume, ordenados pelo código. */
@@ -147,6 +161,20 @@ export function EstoqueMapaPage() {
     () => linhasDoLocal(selecionado?.itens, volumes),
     [selecionado, volumes],
   );
+  const {
+    sorted: semLocalSorted,
+    sorts: semLocalSorts,
+    sortKey: semLocalSortKey,
+    sortDir: semLocalSortDir,
+    requestSort: requestSemLocalSort,
+  } = useTableSort(semLocal, SEM_LOCAL_SORT);
+  const {
+    sorted: saldoSorted,
+    sorts: saldoSorts,
+    sortKey: saldoSortKey,
+    sortDir: saldoSortDir,
+    requestSort: requestSaldoSort,
+  } = useTableSort(linhasSaldo, SALDO_LOCAL_SORT);
 
   const visiveis = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -396,13 +424,30 @@ export function EstoqueMapaPage() {
               <table className="estoque-dense-table">
                 <thead>
                   <tr>
-                    <th>Item</th>
-                    <th className="num">Qtde</th>
+                    <SortableTh
+                      column="item"
+                      sorts={semLocalSorts}
+                      sortKey={semLocalSortKey}
+                      sortDir={semLocalSortDir}
+                      onSort={requestSemLocalSort}
+                    >
+                      Item
+                    </SortableTh>
+                    <SortableTh
+                      column="qtde"
+                      sorts={semLocalSorts}
+                      sortKey={semLocalSortKey}
+                      sortDir={semLocalSortDir}
+                      onSort={requestSemLocalSort}
+                      className="num"
+                    >
+                      Qtde
+                    </SortableTh>
                     <th>Local</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {semLocal.map((item) => (
+                  {semLocalSorted.map((item) => (
                     <tr key={item.produto_id}>
                       <td>
                         <div>{item.codigo}</div>
@@ -600,20 +645,53 @@ export function EstoqueMapaPage() {
                 {loadingVolumes && <p className="muted">Carregando volumes…</p>}
                 {erroVolumes && <div className="alert alert-error">{erroVolumes}</div>}
 
-                {linhasSaldo.length > 0 && (
+                {saldoSorted.length > 0 && (
                   <div className="table-wrap">
                     <table className="data-table estoque-dense-table estoque-mapa-saldo">
                       <thead>
                         <tr>
-                          <th>Código</th>
-                          <th>Descrição</th>
-                          <th>Medida</th>
-                          <th className="num">Quantidade</th>
+                          <SortableTh
+                            column="codigo"
+                            sorts={saldoSorts}
+                            sortKey={saldoSortKey}
+                            sortDir={saldoSortDir}
+                            onSort={requestSaldoSort}
+                          >
+                            Código
+                          </SortableTh>
+                          <SortableTh
+                            column="descricao"
+                            sorts={saldoSorts}
+                            sortKey={saldoSortKey}
+                            sortDir={saldoSortDir}
+                            onSort={requestSaldoSort}
+                          >
+                            Descrição
+                          </SortableTh>
+                          <SortableTh
+                            column="medida"
+                            sorts={saldoSorts}
+                            sortKey={saldoSortKey}
+                            sortDir={saldoSortDir}
+                            onSort={requestSaldoSort}
+                          >
+                            Medida
+                          </SortableTh>
+                          <SortableTh
+                            column="qtde"
+                            sorts={saldoSorts}
+                            sortKey={saldoSortKey}
+                            sortDir={saldoSortDir}
+                            onSort={requestSaldoSort}
+                            className="num"
+                          >
+                            Quantidade
+                          </SortableTh>
                           <th className="acoes" aria-label="Ações" />
                         </tr>
                       </thead>
                       <tbody>
-                        {linhasSaldo.map((linha) => (
+                        {saldoSorted.map((linha) => (
                           <tr key={linha.key}>
                             <td className="codigo" title={linha.codigo}>
                               {linha.codigo}

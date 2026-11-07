@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { IconMapPin, IconRastreio, IconTag } from './NavIcons';
+import { SortableTh } from './SortableTh';
 import { StatusPill } from './StatusPill';
 import {
   linhasPosicao,
@@ -10,6 +11,7 @@ import {
 } from '../lib/estoqueUi';
 import { formatDate, formatQty } from '../lib/format';
 import { validadeStatusLabel } from '../lib/produtoLotePolitica';
+import { useTableSort } from '../lib/useTableSort';
 import { formatVolumeDimensao } from '../lib/volumeEtiquetaPrint';
 
 type SaldoLinha = ItemPosicao['saldo'];
@@ -73,6 +75,20 @@ function CelulaVazia() {
   return <span className="muted">—</span>;
 }
 
+const SORT = {
+  produto: (r: Registro) => rotuloProduto(r.saldo),
+  volume: (r: Registro) => (r.tipo === 'volume' ? r.volume.codigo : null),
+  dimensao: (r: Registro) =>
+    r.tipo === 'volume'
+      ? formatVolumeDimensao(r.formato.largura_mm, r.formato.comprimento_m)
+      : null,
+  qtde: (r: Registro) => Number(r.tipo === 'volume' ? r.volume.qtde : r.saldo.qtde),
+  situacao: (r: Registro) =>
+    r.tipo === 'volume' ? r.volume.status_label || r.volume.status : null,
+  local: (r: Registro) =>
+    r.tipo === 'volume' ? r.volume.endereco?.codigo : r.saldo.local?.codigo,
+};
+
 function registrosDaPosicao(itens: ItemPosicao[], situacao: string): Registro[] {
   const out: Registro[] = [];
   for (const linha of linhasPosicao(itens)) {
@@ -101,6 +117,7 @@ function registrosDaPosicao(itens: ItemPosicao[], situacao: string): Registro[] 
 export function EstoquePosicaoPanel({ itens, podeRastreio, situacao = '' }: Props) {
   const navigate = useNavigate();
   const registros = registrosDaPosicao(itens, situacao);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(registros, SORT);
 
   if (registros.length === 0) {
     return <div className="empty-state">Nenhum item nesta posição com o filtro atual.</div>;
@@ -112,17 +129,42 @@ export function EstoquePosicaoPanel({ itens, podeRastreio, situacao = '' }: Prop
         <table className="data-table estoque-dense-table estoque-posicao-table">
           <thead>
             <tr>
-              <th>Produto</th>
-              <th>Volume</th>
-              <th>Dimensão</th>
-              <th className="num">Quantidade</th>
-              <th>Situação</th>
-              <th>Local</th>
+              <SortableTh column="produto" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                Produto
+              </SortableTh>
+              <SortableTh column="volume" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                Volume
+              </SortableTh>
+              <SortableTh column="dimensao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                Dimensão
+              </SortableTh>
+              <SortableTh
+                column="qtde"
+                sorts={sorts}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={requestSort}
+                className="num"
+              >
+                Quantidade
+              </SortableTh>
+              <SortableTh
+                column="situacao"
+                sorts={sorts}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={requestSort}
+              >
+                Situação
+              </SortableTh>
+              <SortableTh column="local" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                Local
+              </SortableTh>
               <th className="acoes" />
             </tr>
           </thead>
           <tbody>
-            {registros.map((registro) => {
+            {sorted.map((registro) => {
               const produto = rotuloProduto(registro.saldo);
               const extrato = `/estoque/extrato/${registro.saldo.produto_id}`;
               if (registro.tipo === 'item') {

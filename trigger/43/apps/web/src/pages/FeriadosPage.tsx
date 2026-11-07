@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { NumericInput } from '../components/NumericInput';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type Feriado } from '../lib/api';
 import { formatDate } from '../lib/format';
 import { useAuth } from '../lib/auth';
+import { useTableSort } from '../lib/useTableSort';
 
 const TIPOS: Array<{ value: Feriado['tipo']; label: string }> = [
   { value: 'NACIONAL', label: 'Nacional' },
@@ -15,6 +17,14 @@ const TIPOS: Array<{ value: Feriado['tipo']; label: string }> = [
 
 const tipoLabel = (tipo: Feriado['tipo']) =>
   TIPOS.find((t) => t.value === tipo)?.label ?? tipo;
+
+const SORT = {
+  data: (r: Feriado) => r.data,
+  nome: (r: Feriado) => r.nome,
+  tipo: (r: Feriado) => r.tipo,
+  anual: (r: Feriado) => (r.recorrente_anual ? 0 : 1),
+  situacao: (r: Feriado) => (r.ativo ? 0 : 1),
+};
 
 export function FeriadosPage() {
   const { hasPermission } = useAuth();
@@ -30,6 +40,10 @@ export function FeriadosPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState<Partial<Feriado>>({});
   const [savingId, setSavingId] = useState<number | null>(null);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, SORT, {
+    initialKey: 'data',
+    initialDir: 'asc',
+  });
   const [novo, setNovo] = useState({
     data: '',
     nome: '',
@@ -283,16 +297,32 @@ export function FeriadosPage() {
             <table className="data-table nat-table">
               <thead>
                 <tr>
-                  <th style={{ width: '9rem' }}>Data</th>
-                  <th>Nome</th>
-                  <th style={{ width: '7rem' }}>Tipo</th>
-                  <th style={{ width: '6rem' }}>Anual</th>
-                  <th style={{ width: '7rem' }}>Situação</th>
+                  <SortableTh column="data" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Data
+                  </SortableTh>
+                  <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Nome
+                  </SortableTh>
+                  <SortableTh column="tipo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Tipo
+                  </SortableTh>
+                  <SortableTh column="anual" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Anual
+                  </SortableTh>
+                  <SortableTh
+                    column="situacao"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Situação
+                  </SortableTh>
                   <th style={{ width: '14rem' }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {!loading && rows.length === 0 ? (
+                {!loading && sorted.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="muted" style={{ padding: '1.25rem' }}>
                       Nenhum feriado neste ano.
@@ -302,7 +332,7 @@ export function FeriadosPage() {
                     </td>
                   </tr>
                 ) : (
-                  rows.map((row) => {
+                  sorted.map((row) => {
                     const isEditing = editingId === row.id;
                     const saving = savingId === row.id;
                     return (

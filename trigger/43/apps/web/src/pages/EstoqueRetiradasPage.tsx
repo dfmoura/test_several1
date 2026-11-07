@@ -2,10 +2,22 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type EstoqueRetiradaCard, type EstoqueRetiradasFila } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { opStatusLabel } from '../lib/producaoUi';
+import { useTableSort } from '../lib/useTableSort';
+
+const SORT = {
+  op: (c: EstoqueRetiradaCard) => c.codigo,
+  pedido: (c: EstoqueRetiradaCard) => c.pedido?.codigo,
+  cliente: (c: EstoqueRetiradaCard) => c.parceiro?.razao_social,
+  falta: (c: EstoqueRetiradaCard) => c.linhas_pendentes,
+  saiu: (c: EstoqueRetiradaCard) => c.linhas_baixadas,
+  local: (c: EstoqueRetiradaCard) => c.primeiro_local,
+  status: (c: EstoqueRetiradaCard) => c.status,
+};
 
 /**
  * Porta do estoque — o que sai da prateleira.
@@ -101,6 +113,7 @@ function Secao({
   acao: string | null;
   nota?: string;
 }) {
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(cards, SORT);
   return (
     <div className="card" style={{ marginBottom: '1rem' }}>
       <div className="card-body">
@@ -119,26 +132,54 @@ function Secao({
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>OP</th>
-                  <th>Pedido</th>
-                  <th>Cliente</th>
-                  <th>Falta pegar</th>
-                  <th>Já saiu</th>
-                  <th>Primeiro local</th>
-                  <th>Status</th>
+                  <SortableTh column="op" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    OP
+                  </SortableTh>
+                  <SortableTh column="pedido" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Pedido
+                  </SortableTh>
+                  <SortableTh column="cliente" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Cliente
+                  </SortableTh>
+                  <SortableTh
+                    column="falta"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                    className="num"
+                  >
+                    Falta pegar
+                  </SortableTh>
+                  <SortableTh
+                    column="saiu"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                    className="num"
+                  >
+                    Já saiu
+                  </SortableTh>
+                  <SortableTh column="local" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Primeiro local
+                  </SortableTh>
+                  <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Status
+                  </SortableTh>
                   {acao ? <th className="acoes" /> : null}
                 </tr>
               </thead>
               <tbody>
-                {cards.map((c) => (
+                {sorted.map((c) => (
                   <tr key={c.id}>
                     <td>
                       <strong>{c.codigo}</strong>
                     </td>
                     <td>{c.pedido?.codigo ?? '—'}</td>
                     <td>{c.parceiro?.razao_social ?? '—'}</td>
-                    <td>{c.linhas_pendentes}</td>
-                    <td>{c.linhas_baixadas}</td>
+                    <td className="num">{c.linhas_pendentes}</td>
+                    <td className="num">{c.linhas_baixadas}</td>
                     <td>{c.primeiro_local ?? '—'}</td>
                     <td>
                       <StatusPill status={opStatusLabel(c.status)} />

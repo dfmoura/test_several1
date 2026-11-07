@@ -1,10 +1,12 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type EntregaFilaItem } from '../lib/api';
 import { entStatusLabel, modoEntregaLabel } from '../lib/expedicaoUi';
 import { pedStatusLabel } from '../lib/producaoUi';
+import { useTableSort } from '../lib/useTableSort';
 
 function activateRow(e: KeyboardEvent, go: () => void) {
   if (e.key === 'Enter' || e.key === ' ') {
@@ -20,11 +22,22 @@ function acaoLabel(item: EntregaFilaItem): string {
   return 'Ver pedido';
 }
 
+const SORT = {
+  pedido: (r: EntregaFilaItem) => r.pedido_codigo,
+  cliente: (r: EntregaFilaItem) => r.parceiro?.razao_social,
+  saida: (r: EntregaFilaItem) => r.modo,
+  situacao: (r: EntregaFilaItem) =>
+    r.entrega ? entStatusLabel(r.entrega.status) : pedStatusLabel(r.pedido_status),
+  romaneio: (r: EntregaFilaItem) => r.entrega?.codigo,
+  passo: (r: EntregaFilaItem) => acaoLabel(r),
+};
+
 export function ExpedicaoPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<EntregaFilaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, SORT);
 
   const load = async () => {
     setLoading(true);
@@ -53,15 +66,15 @@ export function ExpedicaoPage() {
       {erro ? <p className="form-error">{erro}</p> : null}
 
       <div className="card">
-        {!loading && rows.length > 0 ? (
+        {!loading && sorted.length > 0 ? (
           <div className="card-body" style={{ paddingBottom: 0 }}>
-            <span className="form-hint">{rows.length} pedido(s) na expedição desta EMP</span>
+            <span className="form-hint">{sorted.length} pedido(s) na expedição desta EMP</span>
           </div>
         ) : null}
         <div className="table-wrap table-wrap--freeze">
           {loading ? (
             <div className="loading">Carregando…</div>
-          ) : rows.length === 0 ? (
+          ) : sorted.length === 0 ? (
             <div className="empty-state">
               Nenhum pedido na expedição. Fature o produzido — a fila aparece aqui em seguida.
             </div>
@@ -69,16 +82,40 @@ export function ExpedicaoPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Pedido</th>
-                  <th>Cliente</th>
-                  <th>Saída</th>
-                  <th>Situação</th>
-                  <th>Romaneio</th>
-                  <th>Próximo passo</th>
+                  <SortableTh column="pedido" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Pedido
+                  </SortableTh>
+                  <SortableTh column="cliente" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Cliente
+                  </SortableTh>
+                  <SortableTh column="saida" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Saída
+                  </SortableTh>
+                  <SortableTh
+                    column="situacao"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Situação
+                  </SortableTh>
+                  <SortableTh
+                    column="romaneio"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Romaneio
+                  </SortableTh>
+                  <SortableTh column="passo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Próximo passo
+                  </SortableTh>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => {
+                {sorted.map((row) => {
                   const dest = row.entrega?.id
                     ? `/expedicao/${row.entrega.id}`
                     : `/expedicao/pedido/${row.pedido_id}`;

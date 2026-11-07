@@ -1,9 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { api } from '../lib/api';
 import { formatCnpjCpf, formatCurrency, formatDate } from '../lib/format';
 import { appendPeriodo, currentMonthRange, hasPeriodo } from '../lib/periodo';
+import { useTableSort } from '../lib/useTableSort';
 
 type Nota = {
   id: number;
@@ -14,6 +16,13 @@ type Nota = {
   valor_total: string | null;
 };
 
+const SORT = {
+  emissao: (n: Nota) => n.data_emissao,
+  numero: (n: Nota) => n.numero,
+  prestador: (n: Nota) => n.emit_nome,
+  valor: (n: Nota) => Number(n.valor_total ?? 0),
+};
+
 export function ComprasNfseVinculadasPage() {
   const mesAtual = currentMonthRange();
   const [rows, setRows] = useState<Nota[]>([]);
@@ -22,6 +31,10 @@ export function ComprasNfseVinculadasPage() {
   const [ate, setAte] = useState(mesAtual.ate);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, SORT, {
+    initialKey: 'emissao',
+    initialDir: 'desc',
+  });
 
   const load = async (search?: string, deVal?: string, ateVal?: string) => {
     setLoading(true);
@@ -94,7 +107,7 @@ export function ComprasNfseVinculadasPage() {
         <div className="table-wrap">
           {loading ? (
             <div className="loading">Carregando…</div>
-          ) : rows.length === 0 ? (
+          ) : sorted.length === 0 ? (
             <div className="empty-state">
               {hasPeriodo(de, ate) || q.trim()
                 ? 'Nenhuma NFS-e vinculada neste período.'
@@ -105,15 +118,48 @@ export function ComprasNfseVinculadasPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Emissão</th>
-                  <th>Número</th>
-                  <th>Prestador</th>
-                  <th>Valor</th>
+                  <SortableTh
+                    column="emissao"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Emissão
+                  </SortableTh>
+                  <SortableTh
+                    column="numero"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Número
+                  </SortableTh>
+                  <SortableTh
+                    column="prestador"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Prestador
+                  </SortableTh>
+                  <SortableTh
+                    column="valor"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                    className="num"
+                  >
+                    Valor
+                  </SortableTh>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((n) => (
+                {sorted.map((n) => (
                   <tr key={n.id}>
                     <td>{n.data_emissao ? formatDate(n.data_emissao) : '—'}</td>
                     <td>{n.numero || '—'}</td>
@@ -121,7 +167,7 @@ export function ComprasNfseVinculadasPage() {
                       {n.emit_nome || '—'}
                       {n.emit_cnpj ? <div className="muted">{formatCnpjCpf(n.emit_cnpj)}</div> : null}
                     </td>
-                    <td>{n.valor_total ? formatCurrency(Number(n.valor_total)) : '—'}</td>
+                    <td className="num">{n.valor_total ? formatCurrency(Number(n.valor_total)) : '—'}</td>
                     <td>
                       <Link to={`/compras/nfse-tomadas/${n.id}`}>Abrir</Link>
                     </td>

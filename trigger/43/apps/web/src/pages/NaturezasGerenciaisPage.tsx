@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type NaturezaGerencial } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { useTableSort } from '../lib/useTableSort';
 
 const GRUPO_LABELS: Record<number, string> = {
   1: 'Receitas',
@@ -13,6 +15,14 @@ const GRUPO_LABELS: Record<number, string> = {
 };
 
 type EditDraft = { nome: string; descricao: string };
+
+/** Ordena só as raízes — filhos permanecem sob o pai (hierarquia NAT). */
+const SORT = {
+  codigo: (n: NaturezaGerencial) => n.codigo_exibicao || n.codigo,
+  nome: (n: NaturezaGerencial) => n.nome,
+  tipo: (n: NaturezaGerencial) => (n.aceita_lancamento ? 1 : 0),
+  situacao: (n: NaturezaGerencial) => (n.ativo ? 0 : 1),
+};
 
 function flatten(nodes: NaturezaGerencial[]): NaturezaGerencial[] {
   const out: NaturezaGerencial[] = [];
@@ -175,6 +185,7 @@ export function NaturezasGerenciaisPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState<EditDraft>({ nome: '', descricao: '' });
   const [savingId, setSavingId] = useState<number | null>(null);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(tree, SORT);
 
   const load = useCallback(async (opts?: { grupo?: string; q?: string; ativos?: boolean }) => {
     setLoading(true);
@@ -300,22 +311,36 @@ export function NaturezasGerenciaisPage() {
             <table className="data-table nat-table">
               <thead>
                 <tr>
-                  <th style={{ width: '18%' }}>Código</th>
-                  <th>Nome</th>
-                  <th style={{ width: '8rem' }}>Tipo</th>
-                  <th style={{ width: '7rem' }}>Situação</th>
+                  <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Código
+                  </SortableTh>
+                  <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Nome
+                  </SortableTh>
+                  <SortableTh column="tipo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Tipo
+                  </SortableTh>
+                  <SortableTh
+                    column="situacao"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Situação
+                  </SortableTh>
                   <th style={{ width: '12rem' }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {!loading && tree.length === 0 ? (
+                {!loading && sorted.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="muted" style={{ padding: '1.25rem' }}>
                       Nenhuma natureza encontrada.
                     </td>
                   </tr>
                 ) : (
-                  tree.map((node) => (
+                  sorted.map((node) => (
                     <NaturezaRow
                       key={node.id}
                       node={node}

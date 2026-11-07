@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type Departamento } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { useTableSort } from '../lib/useTableSort';
+
+const SORT = {
+  codigo: (r: Departamento) => r.codigo,
+  nome: (r: Departamento) => r.nome,
+  situacao: (r: Departamento) => (r.ativo ? 0 : 1),
+};
 
 export function DepartamentosPage() {
   const { hasPermission } = useAuth();
@@ -21,6 +29,7 @@ export function DepartamentosPage() {
   const [creating, setCreating] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [message, setMessage] = useState('');
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, SORT);
 
   const load = useCallback(async (opts?: { q?: string; ativos?: boolean }) => {
     setLoading(true);
@@ -208,14 +217,32 @@ export function DepartamentosPage() {
             <table className="data-table nat-table">
               <thead>
                 <tr>
-                  <th style={{ width: '18%' }}>Código</th>
-                  <th>Nome</th>
-                  <th style={{ width: '7rem' }}>Situação</th>
+                  <SortableTh
+                    column="codigo"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Código
+                  </SortableTh>
+                  <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Nome
+                  </SortableTh>
+                  <SortableTh
+                    column="situacao"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Situação
+                  </SortableTh>
                   <th style={{ width: '14rem' }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {!loading && rows.length === 0 ? (
+                {!loading && sorted.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="muted" style={{ padding: '1.25rem' }}>
                       Nenhum departamento nesta empresa.
@@ -225,7 +252,7 @@ export function DepartamentosPage() {
                     </td>
                   </tr>
                 ) : (
-                  rows.map((row) => {
+                  sorted.map((row) => {
                     const isEditing = editingId === row.id;
                     const saving = savingId === row.id;
                     return (

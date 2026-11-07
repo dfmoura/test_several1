@@ -1,10 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type ProducaoApontamentoCard, type ProducaoApontamentosFila } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
 import { opStatusLabel } from '../lib/producaoUi';
+import { useTableSort } from '../lib/useTableSort';
+
+const SORT = {
+  op: (c: ProducaoApontamentoCard) => c.codigo,
+  pedido: (c: ProducaoApontamentoCard) => c.pedido?.codigo,
+  cliente: (c: ProducaoApontamentoCard) => c.parceiro?.razao_social,
+  item: (c: ProducaoApontamentoCard) => c.pedido_item?.descricao,
+  planejado: (c: ProducaoApontamentoCard) => Number(c.qtde_planejada),
+  status: (c: ProducaoApontamentoCard) => c.status,
+};
 
 /**
  * Produção · A fechar — fila de OP com material já saído.
@@ -34,10 +45,14 @@ export function OpAFecharPage() {
     };
   }, []);
 
-  const cards: ProducaoApontamentoCard[] =
-    fila?.a_fechar ??
-    [...(fila?.a_receber ?? []), ...(fila?.a_apontar ?? [])];
+  const cards: ProducaoApontamentoCard[] = useMemo(
+    () =>
+      fila?.a_fechar ??
+      [...(fila?.a_receber ?? []), ...(fila?.a_apontar ?? [])],
+    [fila],
+  );
   const total = fila?.resumo.a_fechar ?? fila?.resumo.total ?? cards.length;
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(cards, SORT);
 
   return (
     <div className="page">
@@ -78,17 +93,60 @@ export function OpAFecharPage() {
                   <table className="data-table">
                     <thead>
                       <tr>
-                        <th>OP</th>
-                        <th>Pedido</th>
-                        <th>Cliente</th>
-                        <th>Item</th>
-                        <th className="num">Planejado</th>
-                        <th>Status</th>
+                        <SortableTh column="op" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                          OP
+                        </SortableTh>
+                        <SortableTh
+                          column="pedido"
+                          sorts={sorts}
+                          sortKey={sortKey}
+                          sortDir={sortDir}
+                          onSort={requestSort}
+                        >
+                          Pedido
+                        </SortableTh>
+                        <SortableTh
+                          column="cliente"
+                          sorts={sorts}
+                          sortKey={sortKey}
+                          sortDir={sortDir}
+                          onSort={requestSort}
+                        >
+                          Cliente
+                        </SortableTh>
+                        <SortableTh
+                          column="item"
+                          sorts={sorts}
+                          sortKey={sortKey}
+                          sortDir={sortDir}
+                          onSort={requestSort}
+                        >
+                          Item
+                        </SortableTh>
+                        <SortableTh
+                          column="planejado"
+                          sorts={sorts}
+                          sortKey={sortKey}
+                          sortDir={sortDir}
+                          onSort={requestSort}
+                          className="num"
+                        >
+                          Planejado
+                        </SortableTh>
+                        <SortableTh
+                          column="status"
+                          sorts={sorts}
+                          sortKey={sortKey}
+                          sortDir={sortDir}
+                          onSort={requestSort}
+                        >
+                          Status
+                        </SortableTh>
                         <th className="acoes" />
                       </tr>
                     </thead>
                     <tbody>
-                      {cards.map((c) => (
+                      {sorted.map((c) => (
                         <tr key={c.id}>
                           <td>
                             <strong>{c.codigo}</strong>
