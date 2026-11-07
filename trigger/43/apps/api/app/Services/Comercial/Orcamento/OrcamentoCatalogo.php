@@ -75,6 +75,21 @@ final class OrcamentoCatalogo
      */
     public array $acabamentoPorProduto = [];
 
+    /**
+     * Chaves normalizadas gravadas por `withOverrides` em `$papel`.
+     * Distingue override ORC de tarifa legado com o mesmo nome (SKU continua vencendo sem override).
+     *
+     * @var array<string, true>
+     */
+    private array $papelOverrideKeys = [];
+
+    /**
+     * Chaves normalizadas gravadas por `withOverrides` em `$acabamentos`.
+     *
+     * @var array<string, true>
+     */
+    private array $acabamentoOverrideKeys = [];
+
     /** @param array<string, float> $papel */
     public function __construct(
         public array $papel = [],
@@ -422,6 +437,8 @@ final class OrcamentoCatalogo
         $cat->acabamentosAtivosUi = $this->acabamentosAtivosUi;
         $cat->papelPorProduto = $this->papelPorProduto;
         $cat->acabamentoPorProduto = $this->acabamentoPorProduto;
+        $cat->papelOverrideKeys = $this->papelOverrideKeys;
+        $cat->acabamentoOverrideKeys = $this->acabamentoOverrideKeys;
         $cat->tiposTrocaAtivosUi = $this->tiposTrocaAtivosUi;
         $cat->maquinasAtivasUi = $this->maquinasAtivasUi;
 
@@ -432,7 +449,9 @@ final class OrcamentoCatalogo
         if (isset($overrides['papel']) && is_array($overrides['papel'])) {
             foreach ($overrides['papel'] as $k => $v) {
                 if ($v !== null && $v !== '') {
-                    $cat->papel[self::norm((string) $k)] = (float) $v;
+                    $nk = self::norm((string) $k);
+                    $cat->papel[$nk] = (float) $v;
+                    $cat->papelOverrideKeys[$nk] = true;
                 }
             }
         }
@@ -466,7 +485,9 @@ final class OrcamentoCatalogo
         if (isset($overrides['acabamentos']) && is_array($overrides['acabamentos'])) {
             foreach ($overrides['acabamentos'] as $k => $v) {
                 if ($v !== null && $v !== '') {
-                    $cat->acabamentos[self::norm((string) $k)] = (float) $v;
+                    $nk = self::norm((string) $k);
+                    $cat->acabamentos[$nk] = (float) $v;
+                    $cat->acabamentoOverrideKeys[$nk] = true;
                 }
             }
         }
@@ -569,11 +590,18 @@ final class OrcamentoCatalogo
     /**
      * SKU com preço no catálogo vence o nome. Sem preço na linha, o cálculo para.
      * Sem linha de SKU, o nome legado continua valendo.
+     * Override ORC (`withOverrides` → mapa por nome) vence o SKU neste ORC.
      *
      * @param  array<string, mixed>  $input
      */
     public function precoPapelEfetivo(array $input): float
     {
+        $nome = $this->nomePapelEfetivo($input);
+        $nomeN = self::norm($nome);
+        if ($nomeN !== '' && isset($this->papelOverrideKeys[$nomeN])) {
+            return $this->precoPapel($nome);
+        }
+
         $id = (int) ($input['papel_produto_id'] ?? 0);
         if ($id > 0 && array_key_exists($id, $this->papelPorProduto)) {
             $preco = $this->papelPorProduto[$id];
@@ -584,7 +612,7 @@ final class OrcamentoCatalogo
             return $preco;
         }
 
-        return $this->precoPapel($this->nomePapelEfetivo($input));
+        return $this->precoPapel($nome);
     }
 
     /**
@@ -606,11 +634,21 @@ final class OrcamentoCatalogo
 
     /**
      * Legado: nome exato do catálogo. Com SKU: tarifa casada, somando VERNIZ/COLA quando a tarifa não é a combinação pronta.
+     * Override ORC (`withOverrides` → mapa por nome/rótulo) vence o SKU neste ORC.
      *
      * @param  array<string, mixed>  $input
      */
     public function precoAcabamentoEfetivo(array $input): float
     {
+        $display = self::norm((string) ($input['acabamento'] ?? ''));
+        $tarifaPre = self::norm((string) ($input['acabamento_tarifa'] ?? ''));
+        if ($display !== '' && isset($this->acabamentoOverrideKeys[$display])) {
+            return (float) $this->acabamentos[$display];
+        }
+        if ($tarifaPre !== '' && isset($this->acabamentoOverrideKeys[$tarifaPre])) {
+            return (float) $this->acabamentos[$tarifaPre];
+        }
+
         $id = (int) ($input['acabamento_produto_id'] ?? 0);
         if ($id > 0 && array_key_exists($id, $this->acabamentoPorProduto)) {
             $row = $this->acabamentoPorProduto[$id];
@@ -634,8 +672,6 @@ final class OrcamentoCatalogo
             }
         }
 
-        $display = self::norm((string) ($input['acabamento'] ?? ''));
-        $tarifaPre = self::norm((string) ($input['acabamento_tarifa'] ?? ''));
         $novo = $tarifaPre !== '' || (int) ($input['acabamento_produto_id'] ?? 0) > 0;
         if (! $novo) {
             return $this->precoAcabamento($display);
