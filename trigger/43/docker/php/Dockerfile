@@ -1,5 +1,6 @@
 # Imagem PHP CLI — Lightsail enxuto (artisan serve, ≤10 users)
-FROM php:8.4-cli-bookworm
+# Fixo em 8.4.27 (CVE-2026-109618 / CVE-2026-109619). Não voltar à tag flutuante 8.4.
+FROM php:8.4.27-cli-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git unzip curl libzip-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev libicu-dev libonig-dev \
