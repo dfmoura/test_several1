@@ -460,8 +460,8 @@ export function OrcamentoFormPage() {
   const facaNova = form.faca_nova || facaSel?.faca_nova === true;
   const puxadaManual = !facaSel || facaIncompleta || facaSel.puxada == null || facaNova;
   const zManual = !facaSel || facaIncompleta || facaSel.z == null || facaNova;
-  const medidaManual = !facaSel || facaNova;
-  /** Linha Medida | Largura | Puxada após faca; Formato/Z só quando manuais. */
+  /** Linha Medida | Largura | Puxada após faca; Formato/Z só quando manuais.
+   *  Medida segue Largura papel: sugestão da faca, sempre ajustável (não trava o motor). */
   const showGeoRow = Boolean(facaSel);
   const showFormatoField = Boolean(facaSel) && facaNova;
   const showZField = Boolean(facaSel) && zManual;
@@ -1595,22 +1595,18 @@ export function OrcamentoFormPage() {
             />
             {showGeoRow ? (
               <div className="orc-geo-row faca-auto-fields">
-                <div className={`form-group${medidaManual ? ' manual-field' : ' auto-field'}`}>
-                  <label title={medidaManual ? undefined : 'Medida da faca selecionada'}>
-                    Medida
-                    {medidaManual ? (
-                      <span className="field-note">
-                        {' '}
-                        * {facaNova ? 'faca nova' : 'manual'}
-                      </span>
-                    ) : null}
+                <div className={`form-group${facaNova ? ' manual-field' : ''}`}>
+                  <label title="Sugestão da faca — ajuste se preciso">
+                    Medida *{' '}
+                    <span className="field-note">
+                      {facaNova ? 'faca nova' : 'sugestão da faca'}
+                    </span>
                   </label>
                   <input
                     value={form.medida}
                     onChange={(e) => setField('medida', e.target.value)}
                     placeholder="ex.: 8,0X12,4"
-                    disabled={!canWrite || !medidaManual}
-                    readOnly={!medidaManual}
+                    disabled={!canWrite}
                   />
                 </div>
                 <div className="form-group">
