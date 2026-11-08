@@ -11,7 +11,8 @@ import { buildItensResultadoUi, rotuloItemOrc } from '../lib/orcamentoResultadoI
 import { PageHeader } from '../components/PageHeader';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
 import { RevendaSkuCombobox, type RevendaSkuOpcao } from '../components/RevendaSkuCombobox';
-import { InsumoSkuCombobox, type InsumoSkuOpcao } from '../components/InsumoSkuCombobox';
+import type { InsumoSkuOpcao } from '../components/InsumoSkuCombobox';
+import { InsumoSkuPicker } from '../components/InsumoSkuPicker';
 import { FORMATOS_CANONICOS, mergeVocabulario } from '../lib/facasMapa';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { ProspectRapidoPanel } from '../components/ProspectRapidoPanel';
@@ -1716,11 +1717,11 @@ export function OrcamentoFormPage() {
                 </select>
               </div>
               <div className="form-group">
-                <InsumoSkuCombobox
+                <InsumoSkuPicker
                   slot="papel"
                   label="Papel *"
                   disabled={!canWrite}
-                  hint="Papel e filme com saldo (MP-PAP, MP-FLM)."
+                  hint="Papel e filme do cadastro (MP-PAP, MP-FLM). Saldo é informativo."
                   value={
                     form.papel
                       ? {
@@ -1747,12 +1748,12 @@ export function OrcamentoFormPage() {
                 />
               </div>
               <div className="form-group">
-                <InsumoSkuCombobox
+                <InsumoSkuPicker
                   slot="acabamento"
                   label="Acabamento"
                   disabled={!canWrite}
                   allowEmpty
-                  hint="Laminação ou cold com saldo (MP-LAM, MP-CLD)."
+                  hint="Laminação ou cold do cadastro (MP-LAM, MP-CLD). Saldo é informativo."
                   value={
                     form.acabamento_produto_id === ''
                       ? null

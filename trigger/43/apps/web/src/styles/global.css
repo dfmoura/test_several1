@@ -8130,8 +8130,109 @@ button.saida-etiqueta-badge--previewable:focus-visible {
   background: rgba(26, 53, 104, 0.1);
 }
 
+.faca-table tr.faca-row.is-active td {
+  background: rgba(26, 53, 104, 0.06);
+}
+
 .faca-table tr.faca-row.incompleta td {
   background: rgba(214, 137, 16, 0.1);
+}
+
+/* Overlay papel/acabamento no ORC — reusa faca-modal; trigger cabe no form-grid. */
+.insumo-sku-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.insumo-sku-picker > label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.insumo-sku-picker-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.insumo-sku-picker-summary.is-disabled {
+  opacity: 0.65;
+}
+
+.insumo-sku-picker-trigger {
+  min-width: 0;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.insumo-sku-picker-trigger:hover:not(:disabled) {
+  border-color: var(--navy-light);
+}
+
+.insumo-sku-picker-trigger:focus-visible {
+  outline: none;
+  border-color: var(--navy-light);
+  box-shadow: 0 0 0 3px rgba(26, 53, 104, 0.12);
+}
+
+.insumo-sku-picker-trigger:disabled {
+  cursor: not-allowed;
+}
+
+.insumo-sku-picker-valor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.insumo-sku-picker-codigo {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.insumo-sku-picker-desc {
+  font-size: 0.86rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.insumo-sku-picker-placeholder {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.insumo-sku-picker-actions {
+  display: flex;
+  align-items: stretch;
+}
+
+.insumo-sku-picker-panel {
+  width: min(820px, 100%);
+}
+
+.insumo-sku-picker-filters {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.insumo-sku-saldo.is-ok {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.insumo-sku-saldo.is-zero {
+  color: var(--text-muted);
 }
 
 .faca-table tr.faca-row.incompleta.selected td {

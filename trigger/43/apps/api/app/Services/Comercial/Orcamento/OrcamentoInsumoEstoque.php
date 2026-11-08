@@ -10,8 +10,9 @@ use App\Support\PadraoDecimal;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Papel e acabamento do ORC saem do cadastro com saldo.
- * Tubete no ORC é só polegada (1" / 1" 1/2 / 3") — ADR_CADASTRO_INSUMO_VOLUME.
+ * Papel e acabamento do ORC saem do cadastro MP ativo (saldo é informativo).
+ * Caixa/tubete na busca física ainda pedem saldo. Tubete no ORC é só polegada
+ * (1" / 1" 1/2 / 3") — ADR_CADASTRO_INSUMO_VOLUME.
  * A tarifa R$/m² continua no catálogo ORC — o nome do produto casa a linha.
  */
 final class OrcamentoInsumoEstoque
@@ -24,6 +25,9 @@ final class OrcamentoInsumoEstoque
 
     /** @var list<string> */
     public const COMPLEMENTOS = ['VERNIZ', 'COLA'];
+
+    /** Slots comerciais do ORC: cotar sem exigir estoque (gate de saldo = OP/saída). */
+    private const SLOTS_ORC_SEM_GATE_SALDO = ['papel', 'acabamento'];
 
     /**
      * @return list<array<string, mixed>>
@@ -61,32 +65,39 @@ final class OrcamentoInsumoEstoque
             return [];
         }
 
-        $comSaldo = $this->idsComSaldo($empresa);
         $incluirId = $incluirId !== null && $incluirId > 0 ? $incluirId : null;
-        $query->where(function ($g) use ($comSaldo, $incluirId) {
-            if ($comSaldo === []) {
-                $g->whereRaw('1 = 0');
-            } else {
-                $g->whereIn('id', $comSaldo);
-            }
-            if ($incluirId !== null) {
-                $g->orWhere('id', $incluirId);
-            }
-        });
+        $exigeSaldo = $this->slotExigeSaldo($slot);
 
-        if ($termo !== '') {
-            $query->where(function ($g) use ($termo) {
-                $g->where('codigo', 'like', '%'.$termo.'%')
-                    ->orWhere('descricao_fiscal', 'like', '%'.$termo.'%')
-                    ->orWhere('descricao_comercial', 'like', '%'.$termo.'%');
+        if ($exigeSaldo) {
+            $comSaldo = $this->idsComSaldo($empresa);
+            $query->where(function ($g) use ($comSaldo, $incluirId) {
+                if ($comSaldo === []) {
+                    $g->whereRaw('1 = 0');
+                } else {
+                    $g->whereIn('id', $comSaldo);
+                }
+                if ($incluirId !== null) {
+                    $g->orWhere('id', $incluirId);
+                }
             });
         }
 
-        $rows = $query->orderBy('codigo')->limit(30)->get();
+        if ($termo !== '') {
+            $query->where(function ($g) use ($termo, $incluirId, $exigeSaldo) {
+                $g->where('codigo', 'like', '%'.$termo.'%')
+                    ->orWhere('descricao_fiscal', 'like', '%'.$termo.'%')
+                    ->orWhere('descricao_comercial', 'like', '%'.$termo.'%');
+                if (! $exigeSaldo && $incluirId !== null) {
+                    $g->orWhere('id', $incluirId);
+                }
+            });
+        }
+
+        $rows = $query->orderBy('codigo')->limit($exigeSaldo ? 30 : 50)->get();
         $saldos = $this->saldosDe($empresa, $rows->pluck('id')->all());
         $cat = OrcamentoCatalogo::load(null, $empresa->id);
 
-        return $rows->map(function (Produto $p) use ($slot, $saldos, $cat) {
+        $mapped = $rows->map(function (Produto $p) use ($slot, $saldos, $cat) {
             $desc = trim((string) ($p->descricao_comercial ?: $p->descricao_fiscal));
             $grupo = (string) ($p->grupoCatalogo?->codigo ?? '');
             $tarifa = match ($slot) {
@@ -106,14 +117,28 @@ final class OrcamentoInsumoEstoque
                 'grupo' => $grupo,
                 'tarifa' => $tarifa,
             ];
-        })->all();
+        });
+
+        if (! $exigeSaldo) {
+            $mapped = $mapped->sort(function (array $a, array $b) {
+                $aPos = bccomp((string) $a['saldo'], '0', PadraoDecimal::SCALE_QTY) > 0 ? 1 : 0;
+                $bPos = bccomp((string) $b['saldo'], '0', PadraoDecimal::SCALE_QTY) > 0 ? 1 : 0;
+                if ($aPos !== $bPos) {
+                    return $bPos <=> $aPos;
+                }
+
+                return strcmp((string) $a['codigo'], (string) $b['codigo']);
+            })->values();
+        }
+
+        return $mapped->all();
     }
 
     /**
      * Grava SKU + tarifa no input do motor. Sem produto_id, o texto legado segue no catálogo.
      *
      * @param  array<string, mixed>  $data
-     * @param  list<int>  $idsJaGravados  SKU já salvo neste orçamento: pode permanecer com saldo zerado
+     * @param  list<int>  $idsJaGravados  SKU já salvo (slots que ainda exigem saldo, ex. legado)
      * @return array<string, mixed>
      */
     public function aplicar(Empresa $empresa, array $data, array $idsJaGravados = []): array
@@ -283,15 +308,22 @@ final class OrcamentoInsumoEstoque
                 $campo => ['Produto inválido para este campo.'],
             ]);
         }
-        $saldo = $this->saldosDe($empresa, [$produto->id])[(int) $produto->id] ?? '0';
-        $jaGravado = in_array((int) $produto->id, $idsJaGravados, true);
-        if (! $jaGravado && bccomp($saldo, '0', PadraoDecimal::SCALE_QTY) <= 0) {
-            throw ValidationException::withMessages([
-                $campo => ['Este produto não tem saldo disponível.'],
-            ]);
+        if ($this->slotExigeSaldo($slot)) {
+            $saldo = $this->saldosDe($empresa, [$produto->id])[(int) $produto->id] ?? '0';
+            $jaGravado = in_array((int) $produto->id, $idsJaGravados, true);
+            if (! $jaGravado && bccomp($saldo, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                throw ValidationException::withMessages([
+                    $campo => ['Este produto não tem saldo disponível.'],
+                ]);
+            }
         }
 
         return $produto;
+    }
+
+    private function slotExigeSaldo(string $slot): bool
+    {
+        return ! in_array($slot, self::SLOTS_ORC_SEM_GATE_SALDO, true);
     }
 
     private function slotAceita(Produto $produto, string $slot): bool

@@ -22,7 +22,7 @@ class OrcamentoInsumoEstoqueTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_lista_so_sku_com_saldo_do_grupo(): void
+    public function test_lista_papel_ativo_mesmo_sem_saldo_e_prioriza_com_estoque(): void
     {
         Permission::findOrCreate('orcamento.ler', 'web');
         $empresa = Empresa::query()->create([
@@ -55,9 +55,40 @@ class OrcamentoInsumoEstoqueTest extends TestCase
 
         $res->assertOk();
         $codigos = collect($res->json('data'))->pluck('codigo')->all();
-        $this->assertSame(['MP-PAP-010'], $codigos);
-        $this->assertNotContains($semSaldo->codigo, $codigos);
+        $this->assertSame(['MP-PAP-010', 'MP-PAP-011'], $codigos);
+        $this->assertContains($semSaldo->codigo, $codigos);
         $this->assertSame('COUCHE FASSON 20G', $res->json('data.0.tarifa'));
+        $this->assertSame('12.0000', $res->json('data.0.saldo'));
+        $this->assertSame('0', $res->json('data.1.saldo'));
+    }
+
+    public function test_aplica_papel_sem_saldo_quando_ha_preco_no_catalogo(): void
+    {
+        $empresa = Empresa::query()->create([
+            'codigo' => 'EMP-INS0',
+            'razao_social' => 'Insumo 0',
+            'cnpj' => '00000000000018',
+            'situacao' => 'ATIVA',
+        ]);
+        $papel = $this->grupo('MP-PAP', 'Papéis', 'MP');
+        $produto = $this->produto($empresa, 'MP-PAP-099', 'MP', $papel->id, 'PAPEL COUCHE 20G AUTOADESIVO FASSON');
+
+        OrcCatalogoPapel::query()->create([
+            'empresa_id' => $empresa->id,
+            'produto_id' => $produto->id,
+            'nome' => 'MP-PAP-099',
+            'grupo_id' => $papel->id,
+            'preco_m2' => 3.5,
+            'ativo' => true,
+            'ordem' => 1,
+        ]);
+
+        $out = app(OrcamentoInsumoEstoque::class)->aplicar($empresa, [
+            'papel_produto_id' => $produto->id,
+        ]);
+
+        $this->assertSame($produto->id, $out['papel_produto_id']);
+        $this->assertSame('PAPEL COUCHE 20G AUTOADESIVO FASSON', $out['papel']);
     }
 
     public function test_acabamento_cold_com_verniz_usa_tarifa_combinada(): void

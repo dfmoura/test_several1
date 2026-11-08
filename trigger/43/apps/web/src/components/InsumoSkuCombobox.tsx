@@ -45,7 +45,8 @@ function rotulo(opt: InsumoSkuOpcao): string {
 }
 
 /**
- * Busca de SKU ativo com saldo, no mesmo padrão do combo de revenda.
+ * Busca de SKU ativo com saldo (caixa/embalagem).
+ * Papel/acabamento no ORC usam InsumoSkuPicker (overlay sem gate de saldo).
  */
 export function InsumoSkuCombobox({
   slot,
