@@ -522,15 +522,23 @@ class OrdemProducaoService
         }
 
         $volumes = $volumesIn;
+        $necessidadeBobina = $qtde;
         if ($this->coleta->baixaVolumeInteiro($produto)) {
             if ($volumes !== []) {
                 $this->coleta->assertVolumesInteiros($empresa, $produto, $volumes);
+                $this->coleta->assertVolumesCobremNecessidade(
+                    $empresa,
+                    $op,
+                    $produto,
+                    $necessidadeBobina,
+                    $volumes,
+                );
                 $qtde = $this->coleta->somarVolumes($volumes);
             } else {
                 $plano = $this->coleta->planejarBobinaInteira($empresa, $op, $produto, $qtde);
                 if (! $plano['cobre'] || $plano['volumes'] === []) {
                     throw ValidationException::withMessages([
-                        'qtde' => ['Não há bobinas suficientes para cobrir a metragem. A baixa é do volume inteiro.'],
+                        'qtde' => ['Não há bobinas suficientes para cobrir a metragem nesta largura. A baixa é do volume inteiro.'],
                     ]);
                 }
                 $volumes = $plano['volumes'];
@@ -841,7 +849,7 @@ class OrdemProducaoService
                 $plano = $this->coleta->planejarBobinaInteira($empresa, $op, $produto, $linha);
                 if (! $plano['cobre']) {
                     $codigo = $produto->codigo ?? (string) $pid;
-                    $faltas[$pid] = "{$codigo}: não há bobinas inteiras suficientes para a metragem";
+                    $faltas[$pid] = "{$codigo}: não há bobinas inteiras suficientes nesta largura";
 
                     continue;
                 }
@@ -2644,7 +2652,11 @@ class OrdemProducaoService
         return (string) $raw;
     }
 
-    /** Pista do item do PED (largura_cm → mm) — conversão de tela m² → metro linear da necessidade. */
+    /**
+     * Largura do papel na OP (mm) = largura_cm × colunas × 10.
+     * É a largura da bobina que a ordem pede (ficha: largura × colunas), não a pista da etiqueta sozinha.
+     * Sem colunas no snapshot → 1 coluna.
+     */
     public static function larguraMmEspecificacao(mixed $spec): ?string
     {
         if (is_string($spec)) {
@@ -2657,7 +2669,11 @@ class OrdemProducaoService
         if ($cm === null || $cm === '') {
             return null;
         }
-        $mm = (float) str_replace(',', '.', (string) $cm) * 10;
+        $colunas = (int) ($spec['colunas'] ?? 1);
+        if ($colunas < 1) {
+            $colunas = 1;
+        }
+        $mm = (float) str_replace(',', '.', (string) $cm) * 10 * $colunas;
         if ($mm <= 0) {
             return null;
         }

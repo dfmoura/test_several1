@@ -168,15 +168,15 @@ export function larguraMmParaMetro(m: OrdemProducaoMaterial, op?: OrdemProducao 
 }
 
 /**
- * Largura do pedido da OP (pista), não do volume que estiver na prateleira.
- * m² planejado ÷ esta largura = metro linear que a ordem precisa.
+ * Largura do papel da OP (largura × colunas), não a pista da etiqueta sozinha
+ * nem o volume que estiver na prateleira. m² planejado ÷ esta largura = metro linear.
  */
 export function larguraMmNecessidadeOp(
   m: OrdemProducaoMaterial,
   op?: OrdemProducao | null,
 ): number {
-  const pista = parseQtdeDigitada(op?.pedido_item?.largura_mm);
-  if (pista > 0) return pista;
+  const papel = parseQtdeDigitada(op?.pedido_item?.largura_mm);
+  if (papel > 0) return papel;
   const sku = parseQtdeDigitada(m.produto?.largura_mm);
   if (sku > 0) return sku;
   return larguraMmDoMaterial(m);

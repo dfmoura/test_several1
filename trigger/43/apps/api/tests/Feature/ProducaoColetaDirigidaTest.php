@@ -1138,10 +1138,12 @@ class ProducaoColetaDirigidaTest extends TestCase
         }
         EstoqueSaldo::query()->where('produto_id', $this->mp->id)->update(['qtde' => '1050.0000']);
 
+        // Papel da OP = 21 cm × 1 col = 210 mm (mesma largura das bobinas).
+        // 735 m² ÷ 0,210 m = 3.500 m → 4 bobinas de 1.000 m (sobra ok).
         $item = PedidoItem::query()->findOrFail($this->op->pedido_item_id);
-        $item->especificacao = ['largura_cm' => '5.5'];
+        $item->especificacao = ['largura_cm' => '21', 'colunas' => 1];
         $item->save();
-        $this->matPapel->qtde_planejada = '192.5000';
+        $this->matPapel->qtde_planejada = '735.0000';
         $this->matPapel->save();
 
         $ids = [];
@@ -1159,6 +1161,7 @@ class ProducaoColetaDirigidaTest extends TestCase
 
         $show = $this->withHeaders($this->h())->getJson("/api/v1/ordens-producao/{$this->op->id}");
         $show->assertOk();
+        $this->assertEqualsWithDelta(210.0, (float) $show->json('data.pedido_item.largura_mm'), 0.01);
         $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
         $volumes = collect($papel['retirada']['volumes']);
         $this->assertCount(4, $volumes);
@@ -1176,5 +1179,84 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->assertSame('210.0000', (string) EstoqueSaldo::query()
             ->where('produto_id', $this->mp->id)
             ->value('qtde'));
+    }
+
+    public function test_papel_so_oferece_e_aceita_volumes_da_largura_da_op(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        // 5,25 cm × 4 col = 210 mm — bobina 250 mm (loteVigente) fica de fora.
+        $item = PedidoItem::query()->findOrFail($this->op->pedido_item_id);
+        $item->especificacao = ['largura_cm' => '5.25', 'colunas' => 4];
+        $item->save();
+        $this->matPapel->qtde_planejada = '80.0000';
+        $this->matPapel->save();
+
+        $show = $this->withHeaders($this->h())->getJson("/api/v1/ordens-producao/{$this->op->id}");
+        $show->assertOk();
+        $this->assertEqualsWithDelta(210.0, (float) $show->json('data.pedido_item.largura_mm'), 0.01);
+
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $sugeridos = collect($papel['retirada']['volumes'])->pluck('lote_id')->all();
+        $candidatos = collect($papel['retirada']['candidatos'])->pluck('lote_id')->all();
+        $this->assertSame([$this->loteVencido->id], $sugeridos);
+        $this->assertContains($this->loteSemValidade->id, $candidatos);
+        $this->assertNotContains($this->loteVigente->id, $sugeridos);
+        $this->assertNotContains($this->loteVigente->id, $candidatos);
+
+        $escolha = $this->withHeaders($this->h())->getJson(
+            "/api/v1/ordens-producao/{$this->op->id}/volumes-escolha?material_id={$this->matPapel->id}"
+        );
+        $escolha->assertOk();
+        $idsEscolha = collect($escolha->json('data'))->pluck('lote_id')->all();
+        $this->assertContains($this->loteVencido->id, $idsEscolha);
+        $this->assertContains($this->loteSemValidade->id, $idsEscolha);
+        $this->assertNotContains($this->loteVigente->id, $idsEscolha);
+
+        $larguraErrada = $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/requisitar",
+            [
+                'material_id' => $this->matPapel->id,
+                'volumes' => [
+                    ['lote_id' => $this->loteVigente->id, 'qtde' => '120.0000'],
+                ],
+            ]
+        );
+        $larguraErrada->assertStatus(422);
+        $msgLargura = (string) ($larguraErrada->json('errors')['volumes.0.lote_id'][0] ?? '');
+        $this->assertStringContainsString('210', $msgLargura);
+
+        // 80 m² de volume não cobre 250 m² (metros da pista 210 mm).
+        $this->matPapel->qtde_planejada = '250.0000';
+        $this->matPapel->save();
+        $falta = $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/requisitar",
+            [
+                'material_id' => $this->matPapel->id,
+                'volumes' => [
+                    ['lote_id' => $this->loteSemValidade->id, 'qtde' => '80.0000'],
+                ],
+            ]
+        );
+        $falta->assertStatus(422);
+        $falta->assertJsonFragment([
+            'volumes' => [
+                'Os volumes escolhidos não cobrem a metragem da ordem. Pode sobrar bobina; não pode faltar.',
+            ],
+        ]);
+
+        // Volta a necessidade; um volume 210 mm (100 m²) cobre 80 m² — sobra ok.
+        $this->matPapel->qtde_planejada = '80.0000';
+        $this->matPapel->save();
+        $ok = $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/requisitar",
+            [
+                'material_id' => $this->matPapel->id,
+                'volumes' => [
+                    ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
+                ],
+            ]
+        );
+        $ok->assertOk();
     }
 }

@@ -11,6 +11,7 @@ import {
   type OrdemProducaoMaterial,
 } from '../lib/api';
 import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
+import { formatDecimalBr } from '../lib/format';
 import {
   balancoMetragem,
   bloqueioSaidaKitCritico,
@@ -57,7 +58,16 @@ type Props = {
   onOp: (data: OrdemProducao) => void;
 };
 
-function volumesIniciais(m: OrdemProducaoMaterial): VolumeLinha[] {
+/**
+ * Carrinho da OP começa vazio — sugestão FEFO não é escolha.
+ * «Usar sugestão» preenche a partir de `retirada.volumes` (já filtrados pela largura do papel).
+ */
+function volumesIniciais(_m: OrdemProducaoMaterial): VolumeLinha[] {
+  return [];
+}
+
+/** Payload FEFO da API (volumes sugeridos que cobrem a necessidade). */
+function volumesDaSugestao(m: OrdemProducaoMaterial): VolumeLinha[] {
   return (m.retirada?.volumes ?? [])
     .filter((v) => v.lote_id && parseQtdeDigitada(v.qtde_retirar) > 0)
     .map((v) => ({
@@ -83,18 +93,11 @@ function divergeDoSugerido(atual: VolumeLinha[], inicial: VolumeLinha[]): boolea
 
 /** Prefixo FEFO da sugestão. A quantidade não entra: bobina sai o volume inteiro. */
 function prefixoDaSugestao(atual: VolumeLinha[], m: OrdemProducaoMaterial): boolean {
-  const sugeridos = (m.retirada?.volumes ?? [])
-    .filter((v) => v.lote_id && parseQtdeDigitada(v.qtde_retirar) > 0)
+  const sugeridos = volumesDaSugestao(m)
     .slice()
-    .sort(
-      (a, b) =>
-        (a.ordem_politica ?? 99) - (b.ordem_politica ?? 99) ||
-        (a.lote_id ?? 0) - (b.lote_id ?? 0),
-    );
+    .sort((a, b) => a.lote_id - b.lote_id);
   if (atual.length === 0 || atual.length > sugeridos.length) return false;
-  const prefixo = new Set(
-    sugeridos.slice(0, atual.length).map((v) => v.lote_id).filter((id): id is number => id != null),
-  );
+  const prefixo = new Set(sugeridos.slice(0, atual.length).map((v) => v.lote_id));
   return prefixo.size === atual.length && atual.every((v) => prefixo.has(v.lote_id));
 }
 
@@ -841,14 +844,8 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
       }
       if (modoRetirada(m) === 'volume') {
         const escolhidos = (volumes[m.id] ?? []).filter((v) => parseQtdeDigitada(v.qtde) > 0);
-        const diverge = divergeDoSugerido(escolhidos, volumesIniciais(m));
-        if (!diverge) {
-          const sugerida = linhaConfirmarSugerida(m);
-          if (sugerida) fila.push(sugerida);
-          continue;
-        }
         if (escolhidos.length === 0) {
-          setErr(`Deixe ao menos um volume em ${opKitNome(m)}, ou volte à sugestão.`);
+          setErr(`Escolha os volumes de ${opKitNome(m)} (ou use a sugestão).`);
           return;
         }
         const produtosDaLinha = new Set<number>();
@@ -860,9 +857,11 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
           setErr(`Em ${opKitNome(m)}, escolha volumes de um só produto.`);
           return;
         }
+        const sugeridos = volumesDaSugestao(m);
+        const segueSugestao = !divergeDoSugerido(escolhidos, sugeridos);
         const prefixo = prefixoDaSugestao(escolhidos, m);
         const motivo = (motivos[m.id] ?? '').trim();
-        if (!prefixo && motivo.length < 3) {
+        if (!segueSugestao && !prefixo && motivo.length < 3) {
           setErr(`Informe o motivo da troca em ${opKitNome(m)}.`);
           return;
         }
@@ -872,7 +871,7 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
           material_id: m.id,
           qtde: soma.toFixed(4),
           volumes: vols,
-          ...(prefixo ? {} : { volumes_motivo: motivo }),
+          ...(segueSugestao || prefixo ? {} : { volumes_motivo: motivo }),
         });
         algumaAjuste = true;
         continue;
@@ -1065,6 +1064,7 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                     (estado === 'falta_pegar' || (podeTrocar && saldoOpcao > 0)),
                 );
                 const escolhidos = volumes[m.id] ?? [];
+                const sugestaoFefo = volumesDaSugestao(m);
                 /** Já saiu: todos os volumes baixados (inclui perda). Devolver usa volumes_a_devolver na API. */
                 const baixados = m.retirada?.volumes_baixados ?? [];
                 const un = unidadeExibicao(m.unidade || m.retirada?.unidade);
@@ -1172,23 +1172,57 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
 
                     {porVolume && estado !== 'ja_saiu' ? (
                       escolhidos.length === 0 ? (
-                        volumeDireto ? null : m.escolher_produto && produtoId > 0 ? (
+                        volumeDireto ? (
                           <p className="form-hint" style={{ marginTop: 0 }}>
-                            Nenhum volume nesta lista.
+                            Escolha o volume da largura do papel desta ordem.
                           </p>
-                        ) : estado === 'sem_estoque' ? (
+                        ) : m.escolher_produto && produtoId <= 0 ? (
                           <p className="form-hint" style={{ marginTop: 0 }}>
-                            Sem saldo neste item.
+                            Escolha o item antes dos volumes.
+                          </p>
+                        ) : estado === 'sem_estoque' && sugestaoFefo.length === 0 ? (
+                          <p className="form-hint" style={{ marginTop: 0 }}>
+                            Sem saldo nesta largura.
                           </p>
                         ) : (
                           <>
-                            <p className="op-insumo-previsto">
-                              <span>Produto</span>
-                              <strong>{nomeProdutoLinha(m.produto)}</strong>
-                            </p>
-                            <p className="form-hint" style={{ marginTop: 0 }}>
-                              Nenhum volume nesta lista.
-                            </p>
+                            {m.produto ? (
+                              <p className="op-insumo-previsto">
+                                <span>Produto</span>
+                                <strong>{nomeProdutoLinha(m.produto)}</strong>
+                              </p>
+                            ) : null}
+                            {sugestaoFefo.length > 0 ? (
+                              <div className="op-insumo-sugestao" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <p className="form-hint" style={{ margin: 0 }}>
+                                  Sugestão FEFO · {sugestaoFefo.length}{' '}
+                                  {sugestaoFefo.length === 1 ? 'bobina' : 'bobinas'}
+                                  {op.pedido_item?.largura_mm
+                                    ? ` · ${formatDecimalBr(Number(op.pedido_item.largura_mm), 0)} mm`
+                                    : ''}
+                                  — ainda não escolhida.
+                                </p>
+                                {podeEditar ? (
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    disabled={busy}
+                                    onClick={() =>
+                                      setVolumes((prev) => ({
+                                        ...prev,
+                                        [m.id]: sugestaoFefo,
+                                      }))
+                                    }
+                                  >
+                                    Usar sugestão
+                                  </button>
+                                ) : null}
+                              </div>
+                            ) : (
+                              <p className="form-hint" style={{ marginTop: 0 }}>
+                                Sem sugestão nesta largura — escolha o volume (+ volume).
+                              </p>
+                            )}
                           </>
                         )
                       ) : (

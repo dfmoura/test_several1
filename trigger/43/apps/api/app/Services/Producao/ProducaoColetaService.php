@@ -151,7 +151,8 @@ class ProducaoColetaService
 
     /**
      * FEFO de bobinas inteiras até cobrir o metro linear da ordem.
-     * Sem a pista do pedido, cobre pela quantidade oficial, sem fatiar o rolo.
+     * Só volumes da largura do papel da OP (largura × colunas). Sem largura no PED, não filtra.
+     * Sem metragem derivável, cobre pela quantidade oficial, sem fatiar o rolo.
      *
      * @return array{aplica: bool, cobre: bool, qtde: string, volumes: list<array{lote_id: int, qtde: string}>}
      */
@@ -173,9 +174,11 @@ class ProducaoColetaService
         }
 
         $op->loadMissing('pedidoItem:id,especificacao');
-        $pista = OrdemProducaoService::larguraMmEspecificacao($op->pedidoItem?->especificacao);
-        $metrosAlvo = $this->metrosNecessarios($produto, $qtdeNecessidade, $pista);
-        $lotes = $this->lotesFefo($empresa, $produto);
+        $larguraPapel = OrdemProducaoService::larguraMmEspecificacao($op->pedidoItem?->especificacao);
+        $metrosAlvo = $this->metrosNecessarios($produto, $qtdeNecessidade, $larguraPapel);
+        $lotes = $this->lotesFefo($empresa, $produto)
+            ->filter(fn (EstoqueLote $lote) => $this->loteNaLarguraPapel($lote, $larguraPapel))
+            ->values();
         if ($metrosAlvo !== null) {
             foreach ($lotes as $lote) {
                 if ($this->metrosDoVolume($lote, $produto) === null) {
@@ -216,6 +219,109 @@ class ProducaoColetaService
             'qtde' => $qtde,
             'volumes' => $volumes,
         ];
+    }
+
+    /**
+     * Volumes explícitos: inteiros, mesma largura do papel da OP e cobertura ≥ necessidade (sobra ok).
+     *
+     * @param  list<array{lote_id?: int, qtde?: string}>  $volumes
+     */
+    public function assertVolumesCobremNecessidade(
+        Empresa $empresa,
+        OrdemProducao $op,
+        Produto $produto,
+        string $qtdeNecessidade,
+        array $volumes,
+    ): void {
+        $qtdeNecessidade = PadraoDecimal::roundHalfUp($qtdeNecessidade, PadraoDecimal::SCALE_QTY);
+        if (bccomp($qtdeNecessidade, '0', PadraoDecimal::SCALE_QTY) <= 0 || $volumes === []) {
+            return;
+        }
+
+        $op->loadMissing('pedidoItem:id,especificacao');
+        $larguraPapel = OrdemProducaoService::larguraMmEspecificacao($op->pedidoItem?->especificacao);
+        $metrosAlvo = $this->metrosNecessarios($produto, $qtdeNecessidade, $larguraPapel);
+
+        $somaQtde = '0';
+        $somaMetros = '0';
+        $todosComMetros = $metrosAlvo !== null;
+
+        foreach (array_values($volumes) as $idx => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $loteId = (int) ($row['lote_id'] ?? 0);
+            $qtde = PadraoDecimal::roundHalfUp((string) ($row['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY);
+            $lote = EstoqueLote::query()
+                ->where('empresa_id', $empresa->id)
+                ->where('produto_id', $produto->id)
+                ->where('id', $loteId)
+                ->first();
+            if (! $lote) {
+                throw ValidationException::withMessages([
+                    "volumes.{$idx}.lote_id" => ['Volume não pertence a este produto.'],
+                ]);
+            }
+            if (! $this->loteNaLarguraPapel($lote, $larguraPapel)) {
+                $mm = $larguraPapel !== null && $larguraPapel !== ''
+                    ? rtrim(rtrim(number_format((float) $larguraPapel, 2, '.', ''), '0'), '.')
+                    : null;
+                throw ValidationException::withMessages([
+                    "volumes.{$idx}.lote_id" => [
+                        $mm !== null && $mm !== ''
+                            ? "Escolha bobina de {$mm} mm — a largura do papel desta ordem."
+                            : 'Volume fora da largura do papel desta ordem.',
+                    ],
+                ]);
+            }
+            $somaQtde = bcadd($somaQtde, $qtde, PadraoDecimal::SCALE_QTY);
+            if ($todosComMetros) {
+                $metros = $this->metrosDoVolume($lote, $produto);
+                if ($metros === null) {
+                    $todosComMetros = false;
+                } else {
+                    $somaMetros = bcadd($somaMetros, $metros, 6);
+                }
+            }
+        }
+
+        $somaQtde = PadraoDecimal::roundHalfUp($somaQtde, PadraoDecimal::SCALE_QTY);
+        if ($todosComMetros && $metrosAlvo !== null) {
+            if (bccomp($somaMetros, $metrosAlvo, 4) < 0) {
+                throw ValidationException::withMessages([
+                    'volumes' => [
+                        'Os volumes escolhidos não cobrem a metragem da ordem. Pode sobrar bobina; não pode faltar.',
+                    ],
+                ]);
+            }
+
+            return;
+        }
+        if (bccomp($somaQtde, $qtdeNecessidade, PadraoDecimal::SCALE_QTY) < 0) {
+            throw ValidationException::withMessages([
+                'volumes' => [
+                    'Os volumes escolhidos não cobrem a quantidade da ordem. Pode sobrar; não pode faltar.',
+                ],
+            ]);
+        }
+    }
+
+    /** Tolerância de largura bobina × papel da OP (mm). */
+    private const LARGURA_PAPEL_TOL_MM = 0.51;
+
+    /**
+     * Sem largura no PED → não filtra. Com largura → só bobina da mesma medida (ficha).
+     */
+    private function loteNaLarguraPapel(EstoqueLote $lote, ?string $larguraPapelMm): bool
+    {
+        if ($larguraPapelMm === null || $larguraPapelMm === '' || bccomp($larguraPapelMm, '0', 4) <= 0) {
+            return true;
+        }
+        if ($lote->largura_mm === null || $lote->largura_mm === '' || bccomp((string) $lote->largura_mm, '0', 4) <= 0) {
+            return false;
+        }
+
+        return abs((float) $lote->largura_mm - (float) $larguraPapelMm) < self::LARGURA_PAPEL_TOL_MM;
     }
 
     /**
@@ -286,7 +392,11 @@ class ProducaoColetaService
         foreach ($plano['volumes'] as $aloc) {
             $ids[(int) $aloc['lote_id']] = (string) $aloc['qtde'];
         }
-        $lotes = $this->lotesFefo($empresa, $produto);
+        $op->loadMissing('pedidoItem:id,especificacao');
+        $larguraPapel = OrdemProducaoService::larguraMmEspecificacao($op->pedidoItem?->especificacao);
+        $lotes = $this->lotesFefo($empresa, $produto)
+            ->filter(fn (EstoqueLote $lote) => $this->loteNaLarguraPapel($lote, $larguraPapel))
+            ->values();
         $porId = $lotes->keyBy('id');
         $volumes = [];
         $ordem = 1;
@@ -1470,10 +1580,10 @@ class ProducaoColetaService
         $produtoLinha = $mat->produto;
         $comp = strtoupper((string) $mat->componente);
         if (in_array($comp, ['PAPEL', 'ACABAMENTO'], true) && (int) $mat->produto_id > 0) {
-            return $this->volumesDoProduto($empresa, (int) $mat->produto_id);
+            return $this->volumesDoProduto($empresa, (int) $mat->produto_id, $op);
         }
         if ((int) $mat->produto_id <= 0 && $comp === 'ACABAMENTO' && (int) $produtoEscolhido <= 0) {
-            return $this->volumesDasBobinas($empresa, $mat);
+            return $this->volumesDasBobinas($empresa, $mat, $op);
         }
         if ((int) $mat->produto_id <= 0 && in_array($comp, ['PAPEL', 'ACABAMENTO'], true)) {
             $produtoEscolhido = (int) $produtoEscolhido;
@@ -1481,7 +1591,7 @@ class ProducaoColetaService
                 return [];
             }
 
-            return $this->volumesDoProduto($empresa, $produtoEscolhido);
+            return $this->volumesDoProduto($empresa, $produtoEscolhido, $op);
         }
 
         $texto = trim(implode(' ', array_filter([
@@ -1565,14 +1675,21 @@ class ProducaoColetaService
 
     /**
      * Volumes de todas as bobinas com saldo. O grupo do catálogo vem primeiro.
+     * Com largura do papel na OP, só bobinas dessa medida.
      *
      * @return list<array<string, mixed>>
      */
-    private function volumesDasBobinas(Empresa $empresa, OrdemProducaoMaterial $mat): array
+    private function volumesDasBobinas(Empresa $empresa, OrdemProducaoMaterial $mat, ?OrdemProducao $op = null): array
     {
         $ids = array_map('intval', array_column($this->opcoesBobina($empresa, $mat), 'produto_id'));
         if ($ids === []) {
             return [];
+        }
+
+        $larguraPapel = null;
+        if ($op) {
+            $op->loadMissing('pedidoItem:id,especificacao');
+            $larguraPapel = OrdemProducaoService::larguraMmEspecificacao($op->pedidoItem?->especificacao);
         }
 
         $ordem = array_flip($ids);
@@ -1585,6 +1702,7 @@ class ProducaoColetaService
             ->whereIn('produto_id', $ids)
             ->where('qtde', '>', 0)
             ->get()
+            ->filter(fn (EstoqueLote $lote) => $this->loteNaLarguraPapel($lote, $larguraPapel))
             ->sort(function (EstoqueLote $a, EstoqueLote $b) use ($ordem): int {
                 $oa = $ordem[(int) $a->produto_id] ?? 9999;
                 $ob = $ordem[(int) $b->produto_id] ?? 9999;
@@ -1618,11 +1736,18 @@ class ProducaoColetaService
 
     /**
      * Bobinas de um SKU já escolhido no grupo. Sem sugerir outro produto.
+     * Com largura do papel na OP, só bobinas dessa medida.
      *
      * @return list<array<string, mixed>>
      */
-    private function volumesDoProduto(Empresa $empresa, int $produtoId): array
+    private function volumesDoProduto(Empresa $empresa, int $produtoId, ?OrdemProducao $op = null): array
     {
+        $larguraPapel = null;
+        if ($op) {
+            $op->loadMissing('pedidoItem:id,especificacao');
+            $larguraPapel = OrdemProducaoService::larguraMmEspecificacao($op->pedidoItem?->especificacao);
+        }
+
         $lotes = EstoqueLote::query()
             ->with([
                 'endereco:id,codigo',
@@ -1634,7 +1759,9 @@ class ProducaoColetaService
             ->orderByRaw('data_validade is null')
             ->orderBy('data_validade')
             ->orderBy('id')
-            ->get();
+            ->get()
+            ->filter(fn (EstoqueLote $lote) => $this->loteNaLarguraPapel($lote, $larguraPapel))
+            ->values();
 
         $linhas = [];
         foreach ($lotes as $lote) {

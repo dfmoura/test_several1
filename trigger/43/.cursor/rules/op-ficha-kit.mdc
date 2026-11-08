@@ -14,7 +14,7 @@ OP = o que produzir + kit + fechar
 ## Faça
 
 - Vocabulário humano: falta pegar · já saiu · sem estoque · devolver sobra · perda do volume · etiquetas boas · rolos reais · caixas.
-- Kit = **azulejos**. Cada um mostra **quanto a OP precisa**. Bobina: **metro linear da pista + m²**. **Confirmar saída com `estoque.escrever`** (OP ou A buscar) — só depois que **papel e acabamento** do kit têm SKU + saldo (gate no motor; complementar após perda não reabre). **Fechar a ordem só com `producao.escrever`**, na própria OP. Bobina na prateleira = **volumes** (baixa em m²); o resto = unidades. Filtro = lote do volume.
+- Kit = **azulejos**. Cada um mostra **quanto a OP precisa**. Bobina: **metro linear do papel (largura × colunas) + m²**. Papel/acabamento: lista e FEFO só volumes dessa largura; cobertura ≥ necessidade (pode sobrar, não faltar). Na OP o carrinho começa vazio — sugestão FEFO ≠ escolha («Usar sugestão»). Em A buscar o happy path FEFO permanece. **Confirmar saída com `estoque.escrever`** (OP ou A buscar) — só depois que **papel e acabamento** do kit têm SKU + saldo (gate no motor; complementar após perda não reabre). **Fechar a ordem só com `producao.escrever`**, na própria OP. Bobina na prateleira = **volumes** (baixa em m²); o resto = unidades. Filtro = lote do volume.
 - **Perda do volume** na OP: botão **Perdeu** no registro que saiu → `avaria_lotes` + complementar. Sem AJU, sem segundo writer.
 - Extra = acrescentar no kit (mesma confirmação no estoque).
 - 1 kit por OP.
