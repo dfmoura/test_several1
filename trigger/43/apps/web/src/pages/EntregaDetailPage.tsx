@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { DocumentosSaidaKit } from '../components/DocumentosSaidaKit';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
+import { VoltarLink } from '../components/VoltarLink';
 import { api, type Entrega } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
@@ -121,9 +122,7 @@ export function EntregaDetailPage() {
         }
         actions={
           <div className="btn-row">
-            <Link to="/expedicao" className="btn btn-secondary">
-              Voltar
-            </Link>
+            <VoltarLink fallback="/expedicao" />
             {ent?.pedido?.id ? (
               <Link to={`/pedidos/${ent.pedido.id}`} className="btn btn-secondary">
                 {ent.pedido.codigo}

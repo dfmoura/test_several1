@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { PageHeader } from '../components/PageHeader';
+import { VoltarLink } from '../components/VoltarLink';
 import { api } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
 import {
@@ -220,9 +221,7 @@ export function PaEmbalagemEtiquetasPage() {
         description={embCodigo ? `${embCodigo} · ${VOLUME_ETIQUETA_PRINT_HINT}` : VOLUME_ETIQUETA_PRINT_HINT}
         actions={
           <div className="btn-row no-print">
-            <Link to={voltarTo} className="btn btn-secondary">
-              {voltarLabel}
-            </Link>
+            <VoltarLink fallback={voltarTo} fallbackLabel={voltarLabel} />
             <button
               type="button"
               className="btn btn-primary"

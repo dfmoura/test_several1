@@ -6,6 +6,7 @@ import { PageHeader } from '../components/PageHeader';
 import { api, type NfeEntradaDetalhe } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCnpjCpf, formatCurrency, formatDate } from '../lib/format';
+import { buildReturnState } from '../lib/navReturn';
 
 export function ComprasNfeRecebidaDetailPage() {
   const { id } = useParams();
@@ -183,7 +184,15 @@ export function ComprasNfeRecebidaDetailPage() {
               <li>
                 Ordem de compra:{' '}
                 {nfe.ordem_compra?.id ? (
-                  <Link to={`/compras/ordens/${nfe.ordem_compra.id}`}>{nfe.ordem_compra.codigo}</Link>
+                  <Link
+                    to={`/compras/ordens/${nfe.ordem_compra.id}`}
+                    state={buildReturnState(
+                      id ? `/compras/nfe-recebidas/${id}` : '/compras/nfe-recebidas',
+                      'Voltar à NF-e vinculada',
+                    )}
+                  >
+                    {nfe.ordem_compra.codigo}
+                  </Link>
                 ) : (
                   '—'
                 )}

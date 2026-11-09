@@ -6,6 +6,7 @@ import { PaEmbalagemPanel } from '../components/PaEmbalagemPanel';
 import { PedidoItemFichaCabecalho } from '../components/PedidoFichaSheet';
 import { StatusPill } from '../components/StatusPill';
 import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
+import { VoltarLink } from '../components/VoltarLink';
 import { api, type OrdemProducao, type Pedido } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
@@ -98,9 +99,7 @@ export function OrdemProducaoDetailPage() {
   return (
     <>
       <div className="pick-toolbar">
-        <Link to="/ordens-producao" className="btn btn-secondary btn-sm">
-          Voltar
-        </Link>
+        <VoltarLink fallback="/ordens-producao" className="btn btn-secondary btn-sm" />
         {op ? <span className="pick-toolbar__ref">{op.codigo}</span> : null}
         {op?.pedido ? (
           <Link to={`/pedidos/${op.pedido.id}`} className="pick-toolbar__ref">

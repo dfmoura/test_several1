@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
+import { VoltarLink } from '../components/VoltarLink';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatDecimalBr } from '../lib/format';
@@ -74,9 +75,7 @@ export function OrdemServicoDetailPage() {
         title={os.codigo}
         description={os.pedido_item?.descricao ?? 'Ordem de serviço'}
         actions={
-          <Link to="/pedidos" className="btn btn-secondary">
-            Pedidos
-          </Link>
+          <VoltarLink fallback="/pedidos" fallbackLabel="Pedidos" />
         }
       />
       {err && <div className="alert alert-error">{err}</div>}

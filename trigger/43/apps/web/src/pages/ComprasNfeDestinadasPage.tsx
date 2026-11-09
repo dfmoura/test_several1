@@ -23,8 +23,11 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDate } from '../lib/format';
+import { buildReturnState } from '../lib/navReturn';
 import { appendPeriodo, currentYearRange } from '../lib/periodo';
 import { useTableSort } from '../lib/useTableSort';
+
+const DFE_CAIXA_RETURN = buildReturnState('/compras/nfe-destinadas', 'Voltar à caixa');
 
 const SORT = {
   emissao: (d: DfeDocumento) => d.data_emissao,
@@ -321,7 +324,7 @@ export function ComprasNfeDestinadasPage() {
         ordem_compra_id: Number(ocId),
       });
       setAmarrarDoc(null);
-      navigate(`/compras/ordens/${ocId}?dfe=${amarrarDoc.id}`);
+      navigate(`/compras/ordens/${ocId}?dfe=${amarrarDoc.id}`, { state: DFE_CAIXA_RETURN });
     } catch (err) {
       setAcaoErro(err instanceof ApiError ? err.details?.dfe?.[0] ?? err.message : 'Falha ao amarrar.');
     } finally {
@@ -860,7 +863,10 @@ export function ComprasNfeDestinadasPage() {
                       </td>
                       <td>
                         {d.ordem_compra ? (
-                          <Link to={`/compras/ordens/${d.ordem_compra.id}?dfe=${d.id}`}>
+                          <Link
+                            to={`/compras/ordens/${d.ordem_compra.id}?dfe=${d.id}`}
+                            state={DFE_CAIXA_RETURN}
+                          >
                             {d.ordem_compra.codigo}
                           </Link>
                         ) : (

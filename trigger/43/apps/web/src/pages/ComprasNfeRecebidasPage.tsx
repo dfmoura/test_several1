@@ -4,8 +4,14 @@ import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
 import { api, type NfeEntradaLista } from '../lib/api';
 import { formatCnpjCpf, formatCurrency, formatDate } from '../lib/format';
+import { buildReturnState } from '../lib/navReturn';
 import { appendPeriodo, currentMonthRange, hasPeriodo } from '../lib/periodo';
 import { useTableSort } from '../lib/useTableSort';
+
+const NFE_VINCULADAS_RETURN = buildReturnState(
+  '/compras/nfe-recebidas',
+  'Voltar às NF-e vinculadas',
+);
 
 const SORT = {
   emissao: (n: NfeEntradaLista) => n.data_emissao,
@@ -210,7 +216,10 @@ export function ComprasNfeRecebidasPage() {
                         onKeyDown={(e) => e.stopPropagation()}
                       >
                         {n.ordem_compra?.id ? (
-                          <Link to={`/compras/ordens/${n.ordem_compra.id}`}>
+                          <Link
+                            to={`/compras/ordens/${n.ordem_compra.id}`}
+                            state={NFE_VINCULADAS_RETURN}
+                          >
                             {n.ordem_compra.codigo}
                           </Link>
                         ) : (

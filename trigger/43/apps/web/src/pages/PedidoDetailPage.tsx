@@ -26,6 +26,7 @@ import { descontoAplicadoNoTotal } from '../lib/orcamentoForm';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { nfStatusLabel, textoPesoNfe } from '../lib/fiscalUi';
 import { hrefFaturamento } from '../lib/cobrancaUi';
+import { buildReturnState } from '../lib/navReturn';
 import { linhagemLabel } from '../lib/orcamentoLinhagem';
 import { pedStatusLabel } from '../lib/producaoUi';
 
@@ -104,10 +105,14 @@ export function PedidoDetailPage() {
       const res = await api.post<{ data: { id: number; codigo: string } }>(path, {
         pedido_item_id: itemId,
       });
+      const returnState = buildReturnState(
+        `/pedidos/${pedido.id}`,
+        `Voltar ao pedido ${pedido.codigo}`,
+      );
       if (necessidade === 'SERVICO') {
-        navigate(`/ordens-servico/${res.data.id}`);
+        navigate(`/ordens-servico/${res.data.id}`, { state: returnState });
       } else {
-        navigate(`/ordens-producao/${res.data.id}`);
+        navigate(`/ordens-producao/${res.data.id}`, { state: returnState });
       }
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Não foi possível abrir a ordem.');
@@ -446,7 +451,13 @@ export function PedidoDetailPage() {
                       <div>
                         <span>Documento</span>
                         <strong>
-                          <Link to={hrefFaturamento(preview.faturamento.id)}>
+                          <Link
+                            to={hrefFaturamento(preview.faturamento.id)}
+                            state={buildReturnState(
+                              `/pedidos/${pedido.id}`,
+                              `Voltar ao pedido ${pedido.codigo}`,
+                            )}
+                          >
                             {preview.faturamento.codigo}
                           </Link>
                         </strong>

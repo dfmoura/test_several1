@@ -14,6 +14,7 @@ import {
   qtdeFaixaDoItem,
   specOperacional,
 } from '../lib/producaoFicha';
+import { buildReturnState } from '../lib/navReturn';
 import { necessidadeContratoLabel, pedItemStatusLabel } from '../lib/producaoUi';
 import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
 
@@ -209,12 +210,26 @@ function PedidoItemGrupo({
               </Link>
             ) : null}
             {item.necessidade === 'PRODUCAO' && opAtiva ? (
-              <Link to={`/ordens-producao/${opAtiva.id}`} className="btn btn-secondary">
+              <Link
+                to={`/ordens-producao/${opAtiva.id}`}
+                state={buildReturnState(
+                  `/pedidos/${pedido.id}`,
+                  `Voltar ao pedido ${pedido.codigo}`,
+                )}
+                className="btn btn-secondary"
+              >
                 {opAtiva.codigo}
               </Link>
             ) : null}
             {item.necessidade === 'SERVICO' && osAtiva ? (
-              <Link to={`/ordens-servico/${osAtiva.id}`} className="btn btn-secondary">
+              <Link
+                to={`/ordens-servico/${osAtiva.id}`}
+                state={buildReturnState(
+                  `/pedidos/${pedido.id}`,
+                  `Voltar ao pedido ${pedido.codigo}`,
+                )}
+                className="btn btn-secondary"
+              >
                 {osAtiva.codigo}
               </Link>
             ) : null}

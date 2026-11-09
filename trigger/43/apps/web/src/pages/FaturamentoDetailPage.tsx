@@ -4,6 +4,7 @@ import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
 import { DocumentoFiscalPreviaCard } from '../components/DocumentoFiscalPrevia';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
+import { VoltarLink } from '../components/VoltarLink';
 import { api, type Faturamento, type Parceiro } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDate, formatDecimalBr, formatUnitPrice } from '../lib/format';
@@ -286,9 +287,7 @@ export function FaturamentoDetailPage() {
         }
         actions={
           <div className="btn-row">
-            <Link to={hrefFaturamentos()} className="btn btn-secondary">
-              Voltar
-            </Link>
+            <VoltarLink fallback={hrefFaturamentos()} />
             {fat?.pedido?.id ? (
               <Link to={`/pedidos/${fat.pedido.id}`} className="btn btn-secondary">
                 {fat.pedido.codigo}

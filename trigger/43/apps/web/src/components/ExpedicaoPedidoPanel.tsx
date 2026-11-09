@@ -14,6 +14,7 @@ import {
   tipoSaidaLabel,
 } from '../lib/expedicaoUi';
 import { hrefFaturamento } from '../lib/cobrancaUi';
+import { buildReturnState } from '../lib/navReturn';
 import { StatusPill } from './StatusPill';
 
 type Props = {
@@ -160,6 +161,10 @@ export function ExpedicaoPedidoPanel({
   };
 
   const ent = preview.entrega;
+  const pedidoReturn =
+    variant === 'embutido'
+      ? buildReturnState(`/pedidos/${pedidoId}`, `Voltar ao pedido ${pedidoCodigo}`)
+      : undefined;
 
   return (
     <div className="card" style={{ marginBottom: '1rem' }}>
@@ -169,7 +174,9 @@ export function ExpedicaoPedidoPanel({
           {variant === 'embutido' ? (
             <p className="form-hint" style={{ marginTop: 0 }}>
               {ent?.id && entregaVigente(ent.status) ? (
-                <Link to={`/expedicao/${ent.id}`}>Abrir romaneio na expedição</Link>
+                <Link to={`/expedicao/${ent.id}`} state={pedidoReturn}>
+                  Abrir romaneio na expedição
+                </Link>
               ) : (
                 <Link to={hrefPrepararExpedicao(pedidoId)}>Abrir na expedição</Link>
               )}
@@ -205,7 +212,7 @@ export function ExpedicaoPedidoPanel({
               <span>Faturamento</span>
               <strong>
                 {hasPermission('faturamento.ler') ? (
-                  <Link to={hrefFaturamento(preview.faturamento.id)}>
+                  <Link to={hrefFaturamento(preview.faturamento.id)} state={pedidoReturn}>
                     {preview.faturamento.codigo}
                   </Link>
                 ) : (
@@ -218,7 +225,9 @@ export function ExpedicaoPedidoPanel({
             <div>
               <span>Romaneio</span>
               <strong>
-                <Link to={`/expedicao/${ent.id}`}>{ent.codigo}</Link>
+                <Link to={`/expedicao/${ent.id}`} state={pedidoReturn}>
+                  {ent.codigo}
+                </Link>
                 {' · '}
                 <StatusPill status={entStatusLabel(ent.status)} />
               </strong>
@@ -358,7 +367,9 @@ export function ExpedicaoPedidoPanel({
             <p className="form-hint">
               Romaneio {ent.codigo}
               {ent.tipo_saida ? ` · ${tipoSaidaLabel(ent.tipo_saida)}` : ''}.{' '}
-              <Link to={`/expedicao/${ent.id}`}>Abrir ficha da entrega</Link>
+              <Link to={`/expedicao/${ent.id}`} state={pedidoReturn}>
+                Abrir ficha da entrega
+              </Link>
               {' · '}
               <a
                 href={`/expedicao/${ent.id}/ficha`}

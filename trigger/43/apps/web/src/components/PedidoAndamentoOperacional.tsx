@@ -9,6 +9,7 @@ import {
   pedStatusLabel,
 } from '../lib/producaoUi';
 import { hrefFaturamento } from '../lib/cobrancaUi';
+import { buildReturnState } from '../lib/navReturn';
 import { statusOrcPill } from '../lib/orcamentoForm';
 
 type Props = {
@@ -34,6 +35,10 @@ export function PedidoAndamentoOperacional({ pedido }: Props) {
   const isOs = !opAtiva && !!osAtiva;
   const fat = pedido.faturamento;
   const ent = pedido.entrega;
+  const pedidoReturn = buildReturnState(
+    `/pedidos/${pedido.id}`,
+    `Voltar ao pedido ${pedido.codigo}`,
+  );
 
   let ordemHint = 'Aguardando abertura';
   if (item?.necessidade === 'REVENDA') {
@@ -108,6 +113,7 @@ export function PedidoAndamentoOperacional({ pedido }: Props) {
                   to={
                     isOs ? `/ordens-servico/${ordem.id}` : `/ordens-producao/${ordem.id}`
                   }
+                  state={pedidoReturn}
                 >
                   {ordem.codigo}
                 </Link>
@@ -134,7 +140,9 @@ export function PedidoAndamentoOperacional({ pedido }: Props) {
             <div className="ped-andamento-body">
               {fat ? (
                 <>
-                  <Link to={hrefFaturamento(fat.id)}>{fat.codigo}</Link>
+                  <Link to={hrefFaturamento(fat.id)} state={pedidoReturn}>
+                    {fat.codigo}
+                  </Link>
                   <StatusPill status={fat.status} />
                 </>
               ) : (
@@ -153,7 +161,9 @@ export function PedidoAndamentoOperacional({ pedido }: Props) {
             <div className="ped-andamento-body">
               {ent ? (
                 <>
-                  <Link to={`/expedicao/${ent.id}`}>{ent.codigo}</Link>
+                  <Link to={`/expedicao/${ent.id}`} state={pedidoReturn}>
+                    {ent.codigo}
+                  </Link>
                   <StatusPill status={ent.status.replace(/_/g, ' ')} />
                 </>
               ) : (

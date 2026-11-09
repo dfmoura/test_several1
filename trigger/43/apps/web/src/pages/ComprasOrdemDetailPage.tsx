@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
 import { EspelhoFiscalPanel } from '../components/EspelhoFiscalPanel';
+import { VoltarLink } from '../components/VoltarLink';
 import {
   ApiError,
   api,
@@ -868,9 +869,7 @@ export function ComprasOrdemDetailPage() {
         }
         actions={
           <div className="btn-row">
-            <Link to="/compras/ordens" className="btn btn-secondary">
-              Voltar
-            </Link>
+            <VoltarLink fallback="/compras/ordens" />
             {oc ? (
               <a
                 href={`/compras/ordens/${oc.id}/ficha`}
