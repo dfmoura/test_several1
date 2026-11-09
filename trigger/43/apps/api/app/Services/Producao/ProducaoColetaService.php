@@ -464,17 +464,16 @@ class ProducaoColetaService
     private function metrosNecessarios(Produto $produto, string $qtde, ?string $larguraMm): ?string
     {
         $un = strtoupper(str_replace('²', '2', (string) ($produto->unidade_interna ?? '')));
-        if (in_array($un, ['M', 'MT', 'ML'], true)) {
-            return $qtde;
-        }
-        if (! in_array($un, ['M2', 'MIL'], true)) {
-            return null;
-        }
-        if ($larguraMm === null || $larguraMm === '' || bccomp($larguraMm, '0', 4) <= 0) {
-            return null;
+        // Necessidade da OP vem do BOM em m². SKU linear (M) também converte pela largura do papel.
+        if (in_array($un, ['M', 'MT', 'ML', 'M2', 'MIL'], true)) {
+            if ($larguraMm === null || $larguraMm === '' || bccomp($larguraMm, '0', 4) <= 0) {
+                return in_array($un, ['M', 'MT', 'ML'], true) ? $qtde : null;
+            }
+
+            return bcdiv(bcmul($qtde, '1000', 8), $larguraMm, 6);
         }
 
-        return bcdiv(bcmul($qtde, '1000', 8), $larguraMm, 6);
+        return null;
     }
 
     /** Comprimento do rolo. null quando a geometria não fecha. */
@@ -556,10 +555,17 @@ class ProducaoColetaService
     /**
      * @param  list<array{lote_id?: int, qtde?: string}>  $volumes
      */
+    /**
+     * Bobina: compara com o plano de volumes inteiros (mesma largura/metragem).
+     * Demais SKUs com lote: FEFO parcial do writer.
+     *
+     * @param  list<array{lote_id?: int, qtde?: string}>  $volumes
+     */
     public function validarOverride(
         Empresa $empresa,
+        OrdemProducao $op,
         Produto $produto,
-        string $qtde,
+        string $necessidade,
         array $volumes,
         ?string $motivo,
     ): void {
@@ -573,7 +579,11 @@ class ProducaoColetaService
             return;
         }
 
-        $sugeridas = $this->saldos->sugerirAlocacaoSaida($empresa, $produto, $qtde);
+        if ($this->baixaVolumeInteiro($produto)) {
+            $sugeridas = $this->planejarBobinaInteira($empresa, $op, $produto, $necessidade)['volumes'];
+        } else {
+            $sugeridas = $this->saldos->sugerirAlocacaoSaida($empresa, $produto, $necessidade);
+        }
         if ($this->saldos->alocacoesIguais($sugeridas, $volumes)) {
             return;
         }

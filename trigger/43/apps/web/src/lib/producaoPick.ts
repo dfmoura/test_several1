@@ -497,25 +497,49 @@ export function formatQtdeMaterial(
   return juntarLeitura(leituraQtdeMaterial(m, op, qtde));
 }
 
-/** Comprimento do volume quando o lote ainda não tem metro conferido. */
+/** Comprimento do volume quando o lote ainda não tem metro conferido (só estimativa de contagem). */
 const METROS_BOBINA_PADRAO = 1000;
 
 /**
- * Bobina sai o volume inteiro. Cada um tem, em geral, 1.000 m.
- * A conta é do trabalho, não dos lotes que o FEFO sugeriu.
- * Sem a largura do rolo, não inventa quantas — a área sozinha não diz o número.
+ * Necessidade da bobina: metro linear do papel (largura × colunas) + m².
+ * Contagem de bobinas é só apoio — a verdade é a metragem (ADR_OP_FICHA_KIT).
  */
-function leituraBobinaInteira(m: OrdemProducaoMaterial, qtde: number): LeituraQtdeMaterial {
-  const metrosVol = metrosPorVolume(m);
-  const metrosTxt = formatQtdePick(metrosVol, 'm');
-  const n = nBobinasParaCobrir(m, qtde, metrosVol);
-  if (n == null) {
-    return { principal: 'Bobina inteira', complemento: `de ${metrosTxt}` };
+function leituraBobinaInteira(
+  m: OrdemProducaoMaterial,
+  op: OrdemProducao | null | undefined,
+  qtde: number,
+): LeituraQtdeMaterial {
+  const largura = larguraMmNecessidadeOp(m, op);
+  const metros = unidadeEhLinear(m.unidade)
+    ? qtde
+    : m2ParaMetros(qtde, largura);
+  const m2 = unidadeEhLinear(m.unidade)
+    ? largura > 0
+      ? (largura / 1000) * qtde
+      : null
+    : qtde;
+  if (metros != null && metros > 0) {
+    const nBobinas = nBobinasParaCobrir(m, qtde, metrosPorVolume(m));
+    const areaTxt = m2 != null && m2 > 0 ? formatQtdePick(m2, 'm²') : null;
+    const bobinasTxt =
+      nBobinas != null && nBobinas > 0 ? formatVolumesPick(nBobinas) : null;
+    return {
+      principal: formatQtdePick(metros, 'm'),
+      complemento: [areaTxt, bobinasTxt].filter(Boolean).join(' · ') || null,
+    };
   }
-  return {
-    principal: formatVolumesPick(n),
-    complemento: n === 1 ? `de ${metrosTxt}` : `de ${metrosTxt} cada`,
-  };
+  return leituraQtdeMaterial(m, op, qtde);
+}
+
+/** True quando a escolha ainda não cobre a metragem/área pedida pela OP. */
+export function faltaCoberturaVolumes(
+  m: OrdemProducaoMaterial,
+  op: OrdemProducao | null | undefined,
+  linhas: Array<{ vol?: OpRetiradaVolume | null; qtde: string | number }>,
+): boolean {
+  const saldo = balancoMetragem(m, op, linhas);
+  if (!saldo) return false;
+  return saldo.faltaM != null ? saldo.faltaM > 1e-4 : saldo.faltaM2 > 1e-4;
 }
 
 /** Metro do rolo cheio. Retalho curto não muda o padrão de 1.000 m. */
@@ -577,7 +601,7 @@ export function leituraNecessidadeOp(
 ): LeituraQtdeMaterial {
   const n = qtdeLinhaPick(m);
   if (n <= 0) return { principal: 'Sem quantidade', complemento: null };
-  if (modoRetirada(m) === 'volume') return leituraBobinaInteira(m, n);
+  if (modoRetirada(m) === 'volume') return leituraBobinaInteira(m, op, n);
   return leituraQtdeMaterial(m, op, n);
 }
 
@@ -732,7 +756,7 @@ export type BalancoMetragem = {
 export function balancoMetragem(
   m: OrdemProducaoMaterial,
   op: OrdemProducao | null | undefined,
-  linhas: Array<{ vol?: OpRetiradaVolume; qtde: string | number }>,
+  linhas: Array<{ vol?: OpRetiradaVolume | null; qtde: string | number }>,
 ): BalancoMetragem | null {
   if (!insumoComMetragem(m)) return null;
   const qtde = qtdeLinhaPick(m);

@@ -17,6 +17,7 @@ import {
   type VolumeFiltroEstado,
 } from './OpFiltroVolumes';
 import {
+  faltaCoberturaVolumes,
   formatLotePick,
   formatMetrosDeVolumes,
   formatMetrosLineares,
@@ -452,6 +453,22 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
         if (usar.length === 0) continue;
         if (r.override && (motivos[r.m.id] ?? '').trim().length < 3) {
           setErr(`Informe o motivo (mínimo 3 caracteres) para o volume fora da sugestão em ${r.m.produto?.codigo}.`);
+          return;
+        }
+        const volsPreview = (r.m.retirada?.volumes ?? []).concat(r.m.retirada?.candidatos ?? []);
+        if (
+          faltaCoberturaVolumes(
+            r.m,
+            op,
+            usar.map((p) => ({
+              vol: volsPreview.find((v) => v.lote_id === p.lote_id),
+              qtde: p.qtde,
+            })),
+          )
+        ) {
+          setErr(
+            `Os volumes de ${opKitNome(r.m)} não cobrem a metragem da ordem. Pode sobrar bobina; não pode faltar.`,
+          );
           return;
         }
         linhas.push({

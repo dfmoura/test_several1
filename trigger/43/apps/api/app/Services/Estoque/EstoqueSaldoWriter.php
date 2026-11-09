@@ -368,6 +368,8 @@ class EstoqueSaldoWriter
         );
         $lote->qtde = $nova;
         $lote->save();
+        // Sobra/retalho: comprimento acompanha a qtde restante (metragem linear na próxima OP).
+        $this->sincronizarComprimentoDoLote($lote, $produto);
 
         return (int) $lote->id;
     }
@@ -457,7 +459,7 @@ class EstoqueSaldoWriter
                     'lote_id' => ['Lote não encontrado para este produto.'],
                 ]);
             }
-            $this->debitarLote($lote, $qtde);
+            $this->debitarLote($lote, $qtde, $produto);
 
             return [['lote_id' => (int) $lote->id, 'qtde' => $qtde]];
         }
@@ -472,7 +474,7 @@ class EstoqueSaldoWriter
             }
             $disp = PadraoDecimal::roundHalfUp((string) $lote->qtde, PadraoDecimal::SCALE_QTY);
             $usar = bccomp($disp, $restante, PadraoDecimal::SCALE_QTY) <= 0 ? $disp : $restante;
-            $this->debitarLote($lote, $usar);
+            $this->debitarLote($lote, $usar, $produto);
             $alocacoes[] = ['lote_id' => (int) $lote->id, 'qtde' => $usar];
             $restante = PadraoDecimal::roundHalfUp(
                 bcsub($restante, $usar, PadraoDecimal::SCALE_QTY + 4),
@@ -489,7 +491,7 @@ class EstoqueSaldoWriter
         return $alocacoes;
     }
 
-    private function debitarLote(EstoqueLote $lote, string $qtde): void
+    private function debitarLote(EstoqueLote $lote, string $qtde, ?Produto $produto = null): void
     {
         $disp = PadraoDecimal::roundHalfUp((string) $lote->qtde, PadraoDecimal::SCALE_QTY);
         if (bccomp($disp, $qtde, PadraoDecimal::SCALE_QTY) < 0) {
@@ -500,6 +502,47 @@ class EstoqueSaldoWriter
         $lote->qtde = PadraoDecimal::roundHalfUp(
             bcsub($disp, $qtde, PadraoDecimal::SCALE_QTY + 4),
             PadraoDecimal::SCALE_QTY
+        );
+        $lote->save();
+        $this->sincronizarComprimentoDoLote($lote, $produto);
+    }
+
+    /**
+     * Mantém comprimento_m coerente com qtde × largura (área) ou qtde (metro linear).
+     * Evita retalho com comprimento do rolo cheio cobrindo metragem falsa na próxima OP.
+     */
+    private function sincronizarComprimentoDoLote(EstoqueLote $lote, ?Produto $produto = null): void
+    {
+        $qtde = PadraoDecimal::roundHalfUp((string) $lote->qtde, PadraoDecimal::SCALE_QTY);
+        if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            if ($lote->comprimento_m !== null && bccomp((string) $lote->comprimento_m, '0', 4) !== 0) {
+                $lote->comprimento_m = '0';
+                $lote->save();
+            }
+
+            return;
+        }
+
+        $un = strtoupper(str_replace('²', '2', (string) ($lote->unidade ?: '')));
+        if ($un === '' && $produto) {
+            $un = strtoupper(str_replace('²', '2', (string) ($produto->unidade_interna ?? '')));
+        }
+        if (in_array($un, ['M', 'MT', 'ML'], true)) {
+            $lote->comprimento_m = PadraoDecimal::roundHalfUp($qtde, PadraoDecimal::SCALE_DIM);
+            $lote->save();
+
+            return;
+        }
+        if (! in_array($un, ['M2', 'MIL'], true)) {
+            return;
+        }
+        $largura = $lote->largura_mm;
+        if ($largura === null || $largura === '' || bccomp((string) $largura, '0', 4) <= 0) {
+            return;
+        }
+        $lote->comprimento_m = PadraoDecimal::roundHalfUp(
+            bcdiv(bcmul($qtde, '1000', 8), (string) $largura, 8),
+            PadraoDecimal::SCALE_DIM
         );
         $lote->save();
     }
@@ -582,7 +625,7 @@ class EstoqueSaldoWriter
                     "volumes.{$idx}.lote_id" => ['Volume não pertence a este produto/empresa.'],
                 ]);
             }
-            $this->debitarLote($lote, $q);
+            $this->debitarLote($lote, $q, $produto);
             $saida[] = ['lote_id' => (int) $lote->id, 'qtde' => $q];
             $soma = bcadd($soma, $q, PadraoDecimal::SCALE_QTY);
         }

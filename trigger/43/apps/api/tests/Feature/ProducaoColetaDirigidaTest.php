@@ -523,6 +523,10 @@ class ProducaoColetaDirigidaTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
+        // Necessidade = qtde_planejada (não a qtde do cliente). Um volume de 80 m² cobre 80 m².
+        $this->matPapel->qtde_planejada = '80.0000';
+        $this->matPapel->save();
+
         $fail = $this->withHeaders($this->h())->postJson(
             "/api/v1/ordens-producao/{$this->op->id}/requisitar",
             [
@@ -790,15 +794,17 @@ class ProducaoColetaDirigidaTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
+        // 1ª saída cobre a planejada (150) com bobinas inteiras — soma do cliente não redefine.
         $this->withHeaders($this->h())->postJson(
             "/api/v1/estoque/retiradas/{$this->op->id}/confirmar",
             [
                 'linhas' => [
                     [
                         'material_id' => $this->matPapel->id,
-                        'qtde' => '100.0000',
+                        'qtde' => '220.0000',
                         'volumes' => [
                             ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
+                            ['lote_id' => $this->loteVigente->id, 'qtde' => '120.0000'],
                         ],
                     ],
                 ],
@@ -821,7 +827,7 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->assertSame($this->loteVencido->id, (int) $papel['avaria_lotes'][0]['lote_id']);
         $baixado = collect($papel['retirada']['volumes_baixados'])->firstWhere('lote_id', $this->loteVencido->id);
         $this->assertTrue($baixado['avariado']);
-        $this->assertSame([], $papel['retirada']['volumes_a_devolver']);
+        $this->assertSame([$this->loteVigente->id], collect($papel['retirada']['volumes_a_devolver'])->pluck('lote_id')->all());
 
         $repo = $this->withHeaders($this->h())->postJson(
             "/api/v1/estoque/retiradas/{$this->op->id}/confirmar",
@@ -841,7 +847,7 @@ class ProducaoColetaDirigidaTest extends TestCase
         );
         $repo->assertOk();
         $papel2 = collect($repo->json('data.materiais'))->firstWhere('id', $this->matPapel->id);
-        $this->assertSame('180.0000', $papel2['qtde_requisitada']);
+        $this->assertSame('300.0000', $papel2['qtde_requisitada']);
         $this->assertSame('100.0000', $papel2['qtde_avaria']);
         $aDevolver = collect($papel2['retirada']['volumes_a_devolver'])->pluck('lote_id')->all();
         $this->assertContains($this->loteSemValidade->id, $aDevolver);
@@ -1258,5 +1264,58 @@ class ProducaoColetaDirigidaTest extends TestCase
             ]
         );
         $ok->assertOk();
+    }
+
+    public function test_payload_ui_com_qtde_soma_parcial_nao_redefine_necessidade(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        // 250 m² necessários; UI manda qtde = soma do único volume (80) — como o carrinho parcial.
+        // Servidor deve validar contra planejada e recusar (não contra a soma do cliente).
+        $this->matPapel->qtde_planejada = '250.0000';
+        $this->matPapel->save();
+
+        $fail = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/confirmar",
+            [
+                'linhas' => [
+                    [
+                        'material_id' => $this->matPapel->id,
+                        'qtde' => '80.0000',
+                        'volumes' => [
+                            ['lote_id' => $this->loteSemValidade->id, 'qtde' => '80.0000'],
+                        ],
+                    ],
+                ],
+            ]
+        );
+        $fail->assertStatus(422);
+        $msgCobertura = (string) ($fail->json('errors.volumes.0') ?? $fail->json('message'));
+        $this->assertStringContainsString('não cobrem', $msgCobertura);
+        $this->assertSame('80.0000', (string) $this->loteSemValidade->fresh()->qtde);
+        $this->assertSame('0.0000', (string) $this->matPapel->fresh()->qtde_requisitada);
+
+        // Mesmo payload com volumes que cobrem (100+80=180 < 250? não). FEFO: 100+120+80.
+        // Dois volumes 210 mm: 100+80=180 ainda falta. Três: inclui 250 mm ou precisa de vigente.
+        // Sem largura no PED, os três lotes entram: 100+80+120=300 ≥ 250.
+        $ok = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/confirmar",
+            [
+                'linhas' => [
+                    [
+                        'material_id' => $this->matPapel->id,
+                        'qtde' => '300.0000',
+                        'volumes' => [
+                            ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
+                            ['lote_id' => $this->loteSemValidade->id, 'qtde' => '80.0000'],
+                            ['lote_id' => $this->loteVigente->id, 'qtde' => '120.0000'],
+                        ],
+                    ],
+                ],
+            ]
+        );
+        $ok->assertOk();
+        $this->assertSame('300.0000', (string) collect($ok->json('data.materiais'))
+            ->firstWhere('id', $this->matPapel->id)['qtde_requisitada']);
     }
 }

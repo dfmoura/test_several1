@@ -484,6 +484,7 @@ class OrdemProducaoService
             }
         }
 
+        // UN/KG etc.: qtde do cliente (ou planejada se omitida). Bobina: ver após carregar o SKU.
         $qtdeRaw = $data['qtde'] ?? null;
         if (($qtdeRaw === null || $qtdeRaw === '') && $matPendente) {
             $qtdeRaw = (string) $matPendente->qtde_planejada;
@@ -505,6 +506,21 @@ class OrdemProducaoService
             throw ValidationException::withMessages([
                 'produto_id' => ['Produto não encontrado nesta empresa.'],
             ]);
+        }
+
+        // Bobina na 1ª saída da linha: necessidade = qtde_planejada.
+        // Soma dos volumes do cliente não redefine a cobertura (pode sobrar; não pode faltar).
+        if ($matPendente && ! $complementar && $this->coleta->baixaVolumeInteiro($produto)) {
+            $planejada = PadraoDecimal::parseStrict(
+                (string) $matPendente->qtde_planejada,
+                PadraoDecimal::SCALE_QTY
+            );
+            if ($planejada === null || bccomp($planejada, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                throw ValidationException::withMessages([
+                    'qtde' => ['Informe produto e quantidade válidos.'],
+                ]);
+            }
+            $qtde = $planejada;
         }
 
         $this->congelamento->assertProdutoLivre($empresa, $produto->id, 'saída para produção');
@@ -535,7 +551,7 @@ class OrdemProducaoService
                 );
                 $qtde = $this->coleta->somarVolumes($volumes);
             } else {
-                $plano = $this->coleta->planejarBobinaInteira($empresa, $op, $produto, $qtde);
+                $plano = $this->coleta->planejarBobinaInteira($empresa, $op, $produto, $necessidadeBobina);
                 if (! $plano['cobre'] || $plano['volumes'] === []) {
                     throw ValidationException::withMessages([
                         'qtde' => ['Não há bobinas suficientes para cobrir a metragem nesta largura. A baixa é do volume inteiro.'],
@@ -549,14 +565,27 @@ class OrdemProducaoService
         $volumesMotivo = isset($data['volumes_motivo']) ? trim((string) $data['volumes_motivo']) : '';
         $produtoLinhaId = $matPendente ? (int) $matPendente->produto_id : $produtoId;
         if ($volumes !== [] && $produtoLinhaId === (int) $produto->id) {
-            $this->coleta->validarOverride($empresa, $produto, $qtde, $volumes, $volumesMotivo);
-        }
-        $override = $volumes !== []
-            && $produto->controla_lote
-            && ! $this->saldos->alocacoesIguais(
-                $this->saldos->sugerirAlocacaoSaida($empresa, $produto, $qtde),
-                $volumes
+            $this->coleta->validarOverride(
+                $empresa,
+                $op,
+                $produto,
+                $necessidadeBobina,
+                $volumes,
+                $volumesMotivo,
             );
+        }
+        $override = false;
+        if ($volumes !== [] && $produto->controla_lote) {
+            if ($this->coleta->baixaVolumeInteiro($produto)) {
+                $planoSug = $this->coleta->planejarBobinaInteira($empresa, $op, $produto, $necessidadeBobina);
+                $override = ! $this->saldos->alocacoesIguais($planoSug['volumes'], $volumes);
+            } else {
+                $override = ! $this->saldos->alocacoesIguais(
+                    $this->saldos->sugerirAlocacaoSaida($empresa, $produto, $qtde),
+                    $volumes
+                );
+            }
+        }
 
         $op = DB::transaction(function () use (
             $empresa, $op, $produto, $qtde, $matPendente, $complementar, $volumes, $volumesMotivo, $override, $foraDoGrupo, $motivoGrupo

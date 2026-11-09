@@ -16,6 +16,7 @@ import { formatDecimalBr } from '../lib/format';
 import {
   balancoMetragem,
   bloqueioSaidaKitCritico,
+  faltaCoberturaVolumes,
   formatLeituraBobina,
   textoBalancoSaida,
   formatLotePick,
@@ -90,16 +91,6 @@ function divergeDoSugerido(atual: VolumeLinha[], inicial: VolumeLinha[]): boolea
   const a = ids(atual);
   const b = ids(inicial);
   return a.some((id, i) => id !== b[i]);
-}
-
-/** Prefixo FEFO da sugestão. A quantidade não entra: bobina sai o volume inteiro. */
-function prefixoDaSugestao(atual: VolumeLinha[], m: OrdemProducaoMaterial): boolean {
-  const sugeridos = volumesDaSugestao(m)
-    .slice()
-    .sort((a, b) => a.lote_id - b.lote_id);
-  if (atual.length === 0 || atual.length > sugeridos.length) return false;
-  const prefixo = new Set(sugeridos.slice(0, atual.length).map((v) => v.lote_id));
-  return prefixo.size === atual.length && atual.every((v) => prefixo.has(v.lote_id));
 }
 
 function picksDe(materiais: OrdemProducaoMaterial[] | undefined) {
@@ -533,6 +524,27 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
       qtde: parseQtdeDigitada(qtdeEfetiva(m, v.lote_id, v.qtde)).toFixed(4),
     }));
 
+  const bloqueioFaltaMetragem = useMemo(() => {
+    for (const m of pendentes) {
+      if (modoRetirada(m) !== 'volume' && !insumoComMetragem(m)) continue;
+      const escolhidos = (volumes[m.id] ?? []).filter((v) => parseQtdeDigitada(v.qtde) > 0);
+      if (escolhidos.length === 0) continue;
+      if (
+        faltaCoberturaVolumes(
+          m,
+          op,
+          escolhidos.map((linha) => ({
+            vol: volDo(m, linha.lote_id),
+            qtde: qtdeEfetiva(m, linha.lote_id, linha.qtde),
+          })),
+        )
+      ) {
+        return `Os volumes de ${opKitNome(m)} não cobrem a metragem da ordem.`;
+      }
+    }
+    return null;
+  }, [pendentes, volumes, conhecidos, op]);
+
   const juntarCatalogo = (base: OpRetiradaVolume[], extra: OpRetiradaVolume[]) => {
     const seen = new Set<number>();
     const out: OpRetiradaVolume[] = [];
@@ -810,6 +822,21 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
           return;
         }
         const vols = volumesEfetivos(m, escolhidos);
+        if (
+          faltaCoberturaVolumes(
+            m,
+            op,
+            escolhidos.map((linha) => ({
+              vol: volDo(m, linha.lote_id),
+              qtde: qtdeEfetiva(m, linha.lote_id, linha.qtde),
+            })),
+          )
+        ) {
+          setErr(
+            `Os volumes de ${opKitNome(m)} não cobrem a metragem da ordem. Pode sobrar bobina; não pode faltar.`,
+          );
+          return;
+        }
         const soma = vols.reduce((acc, v) => acc + parseQtdeDigitada(v.qtde), 0);
         fila.push({
           material_id: m.id,
@@ -836,6 +863,21 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
           return;
         }
         const vols = volumesEfetivos(m, escolhidos);
+        if (
+          faltaCoberturaVolumes(
+            m,
+            op,
+            escolhidos.map((linha) => ({
+              vol: volDo(m, linha.lote_id),
+              qtde: qtdeEfetiva(m, linha.lote_id, linha.qtde),
+            })),
+          )
+        ) {
+          setErr(
+            `Os volumes de ${opKitNome(m)} não cobrem a metragem da ordem. Pode sobrar bobina; não pode faltar.`,
+          );
+          return;
+        }
         const soma = vols.reduce((acc, v) => acc + parseQtdeDigitada(v.qtde), 0);
         fila.push({
           material_id: m.id,
@@ -862,19 +904,28 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
         }
         const sugeridos = volumesDaSugestao(m);
         const segueSugestao = !divergeDoSugerido(escolhidos, sugeridos);
-        const prefixo = prefixoDaSugestao(escolhidos, m);
         const motivo = (motivos[m.id] ?? '').trim();
-        if (!segueSugestao && !prefixo && motivo.length < 3) {
+        if (!segueSugestao && motivo.length < 3) {
           setErr(`Informe o motivo da troca em ${opKitNome(m)}.`);
           return;
         }
         const vols = volumesEfetivos(m, escolhidos);
+        const linhasBalanco = escolhidos.map((linha) => ({
+          vol: volDo(m, linha.lote_id),
+          qtde: qtdeEfetiva(m, linha.lote_id, linha.qtde),
+        }));
+        if (faltaCoberturaVolumes(m, op, linhasBalanco)) {
+          setErr(
+            `Os volumes de ${opKitNome(m)} não cobrem a metragem da ordem. Pode sobrar bobina; não pode faltar.`,
+          );
+          return;
+        }
         const soma = vols.reduce((acc, v) => acc + parseQtdeDigitada(v.qtde), 0);
         fila.push({
           material_id: m.id,
           qtde: soma.toFixed(4),
           volumes: vols,
-          ...(segueSugestao || prefixo ? {} : { volumes_motivo: motivo }),
+          ...(segueSugestao ? {} : { volumes_motivo: motivo }),
         });
         algumaAjuste = true;
         continue;
@@ -1550,7 +1601,9 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                       />
                     ) : null}
 
-                    {podeEditar && escolhidos.length > 0 && !prefixoDaSugestao(escolhidos, m) ? (
+                    {podeEditar &&
+                    escolhidos.length > 0 &&
+                    divergeDoSugerido(escolhidos, volumesDaSugestao(m)) ? (
                       <div className="form-group" style={{ maxWidth: 480, marginTop: '0.35rem' }}>
                         <label>Motivo da troca</label>
                         <input
@@ -1608,10 +1661,13 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
       {aberta && canWrite && pendentes.length > 0 ? (
         <div className="btn-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
           {bloqueioKit ? <p className="muted" style={{ margin: 0 }}>{bloqueioKit}</p> : null}
+          {bloqueioFaltaMetragem ? (
+            <p className="muted" style={{ margin: 0 }}>{bloqueioFaltaMetragem}</p>
+          ) : null}
           <button
             type="button"
             className="btn btn-primary"
-            disabled={busy || Boolean(bloqueioKit)}
+            disabled={busy || Boolean(bloqueioKit) || Boolean(bloqueioFaltaMetragem)}
             onClick={() => void confirmar()}
           >
             Confirmar saída

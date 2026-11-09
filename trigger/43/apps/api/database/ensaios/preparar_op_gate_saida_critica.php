@@ -147,9 +147,9 @@ if ($end === null) {
     exit(1);
 }
 
-// Bobina lab (volume inteiro) — saldo para escolher depois do gate.
+// Bobina lab (volume inteiro) — mesma largura do papel da OP (10 cm × 2 col = 200 mm).
 $loteCodigo = 'VOL-GATE-FLM003';
-$larguraMm = '210.000';
+$larguraMm = '200.000';
 $comprimentoM = '1000.000';
 $qtdeBobina = PadraoDecimal::roundHalfUp(
     bcmul(bcdiv($larguraMm, '1000', 8), $comprimentoM, PadraoDecimal::SCALE_QTY + 4),
@@ -202,29 +202,44 @@ if ($opExistente && ! in_array($opExistente->status, OrdemProducao::STATUSES_ABE
 
 $ped = Pedido::query()->where('empresa_id', $emp->id)->where('codigo', $codigoPed)->first();
 if ($ped === null) {
-    $numero = 99140;
-    while (Orcamento::query()->where('empresa_id', $emp->id)->where('ano', 2026)->where('numero', $numero)->exists()) {
-        $numero++;
+    $orc = Orcamento::query()
+        ->where('empresa_id', $emp->id)
+        ->where('codigo', $codigoOrc)
+        ->first();
+    if ($orc === null) {
+        $numero = 99140;
+        while (Orcamento::query()->where('empresa_id', $emp->id)->where('ano', 2026)->where('numero', $numero)->exists()) {
+            $numero++;
+        }
+        $orc = Orcamento::query()->create([
+            'empresa_id' => $emp->id,
+            'ano' => 2026,
+            'numero' => $numero,
+            'codigo' => $codigoOrc,
+            'versao' => 1,
+            'parceiro_id' => $par->id,
+            'cliente_nome' => $par->razao_social,
+            'status' => Orcamento::STATUS_APROVADO,
+            'financeiro_status' => AdiantamentoService::FIN_LIBERADO,
+            'cobra_matriz' => false,
+            'valor_matriz' => '0.00',
+            'input_snapshot' => $input,
+            'result_snapshot' => ['faixas' => [$faixa]],
+            'prazo_entrega_dias' => 10,
+            'validade_dias' => 7,
+            'tolerancia_qtd_pct' => 20,
+            'observacao' => 'Ensaio gate saída crítica (papel/acabamento).',
+        ]);
+    } else {
+        $orc->status = Orcamento::STATUS_APROVADO;
+        $orc->financeiro_status = AdiantamentoService::FIN_LIBERADO;
+        $orc->input_snapshot = $input;
+        $orc->result_snapshot = ['faixas' => [$faixa]];
+        $orc->parceiro_id = $par->id;
+        $orc->cliente_nome = $par->razao_social;
+        $orc->observacao = 'Ensaio gate saída crítica (papel/acabamento).';
+        $orc->save();
     }
-    $orc = Orcamento::query()->create([
-        'empresa_id' => $emp->id,
-        'ano' => 2026,
-        'numero' => $numero,
-        'codigo' => $codigoOrc,
-        'versao' => 1,
-        'parceiro_id' => $par->id,
-        'cliente_nome' => $par->razao_social,
-        'status' => Orcamento::STATUS_APROVADO,
-        'financeiro_status' => AdiantamentoService::FIN_LIBERADO,
-        'cobra_matriz' => false,
-        'valor_matriz' => '0.00',
-        'input_snapshot' => $input,
-        'result_snapshot' => ['faixas' => [$faixa]],
-        'prazo_entrega_dias' => 10,
-        'validade_dias' => 7,
-        'tolerancia_qtd_pct' => 20,
-        'observacao' => 'Ensaio gate saída crítica (papel/acabamento).',
-    ]);
 
     $ped = Pedido::query()->create([
         'empresa_id' => $emp->id,

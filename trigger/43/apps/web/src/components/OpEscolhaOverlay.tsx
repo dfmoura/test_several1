@@ -15,6 +15,7 @@ import {
 } from '../lib/api';
 import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
 import {
+  faltaCoberturaVolumes,
   formatLotePick,
   formatMetrosLineares,
   leituraNecessidadeOp,
@@ -314,6 +315,16 @@ export function OpEscolhaOverlay({
       }
       if (override && motivo.trim().length < 3) {
         setErr('Informe o motivo (mínimo 3 caracteres) para outro volume.');
+        return;
+      }
+      if (
+        faltaCoberturaVolumes(
+          material,
+          op,
+          escolhidos.map((v) => ({ vol: v, qtde: qtdeVolumeTotal(v) })),
+        )
+      ) {
+        setErr('Os volumes escolhidos não cobrem a metragem da ordem. Pode sobrar bobina; não pode faltar.');
         return;
       }
     } else if (parseQtdeDigitada(qtdeUn) <= 0) {
