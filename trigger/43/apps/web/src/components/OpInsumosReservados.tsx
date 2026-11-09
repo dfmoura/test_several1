@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { LocalSaldoCampo } from './LocalSaldoCampo';
+import { OpEscolhaOverlay } from './OpEscolhaOverlay';
 import { SeparacaoVolumesOverlay } from './SeparacaoVolumesOverlay';
 import {
   ApiError,
@@ -452,6 +453,8 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [overlayMaterialId, setOverlayMaterialId] = useState<number | null>(null);
+  /** Devolver “Já saiu” na OP (mesmo motor ENTRADA_SOBRA / ADR ficha kit). */
+  const [devolverMaterialId, setDevolverMaterialId] = useState<number | null>(null);
   /** Reposição após perda: overlay confirma complementar na hora. */
   const [reposicaoMaterialId, setReposicaoMaterialId] = useState<number | null>(null);
   const [perda, setPerda] = useState<{
@@ -1104,16 +1107,39 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                           {rotuloEstado}
                         </span>
                       </h4>
-                      {podeEditar && porVolume ? (
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          disabled={busy}
-                          onClick={() => abrirOverlay(m)}
-                        >
-                          + volume
-                        </button>
-                      ) : null}
+                      <div className="btn-row" style={{ margin: 0, gap: '0.35rem' }}>
+                        {estado === 'ja_saiu' && aberta && canWrite ? (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            disabled={busy}
+                            onClick={() => {
+                              setErr(null);
+                              setDevolverMaterialId(m.id);
+                            }}
+                          >
+                            Devolver
+                          </button>
+                        ) : null}
+                        {estado === 'ja_saiu' && aberta && !canWrite && podeEstoque ? (
+                          <Link
+                            className="btn btn-secondary btn-sm"
+                            to={hrefFichaEstoque(op.id, { materialId: m.id })}
+                          >
+                            Devolver no estoque
+                          </Link>
+                        ) : null}
+                        {podeEditar && porVolume ? (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            disabled={busy}
+                            onClick={() => abrirOverlay(m)}
+                          >
+                            + volume
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
 
                     {m.escolher_produto && !volumeDireto && estado !== 'ja_saiu' ? (
@@ -1722,6 +1748,26 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                   overlayTicket.current += 1;
                   setOverlayMaterialId(null);
                   setReposicaoMaterialId(null);
+                }}
+              />
+            );
+          })()
+        : null}
+
+      {devolverMaterialId != null
+        ? (() => {
+            const material = (materiais ?? []).find((m) => m.id === devolverMaterialId);
+            if (!material) return null;
+            return (
+              <OpEscolhaOverlay
+                op={op}
+                material={material}
+                porta="op"
+                canWrite={canWrite}
+                onClose={() => setDevolverMaterialId(null)}
+                onOp={(data) => {
+                  onOp(data);
+                  setDevolverMaterialId(null);
                 }}
               />
             );

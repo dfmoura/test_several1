@@ -1261,6 +1261,12 @@ class OrdemProducaoService
                 ]);
             }
 
+            $this->congelamento->assertProdutoLivre(
+                $empresa,
+                (int) $produto->id,
+                'devolução à prateleira'
+            );
+
             $ano = (int) now()->year;
             $codigoMov = $this->codigos->nextCode($empresa->id, 'MOV-'.$ano, 5);
             $mov = EstoqueMovimento::query()->create([

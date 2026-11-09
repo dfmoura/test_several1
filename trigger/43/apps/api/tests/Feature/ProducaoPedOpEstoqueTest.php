@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Empresa;
+use App\Models\EstoqueInventario;
+use App\Models\EstoqueInventarioItem;
 use App\Models\EstoqueMovimento;
 use App\Models\EstoqueSaldo;
 use App\Models\OrcCatalogoPapel;
@@ -882,6 +884,57 @@ class ProducaoPedOpEstoqueTest extends TestCase
             'motivo' => 'Já devolveu tudo',
         ]);
         $acima->assertStatus(422);
+    }
+
+    public function test_devolver_bloqueado_com_sku_congelado_em_inventario(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [, , $opId] = $this->abrirOpAprovada($h);
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        $planejada = (string) $papel['qtde_planejada'];
+        EstoqueSaldo::query()->updateOrCreate(
+            ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
+            [
+                'qtde' => bcadd($planejada, '100.0000', 4),
+                'unidade' => 'M2',
+                'custo_medio' => '10.000000',
+            ],
+        );
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+        ])->assertOk();
+
+        $aposSaida = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $linha = collect($aposSaida->json('data.materiais'))->firstWhere('id', $papel['id']);
+        $req = (string) $linha['qtde_requisitada'];
+        $this->assertTrue(bccomp($req, '0', 4) > 0);
+
+        $inv = EstoqueInventario::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'INV-TST-00001',
+            'tipo' => EstoqueInventario::TIPO_ROTATIVO,
+            'status' => EstoqueInventario::STATUS_EM_CONTAGEM,
+            'iniciado_em' => now(),
+        ]);
+        EstoqueInventarioItem::query()->create([
+            'inventario_id' => $inv->id,
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->mp->id,
+            'qtde_sistema_corte' => '0.0000',
+            'unidade' => 'M2',
+            'status' => EstoqueInventarioItem::STATUS_EM_CONTAGEM,
+        ]);
+
+        $this->withHeaders($h)->postJson("/api/v1/estoque/retiradas/{$opId}/devolver", [
+            'material_id' => $papel['id'],
+            'qtde' => $req,
+            'motivo' => 'Tentar devolver sob inventário',
+        ])->assertStatus(422)->assertJsonValidationErrors(['produto_id']);
     }
 
     public function test_devolver_parcial_limita_avaria_ao_que_ainda_esta_fora(): void
