@@ -193,6 +193,7 @@ export function OrcamentoFormPage() {
   const [rotulos, setRotulos] = useState<(string | null)[]>([null]);
   const [ativo, setAtivo] = useState(0);
   const form = itens[Math.min(ativo, Math.max(0, itens.length - 1))] ?? itens[0];
+  const rotuloAtivoExibicao = (rotulos[ativo] ?? '').trim();
   const modoPrecoComercial = form.tipo_operacao === TIPO_SERVICO || isRevendaItem(form);
 
   const setForm = (updater: OrcForm | ((prev: OrcForm) => OrcForm)) => {
@@ -347,7 +348,8 @@ export function OrcamentoFormPage() {
     if (itens.length >= 20) return;
     const novo = cloneOrcFormItem(form, catalog);
     setItens((prev) => [...prev, novo]);
-    setRotulos((prev) => [...prev, rotulos[ativo] ? `${rotulos[ativo]} (cópia)` : null]);
+    const rotuloBase = (rotulos[ativo] ?? '').trim();
+    setRotulos((prev) => [...prev, rotuloBase ? `${rotuloBase} (cópia)` : null]);
     setAtivo(itens.length);
     setFacaSel(facaSelFromForm(novo));
     setCalculo(null);
@@ -364,10 +366,20 @@ export function OrcamentoFormPage() {
     setCalculo(null);
   };
 
+  /** Digitação livre — trim só no blur / payload (espaço no fim não some a cada tecla). */
   const setRotuloAtivo = (rotulo: string) => {
     setRotulos((prev) => {
       const next = [...prev];
-      next[ativo] = rotulo.trim() || null;
+      next[ativo] = rotulo;
+      return next;
+    });
+  };
+
+  const commitRotuloAtivo = () => {
+    setRotulos((prev) => {
+      const next = [...prev];
+      const t = (next[ativo] ?? '').trim();
+      next[ativo] = t !== '' ? t : null;
       return next;
     });
   };
@@ -1431,11 +1443,13 @@ export function OrcamentoFormPage() {
               <input
                 value={rotulos[ativo] ?? ''}
                 onChange={(e) => setRotuloAtivo(e.target.value)}
+                onBlur={commitRotuloAtivo}
                 placeholder={
                   isRevendaItem(form) ? 'ex.: Ribbon cera 110×300' : 'ex.: Etiqueta frente · 50×30'
                 }
                 disabled={!canWrite}
                 maxLength={120}
+                autoComplete="off"
               />
             </div>
             <div className="orc-modo-tabs orc-modo-tabs-sub" role="tablist" aria-label="Tipo do item" style={{ marginTop: '0.75rem' }}>
@@ -1488,7 +1502,7 @@ export function OrcamentoFormPage() {
                 2. Produto de revenda
                 <span className="field-note" style={{ fontWeight: 400, marginLeft: '0.5rem' }}>
                   · item {ativo + 1}
-                  {rotulos[ativo] ? ` (${rotulos[ativo]})` : ''}
+                  {rotuloAtivoExibicao ? ` (${rotuloAtivoExibicao})` : ''}
                 </span>
               </h3>
               <p className="form-hint" style={{ marginTop: 0 }}>
@@ -1581,7 +1595,7 @@ export function OrcamentoFormPage() {
               2. Faca
               <span className="field-note" style={{ fontWeight: 400, marginLeft: '0.5rem' }}>
                 · item {ativo + 1}
-                {rotulos[ativo] ? ` (${rotulos[ativo]})` : ''}
+                {rotuloAtivoExibicao ? ` (${rotuloAtivoExibicao})` : ''}
               </span>
             </h3>
             <p className="form-hint" style={{ marginTop: 0 }}>
@@ -2302,7 +2316,7 @@ export function OrcamentoFormPage() {
                     calculo,
                     itens.map((itemForm, i) => ({
                       ordem: i + 1,
-                      rotulo: rotulos[i] ?? null,
+                      rotulo: (rotulos[i] ?? '').trim() || null,
                       modelosComposicao: itemForm.modelos_composicao,
                       input_snapshot: {
                         modelos_composicao_quantidades: itemForm.modelos_composicao_quantidades,

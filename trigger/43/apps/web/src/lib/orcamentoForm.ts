@@ -1191,7 +1191,8 @@ export function headerFrom(form: OrcForm): Record<string, unknown> {
 export function jobOnlyPayload(form: OrcForm, rotulo?: string | null): Record<string, unknown> {
   const full = payloadFromForm(form);
   const job: Record<string, unknown> = {};
-  if (rotulo) job.rotulo = rotulo;
+  const rotuloNorm = (rotulo ?? '').trim();
+  if (rotuloNorm !== '') job.rotulo = rotuloNorm;
   for (const [k, v] of Object.entries(full)) {
     if (!ORC_PAYLOAD_HEADER_KEYS.has(k)) {
       job[k] = v;
@@ -1208,10 +1209,8 @@ export function payloadFromFormDocumento(
   if (itens.length === 0) {
     return payloadFromForm(defaultOrcForm(null));
   }
-  if (itens.length === 1) {
-    return payloadFromForm(itens[0]);
-  }
 
+  // Sempre cabeçalho + itens[] — mesmo contrato N=1 e N>1; preserva rótulo opcional (ADR_ORC_ITENS).
   return {
     ...headerFrom(itens[0]),
     itens: itens.map((item, i) => jobOnlyPayload(item, rotulos?.[i] ?? null)),
