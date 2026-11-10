@@ -96,5 +96,11 @@ class PartidaBobinaTest extends TestCase
         $this->assertSame('700.00', $plano['sobra']['comprimento_m']);
         $this->assertSame('108.5000', $plano['sobra']['qtde']);
         $this->assertSame('108.5000', PartidaBobina::areaRetorno(PartidaBobina::paraPersistencia($plano)));
+
+        $bobinas = PartidaBobina::bobinasRetorno(PartidaBobina::paraPersistencia($plano));
+        $this->assertCount(1, $bobinas);
+        $this->assertSame('sobra', $bobinas[0]['tipo']);
+        $this->assertSame('7-sobra', $bobinas[0]['chave']);
+        $this->assertSame('700.00', $bobinas[0]['comprimento_m']);
     }
 }

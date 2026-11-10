@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { LocalSaldoCampo } from './LocalSaldoCampo';
 import { OpEscolhaOverlay } from './OpEscolhaOverlay';
+import { OpRetornoBobinas } from './OpRetornoBobinas';
 import { SeparacaoVolumesOverlay } from './SeparacaoVolumesOverlay';
 import {
   ApiError,
@@ -1194,40 +1195,17 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                         ) : null}
                       </div>
                     </div>
-                    {estado === 'ja_saiu' &&
-                    (m.partida_prevista ?? []).some((p) => p.status === 'pendente') ? (
-                      <div className="orc-faixas-bloco" style={{ marginTop: '0.35rem' }}>
-                        <p className="form-hint" style={{ marginTop: 0, marginBottom: '0.35rem' }}>
-                          <strong>A devolver / guardar</strong> — o «Passa» vira retorno ao estoque
-                          (mesmo SKU). Devolva antes de fechar a ordem.
-                        </p>
-                        <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
-                          {(m.partida_prevista ?? [])
-                            .filter((p) => p.status === 'pendente')
-                            .map((p) => {
-                              const partes: string[] = [];
-                              if (p.refile) {
-                                partes.push(
-                                  `refile ${formatDecimalBr(p.refile.largura_mm, 1, { stripTrailingZeros: true })} mm × ${formatDecimalBr(p.refile.comprimento_m, 1, { stripTrailingZeros: true })} m`,
-                                );
-                              }
-                              if (p.sobra) {
-                                partes.push(
-                                  `sobra ${formatDecimalBr(p.sobra.largura_mm, 1, { stripTrailingZeros: true })} mm × ${formatDecimalBr(p.sobra.comprimento_m, 1, { stripTrailingZeros: true })} m`,
-                                );
-                              }
-                              const area = p.area_retorno
-                                ? formatDecimalBr(p.area_retorno, 2, { stripTrailingZeros: true }) + ' m²'
-                                : null;
-                              return (
-                                <li key={`${p.lote_pai_id}-${p.tipo ?? 'p'}`}>
-                                  {partes.join(' · ') || 'Sobra'}
-                                  {area ? ` · ${area}` : ''}
-                                </li>
-                              );
-                            })}
-                        </ul>
-                      </div>
+                    {estado === 'ja_saiu' ? (
+                      <OpRetornoBobinas
+                        op={op}
+                        material={m}
+                        podeEstoque={podeEstoque}
+                        canWrite={canWrite}
+                        busy={busy}
+                        onBusy={setBusy}
+                        onOp={onOp}
+                        onErr={setErr}
+                      />
                     ) : null}
 
                     {m.escolher_produto && !volumeDireto && estado !== 'ja_saiu' ? (

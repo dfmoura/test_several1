@@ -3517,6 +3517,18 @@ export type OrdemProducaoMaterial = {
     area_retorno?: string | null;
     refile?: OpPartidaPreview['refile'];
     sobra?: OpPartidaPreview['sobra'];
+    /** Grade: 1 bobina por corpo (refile / sobra). */
+    bobinas?: Array<{
+      chave: string;
+      lote_pai_id: number;
+      tipo: string;
+      largura_mm: string;
+      comprimento_m: string;
+      area_m2: string;
+      qtde: string;
+      status: string;
+      lote_id?: number | null;
+    }>;
     status: string;
     volumes_gerados?: Array<{
       lote_id: number;

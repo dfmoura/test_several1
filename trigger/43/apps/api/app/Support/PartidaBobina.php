@@ -350,6 +350,63 @@ final class PartidaBobina
     }
 
     /**
+     * Grade operacional: 1 bobina por corpo a devolver (refile e/ou sobra).
+     *
+     * @param  array<string, mixed>  $plano
+     * @return list<array{
+     *   chave: string,
+     *   lote_pai_id: int,
+     *   tipo: string,
+     *   largura_mm: string,
+     *   comprimento_m: string,
+     *   area_m2: string,
+     *   qtde: string,
+     *   status: string,
+     *   lote_id: int|null
+     * }>
+     */
+    public static function bobinasRetorno(array $plano): array
+    {
+        $pai = (int) ($plano['lote_pai_id'] ?? 0);
+        $status = (string) ($plano['status'] ?? 'pendente');
+        $geradosPorTipo = [];
+        foreach (is_array($plano['volumes_gerados'] ?? null) ? $plano['volumes_gerados'] : [] as $g) {
+            if (! is_array($g)) {
+                continue;
+            }
+            $t = (string) ($g['tipo'] ?? '');
+            if ($t !== '') {
+                $geradosPorTipo[$t] = (int) ($g['lote_id'] ?? 0);
+            }
+        }
+        $out = [];
+        foreach (['refile', 'sobra'] as $tipo) {
+            $geo = $plano[$tipo] ?? null;
+            if (! is_array($geo)) {
+                continue;
+            }
+            $qtde = PadraoDecimal::roundHalfUp((string) ($geo['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY);
+            if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                continue;
+            }
+            $loteId = $geradosPorTipo[$tipo] ?? null;
+            $out[] = [
+                'chave' => $pai.'-'.$tipo,
+                'lote_pai_id' => $pai,
+                'tipo' => $tipo,
+                'largura_mm' => (string) ($geo['largura_mm'] ?? ''),
+                'comprimento_m' => (string) ($geo['comprimento_m'] ?? ''),
+                'area_m2' => (string) ($geo['area_m2'] ?? $qtde),
+                'qtde' => $qtde,
+                'status' => $status,
+                'lote_id' => $loteId !== null && $loteId > 0 ? $loteId : null,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * Preview enxuto para a UI do kit.
      *
      * @param  array<string, mixed>  $plano

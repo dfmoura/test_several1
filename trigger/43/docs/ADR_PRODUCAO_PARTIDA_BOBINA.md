@@ -45,7 +45,7 @@ Largura do volume ≥ largura do papel (mesmo SKU, grupos M2 de bobina)
 | **Partida no retorno / antes do fecho** | Espelha Devolver + A buscar. Saída não inventa saldo paralelo. |
 | **Mesmo SKU** | Retalho com origem conhecida permanece no material de origem — não MP-RET. |
 | **Até 2 volumes novos** | Refile `(L_pai−L_papel)×C_pai` e sobra útil `L_papel×(C_pai−C_usado)`. Zero se a dimensão zerar. |
-| **Medida exata sem volumes novos** | Só comprimento → reentra no lote pai (comportamento atual). |
+| **Medida exata = volume novo de sobra** | Emenda c: «Passa» também nasce VOL: (pai qtde 0); local + etiqueta no kit. |
 | **Preferir medida do papel** | FEFO na faixa exata primeiro; larguras maiores em segunda faixa («cabíveis por partida»). |
 | **Um Writer · um MOV** | `ENTRADA_SOBRA` + `VolumeGeometria`. Sem segundo saldo, sem AJU disfarçado de produção. |
 | **Genealogia = MOV** | Pai saiu na OP; filhos entram com `origem_tipo=PRODUCAO` e vínculo `ordem_producao_id` no MOV. Sem FK obrigatória `lote_pai` no dia 1. |
@@ -93,12 +93,11 @@ Invariantes (unidade interna M2 via `VolumeGeometria`):
 3. Produzir
 
 4. Devolver sobras (antes do fecho) — porta Estoque · A buscar e OP se estoque.escrever
-     · Se medida exata: caminho atual (reentra no mesmo lote, sync comprimento)
-     · Se partida: ENTRADA_SOBRA
+     · ENTRADA_SOBRA (Passa e partida):
           · não restaura o pai com geometria antiga
           · pai permanece qtde 0 (partido / consumido)
           · cria 1–2 volumes novos (código sequencial PRODUCAO/OP, L×C reais, mesmo SKU)
-          · usuário informa endereco_id (ou Guardar em seguida)
+          · usuário informa endereco_id na grade do kit (ou Guardar em seguida)
           · CTA Imprimir etiquetas → /estoque/lotes/etiquetas (faces VOL: 50×40)
 
 5. Fechar OP
@@ -175,11 +174,25 @@ O balanço **Precisa · Saiu · Passa** deixa de ser só indicador. Se `Passa > 
 
 | Caso | Plano em `partida_prevista` | Devolver |
 |------|-----------------------------|----------|
-| Medida do papel (`L ≈ L_n`) | `tipo=sobra_comprimento` · sobra `L_n × (C_p−C_u)` | `ENTRADA_SOBRA` no **mesmo** lote (sync comprimento) |
-| Largura maior | `tipo=partida` · refile + sobra | volumes novos (inalterado) |
+| Medida do papel (`L ≈ L_n`) | `tipo=sobra_comprimento` · sobra `L_n × (C_p−C_u)` | volume novo (emenda c) |
+| Largura maior | `tipo=partida` · refile + sobra | volumes novos |
 
-- Kit: bloco **A devolver / guardar** lista as sobras previstas.  
+- Kit: bloco **Bobinas a devolver** (grade).  
 - Fecho bloqueia com plano `pendente` (salvo «usou tudo» + motivo).  
 - Sem segundo writer · sem MP-RET com origem conhecida · sem engolir «Passa» no fecho.
+
+## Emenda 2026-11-10c — 1 bobina física por largura × metro (kit)
+
+«Passa» e partida deixam de ser só KPI/hint. No **Papel / Acabamento** («O que sai do estoque»):
+
+| Decisão | Motivo |
+|---------|--------|
+| **Sempre volume novo** (também `sobra_comprimento`) | Etiqueta `VOL:` + local por bobina; pai permanece qtde 0 |
+| **Grade no kit** | 1 linha = 1 bobina (`refile` e/ou `sobra`) com L × C × m² |
+| **Local obrigatório no confirmar** | `locais[]` no devolver → `endereco_id` no Writer |
+| **CTA Imprimir etiquetas** | Reuso `/estoque/lotes/etiquetas?ids=` após materializar |
+| **Hidratação de OP antiga** | Sem `partida_prevista`: reconstitui C do pai pela área da SAIDA × L e grava o plano |
+
+Invariantes intactos: um Writer · `ENTRADA_SOBRA` · mesmo SKU · isolamento `empresa_id` · sem segundo saldo.
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX). Sem segundo writer e sem explodir SKU.

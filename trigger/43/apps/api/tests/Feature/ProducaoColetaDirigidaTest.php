@@ -1408,6 +1408,10 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->assertSame('sobra', $aDev['faixa'] ?? null);
         $qtdeDev = (string) ($aDev['qtde_partida_retorno'] ?? $aDev['qtde_retirar']);
 
+        $bobinas = $papel['partida_prevista'][0]['bobinas'] ?? [];
+        $this->assertNotEmpty($bobinas);
+        $this->assertSame('sobra', $bobinas[0]['tipo'] ?? null);
+
         $devolver = $this->withHeaders($this->h())->postJson(
             "/api/v1/estoque/retiradas/{$this->op->id}/devolver",
             [
@@ -1421,9 +1425,17 @@ class ProducaoColetaDirigidaTest extends TestCase
         $devolver->assertOk();
         $papelDev = collect($devolver->json('data.materiais'))->firstWhere('componente', 'PAPEL');
         $this->assertSame('devolvido', $papelDev['partida_prevista'][0]['status'] ?? null);
-        $lote = $this->loteVencido->fresh();
-        $this->assertSame($qtdeDev, (string) $lote->qtde);
-        $this->assertGreaterThan(0, (float) $lote->comprimento_m);
+        // Emenda c: Passa cria volume novo; pai permanece 0.
+        $this->assertSame('0.0000', (string) $this->loteVencido->fresh()->qtde);
+        $gerados = $papelDev['partida_prevista'][0]['volumes_gerados'] ?? [];
+        $this->assertCount(1, $gerados);
+        $novo = EstoqueLote::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('id', (int) $gerados[0]['lote_id'])
+            ->first();
+        $this->assertNotNull($novo);
+        $this->assertSame($qtdeDev, (string) $novo->qtde);
+        $this->assertGreaterThan(0, (float) $novo->comprimento_m);
         $aDevolver = collect($papelDev['retirada']['volumes_a_devolver'] ?? [])->pluck('lote_id')->all();
         $this->assertNotContains($this->loteVencido->id, $aDevolver);
     }

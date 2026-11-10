@@ -22,6 +22,7 @@ use App\Support\ModelosComposicao;
 use App\Support\PadraoDecimal;
 use App\Support\PartidaBobina;
 use App\Support\UnidadesMedida;
+use App\Support\VolumeGeometria;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -1336,6 +1337,8 @@ class OrdemProducaoService
                     $planosPendentes[$paiId] = $plano;
                 }
             }
+            /** @var array<string, int> locaisPorChave "paiId-tipo" => endereco_id */
+            $locaisPorChave = $this->locaisRetornoDoPayload($data);
 
             if ($alocacoes === []) {
                 $aplicado = $this->saldos->aplicarEntradaUnitario(
@@ -1363,29 +1366,18 @@ class OrdemProducaoService
                     $loteId = (int) $aloc['lote_id'];
                     if (isset($planosPendentes[$loteId])) {
                         $planoDev = $planosPendentes[$loteId];
-                        $tipoPlano = (string) ($planoDev['tipo'] ?? PartidaBobina::TIPO_PARTIDA);
-                        if ($tipoPlano === PartidaBobina::TIPO_SOBRA_COMPRIMENTO) {
-                            $nascido = $this->materializarSobraComprimento(
-                                $empresa,
-                                $produto,
-                                $mov,
-                                $mat,
-                                $planoDev,
-                                $custoUnit,
-                                $ordemItem,
-                            );
-                        } else {
-                            $nascido = $this->materializarPartidaSobra(
-                                $empresa,
-                                $op,
-                                $produto,
-                                $mov,
-                                $mat,
-                                $planoDev,
-                                $custoUnit,
-                                $ordemItem,
-                            );
-                        }
+                        // Passa e partida: sempre volumes novos (etiqueta + local por bobina).
+                        $nascido = $this->materializarPartidaSobra(
+                            $empresa,
+                            $op,
+                            $produto,
+                            $mov,
+                            $mat,
+                            $planoDev,
+                            $custoUnit,
+                            $ordemItem,
+                            $locaisPorChave,
+                        );
                         $custoUnit = $nascido['custo_unitario'];
                         $ordemItem = $nascido['ordem'];
                         $qtde = PadraoDecimal::roundHalfUp(
@@ -2482,6 +2474,10 @@ class OrdemProducaoService
 
         $linhasComFaltante = 0;
         // Tubete: polegada na ficha; fora do kit/estoque da OP (baixa manual por pacote).
+        // OPs antigas sem plano: «Passa» → hidrata partida_prevista a partir da SAIDA.
+        foreach ($o->materiais as $matHidrata) {
+            $this->garantirPartidaPrevistaHidratada($empresa, $o, $matHidrata);
+        }
         $materiais = $o->materiais
             ->filter(fn (OrdemProducaoMaterial $m) => strtoupper(trim((string) $m->componente)) !== 'TUBETE')
             ->values()
@@ -2558,6 +2554,8 @@ class OrdemProducaoService
                 )),
                 'partida_prevista' => array_values(array_map(
                     static function (array $row): array {
+                        $bobinas = PartidaBobina::bobinasRetorno($row);
+
                         return [
                             'tipo' => (string) ($row['tipo'] ?? PartidaBobina::TIPO_PARTIDA),
                             'lote_pai_id' => (int) ($row['lote_pai_id'] ?? 0),
@@ -2571,6 +2569,7 @@ class OrdemProducaoService
                             'area_retorno' => PartidaBobina::areaRetorno($row),
                             'refile' => is_array($row['refile'] ?? null) ? $row['refile'] : null,
                             'sobra' => is_array($row['sobra'] ?? null) ? $row['sobra'] : null,
+                            'bobinas' => $bobinas,
                             'status' => (string) ($row['status'] ?? 'pendente'),
                             'volumes_gerados' => is_array($row['volumes_gerados'] ?? null)
                                 ? array_values($row['volumes_gerados'])
@@ -2795,8 +2794,23 @@ class OrdemProducaoService
                 continue;
             }
             $cP = $lote->comprimento_m;
+            $areaVol = isset($row['qtde'])
+                ? PadraoDecimal::roundHalfUp((string) $row['qtde'], PadraoDecimal::SCALE_QTY)
+                : null;
+            // Após SAIDA o writer zera comprimento — reconstitui C a partir da área baixada × L.
             if ($cP === null || $cP === '' || bccomp((string) $cP, '0', 4) <= 0) {
-                continue;
+                if ($areaVol === null
+                    || bccomp($areaVol, '0', PadraoDecimal::SCALE_QTY) <= 0
+                    || $lote->largura_mm === null
+                    || $lote->largura_mm === '') {
+                    continue;
+                }
+                $geoRec = VolumeGeometria::fechar($lote->largura_mm, null, $areaVol, 'M2');
+                if ($geoRec['status'] !== VolumeGeometria::STATUS_FECHADO
+                    || $geoRec['comprimento_m'] === null) {
+                    continue;
+                }
+                $cP = (string) $geoRec['comprimento_m'];
             }
             $cP = PadraoDecimal::roundHalfUp((string) $cP, PadraoDecimal::SCALE_DIM);
             if (bccomp($restante, '0', PadraoDecimal::SCALE_DIM) <= 0) {
@@ -2845,96 +2859,11 @@ class OrdemProducaoService
     }
 
     /**
-     * «Passa» de comprimento: reentra no mesmo lote (ENTRADA_SOBRA) só a área sobrando.
+     * Materializa refile + sobra («Passa») como volumes novos (pai permanece qtde 0).
+     * Mesmo caminho para partida e sobra_comprimento — 1 bobina física por largura × metro.
      *
      * @param  array<string, mixed>  $plano
-     * @return array{qtde: string, custo_unitario: mixed, ordem: int, volumes_gerados: list<array{lote_id: int, tipo: string, qtde: string}>}
-     */
-    private function materializarSobraComprimento(
-        Empresa $empresa,
-        Produto $produto,
-        EstoqueMovimento $mov,
-        OrdemProducaoMaterial $mat,
-        array $plano,
-        mixed $custoUnit,
-        int $ordemItem,
-    ): array {
-        $sobra = is_array($plano['sobra'] ?? null) ? $plano['sobra'] : null;
-        $qtde = PadraoDecimal::roundHalfUp((string) ($sobra['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY);
-        if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
-            throw ValidationException::withMessages([
-                'volumes' => ['Esta sobra («Passa») já foi usada por completo.'],
-            ]);
-        }
-        $paiId = (int) ($plano['lote_pai_id'] ?? 0);
-        $lote = $paiId > 0
-            ? EstoqueLote::query()
-                ->where('empresa_id', $empresa->id)
-                ->where('produto_id', $produto->id)
-                ->where('id', $paiId)
-                ->first()
-            : null;
-        if (! $lote) {
-            throw ValidationException::withMessages([
-                'volumes' => ['Volume da sobra não encontrado.'],
-            ]);
-        }
-        // Restaura L×C da sobra no pai (writer zera comprimento na SAIDA).
-        if (isset($sobra['largura_mm'])) {
-            $lote->largura_mm = (string) $sobra['largura_mm'];
-        }
-        if (isset($sobra['comprimento_m'])) {
-            $lote->comprimento_m = (string) $sobra['comprimento_m'];
-        }
-        $lote->save();
-
-        $loteRef = [
-            'lote_id' => $lote->id,
-            'codigo' => $lote->codigo,
-            'data_entrada' => optional($lote->data_entrada)?->format('Y-m-d'),
-            'data_validade' => optional($lote->data_validade)?->format('Y-m-d'),
-            'data_fabricacao' => optional($lote->data_fabricacao)?->format('Y-m-d'),
-            'origem_tipo' => EstoqueLote::ORIGEM_PRODUCAO,
-            'largura_mm' => (string) ($sobra['largura_mm'] ?? $lote->largura_mm),
-            'comprimento_m' => (string) ($sobra['comprimento_m'] ?? ''),
-        ];
-        $aplicado = $this->saldos->aplicarEntradaUnitario(
-            $empresa,
-            $produto,
-            $qtde,
-            $custoUnit,
-            $loteRef
-        );
-        EstoqueMovimentoItem::query()->create([
-            'movimento_id' => $mov->id,
-            'produto_id' => $produto->id,
-            'lote_id' => $aplicado['lote_id'] ?? $lote->id,
-            'qtde' => $qtde,
-            'unidade' => $mat->unidade,
-            'valor_unitario' => $aplicado['valor_unitario'],
-            'valor_total' => $aplicado['valor_total'],
-            'custo_medio_apos' => $aplicado['custo_medio_apos'],
-            'ordem' => $ordemItem,
-        ]);
-
-        return [
-            'qtde' => $qtde,
-            'custo_unitario' => $aplicado['valor_unitario'],
-            'ordem' => $ordemItem + 1,
-            'volumes_gerados' => [[
-                'lote_id' => (int) ($aplicado['lote_id'] ?? $lote->id),
-                'tipo' => 'sobra',
-                'qtde' => $qtde,
-                'largura_mm' => (string) ($sobra['largura_mm'] ?? ''),
-                'comprimento_m' => (string) ($sobra['comprimento_m'] ?? ''),
-            ]],
-        ];
-    }
-
-    /**
-     * Materializa refile + sobra útil como volumes novos (pai permanece qtde 0).
-     *
-     * @param  array<string, mixed>  $plano
+     * @param  array<string, int>  $locaisPorChave  chave "{pai}-{tipo}" => endereco_id
      * @return array{qtde: string, custo_unitario: mixed, ordem: int, volumes_gerados: list<array{lote_id: int, tipo: string, qtde: string}>}
      */
     private function materializarPartidaSobra(
@@ -2946,6 +2875,7 @@ class OrdemProducaoService
         array $plano,
         mixed $custoUnit,
         int $ordemItem,
+        array $locaisPorChave = [],
     ): array {
         $filhos = [];
         if (is_array($plano['refile'] ?? null) && bccomp((string) ($plano['refile']['qtde'] ?? '0'), '0', PadraoDecimal::SCALE_QTY) > 0) {
@@ -2970,8 +2900,11 @@ class OrdemProducaoService
         $seq = 1;
         foreach ($filhos as $filho) {
             $geo = $filho['geo'];
+            $tipoFilho = (string) $filho['tipo'];
             $qtde = PadraoDecimal::roundHalfUp((string) $geo['qtde'], PadraoDecimal::SCALE_QTY);
             $base = 'PRT-'.$op->codigo.'-'.$paiId.'-'.$seq;
+            $chaveLocal = $paiId.'-'.$tipoFilho;
+            $enderecoId = (int) ($locaisPorChave[$chaveLocal] ?? 0);
             $loteRef = [
                 'codigo' => $base,
                 'volume_novo' => true,
@@ -2985,6 +2918,9 @@ class OrdemProducaoService
                 'nf_numero' => $pai?->nf_numero,
                 'fornecedor_id' => $pai?->fornecedor_id,
             ];
+            if ($enderecoId > 0) {
+                $loteRef['endereco_id'] = $enderecoId;
+            }
             $aplicado = $this->saldos->aplicarEntradaUnitario(
                 $empresa,
                 $produto,
@@ -3032,6 +2968,98 @@ class OrdemProducaoService
             'ordem' => $ordemItem,
             'volumes_gerados' => $gerados,
         ];
+    }
+
+    /**
+     * Locais informados no kit: [{ lote_pai_id, tipo: refile|sobra, endereco_id }].
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, int>  chave "{pai}-{tipo}" => endereco_id
+     */
+    private function locaisRetornoDoPayload(array $data): array
+    {
+        $locaisIn = is_array($data['locais'] ?? null) ? array_values($data['locais']) : [];
+        $out = [];
+        foreach ($locaisIn as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $pai = (int) ($row['lote_pai_id'] ?? 0);
+            $tipo = strtolower(trim((string) ($row['tipo'] ?? '')));
+            $end = (int) ($row['endereco_id'] ?? 0);
+            if ($pai <= 0 || ! in_array($tipo, ['refile', 'sobra'], true) || $end <= 0) {
+                continue;
+            }
+            $out[$pai.'-'.$tipo] = $end;
+        }
+
+        return $out;
+    }
+
+    /**
+     * OPs que saíram antes do plano «Passa»: reconstitui partida_prevista a partir da SAIDA.
+     */
+    private function garantirPartidaPrevistaHidratada(
+        Empresa $empresa,
+        OrdemProducao $op,
+        OrdemProducaoMaterial $mat,
+    ): void {
+        if (! $mat->produto || ! $this->coleta->produtoPermitePartida($mat->produto)) {
+            return;
+        }
+        if (bccomp((string) $mat->qtde_requisitada, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            return;
+        }
+        $atuais = is_array($mat->partida_prevista) ? $mat->partida_prevista : [];
+        if ($atuais !== []) {
+            return;
+        }
+
+        $agg = [];
+        $itens = EstoqueMovimentoItem::query()
+            ->where('produto_id', $mat->produto_id)
+            ->whereHas('movimento', function ($q) use ($empresa, $op) {
+                $q->where('empresa_id', $empresa->id)
+                    ->where('ordem_producao_id', $op->id)
+                    ->where('tipo', EstoqueMovimento::TIPO_SAIDA_PRODUCAO);
+            })
+            ->get(['lote_id', 'qtde']);
+        foreach ($itens as $item) {
+            $lid = (int) ($item->lote_id ?? 0);
+            if ($lid <= 0) {
+                continue;
+            }
+            $q = PadraoDecimal::roundHalfUp((string) $item->qtde, PadraoDecimal::SCALE_QTY);
+            $agg[$lid] = isset($agg[$lid])
+                ? PadraoDecimal::roundHalfUp(
+                    bcadd($agg[$lid], $q, PadraoDecimal::SCALE_QTY + 4),
+                    PadraoDecimal::SCALE_QTY
+                )
+                : $q;
+        }
+        if ($agg === []) {
+            return;
+        }
+        $volumes = [];
+        foreach ($agg as $lid => $q) {
+            $volumes[] = ['lote_id' => (int) $lid, 'qtde' => $q];
+        }
+        $necessidade = PadraoDecimal::roundHalfUp((string) $mat->qtde_planejada, PadraoDecimal::SCALE_QTY);
+        if (bccomp($necessidade, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            $necessidade = PadraoDecimal::roundHalfUp((string) $mat->qtde_requisitada, PadraoDecimal::SCALE_QTY);
+        }
+        $planos = $this->planosPartidaDosVolumes(
+            $empresa,
+            $op,
+            $mat->produto,
+            $volumes,
+            $necessidade,
+        );
+        if ($planos === []) {
+            return;
+        }
+        $mat->partida_prevista = $planos;
+        $mat->save();
     }
 
     /**
