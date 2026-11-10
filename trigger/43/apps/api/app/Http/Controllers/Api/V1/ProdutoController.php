@@ -93,6 +93,35 @@ class ProdutoController extends Controller
         return response()->json(['data' => $produto]);
     }
 
+    public function exclusaoPreflight(Request $request, Produto $produto): JsonResponse
+    {
+        if (! $request->user()->can('produto.escrever')) {
+            abort(403);
+        }
+        $this->assertEmpresa($produto);
+
+        return response()->json(['data' => $this->produtoService->avaliarExclusao($produto)]);
+    }
+
+    public function destroy(Request $request, Produto $produto): JsonResponse
+    {
+        if (! $request->user()->can('produto.escrever')) {
+            abort(403);
+        }
+        $this->assertEmpresa($produto);
+
+        $id = $produto->id;
+        $codigo = $produto->codigo;
+        $this->produtoService->softDeleteSeOrfa($produto);
+
+        return response()->json([
+            'ok' => true,
+            'id' => $id,
+            'codigo' => $codigo,
+            'message' => 'Produto excluído. O código permanece reservado; use INATIVO para SKUs já utilizados.',
+        ]);
+    }
+
     private function validateProduto(Request $request, bool $partial = false): array
     {
         return $request->validate(ProdutoValidationRules::rules($partial));

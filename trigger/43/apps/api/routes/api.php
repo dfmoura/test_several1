@@ -212,6 +212,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/produtos/import/commit', [ProdutoImportController::class, 'commit']);
         Route::get('/produtos/{produto}', [ProdutoController::class, 'show']);
         Route::put('/produtos/{produto}', [ProdutoController::class, 'update']);
+        Route::get('/produtos/{produto}/exclusao-preflight', [ProdutoController::class, 'exclusaoPreflight']);
+        Route::delete('/produtos/{produto}', [ProdutoController::class, 'destroy']);
         Route::get('/produtos/{produto}/fornecedor-codigos', [ProdutoFornecedorCodigoController::class, 'index']);
         Route::post('/produtos/{produto}/fornecedor-codigos', [ProdutoFornecedorCodigoController::class, 'store']);
         Route::put('/produtos/{produto}/fornecedor-codigos/{fornecedorCodigo}', [ProdutoFornecedorCodigoController::class, 'update']);

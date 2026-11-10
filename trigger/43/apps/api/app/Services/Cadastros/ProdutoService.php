@@ -12,6 +12,7 @@ use App\Support\ProdutoAtributos;
 use App\Support\ProdutoDescricoes;
 use App\Support\ProdutoLotePolitica;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class ProdutoService
@@ -178,6 +179,190 @@ class ProdutoService
         $this->auditLogger->log('ATUALIZAR', 'produto', $produto->id, $before, $produto->fresh(Produto::userStampWith())->toArray());
 
         return $produto->fresh(Produto::userStampWith());
+    }
+
+    /**
+     * Preflight: SKU só pode ser excluído se ainda for “órfão”
+     * — sem uso em estoque, compras, ORC, PED, OP, NF-e ou embalagem PA.
+     * Catálogo ORC espelho e de-para fornecedor são satélites (purge na exclusão).
+     *
+     * @return array{pode_excluir: bool, bloqueios: list<string>, mensagem: string}
+     */
+    public function avaliarExclusao(Produto $produto): array
+    {
+        $bloqueios = $this->listarBloqueiosExclusao($produto);
+        $pode = $bloqueios === [];
+
+        return [
+            'pode_excluir' => $pode,
+            'bloqueios' => $bloqueios,
+            'mensagem' => $pode
+                ? 'Produto sem uso operacional. Pode ser excluído (código permanece reservado).'
+                : 'Produto em uso. Inative (situação INATIVO) em vez de excluir. Bloqueios: '
+                    .implode('; ', $bloqueios).'.',
+        ];
+    }
+
+    /**
+     * Soft-delete de SKU órfão. Recusa se houver vínculo operacional.
+     * Código permanece único (inclui soft-deleted) — nunca reutilizar.
+     */
+    public function softDeleteSeOrfa(Produto $produto): void
+    {
+        $avaliacao = $this->avaliarExclusao($produto);
+        if (! $avaliacao['pode_excluir']) {
+            throw ValidationException::withMessages([
+                'produto' => [$avaliacao['mensagem']],
+            ]);
+        }
+
+        DB::transaction(function () use ($produto) {
+            $produto->loadMissing([...Produto::userStampWith(), 'fornecedorCodigos']);
+            $before = $produto->toArray();
+            $produtoId = (int) $produto->id;
+            $empresaId = (int) $produto->empresa_id;
+
+            $produto->situacao = 'INATIVO';
+            $produto->save();
+
+            $this->purgeSatelitesOrfaos($empresaId, $produtoId);
+
+            $produto->delete();
+
+            $this->auditLogger->log(
+                'EXCLUIR',
+                'produto',
+                $produtoId,
+                $before,
+                ['soft_deleted' => true, 'codigo' => $produto->codigo, 'situacao' => 'INATIVO']
+            );
+        });
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function listarBloqueiosExclusao(Produto $produto): array
+    {
+        $bloqueios = [];
+        $empresaId = (int) $produto->empresa_id;
+        $produtoId = (int) $produto->id;
+
+        foreach (self::BLOQUEIOS_OPERACIONAIS as $item) {
+            if (! Schema::hasTable($item['table']) || ! Schema::hasColumn($item['table'], $item['column'])) {
+                continue;
+            }
+
+            $q = DB::table($item['table'])->where($item['column'], $produtoId);
+            if (Schema::hasColumn($item['table'], 'empresa_id')) {
+                $q->where('empresa_id', $empresaId);
+            }
+
+            $count = (int) $q->count();
+            if ($count > 0) {
+                $bloqueios[] = "{$count} {$item['label']}";
+            }
+        }
+
+        $orcRefs = $this->contarRefsEmSnapshotsOrc($empresaId, $produtoId);
+        if ($orcRefs > 0) {
+            $bloqueios[] = "{$orcRefs} orçamento(s) / item(ns) com este SKU no snapshot";
+        }
+
+        return $bloqueios;
+    }
+
+    /**
+     * Vínculos que impedem exclusão. Catálogo ORC e de-para NÃO entram —
+     * são espelho/satélite e saem no purge do órfão.
+     *
+     * @var list<array{table: string, column: string, label: string}>
+     */
+    private const BLOQUEIOS_OPERACIONAIS = [
+        ['table' => 'estoque_saldos', 'column' => 'produto_id', 'label' => 'saldo(s) de estoque'],
+        ['table' => 'estoque_lotes', 'column' => 'produto_id', 'label' => 'lote(s) de estoque'],
+        ['table' => 'estoque_movimento_itens', 'column' => 'produto_id', 'label' => 'movimento(s) de estoque'],
+        ['table' => 'estoque_ajustes', 'column' => 'produto_id', 'label' => 'ajuste(s) de estoque'],
+        ['table' => 'estoque_inventario_itens', 'column' => 'produto_id', 'label' => 'item(ns) de inventário'],
+        ['table' => 'estoque_inventario_leituras', 'column' => 'produto_id', 'label' => 'leitura(s) de inventário'],
+        ['table' => 'compra_necessidades', 'column' => 'produto_id', 'label' => 'necessidade(s) de compra'],
+        ['table' => 'cotacao_itens', 'column' => 'produto_id', 'label' => 'item(ns) de cotação'],
+        ['table' => 'ordem_compra_itens', 'column' => 'produto_id', 'label' => 'item(ns) de ordem de compra'],
+        ['table' => 'nfe_entrada_itens', 'column' => 'produto_id', 'label' => 'item(ns) de NF-e de entrada'],
+        ['table' => 'pedido_itens', 'column' => 'produto_pa_id', 'label' => 'item(ns) de pedido'],
+        ['table' => 'ordem_producao_materiais', 'column' => 'produto_id', 'label' => 'material(is) de OP'],
+        ['table' => 'pa_embalagens', 'column' => 'caixa_produto_id', 'label' => 'embalagem(ns) PA (caixa)'],
+    ];
+
+    /**
+     * Chaves de snapshot ORC que referenciam SKU (sem FK).
+     *
+     * @var list<string>
+     */
+    private const ORC_SNAPSHOT_PRODUTO_KEYS = [
+        'produto_id',
+        'papel_produto_id',
+        'acabamento_produto_id',
+        'tubete_produto_id',
+        'caixa_produto_id',
+    ];
+
+    private function contarRefsEmSnapshotsOrc(int $empresaId, int $produtoId): int
+    {
+        $total = 0;
+        foreach (['orcamentos', 'orcamento_itens'] as $table) {
+            if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'input_snapshot')) {
+                continue;
+            }
+            $total += $this->contarLinhasComProdutoNoJson($table, $empresaId, $produtoId, 'input_snapshot');
+            if (Schema::hasColumn($table, 'result_snapshot')) {
+                $total += $this->contarLinhasComProdutoNoJson($table, $empresaId, $produtoId, 'result_snapshot');
+            }
+        }
+
+        return $total;
+    }
+
+    private function contarLinhasComProdutoNoJson(
+        string $table,
+        int $empresaId,
+        int $produtoId,
+        string $column
+    ): int {
+        $q = DB::table($table)->where('empresa_id', $empresaId)->where(function ($outer) use ($column, $produtoId) {
+            foreach (self::ORC_SNAPSHOT_PRODUTO_KEYS as $key) {
+                // Terminadores evitam falso positivo de prefixo (id 12 ≠ 123).
+                foreach ([',', '}', ']', ' '] as $term) {
+                    $outer->orWhere($column, 'like', '%"'.$key.'":'.$produtoId.$term.'%')
+                        ->orWhere($column, 'like', '%"'.$key.'": '.$produtoId.$term.'%');
+                }
+                // Valor no fim da string JSON (sem trailler).
+                $outer->orWhere($column, 'like', '%"'.$key.'":'.$produtoId)
+                    ->orWhere($column, 'like', '%"'.$key.'": '.$produtoId);
+            }
+        });
+
+        return (int) $q->count();
+    }
+
+    private function purgeSatelitesOrfaos(int $empresaId, int $produtoId): void
+    {
+        if (Schema::hasTable('produto_fornecedor_codigos')) {
+            DB::table('produto_fornecedor_codigos')
+                ->where('empresa_id', $empresaId)
+                ->where('produto_id', $produtoId)
+                ->delete();
+        }
+
+        foreach (['orc_catalogo_papeis', 'orc_catalogo_acabamentos'] as $table) {
+            if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'produto_id')) {
+                continue;
+            }
+            DB::table($table)
+                ->where('empresa_id', $empresaId)
+                ->where('produto_id', $produtoId)
+                ->delete();
+        }
     }
 
     private function generateCode(int $empresaId, ProdutoGrupo $grupo): string

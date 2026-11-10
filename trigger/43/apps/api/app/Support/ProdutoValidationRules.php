@@ -68,7 +68,7 @@ class ProdutoValidationRules
             'controla_validade' => ['sometimes', 'boolean'],
             'prazo_validade_dias' => ['nullable', 'integer', 'min:1', 'max:3650'],
             'gtin' => ['nullable', 'string', 'max:32'],
-            'situacao' => ['sometimes', 'string', 'max:16'],
+            'situacao' => ['sometimes', 'string', 'in:ATIVO,INATIVO'],
             'atributos' => ['nullable', 'array'],
             'atributos.largura_mm' => PadraoDecimal::rules(PadraoDecimal::SCALE_DIM),
             'atributos.comprimento_m' => PadraoDecimal::rules(PadraoDecimal::SCALE_DIM),

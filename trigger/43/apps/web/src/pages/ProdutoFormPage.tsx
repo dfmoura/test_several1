@@ -4,7 +4,14 @@ import { FiscalCombobox, formatCest, formatNcm, type FiscalOption } from '../com
 import { PageHeader } from '../components/PageHeader';
 import { ProdutoFornecedorCodigosPanel } from '../components/ProdutoFornecedorCodigosPanel';
 import { RegistroMetaStrip, type RegistroAutoria } from '../components/RegistroMetaStrip';
-import { api, fiscalConsulta, type Produto, type ProdutoFornecedorCodigo, type ProdutoGrupo } from '../lib/api';
+import {
+  ApiError,
+  api,
+  fiscalConsulta,
+  type Produto,
+  type ProdutoFornecedorCodigo,
+  type ProdutoGrupo,
+} from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { decideBobinaDimensoesUi } from '../lib/produtoBobinaDimensoesUi';
@@ -21,6 +28,21 @@ import {
   politicaLotePorGrupo,
 } from '../lib/produtoLotePolitica';
 import { DECIMAL_SCALE, decimalStep, familiaLabel, naturezaGrupoLabel } from '../lib/format';
+
+type ExclusaoPreflight = {
+  pode_excluir: boolean;
+  bloqueios: string[];
+  mensagem: string;
+};
+
+function fieldErrors(err: unknown): string {
+  if (err instanceof ApiError && err.details) {
+    return Object.entries(err.details)
+      .flatMap(([k, msgs]) => msgs.map((m) => `${k}: ${m}`))
+      .join(' ');
+  }
+  return err instanceof Error ? err.message : 'Erro inesperado.';
+}
 
 /** Chaves do formulário em `atributos` — espelho de ProdutoAtributos::FORM_KEYS. */
 const ATRIBUTOS_FORM_KEYS = [
@@ -438,6 +460,9 @@ export function ProdutoFormPage() {
   const [fornecedoresDraft, setFornecedoresDraft] = useState<
     Array<{ id: number; codigo: string; razao_social: string; nome_fantasia: string | null }>
   >([]);
+  const [exclusao, setExclusao] = useState<ExclusaoPreflight | null>(null);
+  const [exclusaoLoading, setExclusaoLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   useEffect(() => {
     void (async () => {
       try {
@@ -531,6 +556,39 @@ export function ProdutoFormPage() {
       }
     })();
   }, [id, isNew]);
+
+  // Preflight de exclusão (espelho Empresa): só em edição com permissão de escrita.
+  useEffect(() => {
+    if (isNew || !id || !canWrite) {
+      setExclusao(null);
+      setExclusaoLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setExclusaoLoading(true);
+    setExclusao(null);
+    void (async () => {
+      try {
+        const res = await api.get<{ data: ExclusaoPreflight }>(
+          `/produtos/${id}/exclusao-preflight`,
+        );
+        if (!cancelled) setExclusao(res.data);
+      } catch {
+        if (!cancelled) {
+          setExclusao({
+            pode_excluir: false,
+            bloqueios: [],
+            mensagem: 'Não foi possível verificar se o produto pode ser excluído.',
+          });
+        }
+      } finally {
+        if (!cancelled) setExclusaoLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isNew, canWrite]);
 
   // Novo a partir de modelo (?from=id): preenche formulário sem gravar.
   useEffect(() => {
@@ -912,6 +970,61 @@ export function ProdutoFormPage() {
     });
   };
 
+  const handleExcluir = async () => {
+    if (isNew || !id || !canWrite || deleting || exclusaoLoading) return;
+    if (!exclusao?.pode_excluir) {
+      setError(
+        exclusao?.mensagem ??
+          'Produto com dependências. Inative (situação INATIVO) em vez de excluir.',
+      );
+      return;
+    }
+    setError('');
+    setMessage('');
+
+    try {
+      const pre = await api.get<{ data: ExclusaoPreflight }>(
+        `/produtos/${id}/exclusao-preflight`,
+      );
+      setExclusao(pre.data);
+      if (!pre.data.pode_excluir) {
+        setError(pre.data.mensagem);
+        return;
+      }
+    } catch (err) {
+      setError(fieldErrors(err));
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Excluir o produto ${form.codigo}?\n\n` +
+          'Só é permitido enquanto o SKU não tiver sido usado em estoque, compras, orçamento, pedido ou produção. ' +
+          'O código permanece reservado (não pode ser reutilizado). Para SKUs já usados, use situação INATIVO.',
+      )
+    ) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      await api.delete(`/produtos/${id}`);
+      navigate('/produtos');
+    } catch (err) {
+      setError(fieldErrors(err));
+      try {
+        const pre = await api.get<{ data: ExclusaoPreflight }>(
+          `/produtos/${id}/exclusao-preflight`,
+        );
+        setExclusao(pre.data);
+      } catch {
+        /* preflight opcional após falha */
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!canWrite && !canFiscal) return;
     if (!form.grupo_id) {
@@ -1032,6 +1145,30 @@ export function ProdutoFormPage() {
                 Imprimir ficha
               </a>
             )}
+            {!isNew && id && canWrite ? (
+              <button
+                type="button"
+                className="btn btn-danger"
+                disabled={
+                  deleting || saving || exclusaoLoading || !exclusao || !exclusao.pode_excluir
+                }
+                onClick={() => void handleExcluir()}
+                title={
+                  exclusaoLoading
+                    ? 'Verificando se o produto pode ser excluído…'
+                    : exclusao?.pode_excluir
+                      ? 'Excluir somente se ainda não houver uso operacional'
+                      : exclusao?.mensagem ||
+                        'Produto com dependências — inative em vez de excluir'
+                }
+              >
+                {deleting
+                  ? 'Excluindo…'
+                  : exclusaoLoading
+                    ? 'Verificando…'
+                    : 'Excluir'}
+              </button>
+            ) : null}
             <Link to="/produtos" className="btn btn-secondary">
               Voltar
             </Link>
@@ -1931,7 +2068,7 @@ export function ProdutoFormPage() {
               type="button"
               className="btn btn-primary"
               style={{ marginTop: '1.5rem' }}
-              disabled={saving}
+              disabled={saving || deleting}
               onClick={handleSave}
             >
               {saving
@@ -1943,6 +2080,25 @@ export function ProdutoFormPage() {
                   : 'Salvar alterações'}
             </button>
           )}
+
+          {!isNew && canWrite && exclusao && !exclusao.pode_excluir ? (
+            <p className="form-hint" role="status" style={{ marginTop: '1rem' }}>
+              Exclusão indisponível — produto já possui vínculos
+              {exclusao.bloqueios.length > 0
+                ? ` (${exclusao.bloqueios.slice(0, 3).join('; ')}${
+                    exclusao.bloqueios.length > 3 ? '…' : ''
+                  })`
+                : ''}
+              . Para tirar do dia a dia, use situação <strong>INATIVO</strong> (some dos
+              pickers e do catálogo ORC; histórico preservado).
+            </p>
+          ) : null}
+          {!isNew && canWrite && exclusao?.pode_excluir ? (
+            <p className="form-hint" role="status" style={{ marginTop: '1rem' }}>
+              Este SKU ainda não foi usado em nenhuma etapa operacional. A exclusão remove o
+              cadastro (e o espelho no catálogo ORC / de-para); o código permanece reservado.
+            </p>
+          ) : null}
         </div>
       </div>
     </>
