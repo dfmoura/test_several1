@@ -383,7 +383,7 @@ function colunasVolume(args: {
       label: 'Produto',
       node: <span title={args.produto}>{args.produto}</span>,
     },
-    { key: 'volume', label: 'Volume', node: args.volume },
+    { key: 'volume', label: 'Lote', node: args.volume },
     { key: 'local', label: 'Local', node: args.local },
   ];
   if (args.polegada) cols.push({ key: 'polegada', label: 'Polegada', node: args.polegada });

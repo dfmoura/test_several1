@@ -82,7 +82,7 @@ export type FichaSaidaGrupo = {
 
 const COLUNAS: FichaSaidaColuna[] = [
   { id: 'produto', label: 'Produto' },
-  { id: 'volume', label: 'Volume' },
+  { id: 'volume', label: 'Lote' },
   { id: 'local', label: 'Local' },
   { id: 'polegada', label: 'Polegada' },
   { id: 'medida', label: 'Medida' },
