@@ -52,7 +52,7 @@ class OrdemProducaoService
     ): array {
         $query = OrdemProducao::query()
             ->where('empresa_id', $empresa->id)
-            ->with(['pedido:id,codigo,status', 'pedidoItem:id,descricao,necessidade'])
+            ->with(['pedido:id,codigo,status', 'pedidoItem:id,descricao,necessidade,especificacao'])
             ->orderByDesc('id');
 
         if ($status) {
@@ -2289,6 +2289,7 @@ class OrdemProducaoService
                 'necessidade' => $o->pedidoItem->necessidade,
                 'qtde_pedida' => (string) $o->pedidoItem->qtde_pedida,
                 'largura_mm' => self::larguraMmEspecificacao($o->pedidoItem->especificacao),
+                'maquina' => self::maquinaEspecificacao($o->pedidoItem->especificacao),
             ] : null,
             'iniciada_em' => optional($o->iniciada_em)?->toIso8601String(),
             'concluida_em' => optional($o->concluida_em)?->toIso8601String(),
@@ -2685,6 +2686,26 @@ class OrdemProducaoService
         }
 
         return (string) $raw;
+    }
+
+    /**
+     * Grupo ORC / hora-máquina do PED (ficha de chão), não patrimônio físico.
+     */
+    public static function maquinaEspecificacao(mixed $spec): ?string
+    {
+        if (is_string($spec)) {
+            $spec = json_decode($spec, true);
+        }
+        if (! is_array($spec)) {
+            return null;
+        }
+        $raw = $spec['maquina'] ?? null;
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        $s = trim((string) $raw);
+
+        return ($s !== '' && $s !== '—') ? $s : null;
     }
 
     /**

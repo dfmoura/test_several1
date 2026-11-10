@@ -3521,6 +3521,8 @@ export type OrdemProducao = {
     necessidade: string;
     qtde_pedida?: string;
     largura_mm?: string | null;
+    /** Grupo ORC / hora-máquina do PED (não patrimônio). */
+    maquina?: string | null;
   } | null;
   parceiro?: { id: number; codigo: string; razao_social: string } | null;
   materiais?: OrdemProducaoMaterial[];

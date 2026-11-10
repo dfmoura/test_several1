@@ -26,6 +26,7 @@ const SORT = {
   codigo: (o: OrdemProducao) => o.codigo,
   pedido: (o: OrdemProducao) => o.pedido?.codigo,
   item: (o: OrdemProducao) => o.pedido_item?.descricao,
+  maquina: (o: OrdemProducao) => o.pedido_item?.maquina,
   qtde: (o: OrdemProducao) => Number(o.qtde_planejada),
   status: (o: OrdemProducao) => o.status,
   criada: (o: OrdemProducao) => o.created_at,
@@ -192,7 +193,7 @@ export function OrdensProducaoPage() {
           ) : sorted.length === 0 ? (
             <div className="empty-state">{emptyMessage(status, q, de, ate)}</div>
           ) : (
-            <table className="data-table">
+            <table className="data-table ordens-producao-table">
               <thead>
                 <tr>
                   <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
@@ -203,6 +204,9 @@ export function OrdensProducaoPage() {
                   </SortableTh>
                   <SortableTh column="item" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Etiqueta
+                  </SortableTh>
+                  <SortableTh column="maquina" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Máquina
                   </SortableTh>
                   <SortableTh column="qtde" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Quantidade
@@ -218,6 +222,7 @@ export function OrdensProducaoPage() {
               <tbody>
                 {sorted.map((o) => {
                   const go = () => navigate(`/ordens-producao/${o.id}`);
+                  const maquina = o.pedido_item?.maquina?.trim() || null;
                   return (
                     <tr
                       key={o.id}
@@ -241,6 +246,9 @@ export function OrdensProducaoPage() {
                         )}
                       </td>
                       <td>{o.pedido_item?.descricao ?? '—'}</td>
+                      <td className="op-lista-maquina" title={maquina ?? undefined}>
+                        {maquina ?? '—'}
+                      </td>
                       <td>{formatDecimalBr(Number(o.qtde_planejada), 0)}</td>
                       <td>
                         <StatusPill status={opStatusLabel(o.status)} />
