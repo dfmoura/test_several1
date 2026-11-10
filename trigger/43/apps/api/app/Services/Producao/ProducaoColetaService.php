@@ -955,25 +955,15 @@ class ProducaoColetaService
                         }
                     }
                     if ($planoPend !== null) {
-                        $linha['faixa'] = PartidaBobina::FAIXA_PARTIDA;
-                        $linha['partida_preview'] = PartidaBobina::previewUi([
-                            'aplica' => true,
-                            'L_p' => $planoPend['L_p'] ?? null,
-                            'C_p' => $planoPend['C_p'] ?? null,
-                            'L_n' => $planoPend['L_n'] ?? null,
-                            'C_u' => $planoPend['C_u_previsto'] ?? null,
-                            'refile' => $planoPend['refile'] ?? null,
-                            'sobra' => $planoPend['sobra'] ?? null,
-                            'area_consumida' => $planoPend['area_consumida'] ?? null,
-                        ]);
-                        $areaVolta = '0';
-                        if (is_array($planoPend['refile'] ?? null)) {
-                            $areaVolta = bcadd($areaVolta, (string) ($planoPend['refile']['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY + 4);
-                        }
-                        if (is_array($planoPend['sobra'] ?? null)) {
-                            $areaVolta = bcadd($areaVolta, (string) ($planoPend['sobra']['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY + 4);
-                        }
-                        $linha['qtde_partida_retorno'] = PadraoDecimal::roundHalfUp($areaVolta, PadraoDecimal::SCALE_QTY);
+                        $tipo = (string) ($planoPend['tipo'] ?? PartidaBobina::TIPO_PARTIDA);
+                        $linha['faixa'] = $tipo === PartidaBobina::TIPO_SOBRA_COMPRIMENTO
+                            ? PartidaBobina::FAIXA_SOBRA
+                            : PartidaBobina::FAIXA_PARTIDA;
+                        $linha['partida_preview'] = PartidaBobina::previewUi($planoPend);
+                        $areaVolta = PartidaBobina::areaRetorno($planoPend);
+                        $linha['qtde_partida_retorno'] = $areaVolta;
+                        // «Passa» a devolver = só a sobra prevista (não o consumido).
+                        $linha['qtde_retirar'] = $areaVolta;
                     }
                 }
             } else {

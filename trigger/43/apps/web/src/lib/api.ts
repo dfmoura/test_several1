@@ -3394,11 +3394,13 @@ export type EntregaFilaItem = {
 };
 
 export type OpPartidaPreview = {
+  tipo?: 'partida' | 'sobra_comprimento' | string;
   L_p: string;
   C_p: string;
   L_n: string;
   C_u: string;
-  area_consumida?: string;
+  area_consumida?: string | null;
+  area_retorno?: string | null;
   refile?: {
     largura_mm: string;
     comprimento_m: string;
@@ -3442,8 +3444,8 @@ export type OpRetiradaVolume = {
   /** Volume apontado como perda na separação (não devolve). */
   avariado?: boolean;
   qtde_avaria?: string | null;
-  /** papel = medida da OP · partida = L maior (ADR_PRODUCAO_PARTIDA_BOBINA). */
-  faixa?: 'papel' | 'partida' | string | null;
+  /** papel · partida (L maior) · sobra («Passa» comprimento). */
+  faixa?: 'papel' | 'partida' | 'sobra' | string | null;
   partida_preview?: OpPartidaPreview | null;
   /** Área das sobras a devolver quando o volume é pai de partida. */
   qtde_partida_retorno?: string | null;
@@ -3503,6 +3505,7 @@ export type OrdemProducaoMaterial = {
   avaria_lotes?: Array<{ lote_id: number; qtde: string; motivo?: string | null }>;
   /** Planos de partida/refile (ADR_PRODUCAO_PARTIDA_BOBINA). */
   partida_prevista?: Array<{
+    tipo?: 'partida' | 'sobra_comprimento' | string;
     lote_pai_id: number;
     L_p?: string | null;
     C_p?: string | null;
@@ -3511,6 +3514,7 @@ export type OrdemProducaoMaterial = {
     C_u_previsto?: string | null;
     area_pai?: string | null;
     area_consumida?: string | null;
+    area_retorno?: string | null;
     refile?: OpPartidaPreview['refile'];
     sobra?: OpPartidaPreview['sobra'];
     status: string;

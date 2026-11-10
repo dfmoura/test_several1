@@ -1270,7 +1270,9 @@ class ProducaoColetaDirigidaTest extends TestCase
         );
         $ok->assertOk();
         $papelOk = collect($ok->json('data.materiais'))->firstWhere('componente', 'PAPEL');
-        $this->assertSame([], $papelOk['partida_prevista'] ?? []);
+        // «Passa» de comprimento na mesma medida → retorno previsto.
+        $this->assertSame('sobra_comprimento', $papelOk['partida_prevista'][0]['tipo'] ?? null);
+        $this->assertSame('pendente', $papelOk['partida_prevista'][0]['status'] ?? null);
     }
 
     public function test_partida_grava_plano_devolve_volumes_e_bloqueia_fecho(): void
@@ -1314,10 +1316,14 @@ class ProducaoColetaDirigidaTest extends TestCase
             ]
         );
         $fechoBloqueado->assertStatus(422);
-        $this->assertStringContainsString(
-            'partida',
-            strtolower((string) ($fechoBloqueado->json('errors.partida_prevista.0') ?? ''))
-        );
+        $this->assertNotEmpty($fechoBloqueado->json('errors.partida_prevista.0'));
+
+        $showDev = $this->withHeaders($this->h())->getJson("/api/v1/ordens-producao/{$this->op->id}");
+        $papelShow = collect($showDev->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $aDev = collect($papelShow['retirada']['volumes_a_devolver'] ?? [])
+            ->firstWhere('lote_id', $this->loteVigente->id);
+        $this->assertNotNull($aDev);
+        $qtdeDev = (string) ($aDev['qtde_partida_retorno'] ?? $aDev['qtde_retirar']);
 
         $devolver = $this->withHeaders($this->h())->postJson(
             "/api/v1/estoque/retiradas/{$this->op->id}/devolver",
@@ -1325,7 +1331,7 @@ class ProducaoColetaDirigidaTest extends TestCase
                 'material_id' => $this->matPapel->id,
                 'motivo' => 'Guardar refile e sobra da partida',
                 'volumes' => [
-                    ['lote_id' => $this->loteVigente->id, 'qtde' => '120.0000'],
+                    ['lote_id' => $this->loteVigente->id, 'qtde' => $qtdeDev],
                 ],
             ]
         );
@@ -1347,6 +1353,79 @@ class ProducaoColetaDirigidaTest extends TestCase
 
         $aDevolver = collect($papelDev['retirada']['volumes_a_devolver'] ?? [])->pluck('lote_id')->all();
         $this->assertNotContains($this->loteVigente->id, $aDevolver);
+    }
+
+    public function test_passa_mesma_medida_grava_sobra_e_bloqueia_fecho(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        // 210 mm · necessidade 80 m² · bobina 100 m² (476,19 m) → Passa comprimento.
+        $item = PedidoItem::query()->findOrFail($this->op->pedido_item_id);
+        $item->especificacao = ['largura_cm' => '5.25', 'colunas' => 4];
+        $item->save();
+        $this->matPapel->qtde_planejada = '80.0000';
+        $this->matPapel->save();
+
+        $sai = $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/requisitar",
+            [
+                'material_id' => $this->matPapel->id,
+                'volumes' => [
+                    ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
+                ],
+            ]
+        );
+        $sai->assertOk();
+        $papel = collect($sai->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertCount(1, $papel['partida_prevista'] ?? []);
+        $this->assertSame('sobra_comprimento', $papel['partida_prevista'][0]['tipo'] ?? null);
+        $this->assertSame('pendente', $papel['partida_prevista'][0]['status']);
+        $this->assertNotNull($papel['partida_prevista'][0]['sobra'] ?? null);
+        $this->assertNull($papel['partida_prevista'][0]['refile'] ?? null);
+
+        $fecho = $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/concluir",
+            [
+                'qtde_boa' => '1000.0000',
+                'qtde_refugo' => '0',
+                'materiais' => [[
+                    'material_id' => $this->matPapel->id,
+                    'qtde_retorno' => '0',
+                    'qtde_perda' => '0',
+                ]],
+            ]
+        );
+        $fecho->assertStatus(422);
+
+        $aDev = collect($papel['retirada']['volumes_a_devolver'] ?? [])
+            ->firstWhere('lote_id', $this->loteVencido->id);
+        // Refresh: volumes_a_devolver after saída.
+        $show = $this->withHeaders($this->h())->getJson("/api/v1/ordens-producao/{$this->op->id}");
+        $papel2 = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $aDev = collect($papel2['retirada']['volumes_a_devolver'] ?? [])
+            ->firstWhere('lote_id', $this->loteVencido->id);
+        $this->assertNotNull($aDev);
+        $this->assertSame('sobra', $aDev['faixa'] ?? null);
+        $qtdeDev = (string) ($aDev['qtde_partida_retorno'] ?? $aDev['qtde_retirar']);
+
+        $devolver = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/devolver",
+            [
+                'material_id' => $this->matPapel->id,
+                'motivo' => 'Passa — devolver sobra ao estoque',
+                'volumes' => [
+                    ['lote_id' => $this->loteVencido->id, 'qtde' => $qtdeDev],
+                ],
+            ]
+        );
+        $devolver->assertOk();
+        $papelDev = collect($devolver->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertSame('devolvido', $papelDev['partida_prevista'][0]['status'] ?? null);
+        $lote = $this->loteVencido->fresh();
+        $this->assertSame($qtdeDev, (string) $lote->qtde);
+        $this->assertGreaterThan(0, (float) $lote->comprimento_m);
+        $aDevolver = collect($papelDev['retirada']['volumes_a_devolver'] ?? [])->pluck('lote_id')->all();
+        $this->assertNotContains($this->loteVencido->id, $aDevolver);
     }
 
     public function test_payload_ui_com_qtde_soma_parcial_nao_redefine_necessidade(): void

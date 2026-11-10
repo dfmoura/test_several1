@@ -112,12 +112,14 @@ export function OpEscolhaOverlay({
     }
     return init;
   });
+  const isRetornoPrevisto = (v: OpRetiradaVolume) =>
+    v.faixa === 'partida' || v.faixa === 'sobra';
   const [devolverMarcados, setDevolverMarcados] = useState<Record<number, boolean>>(() => {
     const init: Record<number, boolean> = {};
     for (const v of volsADevolver) {
       if (v.lote_id) {
-        // Partida: pré-marca o pai para o operador só confirmar + motivo.
-        init[v.lote_id] = v.faixa === 'partida';
+        // Passa / partida: pré-marca para o operador só confirmar + motivo.
+        init[v.lote_id] = isRetornoPrevisto(v);
       }
     }
     return init;
@@ -127,8 +129,8 @@ export function OpEscolhaOverlay({
     resumo: string[];
   } | null>(null);
   const [motivoDevolver, setMotivoDevolver] = useState(() =>
-    (material.retirada?.volumes_a_devolver ?? []).some((v) => v.faixa === 'partida')
-      ? 'Partida — guardar refile e sobra'
+    (material.retirada?.volumes_a_devolver ?? []).some(isRetornoPrevisto)
+      ? 'Passa — devolver sobra ao estoque'
       : '',
   );
   const [filtro, setFiltro] = useState<VolumeFiltroEstado>(VOLUME_FILTRO_VAZIO);
@@ -223,7 +225,9 @@ export function OpEscolhaOverlay({
       : null;
   const cobreNecessidade =
     precisaM2 != null && areaCarrinho != null ? areaCarrinho + 1e-6 >= precisaM2 : null;
-  const temPartidaEscolhida = escolhidos.some((v) => v.faixa === 'partida');
+  const temPartidaEscolhida = escolhidos.some(
+    (v) => v.faixa === 'partida' || v.faixa === 'sobra',
+  );
   const override =
     modo === 'volume' &&
     mesmoSku &&
@@ -615,9 +619,9 @@ export function OpEscolhaOverlay({
                                       {formatVolumeDimensao(v)}
                                     </div>
                                   ) : null}
-                                  {v.faixa === 'partida' && prev ? (
+                                  {isRetornoPrevisto(v) && prev ? (
                                     <div className="muted" style={{ fontSize: '0.85em' }}>
-                                      Partida · volta{' '}
+                                      {v.faixa === 'sobra' ? 'Passa · volta ' : 'Partida · volta '}
                                       {[
                                         prev.refile
                                           ? `refile ${formatDecimalBr(prev.refile.largura_mm, 1, { stripTrailingZeros: true })} mm × ${formatDecimalBr(prev.refile.comprimento_m, 1, { stripTrailingZeros: true })} m`
@@ -632,7 +636,7 @@ export function OpEscolhaOverlay({
                                   ) : null}
                                 </td>
                                 <td>
-                                  {v.faixa === 'partida' && v.qtde_partida_retorno
+                                  {isRetornoPrevisto(v) && v.qtde_partida_retorno
                                     ? formatQtdePick(
                                         parseQtdeDigitada(v.qtde_partida_retorno),
                                         v.unidade ?? material.unidade,
@@ -903,8 +907,8 @@ export function OpEscolhaOverlay({
             <p className="op-escolha__soma">
               Devolver {volsDevolverEscolhidos.length}{' '}
               {volsDevolverEscolhidos.length === 1 ? 'volume' : 'volumes'}
-              {volsDevolverEscolhidos.some((v) => v.faixa === 'partida')
-                ? ' · gera refile/sobra'
+              {volsDevolverEscolhidos.some(isRetornoPrevisto)
+                ? ' · devolve o Passa'
                 : ''}
             </p>
           ) : (

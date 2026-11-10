@@ -83,4 +83,18 @@ class PartidaBobinaTest extends TestCase
         $this->assertFalse(PartidaBobina::produtoPermitePartida('MP-TEC-40', 'MP-TEC'));
         $this->assertFalse(PartidaBobina::produtoPermitePartida('MP-ADF', null));
     }
+
+    public function test_passa_comprimento_mesma_medida(): void
+    {
+        // 15,5 cm × 1000 m · usa 300 m → Passa 700 m
+        $plano = PartidaBobina::planejarSobraComprimento('155', '1000', '155', '300', 7);
+
+        $this->assertTrue($plano['aplica']);
+        $this->assertSame(PartidaBobina::TIPO_SOBRA_COMPRIMENTO, $plano['tipo']);
+        $this->assertNull($plano['refile']);
+        $this->assertSame('155.00', $plano['sobra']['largura_mm']);
+        $this->assertSame('700.00', $plano['sobra']['comprimento_m']);
+        $this->assertSame('108.5000', $plano['sobra']['qtde']);
+        $this->assertSame('108.5000', PartidaBobina::areaRetorno(PartidaBobina::paraPersistencia($plano)));
+    }
 }

@@ -3,10 +3,12 @@
 namespace App\Support;
 
 /**
- * Plano de partida / refile de bobina na OP (ADR_PRODUCAO_PARTIDA_BOBINA).
+ * Plano de retorno de bobina na OP (ADR_PRODUCAO_PARTIDA_BOBINA).
  *
- * Pai L_p × C_p → consome L_n × C_u na faixa do papel;
- * sobra refile (L_p−L_n)×C_p e sobra útil L_n×(C_p−C_u). Conserva área M2.
+ * - Partida: L_p > L_n → refile + sobra útil.
+ * - Sobra comprimento: L_p ≈ L_n e C_p > C_u → «Passa» vira retorno previsto.
+ *
+ * Conserva área M2. Sem segundo writer.
  */
 final class PartidaBobina
 {
@@ -20,6 +22,12 @@ final class PartidaBobina
     public const FAIXA_PAPEL = 'papel';
 
     public const FAIXA_PARTIDA = 'partida';
+
+    public const FAIXA_SOBRA = 'sobra';
+
+    public const TIPO_PARTIDA = 'partida';
+
+    public const TIPO_SOBRA_COMPRIMENTO = 'sobra_comprimento';
 
     /**
      * Grupos M2 em que L×C vive no volume e a partida faz sentido.
@@ -203,6 +211,7 @@ final class PartidaBobina
 
         return [
             'aplica' => true,
+            'tipo' => self::TIPO_PARTIDA,
             'lote_pai_id' => $lotePaiId !== null && $lotePaiId > 0 ? $lotePaiId : null,
             'L_p' => $lP,
             'C_p' => $cP,
@@ -218,14 +227,96 @@ final class PartidaBobina
     }
 
     /**
+     * Medida exata: «Passa» de comprimento → sobra L_n × (C_p − C_u).
+     *
+     * @return array<string, mixed>
+     */
+    public static function planejarSobraComprimento(
+        mixed $larguraPaiMm,
+        mixed $comprimentoPaiM,
+        mixed $larguraPapelMm,
+        mixed $metrosNecessarios,
+        ?int $lotePaiId = null,
+        mixed $metrosUsados = null,
+    ): array {
+        $lP = self::dim($larguraPaiMm);
+        $cP = self::dim($comprimentoPaiM);
+        $lN = self::dim($larguraPapelMm);
+        $cN = self::dim($metrosNecessarios);
+        if ($lP === null || $cP === null || $lN === null || $cN === null) {
+            return ['aplica' => false, 'mensagem' => 'Geometria incompleta para sobra.'];
+        }
+        if (! self::cabeNaLargura($lP, $lN, self::MODO_EXATO)) {
+            return ['aplica' => false, 'mensagem' => 'Sobra de comprimento exige a medida do papel.'];
+        }
+        $cU = $metrosUsados !== null && $metrosUsados !== ''
+            ? self::dim($metrosUsados)
+            : $cN;
+        if ($cU === null) {
+            return ['aplica' => false, 'mensagem' => 'Metros usados inválidos.'];
+        }
+        if (bccomp($cU, $cP, PadraoDecimal::SCALE_DIM) > 0) {
+            return ['aplica' => false, 'mensagem' => 'Metros usados excedem o comprimento do volume.'];
+        }
+        $deltaC = PadraoDecimal::roundHalfUp(bcsub($cP, $cU, 6), PadraoDecimal::SCALE_DIM);
+        if (bccomp($deltaC, '0', PadraoDecimal::SCALE_DIM) <= 0) {
+            return ['aplica' => false, 'mensagem' => 'Sem passa de comprimento.'];
+        }
+
+        $geoPai = VolumeGeometria::fechar($lP, $cP, null, 'M2');
+        $geoCons = VolumeGeometria::fechar($lN, $cU, null, 'M2');
+        $geoSob = VolumeGeometria::fechar($lN, $deltaC, null, 'M2');
+        if ($geoPai['status'] !== VolumeGeometria::STATUS_FECHADO
+            || $geoCons['status'] !== VolumeGeometria::STATUS_FECHADO
+            || $geoSob['status'] !== VolumeGeometria::STATUS_FECHADO
+            || $geoPai['qtde'] === null
+            || $geoCons['qtde'] === null
+            || $geoSob['qtde'] === null) {
+            return ['aplica' => false, 'mensagem' => 'Área da sobra não fecha.'];
+        }
+        $soma = PadraoDecimal::roundHalfUp(
+            bcadd((string) $geoCons['qtde'], (string) $geoSob['qtde'], PadraoDecimal::SCALE_QTY + 4),
+            PadraoDecimal::SCALE_QTY
+        );
+        $areaPai = PadraoDecimal::roundHalfUp((string) $geoPai['qtde'], PadraoDecimal::SCALE_QTY);
+        if (bccomp($soma, $areaPai, PadraoDecimal::SCALE_QTY) !== 0) {
+            return ['aplica' => false, 'mensagem' => "Conservação de área falhou ({$soma} ≠ {$areaPai} M2)."];
+        }
+
+        return [
+            'aplica' => true,
+            'tipo' => self::TIPO_SOBRA_COMPRIMENTO,
+            'lote_pai_id' => $lotePaiId !== null && $lotePaiId > 0 ? $lotePaiId : null,
+            'L_p' => $lP,
+            'C_p' => $cP,
+            'L_n' => $lN,
+            'C_n' => $cN,
+            'C_u' => $cU,
+            'area_pai' => $areaPai,
+            'area_consumida' => PadraoDecimal::roundHalfUp((string) $geoCons['qtde'], PadraoDecimal::SCALE_QTY),
+            'refile' => null,
+            'sobra' => [
+                'largura_mm' => (string) $geoSob['largura_mm'],
+                'comprimento_m' => (string) $geoSob['comprimento_m'],
+                'area_m2' => (string) $geoSob['area_m2'],
+                'qtde' => (string) $geoSob['qtde'],
+            ],
+            'mensagem' => null,
+        ];
+    }
+
+    /**
      * Persistível em ordem_producao_materiais.partida_prevista[].
      *
-     * @param  array<string, mixed>  $plano  retorno de planejar() com aplica=true
+     * @param  array<string, mixed>  $plano  retorno de planejar* com aplica=true
      * @return array<string, mixed>
      */
     public static function paraPersistencia(array $plano): array
     {
+        $tipo = (string) ($plano['tipo'] ?? self::TIPO_PARTIDA);
+
         return [
+            'tipo' => $tipo,
             'lote_pai_id' => (int) ($plano['lote_pai_id'] ?? 0),
             'L_p' => (string) $plano['L_p'],
             'C_p' => (string) $plano['C_p'],
@@ -241,6 +332,24 @@ final class PartidaBobina
     }
 
     /**
+     * Área que volta à prateleira (refile + sobra).
+     *
+     * @param  array<string, mixed>  $plano
+     */
+    public static function areaRetorno(array $plano): string
+    {
+        $area = '0';
+        if (is_array($plano['refile'] ?? null)) {
+            $area = bcadd($area, (string) ($plano['refile']['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY + 4);
+        }
+        if (is_array($plano['sobra'] ?? null)) {
+            $area = bcadd($area, (string) ($plano['sobra']['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY + 4);
+        }
+
+        return PadraoDecimal::roundHalfUp($area, PadraoDecimal::SCALE_QTY);
+    }
+
+    /**
      * Preview enxuto para a UI do kit.
      *
      * @param  array<string, mixed>  $plano
@@ -248,18 +357,23 @@ final class PartidaBobina
      */
     public static function previewUi(array $plano): ?array
     {
-        if (($plano['aplica'] ?? false) !== true) {
+        if (! isset($plano['L_p']) && ($plano['aplica'] ?? false) !== true) {
+            return null;
+        }
+        if (($plano['aplica'] ?? null) === false) {
             return null;
         }
 
         return [
-            'L_p' => (string) $plano['L_p'],
-            'C_p' => (string) $plano['C_p'],
-            'L_n' => (string) $plano['L_n'],
-            'C_u' => (string) $plano['C_u'],
-            'refile' => $plano['refile'],
-            'sobra' => $plano['sobra'],
-            'area_consumida' => (string) $plano['area_consumida'],
+            'tipo' => (string) ($plano['tipo'] ?? self::TIPO_PARTIDA),
+            'L_p' => (string) ($plano['L_p'] ?? ''),
+            'C_p' => (string) ($plano['C_p'] ?? ''),
+            'L_n' => (string) ($plano['L_n'] ?? ''),
+            'C_u' => (string) ($plano['C_u'] ?? $plano['C_u_previsto'] ?? ''),
+            'refile' => $plano['refile'] ?? null,
+            'sobra' => $plano['sobra'] ?? null,
+            'area_consumida' => isset($plano['area_consumida']) ? (string) $plano['area_consumida'] : null,
+            'area_retorno' => self::areaRetorno($plano),
         ];
     }
 

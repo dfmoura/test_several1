@@ -169,4 +169,17 @@ Persistência mínima do plano (sugestão de implementação; não é segundo le
 - [x] **F4 — UX kit** · `faixa`/`partida_preview` na escolha · hint de partida no kit (Guardar/etiqueta = canais já existentes)  
 - [x] **F5 — Regressão** · `ProducaoColetaDirigidaTest` + `PartidaBobinaTest` (24+8)  
 
+## Emenda 2026-11-10b — «Passa» = retorno previsto
+
+O balanço **Precisa · Saiu · Passa** deixa de ser só indicador. Se `Passa > 0` na saída da bobina inteira:
+
+| Caso | Plano em `partida_prevista` | Devolver |
+|------|-----------------------------|----------|
+| Medida do papel (`L ≈ L_n`) | `tipo=sobra_comprimento` · sobra `L_n × (C_p−C_u)` | `ENTRADA_SOBRA` no **mesmo** lote (sync comprimento) |
+| Largura maior | `tipo=partida` · refile + sobra | volumes novos (inalterado) |
+
+- Kit: bloco **A devolver / guardar** lista as sobras previstas.  
+- Fecho bloqueia com plano `pendente` (salvo «usou tudo» + motivo).  
+- Sem segundo writer · sem MP-RET com origem conhecida · sem engolir «Passa» no fecho.
+
 Alterar esta ADR exige decisão explícita (produção + estoque + UX). Sem segundo writer e sem explodir SKU.
