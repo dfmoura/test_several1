@@ -270,14 +270,14 @@ export function TitulosCarteiraPage({ tipo }: Props) {
 
   const title = receber ? 'Contas a receber' : 'Contas a pagar';
   const description = receber
-    ? 'Carteira a receber da EMP ativa. Aging operacional; baixa contra conta financeira. Não é DRE.'
-    : 'Carteira a pagar da EMP ativa. Títulos de compra, comissão e lançamento pontual. Não é DRE.';
+    ? 'Carteira a receber — aging operacional. Não é DRE.'
+    : 'Carteira a pagar — compra, comissão e avulso. Não é DRE.';
 
   const liquidoNeg = Number(meta.previsao.liquido) < 0;
 
   return (
     <>
-      <PageHeader title={title} description={description} />
+      <PageHeader variant="list" title={title} description={description} />
 
       {qParam ? (
         <p className="form-hint">Filtrado por «{qParam}».</p>
@@ -286,103 +286,93 @@ export function TitulosCarteiraPage({ tipo }: Props) {
       {msg && <div className="alert alert-success">{msg}</div>}
       {error && <div className="alert alert-error">{error}</div>}
 
-      <section className="fin-previsao" aria-label="Previsão operacional">
-        <div>
-          <span className="fin-previsao-label">A receber</span>
-          <strong>{formatCurrency(meta.previsao.receber_saldo)}</strong>
-        </div>
-        <div>
-          <span className="fin-previsao-label">A pagar</span>
-          <strong>{formatCurrency(meta.previsao.pagar_saldo)}</strong>
-        </div>
-        <div className={liquidoNeg ? 'is-neg' : undefined}>
-          <span className="fin-previsao-label">Líquido operacional</span>
-          <strong>{formatCurrency(meta.previsao.liquido)}</strong>
-        </div>
-        <p className="fin-previsao-hint">
-          {meta.previsao.legenda ||
-            'Títulos em aberto nesta EMP — não é DRE nem contabilidade oficial.'}
-        </p>
-      </section>
+      <div className="list-chrome list-chrome--fin">
+        <section className="fin-previsao fin-previsao--dense" aria-label="Previsão operacional">
+          <div>
+            <span className="fin-previsao-label">A receber</span>
+            <strong>{formatCurrency(meta.previsao.receber_saldo)}</strong>
+          </div>
+          <div>
+            <span className="fin-previsao-label">A pagar</span>
+            <strong>{formatCurrency(meta.previsao.pagar_saldo)}</strong>
+          </div>
+          <div className={liquidoNeg ? 'is-neg' : undefined}>
+            <span className="fin-previsao-label">Líquido operacional</span>
+            <strong>{formatCurrency(meta.previsao.liquido)}</strong>
+          </div>
+        </section>
 
-      <div className="fin-aging-grid" role="group" aria-label="Aging">
-        <button
-          type="button"
-          className={`fin-aging${!faixa ? ' is-active' : ''}`}
-          onClick={() => setFiltro({ faixa: null })}
-        >
-          <span>Em aberto</span>
-          <strong>{formatCurrency(meta.aberto.saldo)}</strong>
-          <em>{meta.aberto.count} título{meta.aberto.count === 1 ? '' : 's'}</em>
-        </button>
-        {meta.aging.map((fx) => {
-          const alerta = fx.id !== 'A_VENCER' && fx.count > 0 && fx.id !== 'VENCE_HOJE';
-          const hoje = fx.id === 'VENCE_HOJE' && fx.count > 0;
-          return (
-            <button
-              key={fx.id}
-              type="button"
-              className={`fin-aging${faixa === fx.id ? ' is-active' : ''}${alerta ? ' is-alerta' : ''}${hoje ? ' is-hoje' : ''}`}
-              onClick={() => setFiltro({ faixa: faixa === fx.id ? null : fx.id, situacao: 'aberto' })}
-            >
-              <span>{fx.label}</span>
-              <strong>{formatCurrency(fx.saldo)}</strong>
-              <em>{fx.count} título{fx.count === 1 ? '' : 's'}</em>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setFiltro({ q: q.trim() || null });
-            }}
-            className="form-grid"
+        <div className="fin-aging-grid fin-aging-grid--dense" role="group" aria-label="Aging">
+          <button
+            type="button"
+            className={`fin-aging${!faixa ? ' is-active' : ''}`}
+            onClick={() => setFiltro({ faixa: null })}
           >
-            <div className="form-group span-2">
-              <label>Buscar</label>
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={receber ? 'TIT, cliente, PED, FAT, natureza…' : 'TIT, fornecedor, OC, documento…'}
-              />
-            </div>
-            <div className="form-group">
-              <label>Situação</label>
-              <select
-                value={situacao === 'todos' ? 'todos' : 'aberto'}
-                onChange={(e) => setFiltro({ situacao: e.target.value })}
+            <span>Em aberto</span>
+            <strong>{formatCurrency(meta.aberto.saldo)}</strong>
+            <em>{meta.aberto.count} título{meta.aberto.count === 1 ? '' : 's'}</em>
+          </button>
+          {meta.aging.map((fx) => {
+            const alerta = fx.id !== 'A_VENCER' && fx.count > 0 && fx.id !== 'VENCE_HOJE';
+            const hoje = fx.id === 'VENCE_HOJE' && fx.count > 0;
+            return (
+              <button
+                key={fx.id}
+                type="button"
+                className={`fin-aging${faixa === fx.id ? ' is-active' : ''}${alerta ? ' is-alerta' : ''}${hoje ? ' is-hoje' : ''}`}
+                onClick={() => setFiltro({ faixa: faixa === fx.id ? null : fx.id, situacao: 'aberto' })}
               >
-                <option value="aberto">Em aberto</option>
-                <option value="todos">Todas</option>
-              </select>
-            </div>
-            <div className="form-group" style={{ alignSelf: 'end' }}>
-              <div className="btn-row">
-                <button type="submit" className="btn btn-secondary">
-                  Filtrar
-                </button>
-                {canWrite ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => {
-                      closeFicha();
-                      setNovo(true);
-                      setError(null);
-                      setMsg(null);
-                    }}
-                  >
-                    Lançamento pontual
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          </form>
+                <span>{fx.label}</span>
+                <strong>{formatCurrency(fx.saldo)}</strong>
+                <em>{fx.count} título{fx.count === 1 ? '' : 's'}</em>
+              </button>
+            );
+          })}
         </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setFiltro({ q: q.trim() || null });
+          }}
+          className="list-chrome__filters"
+        >
+          <div className="form-group" style={{ flex: 2, minWidth: 180 }}>
+            <label>Buscar</label>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={receber ? 'TIT, cliente, PED, FAT, natureza…' : 'TIT, fornecedor, OC, documento…'}
+            />
+          </div>
+          <div className="form-group" style={{ minWidth: 120 }}>
+            <label>Situação</label>
+            <select
+              value={situacao === 'todos' ? 'todos' : 'aberto'}
+              onChange={(e) => setFiltro({ situacao: e.target.value })}
+            >
+              <option value="aberto">Em aberto</option>
+              <option value="todos">Todas</option>
+            </select>
+          </div>
+          <button type="submit" className="btn btn-secondary">
+            Filtrar
+          </button>
+          {canWrite ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                closeFicha();
+                setNovo(true);
+                setError(null);
+                setMsg(null);
+              }}
+            >
+              Lançamento pontual
+            </button>
+          ) : null}
+        </form>
       </div>
 
       <div className="card" style={{ marginBottom: selected || novo ? '1rem' : undefined }}>

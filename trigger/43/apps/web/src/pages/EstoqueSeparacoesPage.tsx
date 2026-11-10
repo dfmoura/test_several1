@@ -51,8 +51,9 @@ export function EstoqueSeparacoesPage() {
   return (
     <div className="page">
       <PageHeader
+        variant="list"
         title="A separar"
-        description="Revenda a separar. Escolha volumes, confirme — o saldo sai na NF-e."
+        description="Revenda a separar — volumes confirmados saem na NF-e."
         actions={
           <Link className="btn btn-secondary" to="/estoque/retiradas">
             A buscar

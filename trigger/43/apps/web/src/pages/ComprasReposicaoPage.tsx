@@ -189,8 +189,9 @@ export function ComprasReposicaoPage() {
   return (
     <>
       <PageHeader
+        variant="list"
         title="A repor"
-        description="Estoque mínimo × saldo × trânsito → OC rascunho."
+        description="Mínimo × saldo × trânsito → OC rascunho."
         actions={
           <div className="btn-row">
             <Link to="/estoque" className="btn btn-secondary">
@@ -216,18 +217,18 @@ export function ComprasReposicaoPage() {
             </div>
           ) : (
             <>
-              <div className="detail-meta" style={{ marginBottom: '1rem' }}>
-                <div>
-                  <span>Itens abaixo do mínimo</span>
+              <div className="list-chrome__metrics" style={{ marginBottom: '0.65rem', borderBottom: 'none', paddingBottom: 0 }} aria-label="Resumo a repor">
+                <div className="list-chrome__metric">
+                  <span>Abaixo do mínimo</span>
                   <strong>{itens.length}</strong>
                 </div>
-                <div>
-                  <span>Selecionados para OC</span>
+                <div className="list-chrome__metric">
+                  <span>Selecionados</span>
                   <strong>{selectedCount}</strong>
                 </div>
               </div>
 
-              <div className="form-grid" style={{ marginBottom: '1rem' }}>
+              <div className="form-grid" style={{ marginBottom: '0.75rem' }}>
                 <ParceiroCombobox
                   className="span-2"
                   label="Fornecedor"

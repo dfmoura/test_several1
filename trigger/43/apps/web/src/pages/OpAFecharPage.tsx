@@ -57,8 +57,9 @@ export function OpAFecharPage() {
   return (
     <div className="page">
       <PageHeader
+        variant="list"
         title="A fechar"
-        description="Ordens com material já na máquina. Informe boas e refugo por modelo — isso atualiza a quantidade faturável do pedido."
+        description="Boas e refugo por modelo — atualiza a quantidade faturável."
         actions={
           <Link className="btn btn-secondary" to="/ordens-producao">
             Ordens de produção

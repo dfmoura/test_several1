@@ -139,8 +139,9 @@ export function ComprasNfseCaixaPage() {
   return (
     <>
       <PageHeader
+        variant="list"
         title="Caixa de NFS-e"
-        description="Serviços que outros prestadores emitiram contra o CNPJ desta empresa. A conferência organiza o contas a pagar. Nada entra no estoque."
+        description="Serviços tomados — conferência gera contas a pagar. Sem estoque."
         actions={
           <>
             <button
@@ -158,43 +159,41 @@ export function ComprasNfseCaixaPage() {
         }
       />
 
-      {sync?.sync_mensagem ? <p className="muted">{sync.sync_mensagem}</p> : null}
       {erro ? <p className="form-error">{erro}</p> : null}
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          <form onSubmit={handleSearch} className="nfe-destinadas-filters">
-            <input
-              className="nfe-destinadas-search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Número, prestador, CNPJ, chave…"
-              aria-label="Buscar"
-            />
-            <label className="nfe-destinadas-date">
-              <span>De</span>
-              <input type="date" value={de} onChange={(e) => setDe(e.target.value)} />
-            </label>
-            <label className="nfe-destinadas-date">
-              <span>Até</span>
-              <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
-            </label>
-            <select
-              className="nfe-destinadas-select nfe-destinadas-select--situacao"
-              value={cadastro}
-              onChange={(e) => setCadastro(e.target.value)}
-              aria-label="Cadastro do prestador"
-            >
-              <option value="">Todos os prestadores</option>
-              <option value="nao_cadastrado">Não cadastrado</option>
-              <option value="sem_papel">Sem papel fornecedor</option>
-              <option value="cadastrado">Cadastrado</option>
-            </select>
-            <button type="submit" className="btn btn-secondary">
-              Filtrar
-            </button>
-          </form>
-        </div>
+      <div className="list-chrome">
+        {sync?.sync_mensagem ? <p className="list-chrome__hint">{sync.sync_mensagem}</p> : null}
+        <form onSubmit={handleSearch} className="nfe-destinadas-filters list-chrome__filters">
+          <input
+            className="nfe-destinadas-search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Número, prestador, CNPJ, chave…"
+            aria-label="Buscar"
+          />
+          <label className="nfe-destinadas-date">
+            <span>De</span>
+            <input type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+          </label>
+          <label className="nfe-destinadas-date">
+            <span>Até</span>
+            <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+          </label>
+          <select
+            className="nfe-destinadas-select nfe-destinadas-select--situacao"
+            value={cadastro}
+            onChange={(e) => setCadastro(e.target.value)}
+            aria-label="Cadastro do prestador"
+          >
+            <option value="">Todos os prestadores</option>
+            <option value="nao_cadastrado">Não cadastrado</option>
+            <option value="sem_papel">Sem papel fornecedor</option>
+            <option value="cadastrado">Cadastrado</option>
+          </select>
+          <button type="submit" className="btn btn-secondary">
+            Filtrar
+          </button>
+        </form>
       </div>
 
       {cadastroNota ? (

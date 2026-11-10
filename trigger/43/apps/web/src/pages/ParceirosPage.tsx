@@ -195,8 +195,9 @@ export function ParceirosPage() {
   return (
     <>
       <PageHeader
+        variant="list"
         title="Parceiros"
-        description="Cadastro único PAR: cliente, prospect, fornecedor e demais classificações. Um prospect (nome, contato, cidade) já permite orçar."
+        description="Cadastro único PAR — cliente, prospect, fornecedor e demais classificações."
         actions={
           <div className="btn-row">
             <Link to="/como-cadastra#parceiro" className="btn btn-secondary">
@@ -216,40 +217,35 @@ export function ParceirosPage() {
         }
       />
 
-      <div className="tabs tabs-parceiro" role="tablist" aria-label="Classificação do parceiro">
-        {PAPEL_TABS.map((t) => (
-          <button
-            key={t.id || 'todos'}
-            type="button"
-            role="tab"
-            className={`tab${papel === t.id ? ' active' : ''}`}
-            aria-selected={papel === t.id}
-            onClick={() => setPapel(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
-              <label htmlFor="parceiros-busca">Buscar</label>
-              <input
-                id="parceiros-busca"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Nome, código ou CNPJ/CPF"
-              />
-            </div>
-            <div style={{ alignSelf: 'flex-end' }}>
-              <button type="submit" className="btn btn-secondary">
-                Buscar
-              </button>
-            </div>
-          </form>
+      <div className="list-chrome">
+        <div className="tabs tabs-parceiro list-chrome__tabs" role="tablist" aria-label="Classificação do parceiro">
+          {PAPEL_TABS.map((t) => (
+            <button
+              key={t.id || 'todos'}
+              type="button"
+              role="tab"
+              className={`tab${papel === t.id ? ' active' : ''}`}
+              aria-selected={papel === t.id}
+              onClick={() => setPapel(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
+        <form onSubmit={handleSearch} className="list-chrome__filters">
+          <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
+            <label htmlFor="parceiros-busca">Buscar</label>
+            <input
+              id="parceiros-busca"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Nome, código ou CNPJ/CPF"
+            />
+          </div>
+          <button type="submit" className="btn btn-secondary">
+            Buscar
+          </button>
+        </form>
       </div>
 
       {geoFlash ? (

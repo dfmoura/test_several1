@@ -71,8 +71,9 @@ export function ComprasNfeRecebidasPage() {
   return (
     <>
       <PageHeader
+        variant="list"
         title="NF-e vinculadas"
-        description="Notas contra o CNPJ desta empresa já vinculadas à entrada (após conferência na OC). Espelho fiscal para consulta — não é a caixa do fisco nem escrituração oficial."
+        description="Espelho das notas já vinculadas à OC — não é a caixa do fisco."
         actions={
           <>
             <Link
@@ -91,32 +92,28 @@ export function ComprasNfeRecebidasPage() {
 
       {erro ? <p className="form-error">{erro}</p> : null}
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
-              <label>Buscar</label>
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Número, chave, emitente, OC…"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="nfe-vinculadas-de">De</label>
-              <input id="nfe-vinculadas-de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label htmlFor="nfe-vinculadas-ate">Até</label>
-              <input id="nfe-vinculadas-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
-            </div>
-            <div>
-              <button type="submit" className="btn btn-secondary">
-                Filtrar
-              </button>
-            </div>
-          </form>
-        </div>
+      <div className="list-chrome">
+        <form onSubmit={handleSearch} className="list-chrome__filters">
+          <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
+            <label>Buscar</label>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Número, chave, emitente, OC…"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="nfe-vinculadas-de">De</label>
+            <input id="nfe-vinculadas-de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label htmlFor="nfe-vinculadas-ate">Até</label>
+            <input id="nfe-vinculadas-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+          </div>
+          <button type="submit" className="btn btn-secondary">
+            Filtrar
+          </button>
+        </form>
       </div>
 
       <div className="card">

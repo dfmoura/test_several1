@@ -85,6 +85,7 @@ export function ProdutosPage() {
   return (
     <>
       <PageHeader
+        variant="list"
         title="Produtos"
         description="SKU operacional para compra, estoque e OP."
         actions={
@@ -114,46 +115,42 @@ export function ProdutosPage() {
         }
       />
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
-              <label>Buscar</label>
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Código, grupo ou descrição"
-              />
-            </div>
-            <div className="form-group" style={{ minWidth: 180 }}>
-              <label>Família</label>
-              <select value={familia} onChange={(e) => setFamilia(e.target.value)}>
-                <option value="">Todas</option>
-                {FAMILIAS.map((f) => (
-                  <option key={f} value={f}>
-                    {f} — {familiaLabel(f)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group" style={{ minWidth: 220 }}>
-              <label>Grupo</label>
-              <select value={grupo} onChange={(e) => setGrupo(e.target.value)}>
-                <option value="">Todos</option>
-                {grupos.map((g) => (
-                  <option key={g.id} value={g.codigo}>
-                    {g.codigo} — {g.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div style={{ alignSelf: 'flex-end' }}>
-              <button type="submit" className="btn btn-secondary">
-                Filtrar
-              </button>
-            </div>
-          </form>
-        </div>
+      <div className="list-chrome">
+        <form onSubmit={handleSearch} className="list-chrome__filters">
+          <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
+            <label>Buscar</label>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Código, grupo ou descrição"
+            />
+          </div>
+          <div className="form-group" style={{ minWidth: 180 }}>
+            <label>Família</label>
+            <select value={familia} onChange={(e) => setFamilia(e.target.value)}>
+              <option value="">Todas</option>
+              {FAMILIAS.map((f) => (
+                <option key={f} value={f}>
+                  {f} — {familiaLabel(f)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group" style={{ minWidth: 220 }}>
+            <label>Grupo</label>
+            <select value={grupo} onChange={(e) => setGrupo(e.target.value)}>
+              <option value="">Todos</option>
+              {grupos.map((g) => (
+                <option key={g.id} value={g.codigo}>
+                  {g.codigo} — {g.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" className="btn btn-secondary">
+            Filtrar
+          </button>
+        </form>
       </div>
 
       <div className="card">

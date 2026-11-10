@@ -59,8 +59,9 @@ export function ExpedicaoPage() {
   return (
     <>
       <PageHeader
+        variant="list"
         title="Expedição"
-        description="Pedidos faturados prontos para retirada no balcão ou para transporte. No romaneio: embalagem, nota e cobrança. Confirmar a entrega não baixa o título."
+        description="Pedidos faturados — balcão ou transporte. Entrega não baixa o título."
       />
 
       {erro ? <p className="form-error">{erro}</p> : null}

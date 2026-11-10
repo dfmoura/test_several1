@@ -155,150 +155,143 @@ export function EstoquePage() {
   return (
     <div className="estoque-posicao-page">
       <PageHeader
+        variant="list"
         title="Estoque"
-        description="Saldo por item e por volume. O local é o código do mapa."
+        description="Saldo por item e por volume — local = código do mapa."
       />
 
       <EstoqueModuleNav />
 
-      <p className="estoque-ops-line muted">
-        Entrada na{' '}
-        <Link to="/compras/ordens">ordem de compra</Link>
-        {' · '}
-        <Link to="/estoque/guardar">Guardar</Link>
-        {' · '}
-        <Link to="/estoque/retiradas">A buscar</Link>
-        {' · '}
-        <Link to="/estoque/mapa">Mapa dos locais</Link>
-        {' · '}
-        <Link to="/estoque/lotes/etiquetas">Reimprimir volumes</Link>
-        {' · '}
-        <Link to="/estoque/enderecos/etiquetas">Etiquetas dos locais</Link>
-      </p>
-
-      {!loading && (
-        <div className="estoque-kpi detail-meta" aria-label="Resumo da posição">
-          <div>
-            <span>SKUs</span>
-            <strong>{saldos.length}</strong>
-          </div>
-          <div>
-            <span>Valor</span>
-            <strong>{somaValorPosicao(saldos)}</strong>
-          </div>
-          <div>
-            <span>Volumes</span>
-            <strong>{volumesAtivos.length}</strong>
-          </div>
-        </div>
-      )}
-
-      {(alertas.vencidos > 0 || alertas.aVencer > 0) && (
-        <div
-          className={`alert alert--compact ${alertas.vencidos > 0 ? 'alert-error' : 'alert-warning'}`}
-          style={{ marginBottom: '0.75rem' }}
-        >
-          {alertas.vencidos > 0 && (
-            <button
-              type="button"
-              className="linkish"
-              aria-pressed={vista === 'analitico' && validadeFiltro === 'VENCIDO'}
-              onClick={() => alternarValidade('VENCIDO')}
-            >
-              {alertas.vencidos} vencido(s)
-            </button>
-          )}
-          {alertas.vencidos > 0 && alertas.aVencer > 0 ? <span> · </span> : null}
-          {alertas.aVencer > 0 && (
-            <button
-              type="button"
-              className="linkish"
-              aria-pressed={vista === 'analitico' && validadeFiltro === 'A_VENCER'}
-              onClick={() => alternarValidade('A_VENCER')}
-            >
-              {alertas.aVencer} a vencer
-            </button>
-          )}
-        </div>
-      )}
-
-      {!loading && volumesSemLocal > 0 && (
-        <div className="alert alert-warning alert--compact" style={{ marginBottom: '0.75rem' }}>
-          {volumesSemLocal} volume(s) com saldo ainda sem local —{' '}
-          <Link to="/estoque/guardar">Guardar no local</Link>
+      <div className="list-chrome">
+        <p className="estoque-ops-line list-chrome__hint muted">
+          Entrada na{' '}
+          <Link to="/compras/ordens">ordem de compra</Link>
           {' · '}
-          <Link to="/estoque/lotes/etiquetas?sem_endereco=1">Etiquetas</Link>
-        </div>
-      )}
+          <Link to="/estoque/guardar">Guardar</Link>
+          {' · '}
+          <Link to="/estoque/retiradas">A buscar</Link>
+          {' · '}
+          <Link to="/estoque/mapa">Mapa dos locais</Link>
+          {' · '}
+          <Link to="/estoque/lotes/etiquetas">Reimprimir volumes</Link>
+          {' · '}
+          <Link to="/estoque/enderecos/etiquetas">Etiquetas dos locais</Link>
+        </p>
 
-      <div className="card estoque-filtros-card">
-        <div className="card-body">
-          <div className="form-grid" style={{ alignItems: 'end' }}>
-            <div className="form-group span-2">
-              <label>Buscar</label>
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={
-                  vista === 'consolidado'
-                    ? 'Produto, quantidade, dimensão…'
-                    : 'Produto, dimensão, local…'
-                }
-              />
+        {!loading && (
+          <div className="list-chrome__metrics" aria-label="Resumo da posição">
+            <div className="list-chrome__metric">
+              <span>SKUs</span>
+              <strong>{saldos.length}</strong>
             </div>
-            <div className="form-group">
-              <label>Família</label>
-              <select value={familia} onChange={(e) => setFamiliaUrl(e.target.value)}>
-                <option value="">Todas</option>
-                {familiasFiltro.map((f) => (
-                  <option key={f} value={f}>
-                    {f} — {familiaLabel(f)}
-                  </option>
-                ))}
-              </select>
+            <div className="list-chrome__metric">
+              <span>Valor</span>
+              <strong>{somaValorPosicao(saldos)}</strong>
             </div>
-            {vista === 'analitico' && (
-              <div className="form-group">
-                <label>Validade</label>
-                <select value={validadeFiltro} onChange={(e) => setValidadeFiltro(e.target.value)}>
-                  <option value="">Todas</option>
-                  <option value="VENCIDO">Vencidos</option>
-                  <option value="A_VENCER">A vencer</option>
-                  <option value="OK">No prazo</option>
-                  <option value="SEM_VALIDADE">Sem validade</option>
-                </select>
-              </div>
+            <div className="list-chrome__metric">
+              <span>Volumes</span>
+              <strong>{volumesAtivos.length}</strong>
+            </div>
+          </div>
+        )}
+
+        {(alertas.vencidos > 0 || alertas.aVencer > 0) && (
+          <div
+            className={`alert alert--compact ${alertas.vencidos > 0 ? 'alert-error' : 'alert-warning'}`}
+            style={{ marginBottom: 0 }}
+          >
+            {alertas.vencidos > 0 && (
+              <button
+                type="button"
+                className="linkish"
+                aria-pressed={vista === 'analitico' && validadeFiltro === 'VENCIDO'}
+                onClick={() => alternarValidade('VENCIDO')}
+              >
+                {alertas.vencidos} vencido(s)
+              </button>
+            )}
+            {alertas.vencidos > 0 && alertas.aVencer > 0 ? <span> · </span> : null}
+            {alertas.aVencer > 0 && (
+              <button
+                type="button"
+                className="linkish"
+                aria-pressed={vista === 'analitico' && validadeFiltro === 'A_VENCER'}
+                onClick={() => alternarValidade('A_VENCER')}
+              >
+                {alertas.aVencer} a vencer
+              </button>
             )}
           </div>
+        )}
+
+        {!loading && volumesSemLocal > 0 && (
+          <div className="alert alert-warning alert--compact" style={{ marginBottom: 0 }}>
+            {volumesSemLocal} volume(s) com saldo ainda sem local —{' '}
+            <Link to="/estoque/guardar">Guardar no local</Link>
+            {' · '}
+            <Link to="/estoque/lotes/etiquetas?sem_endereco=1">Etiquetas</Link>
+          </div>
+        )}
+
+        <div className="tabs estoque-vista-nav list-chrome__tabs" role="tablist" aria-label="Leitura do saldo">
+          <button
+            type="button"
+            role="tab"
+            className={`tab${vista === 'analitico' ? ' active' : ''}`}
+            aria-selected={vista === 'analitico'}
+            onClick={() => setVista('analitico')}
+          >
+            Analítico
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className={`tab${vista === 'consolidado' ? ' active' : ''}`}
+            aria-selected={vista === 'consolidado'}
+            onClick={() => setVista('consolidado')}
+          >
+            Consolidado
+          </button>
+        </div>
+
+        <div className="list-chrome__filters">
+          <div className="form-group" style={{ flex: 2, minWidth: 180 }}>
+            <label>Buscar</label>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={
+                vista === 'consolidado'
+                  ? 'Produto, quantidade, dimensão…'
+                  : 'Produto, dimensão, local…'
+              }
+            />
+          </div>
+          <div className="form-group" style={{ minWidth: 140 }}>
+            <label>Família</label>
+            <select value={familia} onChange={(e) => setFamiliaUrl(e.target.value)}>
+              <option value="">Todas</option>
+              {familiasFiltro.map((f) => (
+                <option key={f} value={f}>
+                  {f} — {familiaLabel(f)}
+                </option>
+              ))}
+            </select>
+          </div>
+          {vista === 'analitico' && (
+            <div className="form-group" style={{ minWidth: 140 }}>
+              <label>Validade</label>
+              <select value={validadeFiltro} onChange={(e) => setValidadeFiltro(e.target.value)}>
+                <option value="">Todas</option>
+                <option value="VENCIDO">Vencidos</option>
+                <option value="A_VENCER">A vencer</option>
+                <option value="OK">No prazo</option>
+                <option value="SEM_VALIDADE">Sem validade</option>
+              </select>
+            </div>
+          )}
         </div>
       </div>
-
-      <div className="tabs estoque-vista-nav" role="tablist" aria-label="Leitura do saldo">
-        <button
-          type="button"
-          role="tab"
-          className={`tab${vista === 'analitico' ? ' active' : ''}`}
-          aria-selected={vista === 'analitico'}
-          onClick={() => setVista('analitico')}
-        >
-          Analítico
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`tab${vista === 'consolidado' ? ' active' : ''}`}
-          aria-selected={vista === 'consolidado'}
-          onClick={() => setVista('consolidado')}
-        >
-          Consolidado
-        </button>
-      </div>
-
-      <p className="catalogo-tab-hint">
-        {vista === 'consolidado'
-          ? 'Volumes iguais na mesma linha: mesma quantidade e mesma dimensão. A quantidade é a de cada volume.'
-          : 'Cada item sem volume e cada volume com saldo. O local é o código do mapa.'}
-      </p>
 
       <div className="card">
         {loading ? (

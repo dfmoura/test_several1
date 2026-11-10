@@ -135,53 +135,49 @@ export function PedidosPage() {
   return (
     <>
       <PageHeader
+        variant="list"
         title="Pedidos"
-        description="Nascem do orçamento liberado (crédito ou adiantamento baixado). Produção abre OP/OS; pedido produzido segue para faturamento e depois à expedição."
+        description="Do ORC liberado à OP, faturamento e expedição."
       />
 
       {erro ? <p className="form-error">{erro}</p> : null}
 
-      <div className="tabs tabs-pedidos" role="tablist" aria-label="Status do pedido">
-        {STATUS_TABS.map((t) => (
-          <button
-            key={t.id || 'todos'}
-            type="button"
-            role="tab"
-            className={`tab${status === t.id ? ' active' : ''}`}
-            aria-selected={status === t.id}
-            onClick={() => setStatus(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
-              <label htmlFor="pedidos-busca">Buscar</label>
-              <input
-                id="pedidos-busca"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="PED, ORC, cliente, contato…"
-              />
-            </div>
-            <PeriodoFiltro
-              idPrefix="pedidos"
-              de={de}
-              ate={ate}
-              onChange={setPeriodo}
-              onApply={applyPeriodo}
-            />
-            <div>
-              <button type="submit" className="btn btn-secondary">
-                Buscar
-              </button>
-            </div>
-          </form>
+      <div className="list-chrome">
+        <div className="tabs tabs-pedidos list-chrome__tabs" role="tablist" aria-label="Status do pedido">
+          {STATUS_TABS.map((t) => (
+            <button
+              key={t.id || 'todos'}
+              type="button"
+              role="tab"
+              className={`tab${status === t.id ? ' active' : ''}`}
+              aria-selected={status === t.id}
+              onClick={() => setStatus(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
+        <form onSubmit={handleSearch} className="list-chrome__filters">
+          <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
+            <label htmlFor="pedidos-busca">Buscar</label>
+            <input
+              id="pedidos-busca"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="PED, ORC, cliente, contato…"
+            />
+          </div>
+          <PeriodoFiltro
+            idPrefix="pedidos"
+            de={de}
+            ate={ate}
+            onChange={setPeriodo}
+            onApply={applyPeriodo}
+          />
+          <button type="submit" className="btn btn-secondary">
+            Buscar
+          </button>
+        </form>
       </div>
 
       <div className="card">

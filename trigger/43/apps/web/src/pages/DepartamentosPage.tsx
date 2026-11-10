@@ -126,8 +126,9 @@ export function DepartamentosPage() {
   return (
     <>
       <PageHeader
+        variant="list"
         title="Departamentos"
-        description="Unidades organizacionais desta empresa (DEP-). Local do patrimônio e setor do colaborador. A lista canônica é um ponto de partida — inclua, renomeie ou inative conforme a operação. Não é centro de custo."
+        description="Unidades organizacionais (DEP-) — patrimônio e colaborador. Não é centro de custo."
         actions={
           canWrite ? (
             <button
@@ -148,68 +149,58 @@ export function DepartamentosPage() {
         </div>
       ) : null}
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          <form
-            onSubmit={handleSearch}
-            style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}
-          >
-            <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
-              <label>Buscar</label>
+      <div className="list-chrome">
+        <form onSubmit={handleSearch} className="list-chrome__filters">
+          <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
+            <label>Buscar</label>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Código DEP ou nome"
+            />
+          </div>
+          <div className="form-group" style={{ minWidth: 140 }}>
+            <label>&nbsp;</label>
+            <label className="nat-check">
               <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Código DEP ou nome"
+                type="checkbox"
+                checked={somenteAtivos}
+                onChange={(e) => setSomenteAtivos(e.target.checked)}
+              />
+              Só ativos
+            </label>
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            Filtrar
+          </button>
+        </form>
+        {canWrite ? (
+          <form
+            onSubmit={(e) => void createRow(e)}
+            className="list-chrome__filters"
+          >
+            <div className="form-group" style={{ flex: 1, minWidth: 220 }}>
+              <label>Novo departamento</label>
+              <input
+                value={novoNome}
+                onChange={(e) => setNovoNome(e.target.value)}
+                placeholder="Ex.: Comercial"
+                disabled={creating}
+                maxLength={64}
               />
             </div>
-            <div className="form-group" style={{ minWidth: 140 }}>
-              <label>&nbsp;</label>
-              <label className="nat-check">
-                <input
-                  type="checkbox"
-                  checked={somenteAtivos}
-                  onChange={(e) => setSomenteAtivos(e.target.checked)}
-                />
-                Só ativos
-              </label>
-            </div>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              Filtrar
+            <button type="submit" className="btn btn-primary" disabled={creating || !novoNome.trim()}>
+              {creating ? 'Criando…' : 'Adicionar'}
             </button>
           </form>
-          <p className="nat-stats muted">
-            {loading
-              ? 'Carregando…'
-              : `${stats.total} departamentos · ${stats.inativos} inativos`}
-          </p>
-          {error ? <p className="form-error">{error}</p> : null}
-        </div>
+        ) : null}
+        <p className="list-chrome__hint">
+          {loading
+            ? 'Carregando…'
+            : `${stats.total} departamentos · ${stats.inativos} inativos`}
+        </p>
+        {error ? <p className="form-error">{error}</p> : null}
       </div>
-
-      {canWrite ? (
-        <div className="card" style={{ marginBottom: '1rem' }}>
-          <div className="card-body">
-            <form
-              onSubmit={(e) => void createRow(e)}
-              style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}
-            >
-              <div className="form-group" style={{ flex: 1, minWidth: 220 }}>
-                <label>Novo departamento</label>
-                <input
-                  value={novoNome}
-                  onChange={(e) => setNovoNome(e.target.value)}
-                  placeholder="Ex.: Comercial"
-                  disabled={creating}
-                  maxLength={64}
-                />
-              </div>
-              <button type="submit" className="btn btn-primary" disabled={creating || !novoNome.trim()}>
-                {creating ? 'Criando…' : 'Adicionar'}
-              </button>
-            </form>
-          </div>
-        </div>
-      ) : null}
 
       <div className="card">
         <div className="card-body" style={{ padding: 0 }}>

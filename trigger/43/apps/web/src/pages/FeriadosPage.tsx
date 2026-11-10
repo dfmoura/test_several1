@@ -148,8 +148,9 @@ export function FeriadosPage() {
   return (
     <>
       <PageHeader
+        variant="list"
         title="Feriados"
-        description="Calendário operacional desta empresa. Usado para converter o prazo em dias úteis do orçamento e do pedido em data prevista de entrega."
+        description="Calendário operacional — prazo em dias úteis do ORC/PED."
         actions={
           canWrite ? (
             <button
@@ -170,124 +171,117 @@ export function FeriadosPage() {
         </div>
       ) : null}
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void load();
-            }}
-            style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}
-          >
-            <div className="form-group" style={{ minWidth: 100 }}>
-              <label>Ano</label>
-              <NumericInput
-                integer
-                min={2000}
-                max={2100}
-                value={ano}
-                emptyCommit={anoAtual}
-                onCommit={(v) => setAno(v === '' ? anoAtual : v)}
+      <div className="list-chrome">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void load();
+          }}
+          className="list-chrome__filters"
+        >
+          <div className="form-group" style={{ minWidth: 100 }}>
+            <label>Ano</label>
+            <NumericInput
+              integer
+              min={2000}
+              max={2100}
+              value={ano}
+              emptyCommit={anoAtual}
+              onCommit={(v) => setAno(v === '' ? anoAtual : v)}
+            />
+          </div>
+          <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
+            <label>Buscar</label>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Nome ou tipo"
+            />
+          </div>
+          <div className="form-group" style={{ minWidth: 140 }}>
+            <label>&nbsp;</label>
+            <label className="nat-check">
+              <input
+                type="checkbox"
+                checked={somenteAtivos}
+                onChange={(e) => setSomenteAtivos(e.target.checked)}
+              />
+              Só ativos
+            </label>
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            Filtrar
+          </button>
+        </form>
+        <p className="list-chrome__hint">
+          {loading
+            ? 'Carregando…'
+            : `${stats.total} feriados · ${stats.recorrentes} recorrentes · ${stats.inativos} inativos`}
+        </p>
+        {error ? <p className="form-error">{error}</p> : null}
+      </div>
+
+      {canWrite ? (
+        <div className="list-chrome">
+          <form onSubmit={(e) => void createRow(e)} className="list-chrome__filters">
+            <div className="form-group" style={{ minWidth: 150 }}>
+              <label>Data</label>
+              <input
+                type="date"
+                value={novo.data}
+                onChange={(e) => setNovo((p) => ({ ...p, data: e.target.value }))}
+                disabled={creating}
+                required
               />
             </div>
             <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
-              <label>Buscar</label>
+              <label>Nome</label>
               <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Nome ou tipo"
+                value={novo.nome}
+                onChange={(e) => setNovo((p) => ({ ...p, nome: e.target.value }))}
+                placeholder="Ex.: Aniversário da cidade"
+                disabled={creating}
+                maxLength={120}
+                required
               />
+            </div>
+            <div className="form-group" style={{ minWidth: 140 }}>
+              <label>Tipo</label>
+              <select
+                value={novo.tipo}
+                onChange={(e) =>
+                  setNovo((p) => ({ ...p, tipo: e.target.value as Feriado['tipo'] }))
+                }
+                disabled={creating}
+              >
+                {TIPOS.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="form-group" style={{ minWidth: 140 }}>
               <label>&nbsp;</label>
               <label className="nat-check">
                 <input
                   type="checkbox"
-                  checked={somenteAtivos}
-                  onChange={(e) => setSomenteAtivos(e.target.checked)}
+                  checked={novo.recorrente_anual}
+                  onChange={(e) =>
+                    setNovo((p) => ({ ...p, recorrente_anual: e.target.checked }))
+                  }
                 />
-                Só ativos
+                Recorrente anual
               </label>
             </div>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              Filtrar
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={creating || !novo.data || !novo.nome.trim()}
+            >
+              {creating ? 'Criando…' : 'Adicionar'}
             </button>
           </form>
-          <p className="nat-stats muted">
-            {loading
-              ? 'Carregando…'
-              : `${stats.total} feriados · ${stats.recorrentes} recorrentes · ${stats.inativos} inativos`}
-          </p>
-          {error ? <p className="form-error">{error}</p> : null}
-        </div>
-      </div>
-
-      {canWrite ? (
-        <div className="card" style={{ marginBottom: '1rem' }}>
-          <div className="card-body">
-            <form
-              onSubmit={(e) => void createRow(e)}
-              style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}
-            >
-              <div className="form-group" style={{ minWidth: 150 }}>
-                <label>Data</label>
-                <input
-                  type="date"
-                  value={novo.data}
-                  onChange={(e) => setNovo((p) => ({ ...p, data: e.target.value }))}
-                  disabled={creating}
-                  required
-                />
-              </div>
-              <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
-                <label>Nome</label>
-                <input
-                  value={novo.nome}
-                  onChange={(e) => setNovo((p) => ({ ...p, nome: e.target.value }))}
-                  placeholder="Ex.: Aniversário da cidade"
-                  disabled={creating}
-                  maxLength={120}
-                  required
-                />
-              </div>
-              <div className="form-group" style={{ minWidth: 140 }}>
-                <label>Tipo</label>
-                <select
-                  value={novo.tipo}
-                  onChange={(e) =>
-                    setNovo((p) => ({ ...p, tipo: e.target.value as Feriado['tipo'] }))
-                  }
-                  disabled={creating}
-                >
-                  {TIPOS.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group" style={{ minWidth: 140 }}>
-                <label>&nbsp;</label>
-                <label className="nat-check">
-                  <input
-                    type="checkbox"
-                    checked={novo.recorrente_anual}
-                    onChange={(e) =>
-                      setNovo((p) => ({ ...p, recorrente_anual: e.target.checked }))
-                    }
-                  />
-                  Recorrente anual
-                </label>
-              </div>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={creating || !novo.data || !novo.nome.trim()}
-              >
-                {creating ? 'Criando…' : 'Adicionar'}
-              </button>
-            </form>
-          </div>
         </div>
       ) : null}
 

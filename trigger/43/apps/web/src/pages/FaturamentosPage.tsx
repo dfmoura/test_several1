@@ -90,8 +90,9 @@ export function FaturamentosPage() {
   return (
     <>
       <PageHeader
+        variant="list"
         title="Faturamentos"
-        description="Pedido produzido: gera o FAT, as cobranças do saldo e a NF. A expedição vem depois. Contas a receber ficam no financeiro."
+        description="FAT, cobranças e NF do pedido produzido — expedição depois."
         actions={
           <>
             <Link className="btn btn-secondary" to="/pedidos">
@@ -106,27 +107,23 @@ export function FaturamentosPage() {
 
       {erro ? <p className="form-error">{erro}</p> : null}
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
-              <label>Buscar</label>
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="FAT, PED, cliente…" />
-            </div>
-            <PeriodoFiltro
-              idPrefix="faturamentos"
-              de={de}
-              ate={ate}
-              onChange={setPeriodo}
-              onApply={applyPeriodo}
-            />
-            <div>
-              <button type="submit" className="btn btn-secondary">
-                Filtrar
-              </button>
-            </div>
-          </form>
-        </div>
+      <div className="list-chrome">
+        <form onSubmit={handleSearch} className="list-chrome__filters">
+          <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
+            <label>Buscar</label>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="FAT, PED, cliente…" />
+          </div>
+          <PeriodoFiltro
+            idPrefix="faturamentos"
+            de={de}
+            ate={ate}
+            onChange={setPeriodo}
+            onApply={applyPeriodo}
+          />
+          <button type="submit" className="btn btn-secondary">
+            Filtrar
+          </button>
+        </form>
       </div>
 
       <div className="card">

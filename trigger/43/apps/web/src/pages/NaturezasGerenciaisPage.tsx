@@ -255,54 +255,53 @@ export function NaturezasGerenciaisPage() {
   return (
     <>
       <PageHeader
+        variant="list"
         title="Naturezas gerenciais"
-        description="Classificação interna de receita, custo, despesa, investimento e movimentações (NAT-). Não é plano de contas do contador e não confundir com natureza COMPRA/VENDA do produto."
+        description="Classificação interna (NAT-) — não é plano de contas."
       />
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
-              <label>Buscar</label>
+      <div className="list-chrome">
+        <form onSubmit={handleSearch} className="list-chrome__filters">
+          <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
+            <label>Buscar</label>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Código NAT, código ou nome"
+            />
+          </div>
+          <div className="form-group" style={{ minWidth: 200 }}>
+            <label>Grupo</label>
+            <select value={grupo} onChange={(e) => setGrupo(e.target.value)}>
+              <option value="">Todos (1–5)</option>
+              {grupoOptions.map(([id, label]) => (
+                <option key={id} value={id}>
+                  {id}. {label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group" style={{ minWidth: 140 }}>
+            <label>&nbsp;</label>
+            <label className="nat-check">
               <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Código NAT, código ou nome"
+                type="checkbox"
+                checked={somenteAtivos}
+                onChange={(e) => setSomenteAtivos(e.target.checked)}
               />
-            </div>
-            <div className="form-group" style={{ minWidth: 200 }}>
-              <label>Grupo</label>
-              <select value={grupo} onChange={(e) => setGrupo(e.target.value)}>
-                <option value="">Todos (1–5)</option>
-                {grupoOptions.map(([id, label]) => (
-                  <option key={id} value={id}>
-                    {id}. {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group" style={{ minWidth: 140 }}>
-              <label>&nbsp;</label>
-              <label className="nat-check">
-                <input
-                  type="checkbox"
-                  checked={somenteAtivos}
-                  onChange={(e) => setSomenteAtivos(e.target.checked)}
-                />
-                Só ativas
-              </label>
-            </div>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              Filtrar
-            </button>
-          </form>
-          <p className="nat-stats muted">
-            {loading
-              ? 'Carregando…'
-              : `${stats.total} itens · ${stats.folhas} folhas (aceitam lançamento) · ${stats.inativas} inativas`}
-          </p>
-          {error ? <p className="form-error">{error}</p> : null}
-        </div>
+              Só ativas
+            </label>
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            Filtrar
+          </button>
+        </form>
+        <p className="list-chrome__hint">
+          {loading
+            ? 'Carregando…'
+            : `${stats.total} itens · ${stats.folhas} folhas (aceitam lançamento) · ${stats.inativas} inativas`}
+        </p>
+        {error ? <p className="form-error">{error}</p> : null}
       </div>
 
       <div className="card">

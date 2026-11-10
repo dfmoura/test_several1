@@ -51,8 +51,9 @@ export function EstoqueRetiradasPage() {
   return (
     <div className="page">
       <PageHeader
+        variant="list"
         title="A buscar"
-        description="O que a produção precisa e ainda está na prateleira. Marque o volume e confirme — isso sai do estoque. Quem recebe é o chão de fábrica."
+        description="Material na prateleira para a OP — confirme e sai do estoque."
         actions={
           <>
             <Link className="btn btn-secondary" to="/estoque">

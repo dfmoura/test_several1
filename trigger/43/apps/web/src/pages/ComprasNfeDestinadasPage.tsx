@@ -517,8 +517,9 @@ export function ComprasNfeDestinadasPage() {
   return (
     <>
       <PageHeader
+        variant="list"
         title="Caixa de NF-e"
-        description="Notas emitidas contra o CNPJ da empresa, carregadas do fisco. Amarrar à OC e receber na ordem."
+        description="Notas do fisco contra o CNPJ — amarrar à OC e receber na ordem."
         actions={
           podeEscrever ? (
             <button

@@ -633,8 +633,9 @@ export function MapasFacasPage() {
   return (
     <>
       <PageHeader
+        variant="list"
         title="Mapa de facas"
-        description="Catálogo da empresa usado no orçamento. Identidade (medida) e largura na lista; silhueta por medidas e colunas; desenhadas podem receber SVG do contorno. Geometria existente não se edita — ajuste cliente, obs., fornecedor, valor pago, nº NF e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
+        description="Catálogo da EMP para o ORC — geometria não se edita; corrija medida com nova faca."
         actions={
           <div className="btn-row">
             <a
