@@ -2025,6 +2025,12 @@ table.data-table.ordens-producao-table td.op-lista-maquina {
   box-shadow: 0 12px 28px rgba(15, 28, 52, 0.14);
 }
 
+/* Portal (body): não herda overflow de tabela/scroll — posição via inline style. */
+.fiscal-combo-list--portal {
+  right: auto;
+  margin: 0;
+}
+
 .fiscal-combo-empty {
   padding: 0.75rem 0.85rem;
   font-size: 0.82rem;

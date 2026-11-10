@@ -2,10 +2,13 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { api, type Parceiro, type ParceiroVinculo } from '../lib/api';
 import { formatCnpjCpf } from '../lib/format';
 
@@ -34,6 +37,11 @@ type Props = {
   emptyMessage?: string;
   /** Resumo abaixo do campo (padrão). Desligar em linhas densas. */
   showSummary?: boolean;
+  /**
+   * Lista em portal (position:fixed) — evita corte por overflow de tabela/scroll.
+   * Padrão: true (grade de volumes, formulários densos).
+   */
+  portalList?: boolean;
 };
 
 function displayName(p: ParceiroVinculo): string {
@@ -79,6 +87,34 @@ async function searchParceiros(papel: ParceiroPapelFiltro | undefined, q: string
   return res.data;
 }
 
+const LIST_MAX_H = 280;
+const LIST_MIN_H = 120;
+const LIST_GAP = 4;
+
+function measurePortalListStyle(control: HTMLElement): CSSProperties {
+  const r = control.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - r.bottom - LIST_GAP;
+  const spaceAbove = r.top - LIST_GAP;
+  const openUp = spaceBelow < Math.min(LIST_MAX_H, 160) && spaceAbove > spaceBelow;
+  const available = openUp ? spaceAbove : spaceBelow;
+  const maxHeight = Math.min(LIST_MAX_H, Math.max(LIST_MIN_H, available));
+  const width = Math.min(Math.max(r.width, 280), Math.max(window.innerWidth - 16, 200));
+  let left = r.left;
+  if (left + width > window.innerWidth - 8) {
+    left = Math.max(8, window.innerWidth - width - 8);
+  }
+  return {
+    position: 'fixed',
+    left,
+    width,
+    maxHeight,
+    zIndex: 1200,
+    ...(openUp
+      ? { top: 'auto', bottom: window.innerHeight - r.top + LIST_GAP }
+      : { top: r.bottom + LIST_GAP, bottom: 'auto' }),
+  };
+}
+
 /**
  * Typeahead de PAR — busca server-side (código, nome, CNPJ, contato).
  * Padrão alinhado ao FiscalCombobox; evita `<select>` com listagem longa.
@@ -95,14 +131,18 @@ export function ParceiroCombobox({
   className,
   emptyMessage = 'Nenhum cadastro encontrado. Ajuste o termo ou cadastre o parceiro.',
   showSummary = true,
+  portalList = true,
 }: Props) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const controlRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState<Parceiro[]>([]);
   const [loading, setLoading] = useState(false);
   const [highlight, setHighlight] = useState(0);
+  const [listStyle, setListStyle] = useState<CSSProperties | null>(null);
   const debounceRef = useRef<number | null>(null);
   const blurTimer = useRef<number | null>(null);
 
@@ -123,6 +163,55 @@ export function ParceiroCombobox({
     },
     [papel],
   );
+
+  const updateListPosition = useCallback(() => {
+    const el = controlRef.current;
+    if (!el) return;
+    setListStyle(measurePortalListStyle(el));
+  }, []);
+
+  const closeList = useCallback(() => {
+    setOpen(false);
+    setQuery('');
+    setListStyle(null);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open || !portalList) {
+      if (!open) setListStyle(null);
+      return;
+    }
+    updateListPosition();
+  }, [open, portalList, options.length, loading, updateListPosition]);
+
+  useEffect(() => {
+    if (!open || !portalList) return;
+    const onReposition = () => updateListPosition();
+    window.addEventListener('resize', onReposition);
+    // capture: scroll em .oc-volumes-scroll / painel também reposiciona
+    window.addEventListener('scroll', onReposition, true);
+    return () => {
+      window.removeEventListener('resize', onReposition);
+      window.removeEventListener('scroll', onReposition, true);
+    };
+  }, [open, portalList, updateListPosition]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: MouseEvent | TouchEvent) => {
+      const t = e.target as Node | null;
+      if (!t) return;
+      if (rootRef.current?.contains(t)) return;
+      if (listRef.current?.contains(t)) return;
+      closeList();
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+    };
+  }, [open, closeList]);
 
   useEffect(() => {
     return () => {
@@ -147,14 +236,12 @@ export function ParceiroCombobox({
 
   const selectOption = (p: Parceiro) => {
     onChange(p);
-    setOpen(false);
-    setQuery('');
+    closeList();
   };
 
   const clearSelection = () => {
     onChange(null);
-    setOpen(false);
-    setQuery('');
+    closeList();
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -177,10 +264,50 @@ export function ParceiroCombobox({
       if (opt) selectOption(opt);
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      setOpen(false);
-      setQuery('');
+      closeList();
     }
   };
+
+  const showPortalList = portalList && open && listStyle !== null;
+  const showInlineList = !portalList && open;
+
+  const listbox = showPortalList || showInlineList ? (
+    <ul
+      ref={listRef}
+      id={listId}
+      role="listbox"
+      className={`fiscal-combo-list${portalList ? ' fiscal-combo-list--portal' : ''}`}
+      style={portalList ? listStyle ?? undefined : undefined}
+    >
+      {loading && <li className="fiscal-combo-empty">Buscando…</li>}
+      {!loading && options.length === 0 && (
+        <li className="fiscal-combo-empty">
+          {query.trim()
+            ? emptyMessage
+            : 'Digite para filtrar · ou navegue nos primeiros resultados.'}
+        </li>
+      )}
+      {!loading &&
+        options.map((opt, idx) => {
+          const meta = optionMeta(opt);
+          return (
+            <li key={opt.id} role="option" aria-selected={highlight === idx}>
+              <button
+                type="button"
+                className={`fiscal-combo-option${highlight === idx ? ' is-active' : ''}`}
+                onMouseDown={(e) => e.preventDefault()}
+                onMouseEnter={() => setHighlight(idx)}
+                onClick={() => selectOption(opt)}
+              >
+                <span className="fiscal-combo-code">{opt.codigo}</span>
+                <span className="fiscal-combo-desc">{displayName(opt)}</span>
+                {meta && <span className="fiscal-combo-meta">{meta}</span>}
+              </button>
+            </li>
+          );
+        })}
+    </ul>
+  ) : null;
 
   return (
     <div className={`form-group fiscal-combo ${className ?? ''}`} ref={rootRef}>
@@ -189,6 +316,7 @@ export function ParceiroCombobox({
         {required ? ' *' : ''}
       </label>
       <div
+        ref={controlRef}
         className={`fiscal-combo-control${open ? ' is-open' : ''}${disabled ? ' is-disabled' : ''}`}
       >
         <input
@@ -206,9 +334,14 @@ export function ParceiroCombobox({
             openAndSearch('');
           }}
           onBlur={() => {
+            // Portal: o fechamento confiável é o pointerdown fora (lista no body).
+            // Blur cobre o modo inline e Escape/tab sem clique.
             blurTimer.current = window.setTimeout(() => {
-              setOpen(false);
-              setQuery('');
+              if (portalList && listRef.current) {
+                const active = document.activeElement;
+                if (active && listRef.current.contains(active)) return;
+              }
+              closeList();
             }, 160);
           }}
           onChange={(e) => {
@@ -261,35 +394,11 @@ export function ParceiroCombobox({
         }}
       />
 
-      {open && (
-        <ul id={listId} role="listbox" className="fiscal-combo-list">
-          {loading && <li className="fiscal-combo-empty">Buscando…</li>}
-          {!loading && options.length === 0 && (
-            <li className="fiscal-combo-empty">
-              {query.trim() ? emptyMessage : 'Digite para filtrar · ou navegue nos primeiros resultados.'}
-            </li>
-          )}
-          {!loading &&
-            options.map((opt, idx) => {
-              const meta = optionMeta(opt);
-              return (
-                <li key={opt.id} role="option" aria-selected={highlight === idx}>
-                  <button
-                    type="button"
-                    className={`fiscal-combo-option${highlight === idx ? ' is-active' : ''}`}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onMouseEnter={() => setHighlight(idx)}
-                    onClick={() => selectOption(opt)}
-                  >
-                    <span className="fiscal-combo-code">{opt.codigo}</span>
-                    <span className="fiscal-combo-desc">{displayName(opt)}</span>
-                    {meta && <span className="fiscal-combo-meta">{meta}</span>}
-                  </button>
-                </li>
-              );
-            })}
-        </ul>
-      )}
+      {showPortalList && listbox && typeof document !== 'undefined'
+        ? createPortal(listbox, document.body)
+        : showInlineList
+          ? listbox
+          : null}
 
       {showSummary && value && !open ? (
         <SelectedSummary parceiro={value} />
