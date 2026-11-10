@@ -4,6 +4,7 @@ import { PageHeader } from '../components/PageHeader';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
 import { EstoqueQrFilaPanel } from '../components/EstoqueQrFilaPanel';
 import { IconAlertCircle, IconBan, IconCheck, IconEye, IconTag } from '../components/NavIcons';
+import { ParceiroCombobox } from '../components/ParceiroCombobox';
 import { ProdutoCombobox } from '../components/ProdutoCombobox';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
@@ -86,6 +87,8 @@ type VolumeLinha = {
   endereco_id: number | '';
   /** Fornecedor opcional (atribuído) — herda o padrão até override. */
   fornecedor_id: number | '';
+  /** Objeto para ParceiroCombobox (espelha fornecedor_id). */
+  fornecedor: Parceiro | null;
 };
 
 type VolumeBaixaLinha = {
@@ -117,6 +120,7 @@ type ModoVolume = 'entrada' | 'baixa';
 function emptyVolume(
   enderecoId: number | '' = '',
   fornecedorId: number | '' = '',
+  fornecedor: Parceiro | null = null,
 ): VolumeLinha {
   return {
     codigo: '',
@@ -127,6 +131,7 @@ function emptyVolume(
     data_validade: '',
     endereco_id: enderecoId,
     fornecedor_id: fornecedorId,
+    fornecedor: fornecedorId === '' ? null : fornecedor,
   };
 }
 
@@ -142,12 +147,28 @@ function rotuloEndereco(
 
 function rotuloFornecedor(
   id: number | null | undefined,
-  fornecedores: Parceiro[],
+  embedded?: {
+    id?: number;
+    codigo?: string;
+    razao_social?: string | null;
+    nome_fantasia?: string | null;
+  } | null,
+  fallback?: {
+    id: number;
+    codigo: string;
+    razao_social?: string | null;
+    nome_fantasia?: string | null;
+  } | null,
 ): string {
   if (id == null) return '—';
-  const f = fornecedores.find((x) => x.id === id);
+  const f =
+    embedded && (embedded.id == null || embedded.id === id)
+      ? embedded
+      : fallback && fallback.id === id
+        ? fallback
+        : null;
   if (!f) return `#${id}`;
-  return f.nome_fantasia?.trim() || f.razao_social?.trim() || f.codigo;
+  return f.nome_fantasia?.trim() || f.razao_social?.trim() || f.codigo || `#${id}`;
 }
 
 function parseQty(v: string): number {
@@ -281,11 +302,9 @@ function QtyAjuste({ qtde, ajuste }: { qtde: string; ajuste: EstoqueAjuste }) {
 function AjusteVolumesPainel({
   a,
   enderecos,
-  fornecedores,
 }: {
   a: EstoqueAjuste;
   enderecos: EstoqueEndereco[];
-  fornecedores: Parceiro[];
 }) {
   const payload = a.lote_payload;
   const evidencia = a.contagem_evidencia;
@@ -327,7 +346,8 @@ function AjusteVolumesPainel({
                     <td className="muted">
                       {rotuloFornecedor(
                         v.fornecedor_id ?? a.fornecedor_id ?? null,
-                        fornecedores,
+                        v.fornecedor,
+                        a.fornecedor,
                       )}
                     </td>
                     <td className="num">
@@ -449,8 +469,8 @@ export function EstoqueAjustesPage() {
   const [modoVolume, setModoVolume] = useState<ModoVolume>('entrada');
   const [enderecos, setEnderecos] = useState<EstoqueEndereco[]>([]);
   const [enderecoId, setEnderecoId] = useState<number | ''>('');
-  const [fornecedores, setFornecedores] = useState<Parceiro[]>([]);
   const [fornecedorId, setFornecedorId] = useState<number | ''>('');
+  const [fornecedorSel, setFornecedorSel] = useState<Parceiro | null>(null);
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [causaAprovar, setCausaAprovar] = useState('');
@@ -599,15 +619,13 @@ export function EstoqueAjustesPage() {
       if (de) qs.set('de', de);
       if (ate) qs.set('ate', ate);
       const suffix = qs.toString() ? `?${qs.toString()}` : '';
-      const [aj, ends, fors] = await Promise.all([
+      const [aj, ends] = await Promise.all([
         api.get<{ data: EstoqueAjuste[]; meta: EstoqueAjusteMeta }>(`/estoque/ajustes${suffix}`),
         api.get<{ data: EstoqueEndereco[] }>('/estoque/enderecos'),
-        api.get<{ data: Parceiro[] }>('/parceiros?papel=fornecedor'),
       ]);
       setAjustes(aj.data);
       setMeta(aj.meta);
       setEnderecos((ends.data ?? []).filter((e) => e.ativo !== false));
-      setFornecedores((fors.data ?? []).filter((p) => p.papel_fornecedor !== false));
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -708,6 +726,7 @@ export function EstoqueAjustesPage() {
           data_validade: origem.data_validade,
           endereco_id: origem.endereco_id ?? enderecoId,
           fornecedor_id: fornecedorId,
+          fornecedor: fornecedorSel,
         };
         if (prev.length === 1 && volumeEmBranco(prev[0])) return [linha];
         return [...prev, linha];
@@ -878,6 +897,7 @@ export function EstoqueAjustesPage() {
       setChecklist(false);
       setEnderecoId('');
       setFornecedorId('');
+      setFornecedorSel(null);
       qr.limparTudo();
       setMsg('Solicitação de ajuste registrada.');
       await load();
@@ -1067,7 +1087,7 @@ export function EstoqueAjustesPage() {
                   value={produto}
                   onChange={(p) => {
                     setProduto(p);
-                    setVolumes([emptyVolume(enderecoId, fornecedorId)]);
+                    setVolumes([emptyVolume(enderecoId, fornecedorId, fornecedorSel)]);
                     if (!p) {
                       setQtdeContada('');
                       setQtdeSistema('0.0000');
@@ -1095,7 +1115,7 @@ export function EstoqueAjustesPage() {
                     value={motivo}
                     onChange={(e) => {
                       setMotivo(e.target.value);
-                      setVolumes([emptyVolume(enderecoId, fornecedorId)]);
+                      setVolumes([emptyVolume(enderecoId, fornecedorId, fornecedorSel)]);
                       if (e.target.value === 'A03') {
                         setModoVolume('entrada');
                         qr.limparTudo();
@@ -1163,38 +1183,29 @@ export function EstoqueAjustesPage() {
                   </div>
                 )}
                 {!usaQr && (usaVolumesEntrada || !produtoControlaLote) && (
-                  <div className="form-group">
-                    <label htmlFor="aju_forn">Fornecedor (opcional)</label>
-                    <select
-                      id="aju_forn"
-                      value={fornecedorId === '' ? '' : String(fornecedorId)}
-                      onChange={(e) => {
-                        const next: number | '' = e.target.value
-                          ? Number(e.target.value)
-                          : '';
-                        setVolumes((prev) =>
-                          prev.map((v) =>
-                            v.fornecedor_id === '' || v.fornecedor_id === fornecedorId
-                              ? { ...v, fornecedor_id: next }
-                              : v,
-                          ),
-                        );
-                        setFornecedorId(next);
-                      }}
-                    >
-                      <option value="">Sem fornecedor atribuído</option>
-                      {fornecedores.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.codigo}
-                          {f.razao_social?.trim() ? ` — ${f.razao_social.trim()}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
-                      Atribuição operacional (sem NF). Na entrada por OC o fornecedor já vem
-                      documentado.
-                    </p>
-                  </div>
+                  <ParceiroCombobox
+                    className="aju-form-fornecedor"
+                    label="Fornecedor (opcional)"
+                    papel="fornecedor"
+                    value={fornecedorSel}
+                    disabled={!canWrite || saving}
+                    showSummary={false}
+                    placeholder="Buscar fornecedor…"
+                    emptyMessage="Nenhum fornecedor. Cadastre em Parceiros com classificação Fornecedor."
+                    hint="Atribuição operacional (sem NF). Na entrada por OC o fornecedor já vem documentado. Limpe para deixar sem fornecedor."
+                    onChange={(p) => {
+                      const next: number | '' = p ? p.id : '';
+                      setVolumes((prev) =>
+                        prev.map((v) =>
+                          v.fornecedor_id === '' || v.fornecedor_id === fornecedorId
+                            ? { ...v, fornecedor_id: next, fornecedor: p }
+                            : v,
+                        ),
+                      );
+                      setFornecedorId(next);
+                      setFornecedorSel(p);
+                    }}
+                  />
                 )}
                 <div className="form-group">
                   <label>
@@ -1454,26 +1465,22 @@ export function EstoqueAjustesPage() {
                                   </select>
                                 </td>
                                 <td className="col-forn">
-                                  <select
-                                    value={
-                                      v.fornecedor_id === '' ? '' : String(v.fornecedor_id)
-                                    }
-                                    onChange={(e) =>
+                                  <ParceiroCombobox
+                                    className="aju-vol-fornecedor"
+                                    label={`Fornecedor volume ${idx + 1}`}
+                                    papel="fornecedor"
+                                    value={v.fornecedor}
+                                    disabled={!canWrite || saving}
+                                    showSummary={false}
+                                    placeholder="Fornecedor…"
+                                    emptyMessage="Nenhum fornecedor encontrado."
+                                    onChange={(p) =>
                                       patchVolume(idx, {
-                                        fornecedor_id: e.target.value
-                                          ? Number(e.target.value)
-                                          : '',
+                                        fornecedor_id: p ? p.id : '',
+                                        fornecedor: p,
                                       })
                                     }
-                                    aria-label={`Fornecedor do volume ${idx + 1}`}
-                                  >
-                                    <option value="">—</option>
-                                    {fornecedores.map((f) => (
-                                      <option key={f.id} value={f.id}>
-                                        {f.codigo}
-                                      </option>
-                                    ))}
-                                  </select>
+                                  />
                                 </td>
                                 <td className="col-acoes">
                                   <button
@@ -1509,7 +1516,7 @@ export function EstoqueAjustesPage() {
                           onClick={() =>
                             setVolumes((prev) => [
                               ...prev,
-                              emptyVolume(enderecoId, fornecedorId),
+                              emptyVolume(enderecoId, fornecedorId, fornecedorSel),
                             ])
                           }
                         >
@@ -1705,11 +1712,7 @@ export function EstoqueAjustesPage() {
                     : ''}
                 </p>
 
-                <AjusteVolumesPainel
-                  a={selected}
-                  enderecos={enderecos}
-                  fornecedores={fornecedores}
-                />
+                <AjusteVolumesPainel a={selected} enderecos={enderecos} />
 
                 {solicitanteSouEu && (
                   <div className="alert alert-warning" style={{ marginBottom: '0.75rem' }}>
@@ -1860,11 +1863,7 @@ export function EstoqueAjustesPage() {
                   : ''}
               </p>
 
-              <AjusteVolumesPainel
-                a={selected}
-                enderecos={enderecos}
-                fornecedores={fornecedores}
-              />
+              <AjusteVolumesPainel a={selected} enderecos={enderecos} />
 
               <div className="form-actions">
                 <button type="button" className="btn btn-secondary" onClick={closeDetalhe}>

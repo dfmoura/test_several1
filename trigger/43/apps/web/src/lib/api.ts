@@ -2058,6 +2058,12 @@ export type EstoqueAjuste = {
     qtde: string;
     endereco_id?: number | null;
     fornecedor_id?: number | null;
+    fornecedor?: {
+      id: number;
+      codigo: string;
+      razao_social?: string | null;
+      nome_fantasia?: string | null;
+    } | null;
     largura_mm?: string | null;
     comprimento_m?: string | null;
     data_entrada?: string | null;

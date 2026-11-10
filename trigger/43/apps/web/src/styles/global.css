@@ -2674,8 +2674,7 @@ table.data-table.ordens-producao-table td.op-lista-maquina {
   white-space: nowrap;
 }
 
-.oc-volumes-table .col-local select,
-.oc-volumes-table .col-forn select {
+.oc-volumes-table .col-local select {
   width: 100%;
   min-width: 8rem;
   max-width: 12rem;
@@ -2685,6 +2684,56 @@ table.data-table.ordens-producao-table td.op-lista-maquina {
   border-radius: var(--radius-sm);
   background: #fff;
   color: var(--text);
+}
+
+/* Fornecedor no AJU — ParceiroCombobox (padrão OC), compacto na grade de volumes */
+.aju-form-fornecedor .fiscal-combo-list {
+  min-width: min(28rem, 70vw);
+  z-index: 50;
+}
+
+.oc-volumes-table .col-forn {
+  position: relative;
+  overflow: visible;
+  vertical-align: top;
+  min-width: 12rem;
+  max-width: 16rem;
+}
+
+.oc-volumes-table .col-forn .aju-vol-fornecedor {
+  margin: 0;
+  min-width: 11rem;
+}
+
+.oc-volumes-table .col-forn .aju-vol-fornecedor > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.oc-volumes-table .col-forn .fiscal-combo-control {
+  min-height: 2rem;
+}
+
+.oc-volumes-table .col-forn .fiscal-combo-control input {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.45rem;
+}
+
+.oc-volumes-table .col-forn .fiscal-combo-list {
+  min-width: min(24rem, 70vw);
+  z-index: 60;
+}
+
+/* Grade de volumes: permite lista larga do ParceiroCombobox sem derrubar o scroll vertical. */
+.oc-volumes-panel .oc-volumes-scroll {
+  overflow-x: auto;
 }
 
 .oc-volumes-table .col-acoes {

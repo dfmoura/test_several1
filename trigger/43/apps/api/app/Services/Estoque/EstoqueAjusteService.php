@@ -701,7 +701,10 @@ class EstoqueAjusteService
             'lote_codigo' => $ajuste->lote_codigo,
             'lote_data_entrada' => optional($ajuste->lote_data_entrada)?->format('Y-m-d'),
             'lote_data_validade' => optional($ajuste->lote_data_validade)?->format('Y-m-d'),
-            'lote_payload' => is_array($ajuste->lote_payload) ? $ajuste->lote_payload : null,
+            'lote_payload' => $this->lotePayloadComFornecedor(
+                (int) $ajuste->empresa_id,
+                is_array($ajuste->lote_payload) ? $ajuste->lote_payload : null
+            ),
             'contagem_evidencia' => is_array($ajuste->contagem_evidencia) ? $ajuste->contagem_evidencia : null,
             'created_at' => optional($ajuste->created_at)?->toIso8601String(),
             'criado_por' => EstoqueAjuste::userStampFrom($ajuste->criador),
@@ -1604,6 +1607,62 @@ class EstoqueAjusteService
 
         $saldo->endereco_id = (int) $ajuste->endereco_id;
         $saldo->save();
+    }
+
+    /**
+     * Embutir fornecedor no payload (leitura/conferência) — sem alterar o JSON persistido.
+     *
+     * @param  list<array<string, mixed>>|null  $payload
+     * @return list<array<string, mixed>>|null
+     */
+    private function lotePayloadComFornecedor(int $empresaId, ?array $payload): ?array
+    {
+        if ($payload === null || $payload === []) {
+            return $payload;
+        }
+
+        $ids = [];
+        foreach ($payload as $linha) {
+            if (! is_array($linha)) {
+                continue;
+            }
+            $fid = (int) ($linha['fornecedor_id'] ?? 0);
+            if ($fid > 0) {
+                $ids[$fid] = true;
+            }
+        }
+
+        if ($ids === []) {
+            return $payload;
+        }
+
+        $map = Parceiro::query()
+            ->where('empresa_id', $empresaId)
+            ->whereIn('id', array_keys($ids))
+            ->get(['id', 'codigo', 'razao_social', 'nome_fantasia'])
+            ->keyBy('id');
+
+        $out = [];
+        foreach ($payload as $linha) {
+            if (! is_array($linha)) {
+                $out[] = $linha;
+
+                continue;
+            }
+            $fid = (int) ($linha['fornecedor_id'] ?? 0);
+            if ($fid > 0 && $map->has($fid)) {
+                $p = $map->get($fid);
+                $linha['fornecedor'] = [
+                    'id' => (int) $p->id,
+                    'codigo' => (string) $p->codigo,
+                    'razao_social' => $p->razao_social,
+                    'nome_fantasia' => $p->nome_fantasia,
+                ];
+            }
+            $out[] = $linha;
+        }
+
+        return $out;
     }
 
     private function nullIfEmpty(mixed $value): mixed
