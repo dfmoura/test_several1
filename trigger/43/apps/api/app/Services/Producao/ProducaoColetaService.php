@@ -14,6 +14,7 @@ use App\Services\Estoque\EstoqueSaldoWriter;
 use App\Support\CaixaMedida;
 use App\Support\InsumoEscolhaRelacao;
 use App\Support\PadraoDecimal;
+use App\Support\PartidaBobina;
 use App\Support\ProdutoLotePolitica;
 use Illuminate\Validation\ValidationException;
 
@@ -176,13 +177,59 @@ class ProducaoColetaService
         $op->loadMissing('pedidoItem:id,especificacao');
         $larguraPapel = OrdemProducaoService::larguraMmEspecificacao($op->pedidoItem?->especificacao);
         $metrosAlvo = $this->metrosNecessarios($produto, $qtdeNecessidade, $larguraPapel);
+
+        // Preferência: medida do papel. Se não cobrir e o SKU permite partida, completa com L ≥ papel.
+        $plano = $this->planejarBobinasNoModo(
+            $empresa,
+            $produto,
+            $qtdeNecessidade,
+            $larguraPapel,
+            $metrosAlvo,
+            PartidaBobina::MODO_EXATO,
+        );
+        if (! $plano['cobre'] && $this->produtoPermitePartida($produto)) {
+            $planoCabivel = $this->planejarBobinasNoModo(
+                $empresa,
+                $produto,
+                $qtdeNecessidade,
+                $larguraPapel,
+                $metrosAlvo,
+                PartidaBobina::MODO_CABIVEL,
+            );
+            if ($planoCabivel['cobre'] || bccomp($planoCabivel['qtde'], $plano['qtde'], PadraoDecimal::SCALE_QTY) > 0) {
+                $plano = $planoCabivel;
+            }
+        }
+
+        return [
+            'aplica' => true,
+            'cobre' => $plano['cobre'] && $plano['volumes'] !== [],
+            'qtde' => $plano['qtde'],
+            'volumes' => $plano['volumes'],
+        ];
+    }
+
+    /**
+     * FEFO de bobinas inteiras num modo de largura (exato ou cabível).
+     *
+     * @return array{cobre: bool, qtde: string, volumes: list<array{lote_id: int, qtde: string}>}
+     */
+    private function planejarBobinasNoModo(
+        Empresa $empresa,
+        Produto $produto,
+        string $qtdeNecessidade,
+        ?string $larguraPapel,
+        ?string $metrosAlvo,
+        string $modo,
+    ): array {
         $lotes = $this->lotesFefo($empresa, $produto)
-            ->filter(fn (EstoqueLote $lote) => $this->loteNaLarguraPapel($lote, $larguraPapel))
+            ->filter(fn (EstoqueLote $lote) => $this->loteNaLarguraPapel($lote, $larguraPapel, $modo))
             ->values();
-        if ($metrosAlvo !== null) {
+        $metros = $metrosAlvo;
+        if ($metros !== null) {
             foreach ($lotes as $lote) {
                 if ($this->metrosDoVolume($lote, $produto) === null) {
-                    $metrosAlvo = null;
+                    $metros = null;
                     break;
                 }
             }
@@ -190,7 +237,7 @@ class ProducaoColetaService
 
         $volumes = [];
         $qtde = '0';
-        $metros = '0';
+        $metrosAcum = '0';
         $cobre = false;
         foreach ($lotes as $lote) {
             if ($cobre) {
@@ -205,16 +252,15 @@ class ProducaoColetaService
                 bcadd($qtde, $disp, PadraoDecimal::SCALE_QTY + 4),
                 PadraoDecimal::SCALE_QTY
             );
-            if ($metrosAlvo !== null) {
-                $metros = bcadd($metros, (string) $this->metrosDoVolume($lote, $produto), 6);
-                $cobre = bccomp($metros, $metrosAlvo, 4) >= 0;
+            if ($metros !== null) {
+                $metrosAcum = bcadd($metrosAcum, (string) $this->metrosDoVolume($lote, $produto), 6);
+                $cobre = bccomp($metrosAcum, $metros, 4) >= 0;
             } else {
                 $cobre = bccomp($qtde, $qtdeNecessidade, PadraoDecimal::SCALE_QTY) >= 0;
             }
         }
 
         return [
-            'aplica' => true,
             'cobre' => $cobre && $volumes !== [],
             'qtde' => $qtde,
             'volumes' => $volumes,
@@ -262,14 +308,19 @@ class ProducaoColetaService
                     "volumes.{$idx}.lote_id" => ['Volume não pertence a este produto.'],
                 ]);
             }
-            if (! $this->loteNaLarguraPapel($lote, $larguraPapel)) {
+            $modoLargura = $this->produtoPermitePartida($produto)
+                ? PartidaBobina::MODO_CABIVEL
+                : PartidaBobina::MODO_EXATO;
+            if (! $this->loteNaLarguraPapel($lote, $larguraPapel, $modoLargura)) {
                 $mm = $larguraPapel !== null && $larguraPapel !== ''
                     ? rtrim(rtrim(number_format((float) $larguraPapel, 2, '.', ''), '0'), '.')
                     : null;
                 throw ValidationException::withMessages([
                     "volumes.{$idx}.lote_id" => [
                         $mm !== null && $mm !== ''
-                            ? "Escolha bobina de {$mm} mm — a largura do papel desta ordem."
+                            ? ($modoLargura === PartidaBobina::MODO_CABIVEL
+                                ? "Escolha bobina de pelo menos {$mm} mm — a largura do papel desta ordem."
+                                : "Escolha bobina de {$mm} mm — a largura do papel desta ordem.")
                             : 'Volume fora da largura do papel desta ordem.',
                     ],
                 ]);
@@ -306,22 +357,80 @@ class ProducaoColetaService
         }
     }
 
-    /** Tolerância de largura bobina × papel da OP (mm). */
-    private const LARGURA_PAPEL_TOL_MM = 0.51;
+    /**
+     * Sem largura no PED → não filtra.
+     * exato: mesma medida · cabivel: L ≥ papel (partida/refile — ADR_PRODUCAO_PARTIDA_BOBINA).
+     */
+    private function loteNaLarguraPapel(
+        EstoqueLote $lote,
+        ?string $larguraPapelMm,
+        string $modo = PartidaBobina::MODO_EXATO,
+    ): bool {
+        return PartidaBobina::cabeNaLargura($lote->largura_mm, $larguraPapelMm, $modo);
+    }
+
+    public function produtoPermitePartida(Produto $produto): bool
+    {
+        $produto->loadMissing('grupoCatalogo:id,codigo');
+
+        return PartidaBobina::produtoPermitePartida(
+            (string) $produto->codigo,
+            $produto->grupoCatalogo->codigo ?? null,
+        );
+    }
 
     /**
-     * Sem largura no PED → não filtra. Com largura → só bobina da mesma medida (ficha).
+     * Plano de partida para um volume pai × papel da OP.
+     *
+     * @return array<string, mixed>|null
      */
-    private function loteNaLarguraPapel(EstoqueLote $lote, ?string $larguraPapelMm): bool
-    {
-        if ($larguraPapelMm === null || $larguraPapelMm === '' || bccomp($larguraPapelMm, '0', 4) <= 0) {
-            return true;
+    public function planoPartidaDoVolume(
+        EstoqueLote $lote,
+        Produto $produto,
+        OrdemProducao $op,
+        ?string $qtdeNecessidadeM2 = null,
+    ): ?array {
+        if (! $this->produtoPermitePartida($produto)) {
+            return null;
         }
-        if ($lote->largura_mm === null || $lote->largura_mm === '' || bccomp((string) $lote->largura_mm, '0', 4) <= 0) {
-            return false;
+        $op->loadMissing('pedidoItem:id,especificacao');
+        $larguraPapel = OrdemProducaoService::larguraMmEspecificacao($op->pedidoItem?->especificacao);
+        if ($larguraPapel === null || ! PartidaBobina::ehMaisLarga($lote->largura_mm, $larguraPapel)) {
+            return null;
         }
+        $metros = null;
+        if ($qtdeNecessidadeM2 !== null && $qtdeNecessidadeM2 !== '') {
+            // Deriva C_u pela geometria M2 (evita metros com 6 casas quebrando SCALE_DIM).
+            $un = strtoupper(str_replace('²', '2', (string) ($produto->unidade_interna ?? '')));
+            if (in_array($un, ['M2', 'MIL'], true)) {
+                $geoNeed = \App\Support\VolumeGeometria::fechar($larguraPapel, null, $qtdeNecessidadeM2, 'M2');
+                if ($geoNeed['status'] === \App\Support\VolumeGeometria::STATUS_FECHADO) {
+                    $metros = $geoNeed['comprimento_m'];
+                }
+            }
+            if ($metros === null) {
+                $metros = $this->metrosNecessarios($produto, $qtdeNecessidadeM2, $larguraPapel);
+            }
+        }
+        if ($metros === null) {
+            $metros = $this->metrosDoVolume($lote, $produto);
+        }
+        if ($metros === null) {
+            return null;
+        }
+        $comprimentoPai = $lote->comprimento_m;
+        if ($comprimentoPai === null || $comprimentoPai === '' || bccomp((string) $comprimentoPai, '0', 4) <= 0) {
+            $comprimentoPai = $this->metrosDoVolume($lote, $produto);
+        }
+        $plano = PartidaBobina::planejar(
+            $lote->largura_mm,
+            $comprimentoPai,
+            $larguraPapel,
+            $metros,
+            (int) $lote->id,
+        );
 
-        return abs((float) $lote->largura_mm - (float) $larguraPapelMm) < self::LARGURA_PAPEL_TOL_MM;
+        return ($plano['aplica'] ?? false) === true ? $plano : null;
     }
 
     /**
@@ -394,8 +503,10 @@ class ProducaoColetaService
         }
         $op->loadMissing('pedidoItem:id,especificacao');
         $larguraPapel = OrdemProducaoService::larguraMmEspecificacao($op->pedidoItem?->especificacao);
+        $permitePartida = $this->produtoPermitePartida($produto);
+        $modoLista = $permitePartida ? PartidaBobina::MODO_CABIVEL : PartidaBobina::MODO_EXATO;
         $lotes = $this->lotesFefo($empresa, $produto)
-            ->filter(fn (EstoqueLote $lote) => $this->loteNaLarguraPapel($lote, $larguraPapel))
+            ->filter(fn (EstoqueLote $lote) => $this->loteNaLarguraPapel($lote, $larguraPapel, $modoLista))
             ->values();
         $porId = $lotes->keyBy('id');
         $volumes = [];
@@ -406,7 +517,14 @@ class ProducaoColetaService
                 continue;
             }
             $volumes[] = $this->identificarProduto(
-                $this->volumeToOut($lote, (string) $aloc['qtde'], true, 'FEFO', $ordem),
+                $this->enriquecerVolumePartida(
+                    $this->volumeToOut($lote, (string) $aloc['qtde'], true, 'FEFO', $ordem),
+                    $lote,
+                    $produto,
+                    $op,
+                    $qtde,
+                    $larguraPapel,
+                ),
                 $produto,
             );
             $ordem++;
@@ -417,7 +535,14 @@ class ProducaoColetaService
                 continue;
             }
             $candidatos[] = $this->identificarProduto(
-                $this->volumeToOut($lote, '0', false, 'DISPONIVEL', null),
+                $this->enriquecerVolumePartida(
+                    $this->volumeToOut($lote, '0', false, 'DISPONIVEL', null),
+                    $lote,
+                    $produto,
+                    $op,
+                    $qtde,
+                    $larguraPapel,
+                ),
                 $produto,
             );
         }
@@ -586,6 +711,38 @@ class ProducaoColetaService
         }
         if ($this->saldos->alocacoesIguais($sugeridas, $volumes)) {
             return;
+        }
+
+        // Partida (volume mais largo que o papel) é caminho legítimo — sem motivo de override.
+        // Trocar bobina da mesma medida fora do FEFO continua exigindo motivo.
+        if ($this->baixaVolumeInteiro($produto) && $this->produtoPermitePartida($produto)) {
+            try {
+                $this->assertVolumesCobremNecessidade($empresa, $op, $produto, $necessidade, $volumes);
+                $op->loadMissing('pedidoItem:id,especificacao');
+                $larguraPapel = OrdemProducaoService::larguraMmEspecificacao($op->pedidoItem?->especificacao);
+                $temPartida = false;
+                $soCabiveis = true;
+                foreach ($volumes as $row) {
+                    $loteId = (int) ($row['lote_id'] ?? 0);
+                    $lote = EstoqueLote::query()
+                        ->where('empresa_id', $empresa->id)
+                        ->where('produto_id', $produto->id)
+                        ->where('id', $loteId)
+                        ->first();
+                    if (! $lote || ! $this->loteNaLarguraPapel($lote, $larguraPapel, PartidaBobina::MODO_CABIVEL)) {
+                        $soCabiveis = false;
+                        break;
+                    }
+                    if (PartidaBobina::ehMaisLarga($lote->largura_mm, $larguraPapel)) {
+                        $temPartida = true;
+                    }
+                }
+                if ($soCabiveis && $temPartida) {
+                    return;
+                }
+            } catch (ValidationException) {
+                // cai no motivo FEFO abaixo
+            }
         }
 
         $motivo = trim((string) $motivo);
@@ -763,6 +920,16 @@ class ProducaoColetaService
             );
         }
 
+        $paisPartidos = [];
+        foreach (is_array($mat?->partida_prevista) ? $mat->partida_prevista : [] as $plano) {
+            if (($plano['status'] ?? '') === 'devolvido') {
+                $pai = (int) ($plano['lote_pai_id'] ?? 0);
+                if ($pai > 0) {
+                    $paisPartidos[$pai] = true;
+                }
+            }
+        }
+
         $out = [];
         $ordem = 1;
         foreach ($agg as $key => $qtde) {
@@ -772,8 +939,43 @@ class ProducaoColetaService
             /** @var EstoqueMovimentoItem $item */
             $item = $meta[$key];
             $lote = $item->lote;
+            $loteId = $lote ? (int) $lote->id : 0;
+            // Pai já materializado em volumes filhos — não fica a devolver.
+            if ($loteId > 0 && isset($paisPartidos[$loteId])) {
+                continue;
+            }
             if ($lote) {
                 $linha = $this->volumeToOut($lote, $qtde, false, 'A_DEVOLVER', $ordem);
+                if ($mat && $loteId > 0) {
+                    $planoPend = null;
+                    foreach (is_array($mat->partida_prevista) ? $mat->partida_prevista : [] as $plano) {
+                        if (($plano['status'] ?? '') === 'pendente' && (int) ($plano['lote_pai_id'] ?? 0) === $loteId) {
+                            $planoPend = $plano;
+                            break;
+                        }
+                    }
+                    if ($planoPend !== null) {
+                        $linha['faixa'] = PartidaBobina::FAIXA_PARTIDA;
+                        $linha['partida_preview'] = PartidaBobina::previewUi([
+                            'aplica' => true,
+                            'L_p' => $planoPend['L_p'] ?? null,
+                            'C_p' => $planoPend['C_p'] ?? null,
+                            'L_n' => $planoPend['L_n'] ?? null,
+                            'C_u' => $planoPend['C_u_previsto'] ?? null,
+                            'refile' => $planoPend['refile'] ?? null,
+                            'sobra' => $planoPend['sobra'] ?? null,
+                            'area_consumida' => $planoPend['area_consumida'] ?? null,
+                        ]);
+                        $areaVolta = '0';
+                        if (is_array($planoPend['refile'] ?? null)) {
+                            $areaVolta = bcadd($areaVolta, (string) ($planoPend['refile']['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY + 4);
+                        }
+                        if (is_array($planoPend['sobra'] ?? null)) {
+                            $areaVolta = bcadd($areaVolta, (string) ($planoPend['sobra']['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY + 4);
+                        }
+                        $linha['qtde_partida_retorno'] = PadraoDecimal::roundHalfUp($areaVolta, PadraoDecimal::SCALE_QTY);
+                    }
+                }
             } else {
                 $linha = [
                     'lote_id' => null,
@@ -1685,7 +1887,7 @@ class ProducaoColetaService
 
     /**
      * Volumes de todas as bobinas com saldo. O grupo do catálogo vem primeiro.
-     * Com largura do papel na OP, só bobinas dessa medida.
+     * Medida do papel primeiro; se o SKU permite partida, inclui L ≥ papel.
      *
      * @return list<array<string, mixed>>
      */
@@ -1707,13 +1909,25 @@ class ProducaoColetaService
             ->with([
                 'endereco:id,codigo',
                 'produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_interna,controla_lote,empresa_id',
+                'produto.grupoCatalogo:id,codigo',
             ])
             ->where('empresa_id', $empresa->id)
             ->whereIn('produto_id', $ids)
             ->where('qtde', '>', 0)
             ->get()
-            ->filter(fn (EstoqueLote $lote) => $this->loteNaLarguraPapel($lote, $larguraPapel))
-            ->sort(function (EstoqueLote $a, EstoqueLote $b) use ($ordem): int {
+            ->filter(function (EstoqueLote $lote) use ($larguraPapel): bool {
+                $modo = $lote->produto && $this->produtoPermitePartida($lote->produto)
+                    ? PartidaBobina::MODO_CABIVEL
+                    : PartidaBobina::MODO_EXATO;
+
+                return $this->loteNaLarguraPapel($lote, $larguraPapel, $modo);
+            })
+            ->sort(function (EstoqueLote $a, EstoqueLote $b) use ($ordem, $larguraPapel): int {
+                $fa = PartidaBobina::ehMaisLarga($a->largura_mm, $larguraPapel) ? 1 : 0;
+                $fb = PartidaBobina::ehMaisLarga($b->largura_mm, $larguraPapel) ? 1 : 0;
+                if ($fa !== $fb) {
+                    return $fa <=> $fb;
+                }
                 $oa = $ordem[(int) $a->produto_id] ?? 9999;
                 $ob = $ordem[(int) $b->produto_id] ?? 9999;
                 if ($oa !== $ob) {
@@ -1735,9 +1949,13 @@ class ProducaoColetaService
             })
             ->values();
 
+        $necessidade = PadraoDecimal::roundHalfUp((string) $mat->qtde_planejada, PadraoDecimal::SCALE_QTY);
         $linhas = [];
         foreach ($lotes as $lote) {
             $row = $this->volumeToOut($lote, '0', false, 'ESTOQUE', null);
+            if ($op && $lote->produto) {
+                $row = $this->enriquecerVolumePartida($row, $lote, $lote->produto, $op, $necessidade, $larguraPapel);
+            }
             $linhas[] = $this->identificarProduto($row, $lote->produto);
         }
 
@@ -1746,7 +1964,7 @@ class ProducaoColetaService
 
     /**
      * Bobinas de um SKU já escolhido no grupo. Sem sugerir outro produto.
-     * Com largura do papel na OP, só bobinas dessa medida.
+     * Medida do papel primeiro; se permite partida, inclui L ≥ papel.
      *
      * @return list<array<string, mixed>>
      */
@@ -1757,6 +1975,15 @@ class ProducaoColetaService
             $op->loadMissing('pedidoItem:id,especificacao');
             $larguraPapel = OrdemProducaoService::larguraMmEspecificacao($op->pedidoItem?->especificacao);
         }
+
+        $produto = Produto::query()
+            ->with('grupoCatalogo:id,codigo')
+            ->where('empresa_id', $empresa->id)
+            ->where('id', $produtoId)
+            ->first();
+        $modo = $produto && $this->produtoPermitePartida($produto)
+            ? PartidaBobina::MODO_CABIVEL
+            : PartidaBobina::MODO_EXATO;
 
         $lotes = EstoqueLote::query()
             ->with([
@@ -1770,16 +1997,68 @@ class ProducaoColetaService
             ->orderBy('data_validade')
             ->orderBy('id')
             ->get()
-            ->filter(fn (EstoqueLote $lote) => $this->loteNaLarguraPapel($lote, $larguraPapel))
+            ->filter(fn (EstoqueLote $lote) => $this->loteNaLarguraPapel($lote, $larguraPapel, $modo))
+            ->sort(function (EstoqueLote $a, EstoqueLote $b) use ($larguraPapel): int {
+                $fa = PartidaBobina::ehMaisLarga($a->largura_mm, $larguraPapel) ? 1 : 0;
+                $fb = PartidaBobina::ehMaisLarga($b->largura_mm, $larguraPapel) ? 1 : 0;
+                if ($fa !== $fb) {
+                    return $fa <=> $fb;
+                }
+
+                return $a->id <=> $b->id;
+            })
             ->values();
+
+        $necessidade = null;
+        if ($op) {
+            $mat = OrdemProducaoMaterial::query()
+                ->where('ordem_producao_id', $op->id)
+                ->where('produto_id', $produtoId)
+                ->first();
+            if ($mat) {
+                $necessidade = PadraoDecimal::roundHalfUp((string) $mat->qtde_planejada, PadraoDecimal::SCALE_QTY);
+            }
+        }
 
         $linhas = [];
         foreach ($lotes as $lote) {
             $row = $this->volumeToOut($lote, '0', false, 'ESTOQUE', null);
-            $linhas[] = $this->identificarProduto($row, $lote->produto);
+            if ($op && $produto) {
+                $row = $this->enriquecerVolumePartida(
+                    $row,
+                    $lote,
+                    $produto,
+                    $op,
+                    $necessidade,
+                    $larguraPapel,
+                );
+            }
+            $linhas[] = $this->identificarProduto($row, $lote->produto ?? $produto);
         }
 
         return $linhas;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    private function enriquecerVolumePartida(
+        array $row,
+        EstoqueLote $lote,
+        Produto $produto,
+        OrdemProducao $op,
+        ?string $qtdeNecessidade,
+        ?string $larguraPapel,
+    ): array {
+        $partida = $qtdeNecessidade !== null
+            ? $this->planoPartidaDoVolume($lote, $produto, $op, $qtdeNecessidade)
+            : null;
+        $maisLarga = PartidaBobina::ehMaisLarga($lote->largura_mm, $larguraPapel);
+        $row['faixa'] = $maisLarga ? PartidaBobina::FAIXA_PARTIDA : PartidaBobina::FAIXA_PAPEL;
+        $row['partida_preview'] = $partida !== null ? PartidaBobina::previewUi($partida) : null;
+
+        return $row;
     }
 
     /**

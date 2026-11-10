@@ -183,4 +183,8 @@ Linhas de kit **PAPEL** e **ACABAMENTO** (`qtde_planejada > 0`, ainda sem saída
 
 Guia apontada (acabamento sem linha de kit) não participa. Fecho da OP (papel já saído) permanece na regra própria. Sem segundo writer.
 
+## Emenda 2026-11-10 — partida / refile (norma)
+
+Bobina com largura **maior** que o papel do PED pode entrar no kit (mesmo SKU, grupos M2): baixa continua **inteira**; sobras (refile + comprimento) nascem como volumes novos no retorno, com local e etiqueta. Medida exata permanece no caminho atual. Norma: [`ADR_PRODUCAO_PARTIDA_BOBINA.md`](ADR_PRODUCAO_PARTIDA_BOBINA.md). Sem segundo writer.
+
 Alterar esta ADR exige decisão explícita (produção + estoque + UX).

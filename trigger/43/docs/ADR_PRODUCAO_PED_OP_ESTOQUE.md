@@ -86,6 +86,8 @@ Após qualquer `SAIDA_PRODUCAO`, a OP (e o PED) expõem a genealogia dos insumos
 
 **Coleta dirigida (Fase A):** a separação da OP mostra os volumes FEFO/FIFO *antes* de baixar; o confirmar pode enviar `volumes[]` explícitos. Empenho permanece leve. Norma: [`ADR_PRODUCAO_COLETA_DIRIGIDA.md`](ADR_PRODUCAO_COLETA_DIRIGIDA.md).
 
+**Partida / refile:** bobina com `L > papel` (mesmo SKU, M2) sai inteira; sobras (refile + comprimento) voltam como volumes novos no `ENTRADA_SOBRA`, com local e etiqueta. Medida exata inalterada. Norma: [`ADR_PRODUCAO_PARTIDA_BOBINA.md`](ADR_PRODUCAO_PARTIDA_BOBINA.md).
+
 **Apontamento no chão:** concluir (retorno/perda/PA) é na tela Produção → Apontamentos. A OP só lê o resultado. Norma: [`ADR_PRODUCAO_APONTAMENTO.md`](ADR_PRODUCAO_APONTAMENTO.md).
 
 ## Fora de escopo (esta entrega)

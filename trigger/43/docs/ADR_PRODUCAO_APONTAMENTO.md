@@ -64,6 +64,10 @@ O menu **Na máquina** sai. A API `/ordens-producao/apontamentos` permanece.
 
 Handoff (`entregar-insumos`) não bloqueia o fecho e não tem cartão próprio.
 
+## Emenda 2026-11-10 — fecho × partida pendente
+
+A regra «retorno/perda zerados no fecho» **não** engole bobina com **partida prevista** ainda sem volumes de sobra criados. Partida pendente bloqueia o fecho até Devolver (local + etiqueta) em A buscar / OP, salvo override explícito com motivo («usou tudo»). Norma: [`ADR_PRODUCAO_PARTIDA_BOBINA.md`](ADR_PRODUCAO_PARTIDA_BOBINA.md).
+
 ## Emenda 2026-11-03 — fecho por modelo (satélite)
 
 O card embutido na ficha da OP deixa de digitar boas/refugo. A porta de fecho vira satélite:

@@ -66,4 +66,8 @@ A OP já baixa MP/EMB com `SAIDA_PRODUCAO` via `EstoqueSaldoWriter` (empenho lev
 - [x] `requisitar` sem `volumes` intacto  
 - [x] Confirmação física só no Estoque (OP não baixa)  
 
+## Emenda 2026-11-10 — listagem cabível por partida
+
+Além da faixa `L ≈ papel`, a escolha de volumes de bobina M2 pode listar `L > papel` (mesmo SKU) para partida/refile. Cobertura em metro linear na **largura do papel**. Baixa continua bobina inteira. Norma: [`ADR_PRODUCAO_PARTIDA_BOBINA.md`](ADR_PRODUCAO_PARTIDA_BOBINA.md).
+
 Alterar esta ADR exige decisão explícita (produção + estoque). Sem segundo writer e sem empenho pesado sem ADR novo.

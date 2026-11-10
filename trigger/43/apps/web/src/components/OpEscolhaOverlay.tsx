@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { Link } from 'react-router-dom';
 import {
   OpFiltroVolumes,
   VOLUME_FILTRO_VAZIO,
@@ -13,6 +14,7 @@ import {
   type OrdemProducao,
   type OrdemProducaoMaterial,
 } from '../lib/api';
+import { formatDecimalBr } from '../lib/format';
 import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
 import {
   faltaCoberturaVolumes,
@@ -113,10 +115,22 @@ export function OpEscolhaOverlay({
   const [devolverMarcados, setDevolverMarcados] = useState<Record<number, boolean>>(() => {
     const init: Record<number, boolean> = {};
     for (const v of volsADevolver) {
-      if (v.lote_id) init[v.lote_id] = false;
+      if (v.lote_id) {
+        // Partida: pré-marca o pai para o operador só confirmar + motivo.
+        init[v.lote_id] = v.faixa === 'partida';
+      }
     }
     return init;
   });
+  const [posPartida, setPosPartida] = useState<{
+    loteIds: number[];
+    resumo: string[];
+  } | null>(null);
+  const [motivoDevolver, setMotivoDevolver] = useState(() =>
+    (material.retirada?.volumes_a_devolver ?? []).some((v) => v.faixa === 'partida')
+      ? 'Partida — guardar refile e sobra'
+      : '',
+  );
   const [filtro, setFiltro] = useState<VolumeFiltroEstado>(VOLUME_FILTRO_VAZIO);
   const [qr, setQr] = useState('');
   const peca = unidadeContada(material.unidade);
@@ -129,7 +143,6 @@ export function OpEscolhaOverlay({
     devolverInteiro ? qtdeContadaExibida(saiu) : String(saiu || ''),
   );
   const [motivo, setMotivo] = useState('');
-  const [motivoDevolver, setMotivoDevolver] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -210,9 +223,11 @@ export function OpEscolhaOverlay({
       : null;
   const cobreNecessidade =
     precisaM2 != null && areaCarrinho != null ? areaCarrinho + 1e-6 >= precisaM2 : null;
+  const temPartidaEscolhida = escolhidos.some((v) => v.faixa === 'partida');
   const override =
     modo === 'volume' &&
     mesmoSku &&
+    !temPartidaEscolhida &&
     (() => {
       const ids = escolhidos
         .map((v) => v.lote_id)
@@ -408,6 +423,30 @@ export function OpEscolhaOverlay({
         payload,
       );
       onOp(res.data);
+      const matPos = (res.data.materiais ?? []).find((x) => x.id === material.id);
+      const gerados = (matPos?.partida_prevista ?? [])
+        .filter((p) => p.status === 'devolvido')
+        .flatMap((p) => p.volumes_gerados ?? []);
+      const loteIds = gerados
+        .map((g) => Number(g.lote_id))
+        .filter((id) => Number.isFinite(id) && id > 0);
+      if (loteIds.length > 0) {
+        setPosPartida({
+          loteIds,
+          resumo: gerados.map((g) => {
+            const tipo = g.tipo === 'refile' ? 'Refile' : 'Sobra';
+            const L = g.largura_mm
+              ? `${formatDecimalBr(g.largura_mm, 1, { stripTrailingZeros: true })} mm`
+              : '';
+            const C = g.comprimento_m
+              ? `${formatDecimalBr(g.comprimento_m, 1, { stripTrailingZeros: true })} m`
+              : '';
+            return [tipo, L, C].filter(Boolean).join(' · ');
+          }),
+        });
+        setMsg('Sobras de partida geradas. Imprima as etiquetas e guarde no local.');
+        return;
+      }
       onClose();
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao devolver.');
@@ -434,13 +473,15 @@ export function OpEscolhaOverlay({
               </p>
             ) : null}
             <p className="muted op-escolha__hint">
-              {estado === 'ja_saiu'
-                ? podeDevolver
-                  ? 'Marque o que volta à prateleira (ainda bom, antes de concluir a OP). Perda do volume fica na ordem.'
-                  : 'Já saiu. Peça a quem tem estoque para devolver à prateleira.'
-                : modo === 'volume'
-                  ? 'Outro volume — marque o que vai levar e informe o motivo (FEFO fica no botão Saiu da lista).'
-                  : 'Ajuste a quantidade se diferir do pedido (o botão Saiu da lista usa a qtde sugerida).'}
+              {posPartida
+                ? 'Partida concluída no sistema. Imprima as etiquetas das bobinas novas e guarde no local.'
+                : estado === 'ja_saiu'
+                  ? podeDevolver
+                    ? 'Marque o que volta à prateleira (ainda bom, antes de concluir a OP). Perda do volume fica na ordem. Partida gera refile/sobra como volumes novos.'
+                    : 'Já saiu. Peça a quem tem estoque para devolver à prateleira.'
+                  : modo === 'volume'
+                    ? 'Outro volume — marque o que vai levar e informe o motivo (FEFO fica no botão Saiu da lista). Bobina mais larga = partida (sem motivo FEFO).'
+                    : 'Ajuste a quantidade se diferir do pedido (o botão Saiu da lista usa a qtde sugerida).'}
             </p>
           </div>
           <div className="op-escolha__head-side">
@@ -493,12 +534,41 @@ export function OpEscolhaOverlay({
         {msg ? <div className="alert alert-success">{msg}</div> : null}
 
         <div className="op-escolha__body">
-          {estado === 'ja_saiu' ? (
+          {posPartida ? (
+            <div className="orc-faixas-bloco" style={{ marginTop: 0 }}>
+              <p className="form-hint" style={{ marginTop: 0 }}>
+                Volumes gerados (mesmo SKU):
+              </p>
+              <ul style={{ margin: '0.35rem 0 0.75rem', paddingLeft: '1.2rem' }}>
+                {posPartida.resumo.map((linha, idx) => (
+                  <li key={`${posPartida.loteIds[idx]}-${idx}`}>{linha}</li>
+                ))}
+              </ul>
+              <div className="btn-row" style={{ margin: 0, gap: '0.5rem', flexWrap: 'wrap' }}>
+                <Link
+                  className="btn btn-primary btn-sm"
+                  to={`/estoque/lotes/etiquetas?${posPartida.loteIds
+                    .map((id) => `ids=${id}`)
+                    .join('&')}`}
+                  onClick={onClose}
+                >
+                  Imprimir etiquetas
+                </Link>
+                <Link className="btn btn-secondary btn-sm" to="/estoque/guardar" onClick={onClose}>
+                  Guardar no local
+                </Link>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>
+                  Fechar
+                </button>
+              </div>
+            </div>
+          ) : estado === 'ja_saiu' ? (
             podeDevolver ? (
               modo === 'volume' ? (
                 <>
                   <p className="muted" style={{ marginTop: 0 }}>
                     Volumes ainda fora da prateleira nesta OP — só o que ainda serve.
+                    Partida devolve refile + sobra como bobinas novas.
                   </p>
                   <div className="table-wrap op-escolha__table-wrap">
                     <table className="data-table op-escolha__table">
@@ -521,6 +591,7 @@ export function OpEscolhaOverlay({
                           volsADevolver.map((v) => {
                             const id = v.lote_id as number;
                             const on = Boolean(devolverMarcados[id]);
+                            const prev = v.partida_preview;
                             return (
                               <tr key={id} className={on ? 'is-on' : ''}>
                                 <td className="op-escolha__col-check">
@@ -539,12 +610,37 @@ export function OpEscolhaOverlay({
                                 </td>
                                 <td>
                                   <strong>{formatLotePick(v)}</strong>
+                                  {formatVolumeDimensao(v) ? (
+                                    <div className="muted" style={{ fontSize: '0.85em' }}>
+                                      {formatVolumeDimensao(v)}
+                                    </div>
+                                  ) : null}
+                                  {v.faixa === 'partida' && prev ? (
+                                    <div className="muted" style={{ fontSize: '0.85em' }}>
+                                      Partida · volta{' '}
+                                      {[
+                                        prev.refile
+                                          ? `refile ${formatDecimalBr(prev.refile.largura_mm, 1, { stripTrailingZeros: true })} mm × ${formatDecimalBr(prev.refile.comprimento_m, 1, { stripTrailingZeros: true })} m`
+                                          : null,
+                                        prev.sobra
+                                          ? `sobra ${formatDecimalBr(prev.sobra.largura_mm, 1, { stripTrailingZeros: true })} mm × ${formatDecimalBr(prev.sobra.comprimento_m, 1, { stripTrailingZeros: true })} m`
+                                          : null,
+                                      ]
+                                        .filter(Boolean)
+                                        .join(' · ')}
+                                    </div>
+                                  ) : null}
                                 </td>
                                 <td>
-                                  {formatQtdePick(
-                                    parseQtdeDigitada(v.qtde_retirar),
-                                    v.unidade ?? material.unidade,
-                                  )}
+                                  {v.faixa === 'partida' && v.qtde_partida_retorno
+                                    ? formatQtdePick(
+                                        parseQtdeDigitada(v.qtde_partida_retorno),
+                                        v.unidade ?? material.unidade,
+                                      )
+                                    : formatQtdePick(
+                                        parseQtdeDigitada(v.qtde_retirar),
+                                        v.unidade ?? material.unidade,
+                                      )}
                                 </td>
                                 <td>{v.endereco?.codigo ?? '—'}</td>
                               </tr>
@@ -561,7 +657,7 @@ export function OpEscolhaOverlay({
                       value={motivoDevolver}
                       onChange={(e) => setMotivoDevolver(e.target.value)}
                       disabled={busy}
-                      placeholder="Ex.: sobrou na mesa / pegou a bobina errada"
+                      placeholder="Ex.: sobrou na mesa / partida — guardar refile"
                     />
                   </div>
                 </>
@@ -701,6 +797,11 @@ export function OpEscolhaOverlay({
                               <strong>{formatLotePick(v)}</strong>
                               {v.descricao ? <div>{v.descricao}</div> : null}
                               {v.sku ? <div className="muted">{v.sku}</div> : null}
+                              {v.faixa === 'partida' ? (
+                                <div className="muted" style={{ fontSize: '0.85em' }}>
+                                  Partida (largura maior)
+                                </div>
+                              ) : null}
                             </td>
                             <td>{area != null ? formatQtdePick(area, 'm²') : '—'}</td>
                             <td>
@@ -708,6 +809,21 @@ export function OpEscolhaOverlay({
                               {metros && dim ? (
                                 <div className="muted" style={{ fontSize: '0.85em' }}>
                                   {metros} de rolo
+                                </div>
+                              ) : null}
+                              {v.faixa === 'partida' && v.partida_preview ? (
+                                <div className="muted" style={{ fontSize: '0.85em' }}>
+                                  Volta{' '}
+                                  {[
+                                    v.partida_preview.refile
+                                      ? `refile ${formatDecimalBr(v.partida_preview.refile.largura_mm, 1, { stripTrailingZeros: true })} mm`
+                                      : null,
+                                    v.partida_preview.sobra
+                                      ? `sobra ${formatDecimalBr(v.partida_preview.sobra.comprimento_m, 1, { stripTrailingZeros: true })} m`
+                                      : null,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' · ')}
                                 </div>
                               ) : null}
                             </td>
@@ -772,7 +888,9 @@ export function OpEscolhaOverlay({
         </div>
 
         <footer className="op-escolha__foot">
-          {modo === 'volume' && escolhidos.length > 0 && podeBaixar ? (
+          {posPartida ? (
+            <span />
+          ) : modo === 'volume' && escolhidos.length > 0 && podeBaixar ? (
             <p className="op-escolha__soma">
               Levar {formatVolumesComArea(escolhidos.length, areaCarrinho)}
               {cobreNecessidade === true ? (
@@ -785,12 +903,19 @@ export function OpEscolhaOverlay({
             <p className="op-escolha__soma">
               Devolver {volsDevolverEscolhidos.length}{' '}
               {volsDevolverEscolhidos.length === 1 ? 'volume' : 'volumes'}
+              {volsDevolverEscolhidos.some((v) => v.faixa === 'partida')
+                ? ' · gera refile/sobra'
+                : ''}
             </p>
           ) : (
             <span />
           )}
           <div className="op-escolha__foot-actions">
-            {podeDevolver ? (
+            {posPartida ? (
+              <button type="button" className="btn btn-secondary" onClick={onClose}>
+                Fechar
+              </button>
+            ) : podeDevolver ? (
               <button
                 type="button"
                 className="btn btn-primary"

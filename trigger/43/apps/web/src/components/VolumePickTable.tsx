@@ -114,6 +114,21 @@ export function VolumePickTable({
                           {metros} de rolo
                         </div>
                       ) : null}
+                      {vol?.faixa === 'partida' && vol.partida_preview ? (
+                        <div className="muted" style={{ fontSize: '0.85em' }}>
+                          Partida · volta{' '}
+                          {[
+                            vol.partida_preview.refile
+                              ? `refile ${formatDecimalBr(vol.partida_preview.refile.largura_mm, 1, { stripTrailingZeros: true })} mm`
+                              : null,
+                            vol.partida_preview.sobra
+                              ? `sobra ${formatDecimalBr(vol.partida_preview.sobra.comprimento_m, 1, { stripTrailingZeros: true })} m`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ') || 'sobras'}
+                        </div>
+                      ) : null}
                     </td>
                     <td>{area != null ? formatQtdePick(area, 'm²') : '—'}</td>
                     <td>{metros ?? '—'}</td>

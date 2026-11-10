@@ -1187,11 +1187,11 @@ class ProducaoColetaDirigidaTest extends TestCase
             ->value('qtde'));
     }
 
-    public function test_papel_so_oferece_e_aceita_volumes_da_largura_da_op(): void
+    public function test_papel_oferece_medida_exata_e_aceita_partida_mais_larga(): void
     {
         Sanctum::actingAs($this->user);
 
-        // 5,25 cm × 4 col = 210 mm — bobina 250 mm (loteVigente) fica de fora.
+        // 5,25 cm × 4 col = 210 mm — FEFO preferência exata; 250 mm entra na faixa partida.
         $item = PedidoItem::query()->findOrFail($this->op->pedido_item_id);
         $item->especificacao = ['largura_cm' => '5.25', 'colunas' => 4];
         $item->save();
@@ -1204,11 +1204,12 @@ class ProducaoColetaDirigidaTest extends TestCase
 
         $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
         $sugeridos = collect($papel['retirada']['volumes'])->pluck('lote_id')->all();
-        $candidatos = collect($papel['retirada']['candidatos'])->pluck('lote_id')->all();
+        $candidatos = collect($papel['retirada']['candidatos'])->keyBy('lote_id');
         $this->assertSame([$this->loteVencido->id], $sugeridos);
-        $this->assertContains($this->loteSemValidade->id, $candidatos);
-        $this->assertNotContains($this->loteVigente->id, $sugeridos);
-        $this->assertNotContains($this->loteVigente->id, $candidatos);
+        $this->assertTrue($candidatos->has($this->loteSemValidade->id));
+        $this->assertTrue($candidatos->has($this->loteVigente->id));
+        $this->assertSame('partida', $candidatos[$this->loteVigente->id]['faixa'] ?? null);
+        $this->assertNotNull($candidatos[$this->loteVigente->id]['partida_preview'] ?? null);
 
         $escolha = $this->withHeaders($this->h())->getJson(
             "/api/v1/ordens-producao/{$this->op->id}/volumes-escolha?material_id={$this->matPapel->id}"
@@ -1217,14 +1218,18 @@ class ProducaoColetaDirigidaTest extends TestCase
         $idsEscolha = collect($escolha->json('data'))->pluck('lote_id')->all();
         $this->assertContains($this->loteVencido->id, $idsEscolha);
         $this->assertContains($this->loteSemValidade->id, $idsEscolha);
-        $this->assertNotContains($this->loteVigente->id, $idsEscolha);
+        $this->assertContains($this->loteVigente->id, $idsEscolha);
 
+        // Mais estreita que o papel continua bloqueada.
+        $endEstreita = $this->endereco('P09-C01-L01', 9, 1, 1);
+        $estreita = $this->lote('LOT-ESTREITA', '50.0000', '2026-02-01', '2027-01-01', $endEstreita, '180', '277.7778');
+        EstoqueSaldo::query()->where('produto_id', $this->mp->id)->increment('qtde', 50);
         $larguraErrada = $this->withHeaders($this->h())->postJson(
             "/api/v1/ordens-producao/{$this->op->id}/requisitar",
             [
                 'material_id' => $this->matPapel->id,
                 'volumes' => [
-                    ['lote_id' => $this->loteVigente->id, 'qtde' => '120.0000'],
+                    ['lote_id' => $estreita->id, 'qtde' => '50.0000'],
                 ],
             ]
         );
@@ -1264,6 +1269,84 @@ class ProducaoColetaDirigidaTest extends TestCase
             ]
         );
         $ok->assertOk();
+        $papelOk = collect($ok->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertSame([], $papelOk['partida_prevista'] ?? []);
+    }
+
+    public function test_partida_grava_plano_devolve_volumes_e_bloqueia_fecho(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $item = PedidoItem::query()->findOrFail($this->op->pedido_item_id);
+        $item->especificacao = ['largura_cm' => '5.25', 'colunas' => 4];
+        $item->save();
+        $this->matPapel->qtde_planejada = '80.0000';
+        $this->matPapel->save();
+
+        $sai = $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/requisitar",
+            [
+                'material_id' => $this->matPapel->id,
+                'volumes' => [
+                    ['lote_id' => $this->loteVigente->id, 'qtde' => '120.0000'],
+                ],
+            ]
+        );
+        $sai->assertOk();
+        $papel = collect($sai->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertCount(1, $papel['partida_prevista'] ?? []);
+        $this->assertSame('pendente', $papel['partida_prevista'][0]['status']);
+        $this->assertSame($this->loteVigente->id, (int) $papel['partida_prevista'][0]['lote_pai_id']);
+        $this->assertSame('0.0000', (string) $this->loteVigente->fresh()->qtde);
+
+        $fechoBloqueado = $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/concluir",
+            [
+                'qtde_boa' => '1000.0000',
+                'qtde_refugo' => '0',
+                'materiais' => [
+                    [
+                        'material_id' => $this->matPapel->id,
+                        'qtde_retorno' => '0',
+                        'qtde_perda' => '0',
+                    ],
+                ],
+            ]
+        );
+        $fechoBloqueado->assertStatus(422);
+        $this->assertStringContainsString(
+            'partida',
+            strtolower((string) ($fechoBloqueado->json('errors.partida_prevista.0') ?? ''))
+        );
+
+        $devolver = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/devolver",
+            [
+                'material_id' => $this->matPapel->id,
+                'motivo' => 'Guardar refile e sobra da partida',
+                'volumes' => [
+                    ['lote_id' => $this->loteVigente->id, 'qtde' => '120.0000'],
+                ],
+            ]
+        );
+        $devolver->assertOk();
+        $papelDev = collect($devolver->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $plano = $papelDev['partida_prevista'][0] ?? null;
+        $this->assertSame('devolvido', $plano['status'] ?? null);
+        $gerados = $plano['volumes_gerados'] ?? [];
+        $this->assertGreaterThanOrEqual(1, count($gerados));
+
+        $idsNovos = collect($gerados)->pluck('lote_id')->all();
+        $novos = EstoqueLote::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->whereIn('id', $idsNovos)
+            ->get();
+        $this->assertSame(count($gerados), $novos->count());
+        $this->assertTrue($novos->every(fn (EstoqueLote $l) => bccomp((string) $l->qtde, '0', 4) > 0));
+        $this->assertSame('0.0000', (string) $this->loteVigente->fresh()->qtde);
+
+        $aDevolver = collect($papelDev['retirada']['volumes_a_devolver'] ?? [])->pluck('lote_id')->all();
+        $this->assertNotContains($this->loteVigente->id, $aDevolver);
     }
 
     public function test_payload_ui_com_qtde_soma_parcial_nao_redefine_necessidade(): void

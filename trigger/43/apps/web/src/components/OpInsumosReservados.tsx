@@ -904,8 +904,10 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
         }
         const sugeridos = volumesDaSugestao(m);
         const segueSugestao = !divergeDoSugerido(escolhidos, sugeridos);
+        const temPartida = escolhidos.some((linha) => volDo(m, linha.lote_id)?.faixa === 'partida');
         const motivo = (motivos[m.id] ?? '').trim();
-        if (!segueSugestao && motivo.length < 3) {
+        // Partida (L maior) é caminho legítimo — sem motivo FEFO.
+        if (!segueSugestao && !temPartida && motivo.length < 3) {
           setErr(`Informe o motivo da troca em ${opKitNome(m)}.`);
           return;
         }
@@ -925,7 +927,7 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
           material_id: m.id,
           qtde: soma.toFixed(4),
           volumes: vols,
-          ...(segueSugestao ? {} : { volumes_motivo: motivo }),
+          ...(segueSugestao || temPartida ? {} : { volumes_motivo: motivo }),
         });
         algumaAjuste = true;
         continue;
@@ -1192,6 +1194,13 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                         ) : null}
                       </div>
                     </div>
+                    {estado === 'ja_saiu' &&
+                    (m.partida_prevista ?? []).some((p) => p.status === 'pendente') ? (
+                      <p className="form-hint" style={{ marginTop: 0 }}>
+                        Partida pendente: ao devolver, o sistema gera as bobinas de refile/sobra
+                        (mesmo SKU) para guardar e etiquetar.
+                      </p>
+                    ) : null}
 
                     {m.escolher_produto && !volumeDireto && estado !== 'ja_saiu' ? (
                       <div className="form-group" style={{ marginBottom: '0.75rem' }}>
@@ -1603,7 +1612,8 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
 
                     {podeEditar &&
                     escolhidos.length > 0 &&
-                    divergeDoSugerido(escolhidos, volumesDaSugestao(m)) ? (
+                    divergeDoSugerido(escolhidos, volumesDaSugestao(m)) &&
+                    !escolhidos.some((linha) => volDo(m, linha.lote_id)?.faixa === 'partida') ? (
                       <div className="form-group" style={{ maxWidth: 480, marginTop: '0.35rem' }}>
                         <label>Motivo da troca</label>
                         <input

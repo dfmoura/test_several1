@@ -119,6 +119,7 @@ Norma UX do estudo 32: timeline do PED com códigos dos documentos — não dash
 - Motor: [`ADR_PRODUCAO_PED_OP_ESTOQUE.md`](ADR_PRODUCAO_PED_OP_ESTOQUE.md)  
 - Coleta dirigida: [`ADR_PRODUCAO_COLETA_DIRIGIDA.md`](ADR_PRODUCAO_COLETA_DIRIGIDA.md)  
 - Ficha da OP + kit: [`ADR_OP_FICHA_KIT.md`](ADR_OP_FICHA_KIT.md)  
+- Partida / refile de bobina na OP: [`ADR_PRODUCAO_PARTIDA_BOBINA.md`](ADR_PRODUCAO_PARTIDA_BOBINA.md)  
 - Revenda (A separar): [`ADR_ORC_ITEM_REVENDA.md`](ADR_ORC_ITEM_REVENDA.md)  
 
 - Sinal: [`ADR_ORC_ADIANTAMENTO_PIX.md`](ADR_ORC_ADIANTAMENTO_PIX.md)  

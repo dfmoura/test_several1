@@ -315,11 +315,18 @@ Não altera: entrada, saldo, MOV, Guardar por QR, isolamento `empresa_id`.
 
 ---
 
+## Emenda 2026-11-10 — partida na OP (volumes filhos)
+
+Baixa de chão continua **bobina inteira**. Quando a OP consome uma faixa mais estreita que o volume pai (refile), as sobras físicas nascem como **volumes novos do mesmo SKU** no `ENTRADA_SOBRA` (origem conhecida — não MP-RET), com L×C fechados por `VolumeGeometria`, local via Guardar e etiqueta `VOL:` (F3). Norma: [`ADR_PRODUCAO_PARTIDA_BOBINA.md`](ADR_PRODUCAO_PARTIDA_BOBINA.md). Sem segundo writer e sem explodir SKU por medida.
+
+---
+
 ## Rastreio no código / docs
 
 - Unidades: `ADR_UNIDADES_PRODUTO.md` · `ProdutoBobinaDimensoes` · `produtoBobinaDimensoesUi.ts`  
 - Lote: `ADR_ESTOQUE_LOTE_VALIDADE.md` · `ProdutoLotePolitica` · `estoque_lotes`  
 - Entrada: `ADR_ENTRADA_XML_ASSIST.md` · `EstoqueEntradaXmlService` · `NfeExactDimensoes` (F2.1)  
+- Partida OP: `ADR_PRODUCAO_PARTIDA_BOBINA.md`  
 - Regra Cursor: `.cursor/rules/produto-insumo-volume.mdc`  
 - Backlog: BL-094… (fases F1–F5)
 
