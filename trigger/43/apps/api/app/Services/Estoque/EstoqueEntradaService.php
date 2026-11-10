@@ -208,7 +208,8 @@ class EstoqueEntradaService
                     $qtdeInt,
                     $valorTotalItem,
                     isset($data['nf_data']) ? (string) $data['nf_data'] : now()->toDateString(),
-                    $this->nullIfEmpty($data['nf_numero'] ?? null)
+                    $this->nullIfEmpty($data['nf_numero'] ?? null),
+                    $oc->fornecedor_id !== null ? (int) $oc->fornecedor_id : null
                 );
 
                 foreach ($lotesLinha as $loteLinha) {
@@ -393,7 +394,8 @@ class EstoqueEntradaService
         string $qtdeInt,
         string $valorTotalItem,
         string $dataEntradaDefault,
-        ?string $nfNumero
+        ?string $nfNumero,
+        ?int $fornecedorId = null
     ): array {
         if (! $produto->controla_lote) {
             return [[
@@ -503,6 +505,7 @@ class EstoqueEntradaService
                     'largura_mm' => $geo['largura_mm'],
                     'comprimento_m' => $geo['comprimento_m'],
                     'endereco_id' => $linha['endereco_id'] ?? null,
+                    'fornecedor_id' => $fornecedorId,
                     'nf_numero' => $nfNumero,
                     'origem_tipo' => \App\Models\EstoqueLote::ORIGEM_ENTRADA_COMPRA,
                     // Cada linha de lotes[] = 1 bobina física com QR próprio (não fundir por nLote).

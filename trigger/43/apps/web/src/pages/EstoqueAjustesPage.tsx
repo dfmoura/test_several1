@@ -16,6 +16,7 @@ import {
   type EstoqueEndereco,
   type EstoqueLote,
   type EstoqueSaldo,
+  type Parceiro,
   type Produto,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -81,6 +82,10 @@ type VolumeLinha = {
   comprimento_m: string;
   data_entrada: string;
   data_validade: string;
+  /** Local da linha — herda o padrão do AJU até override. */
+  endereco_id: number | '';
+  /** Fornecedor opcional (atribuído) — herda o padrão até override. */
+  fornecedor_id: number | '';
 };
 
 type VolumeBaixaLinha = {
@@ -109,7 +114,10 @@ function volumeEmBranco(v: VolumeLinha): boolean {
 type ModoContagem = 'manual' | 'qr';
 type ModoVolume = 'entrada' | 'baixa';
 
-function emptyVolume(): VolumeLinha {
+function emptyVolume(
+  enderecoId: number | '' = '',
+  fornecedorId: number | '' = '',
+): VolumeLinha {
   return {
     codigo: '',
     qtde: '',
@@ -117,7 +125,29 @@ function emptyVolume(): VolumeLinha {
     comprimento_m: '',
     data_entrada: '',
     data_validade: '',
+    endereco_id: enderecoId,
+    fornecedor_id: fornecedorId,
   };
+}
+
+function rotuloEndereco(
+  id: number | null | undefined,
+  enderecos: EstoqueEndereco[],
+): string {
+  if (id == null) return '—';
+  const e = enderecos.find((x) => x.id === id);
+  if (!e) return `#${id}`;
+  return e.nome?.trim() ? `${e.codigo} — ${e.nome.trim()}` : e.codigo;
+}
+
+function rotuloFornecedor(
+  id: number | null | undefined,
+  fornecedores: Parceiro[],
+): string {
+  if (id == null) return '—';
+  const f = fornecedores.find((x) => x.id === id);
+  if (!f) return `#${id}`;
+  return f.nome_fantasia?.trim() || f.razao_social?.trim() || f.codigo;
 }
 
 function parseQty(v: string): number {
@@ -248,7 +278,15 @@ function QtyAjuste({ qtde, ajuste }: { qtde: string; ajuste: EstoqueAjuste }) {
 }
 
 /** Qtde física + L×C dos volumes — leitura/conferência; sem alterar saldo. */
-function AjusteVolumesPainel({ a }: { a: EstoqueAjuste }) {
+function AjusteVolumesPainel({
+  a,
+  enderecos,
+  fornecedores,
+}: {
+  a: EstoqueAjuste;
+  enderecos: EstoqueEndereco[];
+  fornecedores: Parceiro[];
+}) {
   const payload = a.lote_payload;
   const evidencia = a.contagem_evidencia;
   const temPayload = !!payload && payload.length > 0;
@@ -269,6 +307,8 @@ function AjusteVolumesPainel({ a }: { a: EstoqueAjuste }) {
                 <tr>
                   <th>Código</th>
                   <th>L × C</th>
+                  <th>Local</th>
+                  <th>Fornecedor</th>
                   <th>Qtde do volume</th>
                 </tr>
               </thead>
@@ -280,6 +320,15 @@ function AjusteVolumesPainel({ a }: { a: EstoqueAjuste }) {
                       {v.largura_mm || v.comprimento_m
                         ? `${v.largura_mm ?? '—'} mm × ${v.comprimento_m ?? '—'} m`
                         : '—'}
+                    </td>
+                    <td className="muted">
+                      {rotuloEndereco(v.endereco_id ?? a.endereco_id ?? null, enderecos)}
+                    </td>
+                    <td className="muted">
+                      {rotuloFornecedor(
+                        v.fornecedor_id ?? a.fornecedor_id ?? null,
+                        fornecedores,
+                      )}
                     </td>
                     <td className="num">
                       {formatQty(v.qtde)} {a.unidade}
@@ -400,6 +449,8 @@ export function EstoqueAjustesPage() {
   const [modoVolume, setModoVolume] = useState<ModoVolume>('entrada');
   const [enderecos, setEnderecos] = useState<EstoqueEndereco[]>([]);
   const [enderecoId, setEnderecoId] = useState<number | ''>('');
+  const [fornecedores, setFornecedores] = useState<Parceiro[]>([]);
+  const [fornecedorId, setFornecedorId] = useState<number | ''>('');
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [causaAprovar, setCausaAprovar] = useState('');
@@ -548,13 +599,15 @@ export function EstoqueAjustesPage() {
       if (de) qs.set('de', de);
       if (ate) qs.set('ate', ate);
       const suffix = qs.toString() ? `?${qs.toString()}` : '';
-      const [aj, ends] = await Promise.all([
+      const [aj, ends, fors] = await Promise.all([
         api.get<{ data: EstoqueAjuste[]; meta: EstoqueAjusteMeta }>(`/estoque/ajustes${suffix}`),
         api.get<{ data: EstoqueEndereco[] }>('/estoque/enderecos'),
+        api.get<{ data: Parceiro[] }>('/parceiros?papel=fornecedor'),
       ]);
       setAjustes(aj.data);
       setMeta(aj.meta);
       setEnderecos((ends.data ?? []).filter((e) => e.ativo !== false));
+      setFornecedores((fors.data ?? []).filter((p) => p.papel_fornecedor !== false));
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -653,6 +706,8 @@ export function EstoqueAjustesPage() {
           comprimento_m: origem.comprimento_m ?? '',
           data_entrada: origem.data_entrada,
           data_validade: origem.data_validade,
+          endereco_id: origem.endereco_id ?? enderecoId,
+          fornecedor_id: fornecedorId,
         };
         if (prev.length === 1 && volumeEmBranco(prev[0])) return [linha];
         return [...prev, linha];
@@ -729,6 +784,14 @@ export function EstoqueAjustesPage() {
         setError('Inclua ao menos 1 volume com quantidade (padrão do recebimento).');
         return;
       }
+      for (const v of linhas) {
+        if (!v.endereco_id && !enderecoId) {
+          setError(
+            `Volume ${v.codigo.trim() || 'novo'} sem local — informe o local padrão ou o da linha.`,
+          );
+          return;
+        }
+      }
     }
 
     if (usaVolumesBaixa) {
@@ -760,6 +823,7 @@ export function EstoqueAjustesPage() {
             : qtdeContada;
 
       const localId = usaQr && qr.endereco ? qr.endereco.id : Number(enderecoId);
+      const fornId = fornecedorId === '' ? null : Number(fornecedorId);
 
       const payload: Record<string, unknown> = {
         produto_id: Number(produto!.id),
@@ -770,6 +834,7 @@ export function EstoqueAjustesPage() {
         observacao: observacao || null,
         origem: 'CONTAGEM_AVULSA',
         endereco_id: localId,
+        fornecedor_id: fornId,
       };
 
       if (usaVolumesEntrada) {
@@ -782,7 +847,8 @@ export function EstoqueAjustesPage() {
             comprimento_m: v.comprimento_m.trim() || undefined,
             data_entrada: v.data_entrada || undefined,
             data_validade: v.data_validade || undefined,
-            endereco_id: localId,
+            endereco_id: v.endereco_id || localId,
+            fornecedor_id: v.fornecedor_id || fornId || undefined,
           }));
       } else if (usaVolumesBaixa) {
         payload.lote_payload = baixas
@@ -805,12 +871,13 @@ export function EstoqueAjustesPage() {
       setQtdeSistema('0.0000');
       setComplemento('');
       setObservacao('');
-      setVolumes([emptyVolume()]);
+      setVolumes([emptyVolume('', '')]);
       setBaixas([]);
       setCodigosOcupados([]);
       setModoVolume('entrada');
       setChecklist(false);
       setEnderecoId('');
+      setFornecedorId('');
       qr.limparTudo();
       setMsg('Solicitação de ajuste registrada.');
       await load();
@@ -1000,7 +1067,7 @@ export function EstoqueAjustesPage() {
                   value={produto}
                   onChange={(p) => {
                     setProduto(p);
-                    setVolumes([emptyVolume()]);
+                    setVolumes([emptyVolume(enderecoId, fornecedorId)]);
                     if (!p) {
                       setQtdeContada('');
                       setQtdeSistema('0.0000');
@@ -1028,7 +1095,7 @@ export function EstoqueAjustesPage() {
                     value={motivo}
                     onChange={(e) => {
                       setMotivo(e.target.value);
-                      setVolumes([emptyVolume()]);
+                      setVolumes([emptyVolume(enderecoId, fornecedorId)]);
                       if (e.target.value === 'A03') {
                         setModoVolume('entrada');
                         qr.limparTudo();
@@ -1056,14 +1123,24 @@ export function EstoqueAjustesPage() {
                 )}
                 {!usaQr && (
                   <div className="form-group">
-                    <label htmlFor="aju_local">Local de estoque</label>
+                    <label htmlFor="aju_local">Local padrão</label>
                     <select
                       id="aju_local"
                       required
                       value={enderecoId === '' ? '' : String(enderecoId)}
-                      onChange={(e) =>
-                        setEnderecoId(e.target.value ? Number(e.target.value) : '')
-                      }
+                      onChange={(e) => {
+                        const next: number | '' = e.target.value
+                          ? Number(e.target.value)
+                          : '';
+                        setVolumes((prev) =>
+                          prev.map((v) =>
+                            v.endereco_id === '' || v.endereco_id === enderecoId
+                              ? { ...v, endereco_id: next }
+                              : v,
+                          ),
+                        );
+                        setEnderecoId(next);
+                      }}
                     >
                       <option value="">Selecione o local…</option>
                       {enderecos.map((e) => (
@@ -1073,6 +1150,9 @@ export function EstoqueAjustesPage() {
                         </option>
                       ))}
                     </select>
+                    <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
+                      Aplica-se aos volumes abaixo; cada linha pode ter local próprio.
+                    </p>
                     {enderecos.length === 0 && (
                       <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
                         Nenhum local ativo.{' '}
@@ -1080,6 +1160,40 @@ export function EstoqueAjustesPage() {
                         <Link to="/estoque/guardar">Guardar</Link>.
                       </p>
                     )}
+                  </div>
+                )}
+                {!usaQr && (usaVolumesEntrada || !produtoControlaLote) && (
+                  <div className="form-group">
+                    <label htmlFor="aju_forn">Fornecedor (opcional)</label>
+                    <select
+                      id="aju_forn"
+                      value={fornecedorId === '' ? '' : String(fornecedorId)}
+                      onChange={(e) => {
+                        const next: number | '' = e.target.value
+                          ? Number(e.target.value)
+                          : '';
+                        setVolumes((prev) =>
+                          prev.map((v) =>
+                            v.fornecedor_id === '' || v.fornecedor_id === fornecedorId
+                              ? { ...v, fornecedor_id: next }
+                              : v,
+                          ),
+                        );
+                        setFornecedorId(next);
+                      }}
+                    >
+                      <option value="">Sem fornecedor atribuído</option>
+                      {fornecedores.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.codigo}
+                          {f.razao_social?.trim() ? ` — ${f.razao_social.trim()}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
+                      Atribuição operacional (sem NF). Na entrada por OC o fornecedor já vem
+                      documentado.
+                    </p>
                   </div>
                 )}
                 <div className="form-group">
@@ -1235,6 +1349,8 @@ export function EstoqueAjustesPage() {
                               {selectedProduto?.controla_validade && (
                                 <th className="col-date">Validade</th>
                               )}
+                              <th className="col-local">Local</th>
+                              <th className="col-forn">Fornecedor</th>
                               <th className="col-acoes" />
                             </tr>
                           </thead>
@@ -1315,6 +1431,50 @@ export function EstoqueAjustesPage() {
                                     />
                                   </td>
                                 )}
+                                <td className="col-local">
+                                  <select
+                                    required
+                                    value={v.endereco_id === '' ? '' : String(v.endereco_id)}
+                                    onChange={(e) =>
+                                      patchVolume(idx, {
+                                        endereco_id: e.target.value
+                                          ? Number(e.target.value)
+                                          : '',
+                                      })
+                                    }
+                                    aria-label={`Local do volume ${idx + 1}`}
+                                  >
+                                    <option value="">Local…</option>
+                                    {enderecos.map((e) => (
+                                      <option key={e.id} value={e.id}>
+                                        {e.codigo}
+                                        {e.nome?.trim() ? ` — ${e.nome.trim()}` : ''}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td className="col-forn">
+                                  <select
+                                    value={
+                                      v.fornecedor_id === '' ? '' : String(v.fornecedor_id)
+                                    }
+                                    onChange={(e) =>
+                                      patchVolume(idx, {
+                                        fornecedor_id: e.target.value
+                                          ? Number(e.target.value)
+                                          : '',
+                                      })
+                                    }
+                                    aria-label={`Fornecedor do volume ${idx + 1}`}
+                                  >
+                                    <option value="">—</option>
+                                    {fornecedores.map((f) => (
+                                      <option key={f.id} value={f.id}>
+                                        {f.codigo}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
                                 <td className="col-acoes">
                                   <button
                                     type="button"
@@ -1346,7 +1506,12 @@ export function EstoqueAjustesPage() {
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
-                          onClick={() => setVolumes((prev) => [...prev, emptyVolume()])}
+                          onClick={() =>
+                            setVolumes((prev) => [
+                              ...prev,
+                              emptyVolume(enderecoId, fornecedorId),
+                            ])
+                          }
                         >
                           + Volume
                         </button>
@@ -1381,6 +1546,7 @@ export function EstoqueAjustesPage() {
                               <tr>
                                 <th className="col-lote">Volume</th>
                                 {mostraLxC && <th className="col-dim">Dimensão</th>}
+                                <th className="col-local">Local</th>
                                 <th className="col-num">
                                   Disponível{nomeSaldo ? ` (${nomeSaldo})` : ''}
                                 </th>
@@ -1400,6 +1566,9 @@ export function EstoqueAjustesPage() {
                                         : '—'}
                                     </td>
                                   )}
+                                  <td className="col-local muted">
+                                    {rotuloEndereco(b.endereco_id, enderecos)}
+                                  </td>
                                   <td className="col-num">
                                     {formatQty(b.qtde_disponivel)}
                                     <EcoComercial block qtde={b.qtde_disponivel} {...ecoProduto} />
@@ -1536,7 +1705,11 @@ export function EstoqueAjustesPage() {
                     : ''}
                 </p>
 
-                <AjusteVolumesPainel a={selected} />
+                <AjusteVolumesPainel
+                  a={selected}
+                  enderecos={enderecos}
+                  fornecedores={fornecedores}
+                />
 
                 {solicitanteSouEu && (
                   <div className="alert alert-warning" style={{ marginBottom: '0.75rem' }}>
@@ -1687,7 +1860,11 @@ export function EstoqueAjustesPage() {
                   : ''}
               </p>
 
-              <AjusteVolumesPainel a={selected} />
+              <AjusteVolumesPainel
+                a={selected}
+                enderecos={enderecos}
+                fornecedores={fornecedores}
+              />
 
               <div className="form-actions">
                 <button type="button" className="btn btn-secondary" onClick={closeDetalhe}>

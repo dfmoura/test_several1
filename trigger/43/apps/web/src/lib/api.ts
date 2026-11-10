@@ -1866,6 +1866,13 @@ export type EstoqueLote = {
   comprimento_m?: string | null;
   endereco_id?: number | null;
   endereco?: { id: number; codigo: string } | null;
+  fornecedor_id?: number | null;
+  fornecedor?: {
+    id: number;
+    codigo: string;
+    razao_social?: string | null;
+    nome_fantasia?: string | null;
+  } | null;
   qr_payload?: string | null;
   etiqueta_url?: string | null;
 };
@@ -2033,6 +2040,13 @@ export type EstoqueAjuste = {
   inventario_id?: number | null;
   endereco_id?: number | null;
   endereco?: { id: number; codigo: string; nome?: string | null } | null;
+  fornecedor_id?: number | null;
+  fornecedor?: {
+    id: number;
+    codigo: string;
+    razao_social?: string | null;
+    nome_fantasia?: string | null;
+  } | null;
   lote_id?: number | null;
   lote_codigo?: string | null;
   lote_data_entrada?: string | null;
@@ -2043,6 +2057,7 @@ export type EstoqueAjuste = {
     codigo?: string;
     qtde: string;
     endereco_id?: number | null;
+    fornecedor_id?: number | null;
     largura_mm?: string | null;
     comprimento_m?: string | null;
     data_entrada?: string | null;

@@ -10,6 +10,7 @@ use App\Models\EstoqueLote;
 use App\Models\EstoqueMovimento;
 use App\Models\EstoqueMovimentoItem;
 use App\Models\EstoqueSaldo;
+use App\Models\Parceiro;
 use App\Models\Produto;
 use App\Models\User;
 use App\Services\Codigo\CodigoGenerator;
@@ -47,6 +48,7 @@ class EstoqueAjusteService
             ->with([
                 'produto:id,codigo,descricao_fiscal,familia,unidade_interna,unidade_comercial,fator_conversao',
                 'endereco:id,codigo,nome',
+                'fornecedor:id,codigo,razao_social,nome_fantasia',
                 'solicitadoPorUser:id,name',
                 'aprovadoPorUser:id,name',
                 'movimento:id,codigo,tipo',
@@ -143,13 +145,16 @@ class EstoqueAjusteService
 
         $meta = $this->alcadaCalc->calcular($empresa, $produto, $qtdeSistema, $diferenca, $origem);
 
+        $fornecedorPadrao = $this->resolverFornecedorIdAjuste($empresa, $data);
+
         $lotePayload = $this->normalizarLotePayload(
             $empresa,
             $produto,
             isset($data['lote_payload']) && is_array($data['lote_payload']) ? $data['lote_payload'] : null,
             $motivo['codigo'],
             $origem,
-            $diferenca
+            $diferenca,
+            $fornecedorPadrao
         );
 
         $usaPayload = $lotePayload !== null && $lotePayload !== [];
@@ -186,7 +191,8 @@ class EstoqueAjusteService
             $lotePayload,
             $usaPayload,
             $contagemEvidencia,
-            $enderecoId
+            $enderecoId,
+            $fornecedorPadrao
         ) {
             if (is_array($lotePayload) && $this->payloadTemVolumeNovo($lotePayload)) {
                 $fila = $this->travarFilaVolume($empresa, $produto);
@@ -201,6 +207,7 @@ class EstoqueAjusteService
                 'codigo' => $codigo,
                 'produto_id' => $produto->id,
                 'endereco_id' => $enderecoId,
+                'fornecedor_id' => $fornecedorPadrao,
                 'lote_id' => $usaPayload ? null : (isset($data['lote_id']) ? (int) $data['lote_id'] : null),
                 'lote_codigo' => $usaPayload ? null : $this->nullIfEmpty($data['lote_codigo'] ?? null),
                 'lote_data_entrada' => $usaPayload ? null : ($data['lote_data_entrada'] ?? null),
@@ -262,13 +269,16 @@ class EstoqueAjusteService
 
         $meta = $this->alcadaCalc->calcular($empresa, $produto, $qtdeSistema, $diferenca, $origem);
 
+        $fornecedorPadrao = $this->resolverFornecedorIdAjuste($empresa, $data);
+
         $lotePayload = $this->normalizarLotePayload(
             $empresa,
             $produto,
             isset($data['lote_payload']) && is_array($data['lote_payload']) ? $data['lote_payload'] : null,
             $motivo['codigo'],
             $origem,
-            $diferenca
+            $diferenca,
+            $fornecedorPadrao
         );
 
         $enderecoId = $this->resolverEnderecoIdAjuste(
@@ -291,7 +301,8 @@ class EstoqueAjusteService
             $diferenca,
             $meta,
             $lotePayload,
-            $enderecoId
+            $enderecoId,
+            $fornecedorPadrao
         ) {
             if (is_array($lotePayload) && $this->payloadTemVolumeNovo($lotePayload)) {
                 $fila = $this->travarFilaVolume($empresa, $produto);
@@ -306,6 +317,7 @@ class EstoqueAjusteService
                 'codigo' => $codigo,
                 'produto_id' => $produto->id,
                 'endereco_id' => $enderecoId,
+                'fornecedor_id' => $fornecedorPadrao,
                 'inventario_item_id' => $item->id,
                 'origem' => $origem,
                 'motivo_codigo' => $motivo['codigo'],
@@ -430,7 +442,7 @@ class EstoqueAjusteService
                 'codigo' => $codigoMov,
                 'tipo' => EstoqueMovimento::TIPO_AJUSTE,
                 'ordem_compra_id' => null,
-                'fornecedor_id' => null,
+                'fornecedor_id' => $this->resolverFornecedorIdMovimento($ajuste, is_array($payload) ? $payload : null),
                 'nf_chave' => null,
                 'nf_numero' => null,
                 'nf_data' => null,
@@ -607,6 +619,7 @@ class EstoqueAjusteService
         $ajuste->loadMissing([
             'produto:id,codigo,descricao_fiscal,familia,unidade_interna,unidade_comercial,fator_conversao',
             'endereco:id,codigo,nome',
+            'fornecedor:id,codigo,razao_social,nome_fantasia',
             'solicitadoPorUser:id,name',
             'aprovadoPorUser:id,name',
             'movimento:id,codigo,tipo',
@@ -640,6 +653,15 @@ class EstoqueAjusteService
                     'id' => (int) $ajuste->endereco->id,
                     'codigo' => (string) $ajuste->endereco->codigo,
                     'nome' => $ajuste->endereco->nome,
+                ]
+                : null,
+            'fornecedor_id' => $ajuste->fornecedor_id !== null ? (int) $ajuste->fornecedor_id : null,
+            'fornecedor' => $ajuste->fornecedor
+                ? [
+                    'id' => (int) $ajuste->fornecedor->id,
+                    'codigo' => (string) $ajuste->fornecedor->codigo,
+                    'razao_social' => $ajuste->fornecedor->razao_social,
+                    'nome_fantasia' => $ajuste->fornecedor->nome_fantasia,
                 ]
                 : null,
             'inventario_item_id' => $ajuste->inventario_item_id,
@@ -1087,7 +1109,8 @@ class EstoqueAjusteService
         ?array $raw,
         string $motivo,
         string $origem,
-        string $diferenca
+        string $diferenca,
+        ?int $fornecedorPadrao = null
     ): ?array {
         if ($raw === null || $raw === []) {
             return null;
@@ -1111,7 +1134,15 @@ class EstoqueAjusteService
         }
 
         return $positivo
-            ? $this->normalizarLotePayloadEntrada($empresa, $produto, $raw, $motivo, $origem, $qtdeAbs)
+            ? $this->normalizarLotePayloadEntrada(
+                $empresa,
+                $produto,
+                $raw,
+                $motivo,
+                $origem,
+                $qtdeAbs,
+                $fornecedorPadrao
+            )
             : $this->normalizarLotePayloadBaixa($empresa, $produto, $raw, $qtdeAbs);
     }
 
@@ -1125,7 +1156,8 @@ class EstoqueAjusteService
         array $raw,
         string $motivo,
         string $origem,
-        string $qtdeAbs
+        string $qtdeAbs,
+        ?int $fornecedorPadrao = null
     ): array {
         $origemTipo = ($motivo === 'A03' || $origem === EstoqueAjuste::ORIGEM_VIRADA)
             ? EstoqueLote::ORIGEM_VIRADA
@@ -1200,6 +1232,16 @@ class EstoqueAjusteService
             }
             $this->assertEnderecoAtivo($empresa, $enderecoId, "lote_payload.{$idx}.endereco_id");
 
+            $fornecedorId = (int) ($linha['fornecedor_id'] ?? 0);
+            if ($fornecedorId <= 0 && $fornecedorPadrao !== null && $fornecedorPadrao > 0) {
+                $fornecedorId = $fornecedorPadrao;
+            }
+            if ($fornecedorId > 0) {
+                $this->assertFornecedorAtivo($empresa, $fornecedorId, "lote_payload.{$idx}.fornecedor_id");
+            } else {
+                $fornecedorId = 0;
+            }
+
             $linhas[] = [
                 'codigo' => mb_substr($codigo, 0, 60),
                 'qtde' => $qtde,
@@ -1209,6 +1251,7 @@ class EstoqueAjusteService
                 'largura_mm' => $largura,
                 'comprimento_m' => $comprimento,
                 'endereco_id' => $enderecoId,
+                'fornecedor_id' => $fornecedorId > 0 ? $fornecedorId : null,
                 'origem_tipo' => $origemTipo,
                 'volume_novo' => true,
             ];
@@ -1348,6 +1391,7 @@ class EstoqueAjusteService
     private function loteRefFromAjuste(EstoqueAjuste $ajuste): ?array
     {
         $enderecoId = $ajuste->endereco_id !== null ? (int) $ajuste->endereco_id : null;
+        $fornecedorId = $ajuste->fornecedor_id !== null ? (int) $ajuste->fornecedor_id : null;
 
         if ($ajuste->lote_id || $ajuste->lote_codigo || $ajuste->lote_data_entrada || $ajuste->lote_data_validade) {
             return [
@@ -1357,6 +1401,7 @@ class EstoqueAjusteService
                 'data_fabricacao' => optional($ajuste->lote_data_fabricacao)?->format('Y-m-d'),
                 'data_validade' => optional($ajuste->lote_data_validade)?->format('Y-m-d'),
                 'endereco_id' => $enderecoId,
+                'fornecedor_id' => $fornecedorId,
                 'origem_tipo' => EstoqueLote::ORIGEM_AJUSTE,
                 'origem_id' => $ajuste->id,
             ];
@@ -1364,6 +1409,7 @@ class EstoqueAjusteService
 
         return [
             'endereco_id' => $enderecoId,
+            'fornecedor_id' => $fornecedorId,
             'origem_tipo' => EstoqueLote::ORIGEM_AJUSTE,
             'origem_id' => $ajuste->id,
         ];
@@ -1437,6 +1483,71 @@ class EstoqueAjusteService
         }
 
         return $end;
+    }
+
+    /**
+     * Fornecedor opcional do AJU (default / SKU sem volume). Não inventa — só valida se informado.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function resolverFornecedorIdAjuste(Empresa $empresa, array $data): ?int
+    {
+        $id = (int) ($data['fornecedor_id'] ?? 0);
+        if ($id <= 0) {
+            return null;
+        }
+
+        $this->assertFornecedorAtivo($empresa, $id, 'fornecedor_id');
+
+        return $id;
+    }
+
+    /**
+     * MOV AJUSTE: um fornecedor só se for unívoco (cabeçalho ou todas as linhas iguais).
+     * Volumes mistos → null no MOV; a verdade fica em estoque_lotes.fornecedor_id.
+     *
+     * @param  list<array<string, mixed>>|null  $payload
+     */
+    private function resolverFornecedorIdMovimento(EstoqueAjuste $ajuste, ?array $payload): ?int
+    {
+        $ids = [];
+        if (is_array($payload)) {
+            foreach ($payload as $linha) {
+                if (! is_array($linha) || ! $this->linhaVolumeNovo($linha)) {
+                    continue;
+                }
+                $fid = (int) ($linha['fornecedor_id'] ?? 0);
+                if ($fid > 0) {
+                    $ids[$fid] = true;
+                }
+            }
+        }
+
+        if (count($ids) === 1) {
+            return (int) array_key_first($ids);
+        }
+        if (count($ids) > 1) {
+            return null;
+        }
+
+        return $ajuste->fornecedor_id !== null ? (int) $ajuste->fornecedor_id : null;
+    }
+
+    private function assertFornecedorAtivo(Empresa $empresa, int $fornecedorId, string $field): Parceiro
+    {
+        $parceiro = Parceiro::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('papel_fornecedor', true)
+            ->whereKey($fornecedorId)
+            ->first();
+
+        if ($parceiro === null) {
+            throw ValidationException::withMessages([
+                $field => ['Fornecedor inválido nesta empresa (papel fornecedor).'],
+            ]);
+        }
+
+        return $parceiro;
     }
 
     /**

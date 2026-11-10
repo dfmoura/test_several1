@@ -21,10 +21,10 @@ Estudo 32 §6.2: lote em substrato/tinta “permite rastrear reclamação de cli
 ```
 Cliente / PED / OP / lote / NF
   → MOV SAIDA_PRODUCAO (itens + lote_id + qtde)
-  → estoque_lotes (código, entrada, validade)
+  → estoque_lotes (código, entrada, validade, fornecedor_id opcional)
   → origens do lote até o instante da saída:
-       ENTRADA_COMPRA → fornecedor + NF + OC + nfe_entrada
-       AJUSTE/VIRADA/BACKFILL → origem honesta, sem inventar fornecedor
+       ENTRADA_COMPRA → fornecedor DOCUMENTADO + NF + OC + nfe_entrada
+       AJUSTE/VIRADA/BACKFILL → origem honesta; fornecedor só se ATRIBUIDO pelo humano
 ```
 
 Chave do acabado = **OP / PED** (não lote de PA — `ADR_ESTOQUE_LOTE_VALIDADE` deixa PA sem lote). O produto no cliente continua amarrado ao pedido.
@@ -61,8 +61,16 @@ Relatório imprimível (retrato A4, padrão das fichas) para CQ/SAC/compras **le
 1. Isolamento EMP: lote/OP/NF nunca cruzam `empresa_id`.  
 2. Saldo e CM só via `EstoqueSaldoWriter`.  
 3. Não apagar MOV/lote com movimento.  
-4. Origem de fornecedor só de `ENTRADA_COMPRA` (e espelho `nfe_entrada` se houver).  
+4. `rastreavel_fornecedor = true` só com origem `ENTRADA_COMPRA` (e espelho `nfe_entrada` se houver).  
 5. Permissão: `producao.ler` **ou** `estoque.ler`.
+
+### Emenda 2026-11-10 — fornecedor atribuído no volume
+
+- `estoque_lotes.fornecedor_id` (nullable) é a fonte física do vínculo por bobina/nLote.  
+- **DOCUMENTADO:** preenchido na entrada OC/`receber` a partir de `OC.fornecedor_id` (espelha o MOV).  
+- **ATRIBUIDO:** preenchido no AJU/VIRADA quando o humano declara (cabeçalho default e/ou `lote_payload.*.fornecedor_id`). Sem declaração → permanece nulo.  
+- Genealogia mostra o fornecedor atribuído com `fornecedor_atribuicao=ATRIBUIDO` e **não** liga `rastreavel_fornecedor`. Não inventar NF/OC.  
+- Proibido amarrar fornecedor no SKU (`produtos`) ou no saldo — o de-para `produto_fornecedor_codigos` continua N×N.
 
 ## Fora de escopo
 
@@ -76,9 +84,10 @@ Relatório imprimível (retrato A4, padrão das fichas) para CQ/SAC/compras **le
 ## Proibido
 
 1. Segundo cadastro de “insumos da OP” paralelo ao MOV.  
-2. Inventar fornecedor/NF em SKU sem lote ou lote de abertura/backfill.  
+2. Inventar fornecedor/NF em SKU sem lote ou lote de abertura/backfill (sem declaração humana no AJU).  
 3. Atribuir NF posterior ao mesmo código de lote.  
 4. Abrir RMA, DEV- ou NF de devolução nesta fatia.  
-5. Mostrar preço/margem na ficha de rastreio.
+5. Mostrar preço/margem na ficha de rastreio.  
+6. Tratar fornecedor atribuído no AJU como documental (`rastreavel_fornecedor`).
 
 Alterar esta ADR exige alinhamento explícito ao estudo 32.

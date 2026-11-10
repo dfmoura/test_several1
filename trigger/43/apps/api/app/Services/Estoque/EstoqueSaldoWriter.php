@@ -358,6 +358,9 @@ class EstoqueSaldoWriter
         if (! empty($ref['endereco_id']) && $lote->endereco_id === null) {
             $lote->endereco_id = $ref['endereco_id'];
         }
+        if (! empty($ref['fornecedor_id']) && $lote->fornecedor_id === null) {
+            $lote->fornecedor_id = $ref['fornecedor_id'];
+        }
         if ($lote->qr_token === null || $lote->qr_token === '') {
             $lote->qr_token = bin2hex(random_bytes(16));
         }
@@ -723,6 +726,9 @@ class EstoqueSaldoWriter
             'largura_mm' => $largura,
             'comprimento_m' => $comprimento,
             'endereco_id' => isset($loteRef['endereco_id']) ? (int) $loteRef['endereco_id'] : null,
+            'fornecedor_id' => isset($loteRef['fornecedor_id']) && (int) $loteRef['fornecedor_id'] > 0
+                ? (int) $loteRef['fornecedor_id']
+                : null,
             'origem_tipo' => (string) ($loteRef['origem_tipo'] ?? match ($contexto) {
                 'ajuste' => EstoqueLote::ORIGEM_AJUSTE,
                 'backfill' => EstoqueLote::ORIGEM_BACKFILL,
@@ -779,6 +785,7 @@ class EstoqueSaldoWriter
             'largura_mm' => $ref['largura_mm'] ?? null,
             'comprimento_m' => $ref['comprimento_m'] ?? null,
             'endereco_id' => $ref['endereco_id'] ?? null,
+            'fornecedor_id' => $ref['fornecedor_id'] ?? null,
             'qr_token' => bin2hex(random_bytes(16)),
         ]);
     }

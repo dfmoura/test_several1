@@ -38,6 +38,7 @@ class EstoqueLote extends Model
         'largura_mm',
         'comprimento_m',
         'endereco_id',
+        'fornecedor_id',
         'qr_token',
     ];
 
@@ -66,6 +67,11 @@ class EstoqueLote extends Model
     public function endereco(): BelongsTo
     {
         return $this->belongsTo(EstoqueEndereco::class, 'endereco_id');
+    }
+
+    public function fornecedor(): BelongsTo
+    {
+        return $this->belongsTo(Parceiro::class, 'fornecedor_id');
     }
 
     public function movimentoItens(): HasMany

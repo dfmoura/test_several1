@@ -2667,6 +2667,26 @@ table.data-table.ordens-producao-table td.op-lista-maquina {
   white-space: nowrap;
 }
 
+.oc-volumes-table .col-local,
+.oc-volumes-table .col-forn {
+  width: 1%;
+  min-width: 8.5rem;
+  white-space: nowrap;
+}
+
+.oc-volumes-table .col-local select,
+.oc-volumes-table .col-forn select {
+  width: 100%;
+  min-width: 8rem;
+  max-width: 12rem;
+  box-sizing: border-box;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text);
+}
+
 .oc-volumes-table .col-acoes {
   width: 1%;
   white-space: nowrap;

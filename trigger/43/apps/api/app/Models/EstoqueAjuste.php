@@ -71,6 +71,7 @@ class EstoqueAjuste extends Model
         'codigo',
         'produto_id',
         'endereco_id',
+        'fornecedor_id',
         'lote_id',
         'lote_codigo',
         'lote_data_entrada',
@@ -134,6 +135,11 @@ class EstoqueAjuste extends Model
     public function endereco(): BelongsTo
     {
         return $this->belongsTo(EstoqueEndereco::class, 'endereco_id');
+    }
+
+    public function fornecedor(): BelongsTo
+    {
+        return $this->belongsTo(Parceiro::class, 'fornecedor_id');
     }
 
     public function lote(): BelongsTo

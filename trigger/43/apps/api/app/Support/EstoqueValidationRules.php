@@ -60,6 +60,8 @@ final class EstoqueValidationRules
             'causa_raiz' => ['nullable', 'string', 'max:2000'],
             // Local físico (estoque_enderecos) — obrigatório no serviço (SKU sem volume / QR / fallback).
             'endereco_id' => ['nullable', 'integer', 'exists:estoque_enderecos,id'],
+            // Fornecedor opcional (atribuído): default do AJU; por volume em lote_payload.*.fornecedor_id.
+            'fornecedor_id' => ['nullable', 'integer', 'exists:parceiros,id'],
             'lote_id' => ['nullable', 'integer', 'exists:estoque_lotes,id'],
             'lote_codigo' => ['nullable', 'string', 'max:60'],
             'lote_data_entrada' => ['nullable', 'date'],
@@ -71,6 +73,7 @@ final class EstoqueValidationRules
             'lote_payload.*.codigo' => ['nullable', 'string', 'max:60'],
             'lote_payload.*.qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)),
             'lote_payload.*.endereco_id' => ['nullable', 'integer', 'exists:estoque_enderecos,id'],
+            'lote_payload.*.fornecedor_id' => ['nullable', 'integer', 'exists:parceiros,id'],
             'lote_payload.*.largura_mm' => array_merge(
                 ['nullable'],
                 PadraoDecimal::rules(PadraoDecimal::SCALE_DIM, false)

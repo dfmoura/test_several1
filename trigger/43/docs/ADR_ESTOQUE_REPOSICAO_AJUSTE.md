@@ -41,6 +41,8 @@ Contagem → AJU- PENDENTE (motivo A01–A11 + checklist + local)
 - Motivos canônicos do estudo 32; A04/A06/A07/A09 exigem complemento.
 - Sem inventário rotativo completo / recontagem cega nesta fatia (origem `CONTAGEM_AVULSA` pronta; INV_* reservados).
 - **Local obrigatório (emenda 2026-10-30):** todo MOV `AJUSTE` exige local físico (`estoque_enderecos` / `endereco_id`) amarrado no binding que o Writer grava — volumes novos (`lote_payload.*.endereco_id`), baixa com volume já localizado (ou `endereco_id` na linha), SKU sem volume (`estoque_ajustes.endereco_id` → `estoque_saldos.endereco_id` na aprovação). Contagem QR (`contagem_evidencia.endereco`) também satisfaz e persiste no AJU. Correção só de endereço continua no **Guardar** (sem AJU).
+- **Local por volume (emenda 2026-11-10):** UX = local padrão no cabeçalho do AJU + override por linha em `lote_payload.*.endereco_id`. O contrato da API/Writer já era por volume; a tela deixa de copiar um único local cegamente. `estoque_ajustes.endereco_id` permanece o canônico (auditoria / SKU sem volume / fallback).
+- **Fornecedor opcional (emenda 2026-11-10):** default no AJU (`estoque_ajustes.fornecedor_id`) e/ou por volume (`lote_payload.*.fornecedor_id` → `estoque_lotes.fornecedor_id`). Atribuição humana, sem NF — ver `ADR_RASTREIO_INSUMOS_PRODUCAO.md`. MOV `AJUSTE.fornecedor_id` só quando unívoco; volumes mistos → verdade no lote. Não substitui entrada por OC.
 
 ### Menu Compras (agora)
 

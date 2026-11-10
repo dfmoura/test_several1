@@ -211,6 +211,7 @@ class EstoqueConsultaService
             ->with([
                 'produto:id,codigo,descricao_fiscal,familia,unidade_interna,controla_lote,controla_validade',
                 'endereco:id,codigo',
+                'fornecedor:id,codigo,razao_social,nome_fantasia',
             ])
             ->where('empresa_id', $empresa->id)
             ->orderByRaw('data_validade IS NULL')
@@ -348,6 +349,13 @@ class EstoqueConsultaService
             'endereco' => $lote->relationLoaded('endereco') && $lote->endereco ? [
                 'id' => $lote->endereco->id,
                 'codigo' => $lote->endereco->codigo,
+            ] : null,
+            'fornecedor_id' => $lote->fornecedor_id !== null ? (int) $lote->fornecedor_id : null,
+            'fornecedor' => $lote->relationLoaded('fornecedor') && $lote->fornecedor ? [
+                'id' => (int) $lote->fornecedor->id,
+                'codigo' => (string) $lote->fornecedor->codigo,
+                'razao_social' => $lote->fornecedor->razao_social,
+                'nome_fantasia' => $lote->fornecedor->nome_fantasia,
             ] : null,
             'qr_payload' => $lote->qr_token
                 ? 'VOL:'.$lote->empresa_id.':'.$lote->id.':'.$lote->qr_token

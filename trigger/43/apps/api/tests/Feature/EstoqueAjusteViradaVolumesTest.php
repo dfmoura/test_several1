@@ -8,6 +8,7 @@ use App\Models\EstoqueEndereco;
 use App\Models\EstoqueLote;
 use App\Models\EstoqueMovimento;
 use App\Models\EstoqueSaldo;
+use App\Models\Parceiro;
 use App\Models\Produto;
 use App\Models\User;
 use App\Services\Estoque\EstoqueEnderecoService;
@@ -544,5 +545,90 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
             ->all();
 
         $this->assertSame(['FIXO-1', 'FIXO-2'], $codigos);
+    }
+
+    public function test_entrada_volumes_com_locais_e_fornecedores_por_linha(): void
+    {
+        $end2 = EstoqueEndereco::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('codigo', 'L00000002')
+            ->firstOrFail();
+
+        $fornA = Parceiro::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'PAR-VIR-A',
+            'tipo_pessoa' => 'PJ',
+            'razao_social' => 'Fornecedor Vir A',
+            'papel_fornecedor' => true,
+            'situacao' => 'ATIVO',
+            'cadastro_fiscal_completo' => true,
+        ]);
+        $fornB = Parceiro::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'PAR-VIR-B',
+            'tipo_pessoa' => 'PJ',
+            'razao_social' => 'Fornecedor Vir B',
+            'papel_fornecedor' => true,
+            'situacao' => 'ATIVO',
+            'cadastro_fiscal_completo' => true,
+        ]);
+
+        Sanctum::actingAs($this->operador);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $aju = $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes', [
+                'produto_id' => $this->exact->id,
+                'motivo_codigo' => 'A03',
+                'qtde_contada' => '420.0000',
+                'checklist_confirmado' => true,
+                'origem' => EstoqueAjuste::ORIGEM_CONTAGEM_AVULSA,
+                'endereco_id' => $this->endereco->id,
+                'fornecedor_id' => $fornA->id,
+                'lote_payload' => [
+                    [
+                        'endereco_id' => $this->endereco->id,
+                        'fornecedor_id' => $fornA->id,
+                        'codigo' => 'LOC-A',
+                        'largura_mm' => '210',
+                        'comprimento_m' => '1000',
+                    ],
+                    [
+                        'endereco_id' => $end2->id,
+                        'fornecedor_id' => $fornB->id,
+                        'codigo' => 'LOC-B',
+                        'largura_mm' => '210',
+                        'comprimento_m' => '1000',
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.lote_payload.0.endereco_id', $this->endereco->id)
+            ->assertJsonPath('data.lote_payload.1.endereco_id', $end2->id)
+            ->assertJsonPath('data.lote_payload.0.fornecedor_id', $fornA->id)
+            ->assertJsonPath('data.lote_payload.1.fornecedor_id', $fornB->id);
+
+        $ajuId = (int) $aju->json('data.id');
+
+        Sanctum::actingAs($this->aprovador);
+        $this->withHeaders($h)
+            ->postJson("/api/v1/estoque/ajustes/{$ajuId}/aprovar", [
+                'causa_raiz' => 'Abertura com locais e fornecedores distintos.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.movimento.fornecedor_id', null);
+
+        $lotes = EstoqueLote::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $this->exact->id)
+            ->orderBy('codigo')
+            ->get();
+        $this->assertCount(2, $lotes);
+        $this->assertSame('LOC-A', $lotes[0]->codigo);
+        $this->assertSame((int) $this->endereco->id, (int) $lotes[0]->endereco_id);
+        $this->assertSame((int) $fornA->id, (int) $lotes[0]->fornecedor_id);
+        $this->assertSame('LOC-B', $lotes[1]->codigo);
+        $this->assertSame((int) $end2->id, (int) $lotes[1]->endereco_id);
+        $this->assertSame((int) $fornB->id, (int) $lotes[1]->fornecedor_id);
     }
 }

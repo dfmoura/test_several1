@@ -384,6 +384,12 @@ class RastreioInsumosService
      */
     private function origensDoLote(Empresa $empresa, int $loteId, ?EstoqueMovimento $saida): array
     {
+        $lote = EstoqueLote::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('id', $loteId)
+            ->with(['fornecedor:id,codigo,razao_social,nome_fantasia'])
+            ->first();
+
         $query = EstoqueMovimentoItem::query()
             ->where('lote_id', $loteId)
             ->whereHas('movimento', function ($q) use ($empresa, $saida) {
@@ -414,6 +420,17 @@ class RastreioInsumosService
                 continue;
             }
             $nfe = $mov->nfeEntrada;
+            $fornecedorRef = $this->parceiroRef($mov->fornecedor);
+            if ($fornecedorRef === null && $mov->tipo === EstoqueMovimento::TIPO_AJUSTE && $lote?->fornecedor) {
+                $fornecedorRef = $this->parceiroRef($lote->fornecedor);
+            }
+            $atribuicao = null;
+            if ($mov->tipo === EstoqueMovimento::TIPO_ENTRADA_COMPRA) {
+                $atribuicao = 'DOCUMENTADO';
+            } elseif ($mov->tipo === EstoqueMovimento::TIPO_AJUSTE && $fornecedorRef) {
+                $atribuicao = 'ATRIBUIDO';
+            }
+
             $out[] = [
                 'tipo' => $mov->tipo,
                 'movimento_id' => $mov->id,
@@ -427,7 +444,8 @@ class RastreioInsumosService
                     'id' => $mov->ordemCompra->id,
                     'codigo' => $mov->ordemCompra->codigo,
                 ] : null,
-                'fornecedor' => $this->parceiroRef($mov->fornecedor),
+                'fornecedor' => $fornecedorRef,
+                'fornecedor_atribuicao' => $atribuicao,
                 'nfe_entrada' => $nfe ? [
                     'id' => $nfe->id,
                     'numero' => $nfe->numero,
@@ -449,10 +467,6 @@ class RastreioInsumosService
             return $out;
         }
 
-        $lote = EstoqueLote::query()
-            ->where('empresa_id', $empresa->id)
-            ->where('id', $loteId)
-            ->first();
         if (! $lote) {
             return [];
         }
@@ -467,7 +481,10 @@ class RastreioInsumosService
             'nf_chave' => null,
             'nf_data' => optional($lote->data_entrada)?->format('Y-m-d'),
             'oc' => null,
-            'fornecedor' => null,
+            'fornecedor' => $this->parceiroRef($lote->fornecedor),
+            'fornecedor_atribuicao' => $lote->fornecedor_id
+                ? 'ATRIBUIDO'
+                : null,
             'nfe_entrada' => null,
             'ajuste' => null,
             'created_at' => optional($lote->created_at)?->toIso8601String(),
@@ -498,11 +515,20 @@ class RastreioInsumosService
     private function obsSemFornecedor(EstoqueLote $lote, array $origens): string
     {
         $tipos = array_unique(array_map(static fn (array $o) => (string) ($o['tipo'] ?? ''), $origens));
+        $atribuido = $lote->fornecedor_id !== null
+            || collect($origens)->contains(
+                static fn (array $o) => ($o['fornecedor_atribuicao'] ?? null) === 'ATRIBUIDO' && ! empty($o['fornecedor'])
+            );
+
         if (in_array(EstoqueLote::ORIGEM_BACKFILL, $tipos, true) || $lote->origem_tipo === EstoqueLote::ORIGEM_BACKFILL) {
-            return 'Lote de abertura — nota do fornecedor não documentada neste sistema.';
+            return $atribuido
+                ? 'Lote de abertura — fornecedor atribuído sem NF documental.'
+                : 'Lote de abertura — nota do fornecedor não documentada neste sistema.';
         }
         if (in_array(EstoqueMovimento::TIPO_AJUSTE, $tipos, true) || in_array(EstoqueLote::ORIGEM_VIRADA, $tipos, true) || in_array(EstoqueLote::ORIGEM_AJUSTE, $tipos, true)) {
-            return 'Origem por ajuste/virada — sem NF de fornecedor para reportar.';
+            return $atribuido
+                ? 'Origem por ajuste/virada — fornecedor atribuído (sem NF/OC documental).'
+                : 'Origem por ajuste/virada — sem NF de fornecedor para reportar.';
         }
 
         return 'Sem documento de entrada de compra amarrado a este lote.';
@@ -513,6 +539,8 @@ class RastreioInsumosService
      */
     private function loteIdentidade(EstoqueLote $lote): array
     {
+        $lote->loadMissing('fornecedor:id,codigo,razao_social,nome_fantasia');
+
         return [
             'id' => $lote->id,
             'codigo' => $lote->codigo,
@@ -521,6 +549,11 @@ class RastreioInsumosService
             'data_validade' => optional($lote->data_validade)?->format('Y-m-d'),
             'origem_tipo' => $lote->origem_tipo,
             'nf_numero' => $lote->nf_numero,
+            'fornecedor_id' => $lote->fornecedor_id !== null ? (int) $lote->fornecedor_id : null,
+            'fornecedor' => $this->parceiroRef($lote->fornecedor),
+            'fornecedor_atribuicao' => $lote->fornecedor_id
+                ? ($lote->origem_tipo === EstoqueLote::ORIGEM_ENTRADA_COMPRA ? 'DOCUMENTADO' : 'ATRIBUIDO')
+                : null,
         ];
     }
 
