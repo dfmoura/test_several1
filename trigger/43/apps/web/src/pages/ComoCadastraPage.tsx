@@ -629,21 +629,27 @@ export function ComoCadastraPage() {
                 <article className="calc-step">
                   <header>
                     <span className="calc-step-n">P7</span>
-                    <h3>Dimensões nominais (quando aparecer)</h3>
-                    <p>Só em grupos de bobina / fórmula — referência, não identidade do SKU.</p>
+                    <h3>Programa e referência (quando aparecer)</h3>
+                    <p>SKU = material/programa. Medidas reais não se cadastram aqui.</p>
                   </header>
                   <ul>
                     <li>
-                      <strong>Largura (mm)</strong>, <strong>comprimento (m)</strong>,{' '}
-                      <strong>gramatura (g/m²)</strong> ajudam OC e conversão.
+                      Em papel/filme (Exact): preencha o <strong>programa de compra</strong>.
+                      Largura × comprimento <strong>não</strong> delimita o SKU — o mesmo
+                      código carrega várias medidas.
                     </li>
                     <li>
-                      Podem ficar vazios no cadastro inicial (aviso, não bloqueio). Complete
-                      quando tiver a ficha técnica.
+                      Referência (largura, comprimento, gramatura) só aparece se o fator
+                      precisar, se já estiver gravada, ou se você abrir “referência de
+                      conversão”.
                     </li>
                     <li>
-                      A bobina real (mm × m conferidos) nasce na <strong>entrada do lote</strong>,
-                      não aqui.
+                      Em fita/foil/tecido, a <strong>largura</strong> identifica o material no
+                      SKU; o metro real fica no volume.
+                    </li>
+                    <li>
+                      A bobina real (mm × m conferidos) nasce na <strong>OC / entrada do
+                      lote</strong>, não no cadastro.
                     </li>
                   </ul>
                 </article>
@@ -998,10 +1004,11 @@ export function ComoCadastraPage() {
                   </p>
                 </article>
                 <article>
-                  <h3>Dimensões nominais</h3>
+                  <h3>Programa ≠ bobina</h3>
                   <p>
-                    Largura / comprimento / gramatura no produto são referência de OC e
-                    conversão. A dimensão real da bobina nasce na conferência do lote.
+                    O cadastro privilegia o SKU (material/programa). Largura / comprimento /
+                    gramatura no produto são referência opcional de conversão — não
+                    identidade. A dimensão real nasce na OC e na conferência do lote.
                   </p>
                 </article>
                 <article>

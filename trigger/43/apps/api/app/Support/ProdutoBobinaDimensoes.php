@@ -10,10 +10,29 @@ namespace App\Support;
  *
  * `exige_dimensao_sku` = oferece seção de dimensões **nominais** (conversão/OC),
  * não identidade L×C do SKU (Exact/variável → volume na entrada).
+ *
+ * Progressive disclosure: Exact/filme/laminação/retalho escondem L×C por padrão;
+ * TEC/CLD/ADF mantêm largura (identifica o material); comprimento no volume.
  */
 final class ProdutoBobinaDimensoes
 {
     public const ATTR_KEYS = ['largura_mm', 'comprimento_m', 'gramatura_g_m2'];
+
+    /** @var list<string> */
+    public const GRUPOS_VOLUME_VARIAVEL = [
+        'MP-PAP',
+        'MP-FLM',
+        'MP-LAM',
+        'MP-RET',
+        'PA-BOB',
+    ];
+
+    /** @var list<string> */
+    public const GRUPOS_LARGURA_IDENTIFICA = [
+        'MP-TEC',
+        'MP-CLD',
+        'MP-ADF',
+    ];
 
     /**
      * Grupos canônicos que abrem dimensões nominais de bobina.
@@ -52,14 +71,30 @@ final class ProdutoBobinaDimensoes
         ];
     }
 
+    public static function perfilDoGrupo(?string $grupoCodigo): string
+    {
+        $g = strtoupper(trim((string) $grupoCodigo));
+        if (in_array($g, self::GRUPOS_LARGURA_IDENTIFICA, true)) {
+            return 'largura_identifica';
+        }
+        if (in_array($g, self::GRUPOS_VOLUME_VARIAVEL, true)) {
+            return 'volume_variavel';
+        }
+
+        return 'desconhecido';
+    }
+
     /**
      * @param  list<string>  $faltando
      * @return array{
      *   show_section: bool,
      *   mode: string,
+     *   show_programa: bool,
      *   show_largura: bool,
      *   show_comprimento: bool,
-     *   show_gramatura: bool
+     *   show_gramatura: bool,
+     *   perfil: ?string,
+     *   pode_expandir_referencia: bool
      * }
      */
     public static function decide(
@@ -67,30 +102,55 @@ final class ProdutoBobinaDimensoes
         ?string $larguraMm,
         ?string $comprimentoM,
         ?string $gramaturaGm2,
-        array $faltando = []
+        array $faltando = [],
+        ?string $grupoCodigo = null,
+        bool $expandirReferencia = false
     ): array {
         $filledL = self::filled($larguraMm);
         $filledC = self::filled($comprimentoM);
         $filledG = self::filled($gramaturaGm2);
 
+        $faltandoBobina = array_values(array_intersect($faltando, self::ATTR_KEYS));
+        $needL = in_array('largura_mm', $faltandoBobina, true) || $filledL;
+        $needC = in_array('comprimento_m', $faltandoBobina, true) || $filledC;
+        $needG = in_array('gramatura_g_m2', $faltandoBobina, true) || $filledG;
+
         if ($exigeDimensaoSku) {
+            $perfil = self::perfilDoGrupo($grupoCodigo);
+            $defaultLargura = $perfil === 'largura_identifica';
+
+            $showL = $defaultLargura || $needL || $expandirReferencia;
+            $showC = $needC || $expandirReferencia;
+            $showG = $needG || $expandirReferencia;
+
+            $podeExpandir = ! $expandirReferencia && (
+                (! $defaultLargura && ! $needL)
+                || ! $needC
+                || ! $needG
+            );
+
             return [
                 'show_section' => true,
                 'mode' => 'grupo',
-                'show_largura' => true,
-                'show_comprimento' => true,
-                'show_gramatura' => true,
+                'show_programa' => true,
+                'show_largura' => $showL,
+                'show_comprimento' => $showC,
+                'show_gramatura' => $showG,
+                'perfil' => $perfil,
+                'pode_expandir_referencia' => $podeExpandir,
             ];
         }
 
-        $faltandoBobina = array_values(array_intersect($faltando, self::ATTR_KEYS));
         if ($faltandoBobina !== []) {
             return [
                 'show_section' => true,
                 'mode' => 'formula',
-                'show_largura' => in_array('largura_mm', $faltandoBobina, true) || $filledL,
-                'show_comprimento' => in_array('comprimento_m', $faltandoBobina, true) || $filledC,
-                'show_gramatura' => in_array('gramatura_g_m2', $faltandoBobina, true) || $filledG,
+                'show_programa' => false,
+                'show_largura' => $needL,
+                'show_comprimento' => $needC,
+                'show_gramatura' => $needG,
+                'perfil' => null,
+                'pode_expandir_referencia' => false,
             ];
         }
 
@@ -98,18 +158,24 @@ final class ProdutoBobinaDimensoes
             return [
                 'show_section' => true,
                 'mode' => 'legado',
+                'show_programa' => false,
                 'show_largura' => $filledL,
                 'show_comprimento' => $filledC,
                 'show_gramatura' => $filledG,
+                'perfil' => null,
+                'pode_expandir_referencia' => false,
             ];
         }
 
         return [
             'show_section' => false,
             'mode' => 'oculto',
+            'show_programa' => false,
             'show_largura' => false,
             'show_comprimento' => false,
             'show_gramatura' => false,
+            'perfil' => null,
+            'pode_expandir_referencia' => false,
         ];
     }
 

@@ -48,6 +48,17 @@ A seção **só** aparece quando:
 **Proibido:** abrir por heurística de unidade (ex.: “tem KG ou M2”).  
 Trocar para grupo sem máscara **limpa** as dimensões no formulário.
 
+### Progressive disclosure (emenda 2026-11-10)
+
+Dentro do grupo de bobina, **não** despejar L×C como se delimitassem o SKU:
+
+| Perfil | Grupos | Superfície padrão |
+|--------|--------|-------------------|
+| **Volume variável** | MP-PAP, MP-FLM, MP-LAM, MP-RET, PA-BOB | Programa de compra; L×C/gramatura **ocultos** |
+| **Largura identifica** | MP-TEC, MP-CLD, MP-ADF | Largura no SKU; comprimento/gramatura ocultos |
+
+Revelar nominais quando: motor pediu em `faltando`, valor já gravado, ou o operador abre **referência de conversão** (toggle). Medida **real** continua no volume/OC.
+
 Código: `produtoBobinaDimensoesUi.ts` · `ProdutoBobinaDimensoes` (PHP).
 
 ---

@@ -21,6 +21,7 @@ Norma: `docs/ADR_UNIDADES_PRODUTO.md` · estudo `../32` `CONVERSOES_UNIDADES_MED
 - Manter catálogo em `UnidadesMedida`.
 - Extensões futuras de pontes = atributos JSON + motor; saldo continua na interna.
 - Seção dimensional: só `exige_dimensao_sku` **ou** `faltando` do motor **ou** valor já gravado (`ProdutoBobinaDimensoes` / `produtoBobinaDimensoesUi.ts`). Flag = oferece nominais, não obriga L×C como chave do SKU.
+- Progressive disclosure: Exact/filme/laminação/retalho → programa por padrão (L×C ocultos); TEC/CLD/ADF → largura no SKU; revelar nominais só com `faltando`, legado ou toggle de referência.
 - Superfície de conversão (fator/equação): só quando comercial ≠ estoque (`ProdutoUnidadesConversao` / `produtoUnidadesConversaoUi.ts`); título `Unidades` no modo simples.
 
 ## Não faça
@@ -32,5 +33,6 @@ Norma: `docs/ADR_UNIDADES_PRODUTO.md` · estudo `../32` `CONVERSOES_UNIDADES_MED
 - Abrir “Dados da bobina” por heurística de unidade (KG/M/M2).
 - Deixar dimensões residuais ao trocar para grupo sem máscara.
 - Exibir fator/equação/jargão de conversão quando comercial = estoque (ruído UX).
+- Despejar largura×comprimento no cadastro Exact como se delimitassem o SKU.
 
 Se a tarefa exigir violar isto → parar e citar a ADR.

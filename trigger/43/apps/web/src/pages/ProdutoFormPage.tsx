@@ -452,6 +452,8 @@ export function ProdutoFormPage() {
   const [fornecedorCodigos, setFornecedorCodigos] = useState<ProdutoFornecedorCodigo[]>([]);
   const [atributosExtras, setAtributosExtras] = useState<Record<string, unknown>>({});
   const [avancadoOpen, setAvancadoOpen] = useState(false);
+  /** Referência nominal L×C/gramatura — oculta por padrão em Exact/variável. */
+  const [referenciaNominalOpen, setReferenciaNominalOpen] = useState(false);
   const [deParaDraft, setDeParaDraft] = useState({
     fornecedor_id: '',
     c_prod: '',
@@ -728,13 +730,18 @@ export function ProdutoFormPage() {
         comprimentoM: form.comprimento_m,
         gramaturaGm2: form.gramatura_g_m2,
         faltando: fatorSugestao?.faltando,
+        grupoCodigo: selectedGrupo?.codigo ?? form.grupo,
+        expandirReferencia: referenciaNominalOpen,
       }),
     [
       selectedGrupo?.exige_dimensao_sku,
+      selectedGrupo?.codigo,
+      form.grupo,
       form.largura_mm,
       form.comprimento_m,
       form.gramatura_g_m2,
       fatorSugestao?.faltando,
+      referenciaNominalOpen,
     ]
   );
 
@@ -947,6 +954,7 @@ export function ProdutoFormPage() {
       return;
     }
     setFatorManual(false);
+    setReferenciaNominalOpen(false);
     setForm((prev) => {
       const next = applyGrupoDefaults(prev, grupo, isNew);
       const alinhado = {
@@ -1490,7 +1498,12 @@ export function ProdutoFormPage() {
               {showDimensoes.showSection && (
                 <>
                   <div className="fiscal-section-title span-2">{showDimensoes.title}</div>
-                  {showDimensoes.mode === 'grupo' && (
+                  {showDimensoes.hint ? (
+                    <p className="form-hint span-2" style={{ marginTop: 0 }}>
+                      {showDimensoes.hint}
+                    </p>
+                  ) : null}
+                  {showDimensoes.showPrograma && (
                     <div className="form-group span-2">
                       <label>Programa de compra</label>
                       <input
@@ -1511,6 +1524,10 @@ export function ProdutoFormPage() {
                       <label>
                         Largura (mm)
                         {faltandoAttrs.has('largura_mm') ? ' *' : ''}
+                        {showDimensoes.perfil === 'largura_identifica' &&
+                        !faltandoAttrs.has('largura_mm')
+                          ? ' — identidade do SKU'
+                          : ''}
                       </label>
                       <input
                         type="text"
@@ -1521,7 +1538,9 @@ export function ProdutoFormPage() {
                         onChange={(e) => update({ largura_mm: e.target.value })}
                       />
                       <span className="form-hint">
-                        Nominal / típica de compra. Bobina real confere-se no volume (entrada).
+                        {showDimensoes.perfil === 'largura_identifica'
+                          ? 'Largura que identifica este material no estoque. Comprimento real = volume na entrada.'
+                          : 'Só referência / fórmula. Bobina real confere-se no volume (entrada) — não delimita o SKU.'}
                       </span>
                     </div>
                   )}
@@ -1540,7 +1559,8 @@ export function ProdutoFormPage() {
                         onChange={(e) => update({ comprimento_m: e.target.value })}
                       />
                       <span className="form-hint">
-                        Nominal do programa (ex. EXACT 1000). Variação por bobina = volume.
+                        Nominal do programa (ex. EXACT 1000), se útil à conversão. Variação por
+                        bobina = volume.
                       </span>
                     </div>
                   )}
@@ -1563,6 +1583,34 @@ export function ProdutoFormPage() {
                       </span>
                     </div>
                   )}
+                  {showDimensoes.podeExpandirReferencia && !readOnly && (
+                    <div className="form-group span-2">
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setReferenciaNominalOpen(true)}
+                      >
+                        Mostrar referência de conversão (largura, comprimento, gramatura)
+                      </button>
+                      <span className="form-hint">
+                        Opcional. Não cria SKU novo — só ajuda fator/OC quando as unidades
+                        diferem. Medida real continua no volume.
+                      </span>
+                    </div>
+                  )}
+                  {referenciaNominalOpen &&
+                    showDimensoes.mode === 'grupo' &&
+                    !showDimensoes.podeExpandirReferencia && (
+                      <div className="form-group span-2">
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setReferenciaNominalOpen(false)}
+                        >
+                          Ocultar referência opcional
+                        </button>
+                      </div>
+                    )}
                 </>
               )}
 

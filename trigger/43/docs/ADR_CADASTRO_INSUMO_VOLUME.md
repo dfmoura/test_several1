@@ -77,6 +77,7 @@ Conferência cria N VOLUMES (1 rastro ≈ 1 bobina quando nLote é unitário)
 - Importação: dimensão ausente → **warning**, não erro bloqueante (Camada A / Exact).  
 - Fator: se comercial ≠ interna e faltar atributo da fórmula → incompleto (já existente) — sem inventar.  
 - Dimensão **real** da bobina → volume na entrada, não cadastro.
+- **UX (2026-11-10):** no cadastro, Exact/filme/laminação/retalho mostram **programa** por padrão — L×C/gramatura só sob demanda (fator, legado ou “referência de conversão”). TEC/CLD/ADF mantêm **largura** no SKU. Sem mudar schema nem obrigatoriedade.
 
 ### O que NÃO muda
 

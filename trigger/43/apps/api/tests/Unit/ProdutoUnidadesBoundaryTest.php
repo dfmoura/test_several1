@@ -92,10 +92,42 @@ class ProdutoUnidadesBoundaryTest extends TestCase
         $pa = ProdutoBobinaDimensoes::decide(false, null, null, null, []); // PA-ETQ típico
         $this->assertFalse($pa['show_section']);
 
-        $grupo = ProdutoBobinaDimensoes::decide(true, null, null, null, []);
-        $this->assertTrue($grupo['show_section']);
-        $this->assertSame('grupo', $grupo['mode']);
+        // Exact / variável: seção abre, programa sim, L×C ocultos (não delimitam o SKU).
+        $papel = ProdutoBobinaDimensoes::decide(true, null, null, null, [], 'MP-PAP');
+        $this->assertTrue($papel['show_section']);
+        $this->assertSame('grupo', $papel['mode']);
+        $this->assertTrue($papel['show_programa']);
+        $this->assertFalse($papel['show_largura']);
+        $this->assertFalse($papel['show_comprimento']);
+        $this->assertFalse($papel['show_gramatura']);
+        $this->assertTrue($papel['pode_expandir_referencia']);
+        $this->assertSame('volume_variavel', $papel['perfil']);
 
+        $filme = ProdutoBobinaDimensoes::decide(true, null, null, null, [], 'MP-FLM');
+        $this->assertFalse($filme['show_largura']);
+        $this->assertTrue($filme['pode_expandir_referencia']);
+
+        // TEC/CLD/ADF: largura identifica o SKU; comprimento no volume.
+        $tecido = ProdutoBobinaDimensoes::decide(true, null, null, null, [], 'MP-TEC');
+        $this->assertTrue($tecido['show_largura']);
+        $this->assertFalse($tecido['show_comprimento']);
+        $this->assertFalse($tecido['show_gramatura']);
+        $this->assertSame('largura_identifica', $tecido['perfil']);
+        $this->assertTrue($tecido['pode_expandir_referencia']);
+
+        // Expandir referência revela nominais sem mudar o modelo.
+        $expandido = ProdutoBobinaDimensoes::decide(true, null, null, null, [], 'MP-PAP', true);
+        $this->assertTrue($expandido['show_largura']);
+        $this->assertTrue($expandido['show_comprimento']);
+        $this->assertTrue($expandido['show_gramatura']);
+        $this->assertFalse($expandido['pode_expandir_referencia']);
+
+        // Legado preenchido permanece visível.
+        $legadoL = ProdutoBobinaDimensoes::decide(true, '210', null, null, [], 'MP-PAP');
+        $this->assertTrue($legadoL['show_largura']);
+        $this->assertFalse($legadoL['show_comprimento']);
+
+        // Fórmula (comercial ≠ estoque) continua pedindo só o que falta.
         $formula = ProdutoBobinaDimensoes::decide(false, null, null, null, ['gramatura_g_m2']);
         $this->assertTrue($formula['show_section']);
         $this->assertSame('formula', $formula['mode']);

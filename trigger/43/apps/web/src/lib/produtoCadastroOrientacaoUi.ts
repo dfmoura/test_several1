@@ -97,8 +97,8 @@ export function decideCadastroOrientacao(input: {
       (uCom === '' || uCom === 'M2') && (uInt === '' || uInt === 'M2' || uInt === uCom);
     return {
       lead: m2M2
-        ? 'Insumo de bobina: um SKU por material/programa (ex. EXACT 1000). NF e saldo em M². Cada bobina (nLote) é volume na entrada — não crie SKU por largura×comprimento.'
-        : 'Insumo de bobina: prefira M² = M² quando a NF fatura em M² (Exact). Se a NF for em KG, informe gramatura e o fator. Dimensão real da bobina = volume na conferência.',
+        ? 'Insumo de bobina: um SKU por material/programa (ex. EXACT 1000). NF e saldo em M². Não delimite largura×comprimento no cadastro — cada bobina (nLote) é volume na entrada/OC.'
+        : 'Insumo de bobina: prefira M² = M² quando a NF fatura em M² (Exact). Se a NF for em KG, informe gramatura e o fator (referência sob demanda). Dimensão real da bobina = volume na conferência.',
       preferM2Igual: true,
     };
   }
