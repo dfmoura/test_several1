@@ -124,6 +124,8 @@ class EstoqueVolumeController extends Controller
     {
         $this->authorizeEstoqueRead($request);
 
+        $this->mergeIdsQueryParam($request);
+
         $data = $request->validate([
             'sem_endereco' => ['nullable', 'boolean'],
             'ids' => ['nullable', 'array'],
@@ -142,6 +144,45 @@ class EstoqueVolumeController extends Controller
                 $movimentoId,
             ),
         ]);
+    }
+
+    /**
+     * Normaliza ?ids=… para array.
+     * PHP colapsa ids=1&ids=2 no último valor; ids[]=1&ids[]=2 já chega como array.
+     * Lê a QUERY_STRING bruta para não perder seleção multi-volume do kit.
+     */
+    private function mergeIdsQueryParam(Request $request): void
+    {
+        $idsIn = $request->input('ids');
+        if (is_array($idsIn)) {
+            return;
+        }
+
+        $fromQs = [];
+        $qs = (string) $request->server('QUERY_STRING', '');
+        if ($qs !== '') {
+            foreach (explode('&', $qs) as $pair) {
+                if ($pair === '') {
+                    continue;
+                }
+                [$rawKey, $rawVal] = array_pad(explode('=', $pair, 2), 2, '');
+                $key = urldecode(str_replace('+', ' ', $rawKey));
+                $val = urldecode(str_replace('+', ' ', $rawVal));
+                if (($key === 'ids' || $key === 'ids[]') && $val !== '' && ctype_digit($val)) {
+                    $fromQs[] = (int) $val;
+                }
+            }
+        }
+
+        if ($fromQs !== []) {
+            $request->merge(['ids' => array_values(array_unique($fromQs))]);
+
+            return;
+        }
+
+        if ($idsIn !== null && $idsIn !== '') {
+            $request->merge(['ids' => [(int) $idsIn]]);
+        }
     }
 
     public function resolverVolume(Request $request): JsonResponse

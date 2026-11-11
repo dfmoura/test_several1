@@ -130,6 +130,8 @@ export function OpRetornoBobinas({
   const [locais, setLocais] = useState<LocalSaldo[]>([]);
   const [escolha, setEscolha] = useState<Record<string, string>>({});
   const [etiquetasIds, setEtiquetasIds] = useState<number[]>([]);
+  /** Resumo pós-devolução — a grade some (plano → devolvido); não deixar a tela “vazia”. */
+  const [devolvidoResumo, setDevolvidoResumo] = useState<string[]>([]);
   const [hidratando, setHidratando] = useState(false);
   const hidratoTicket = useRef(0);
   /** Uma tentativa de hidratar por material — evita loop GET↔onOp. */
@@ -152,6 +154,7 @@ export function OpRetornoBobinas({
 
   useEffect(() => {
     setEtiquetasIds([]);
+    setDevolvidoResumo([]);
     hidratouMat.current = null;
   }, [material.id]);
 
@@ -259,6 +262,18 @@ export function OpRetornoBobinas({
         .map((g) => Number(g.lote_id))
         .filter((id) => Number.isFinite(id) && id > 0);
       setEtiquetasIds(ids);
+      setDevolvidoResumo(
+        gerados.map((g) => {
+          const tipo = rotuloTipo(String(g.tipo ?? 'sobra'));
+          const L = g.largura_mm
+            ? `${formatDecimalBr(g.largura_mm, 1, { stripTrailingZeros: true })} mm`
+            : '';
+          const C = g.comprimento_m
+            ? `${formatDecimalBr(g.comprimento_m, 1, { stripTrailingZeros: true })} m`
+            : '';
+          return [tipo, L, C].filter(Boolean).join(' · ');
+        }),
+      );
     } catch (e) {
       const msg =
         e instanceof ApiError
@@ -405,6 +420,12 @@ export function OpRetornoBobinas({
             </tbody>
           </table>
         </div>
+      ) : devolvidoResumo.length > 0 ? (
+        <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.2rem' }}>
+          {devolvidoResumo.map((linha, idx) => (
+            <li key={`${etiquetasIds[idx] ?? idx}-${linha}`}>{linha}</li>
+          ))}
+        </ul>
       ) : temPassa ? (
         <p className="form-hint" style={{ marginTop: 0 }}>
           {hidratando

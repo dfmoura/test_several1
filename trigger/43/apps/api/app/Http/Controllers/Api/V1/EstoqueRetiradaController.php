@@ -92,6 +92,11 @@ class EstoqueRetiradaController extends Controller
                 ['required_with:volumes'],
                 PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)
             ),
+            // Locais por bobina (refile/sobra) — sem isto o validate() descarta o payload do kit.
+            'locais' => ['nullable', 'array'],
+            'locais.*.lote_pai_id' => ['required_with:locais', 'integer'],
+            'locais.*.tipo' => ['required_with:locais', 'string', 'in:refile,sobra'],
+            'locais.*.endereco_id' => ['required_with:locais', 'integer', 'min:1'],
         ]);
 
         return response()->json([

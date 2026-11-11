@@ -284,6 +284,51 @@ class EstoqueVolumeMultiTest extends TestCase
             ->assertJsonPath('data.volumes_count', 0);
     }
 
+    /** Regressão: ?ids=1&ids=2 no PHP vira string — SPA/kit usam ids= e a API normaliza. */
+    public function test_etiquetas_por_ids_aceita_ids_repetidos_e_ids_bracket(): void
+    {
+        $a = EstoqueLote::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->produto->id,
+            'codigo' => 'LOT-IDS-A',
+            'data_entrada' => now()->toDateString(),
+            'qtde' => '10.0000',
+            'unidade' => 'M2',
+            'origem_tipo' => EstoqueLote::ORIGEM_AJUSTE,
+            'qr_token' => bin2hex(random_bytes(8)),
+        ]);
+        $b = EstoqueLote::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->produto->id,
+            'codigo' => 'LOT-IDS-B',
+            'data_entrada' => now()->toDateString(),
+            'qtde' => '5.0000',
+            'unidade' => 'M2',
+            'origem_tipo' => EstoqueLote::ORIGEM_AJUSTE,
+            'qr_token' => bin2hex(random_bytes(8)),
+        ]);
+
+        $porBracket = $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/lotes/etiquetas?ids[]='.$a->id.'&ids[]='.$b->id)
+            ->assertOk()
+            ->json('data');
+        $this->assertSame(2, $porBracket['volumes_count']);
+
+        // Forma do link do kit (ids=…&ids=…) — QUERY_STRING bruta recupera os dois.
+        $porRepetido = $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/lotes/etiquetas?ids='.$a->id.'&ids='.$b->id)
+            ->assertOk()
+            ->json('data');
+        $this->assertSame(2, $porRepetido['volumes_count']);
+        $idsVol = collect($porRepetido['volumes'])->pluck('lote_id')->sort()->values()->all();
+        $this->assertSame([(int) $a->id, (int) $b->id], $idsVol);
+
+        $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/lotes/etiquetas?ids='.$a->id)
+            ->assertOk()
+            ->assertJsonPath('data.volumes_count', 1);
+    }
+
     public function test_seed_enderecos_e_vinculo_etiqueta(): void
     {
         $out = app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);

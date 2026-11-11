@@ -29,7 +29,10 @@ export function EstoqueVolumesEtiquetasPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const semEndereco = searchParams.get('sem_endereco') === '1';
   const movimentoId = searchParams.get('movimento_id');
-  const idsParam = searchParams.getAll('ids').filter((x) => /^\d+$/.test(x));
+  // Browser: ids=1&ids=2. Alguns links usam ids[]= — aceitar os dois.
+  const idsParam = [...searchParams.getAll('ids'), ...searchParams.getAll('ids[]')].filter((x) =>
+    /^\d+$/.test(x),
+  );
   const [volumes, setVolumes] = useState<VolumeEtiqueta[]>([]);
   const [filtro, setFiltro] = useState<EtiquetasFiltro>({});
   const [qrMap, setQrMap] = useState<Record<number, string>>({});
@@ -45,7 +48,8 @@ export function EstoqueVolumesEtiquetasPage() {
       const params = new URLSearchParams();
       if (onlySemVao) params.set('sem_endereco', '1');
       if (movId) params.set('movimento_id', movId);
-      for (const id of ids) params.append('ids', id);
+      // PHP só monta array com ids[]=… (ids=1&ids=2 vira string e quebra validation.array).
+      for (const id of ids) params.append('ids[]', id);
       const qs = params.toString();
       const res = await api.get<{
         data: {
