@@ -45,6 +45,7 @@ import {
   opKitNome,
   parseQtdeDigitada,
 } from '../lib/producaoUi';
+import { PartidaDivisaoQuadro } from './PartidaDivisaoQuadro';
 
 type Props = {
   op: OrdemProducao;
@@ -653,6 +654,15 @@ export function OpEscolhaOverlay({
                         )}
                       </tbody>
                     </table>
+                    {volsADevolver
+                      .filter((v) => devolverMarcados[v.lote_id as number] && v.partida_preview)
+                      .map((v) => (
+                        <PartidaDivisaoQuadro
+                          key={`dev-div-${v.lote_id}`}
+                          preview={v.partida_preview!}
+                          titulo="O que volta ao estoque (previsto)"
+                        />
+                      ))}
                   </div>
                   <div className="form-group" style={{ marginTop: '0.75rem' }}>
                     <label htmlFor="op-escolha-motivo-dev">Motivo da devolução</label>
@@ -815,19 +825,9 @@ export function OpEscolhaOverlay({
                                   {metros} de rolo
                                 </div>
                               ) : null}
-                              {v.faixa === 'partida' && v.partida_preview ? (
+                              {v.faixa === 'partida' || v.faixa === 'sobra' ? (
                                 <div className="muted" style={{ fontSize: '0.85em' }}>
-                                  Volta{' '}
-                                  {[
-                                    v.partida_preview.refile
-                                      ? `refile ${formatDecimalBr(v.partida_preview.refile.largura_mm, 1, { stripTrailingZeros: true })} mm`
-                                      : null,
-                                    v.partida_preview.sobra
-                                      ? `sobra ${formatDecimalBr(v.partida_preview.sobra.comprimento_m, 1, { stripTrailingZeros: true })} m`
-                                      : null,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(' · ')}
+                                  {v.faixa === 'partida' ? 'Partida (largura maior)' : 'Passa (mesma medida)'}
                                 </div>
                               ) : null}
                             </td>
@@ -854,6 +854,19 @@ export function OpEscolhaOverlay({
                     )}
                   </tbody>
                 </table>
+                {escolhidos
+                  .filter((v) => v.partida_preview)
+                  .map((v) => (
+                    <PartidaDivisaoQuadro
+                      key={`div-${v.lote_id}`}
+                      preview={v.partida_preview!}
+                      titulo={
+                        v.faixa === 'partida' || v.partida_preview?.tipo === 'partida'
+                          ? 'Partida — divisão da bobina'
+                          : 'Passa — o que consome e o que volta'
+                      }
+                    />
+                  ))}
               </div>
             </>
           ) : (

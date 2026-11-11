@@ -382,12 +382,13 @@ export function OpRetornoBobinas({
       <p className="form-hint" style={{ marginTop: 0, marginBottom: '0.35rem' }}>
         <strong>O que volta ao estoque</strong>
         {temPassa
-          ? ` — Passa ${formatQtdePick(passaM2, 'm²')}${
-              passaM != null && passaM > 1e-4 ? ` · ${formatQtdePick(passaM, 'm')}` : ''
+          ? ` — área a guardar ${formatQtdePick(passaM2, 'm²')}${
+              passaM != null && passaM > 1e-4 ? ` · ${formatQtdePick(passaM, 'm')} na pista` : ''
             }`
           : ''}
-        . 1 bobina por largura × metro (mesmo SKU). Informe o <strong>Local</strong>, confirme e
-        imprima a etiqueta.
+        . A faixa da produção já foi consumida (não vira volume). Aqui só as bobinas que
+        retornam — 1 por largura × metro (mesmo SKU). Informe o <strong>Local</strong>, confirme
+        e imprima a etiqueta (face VOL: sem local; o local fica no sistema).
         {hidratando ? ' Atualizando plano…' : ''}
       </p>
 

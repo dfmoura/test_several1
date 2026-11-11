@@ -8,6 +8,7 @@ import {
   type VolumePickMarca,
   type VolumePickModo,
 } from '../lib/producaoPick';
+import { PartidaDivisaoQuadro } from './PartidaDivisaoQuadro';
 
 type Props = {
   marcas: VolumePickMarca[];
@@ -47,6 +48,15 @@ export function VolumePickTable({
   if (marcas.length === 0) {
     return <p className="muted">Nenhum volume com saldo para este produto.</p>;
   }
+
+  const partidasMarcadas = marcas
+    .filter((m) => m.marcado)
+    .map((m) => volDo(m.lote_id))
+    .filter(
+      (v): v is OpRetiradaVolume =>
+        Boolean(v?.partida_preview) &&
+        (v?.faixa === 'partida' || v?.faixa === 'sobra' || v?.partida_preview?.tipo === 'sobra_comprimento'),
+    );
 
   return (
     <div className="table-wrap" data-pick-modo={modo} data-pick-metragem={mostrarMetragem ? '1' : '0'}>
@@ -114,19 +124,9 @@ export function VolumePickTable({
                           {metros} de rolo
                         </div>
                       ) : null}
-                      {vol?.faixa === 'partida' && vol.partida_preview ? (
+                      {vol?.faixa === 'partida' || vol?.faixa === 'sobra' ? (
                         <div className="muted" style={{ fontSize: '0.85em' }}>
-                          Partida · volta{' '}
-                          {[
-                            vol.partida_preview.refile
-                              ? `refile ${formatDecimalBr(vol.partida_preview.refile.largura_mm, 1, { stripTrailingZeros: true })} mm`
-                              : null,
-                            vol.partida_preview.sobra
-                              ? `sobra ${formatDecimalBr(vol.partida_preview.sobra.comprimento_m, 1, { stripTrailingZeros: true })} m`
-                              : null,
-                          ]
-                            .filter(Boolean)
-                            .join(' · ') || 'sobras'}
+                          {vol.faixa === 'partida' ? 'Partida (largura maior)' : 'Passa (mesma medida)'}
                         </div>
                       ) : null}
                     </td>
@@ -157,6 +157,19 @@ export function VolumePickTable({
           })}
         </tbody>
       </table>
+      {partidasMarcadas.map((v) =>
+        v.partida_preview ? (
+          <PartidaDivisaoQuadro
+            key={`partida-${v.lote_id}`}
+            preview={v.partida_preview}
+            titulo={
+              v.faixa === 'partida' || v.partida_preview.tipo === 'partida'
+                ? 'Partida — divisão da bobina'
+                : 'Passa — o que consome e o que volta'
+            }
+          />
+        ) : null,
+      )}
     </div>
   );
 }

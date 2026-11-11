@@ -204,6 +204,21 @@ No próprio grupo Papel/Acabamento, **após** o balanço Precisa·Saiu·Passa:
 | **Local = coluna obrigatória** | Espelha a coluna Local do que saiu; devolver sem local bloqueia |
 | **Hidratação no show e no devolver** | Writer único; sem segundo saldo |
 
+## Emenda 2026-11-11 — Quadro das 3 partes (UX, sem 3º volume)
+
+O exemplo de negócio (18×1000 → 15,5×300 + 2,5×1000 + 15,5×700) continua **conservação de área**. Na UI:
+
+| Parte | No estoque? | Como aparece |
+|-------|-------------|--------------|
+| Produção L_n×C_u | **Não** (consumo) | Linha «Produção (consome)» no quadro |
+| Refile (L_p−L_n)×C_p | **Sim** (VOL: novo) | «Volta · refile» + Local no kit |
+| Sobra L_n×(C_p−C_u) | **Sim** (VOL: novo) | «Volta · sobra (Passa)» + Local no kit |
+
+- Quadro na **escolha** (kit / overlay / pick) e no **retorno**.  
+- **Sem** bobina de prateleira para a faixa de produção.  
+- Etiqueta: face VOL: **sem local** (local no sistema).  
+- Retorno **antes do fecho** (fecho bloqueia pendente).
+
 Invariantes intactos: um Writer · `ENTRADA_SOBRA` · mesmo SKU · isolamento `empresa_id` · sem segundo saldo.
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX). Sem segundo writer e sem explodir SKU.

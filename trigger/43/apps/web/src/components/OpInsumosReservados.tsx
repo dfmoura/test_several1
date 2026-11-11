@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { LocalSaldoCampo } from './LocalSaldoCampo';
 import { OpEscolhaOverlay } from './OpEscolhaOverlay';
 import { OpRetornoBobinas } from './OpRetornoBobinas';
+import { PartidaDivisaoQuadro } from './PartidaDivisaoQuadro';
 import { SeparacaoVolumesOverlay } from './SeparacaoVolumesOverlay';
 import {
   ApiError,
@@ -1259,6 +1260,45 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                         }
                       />
                     ) : null}
+
+                    {estado !== 'ja_saiu' &&
+                    metragem &&
+                    escolhidos
+                      .map((linha) => volDo(m, linha.lote_id))
+                      .filter((v) => v?.partida_preview)
+                      .map((v) => (
+                        <PartidaDivisaoQuadro
+                          key={`kit-div-${v!.lote_id}`}
+                          preview={v!.partida_preview!}
+                          titulo={
+                            v!.faixa === 'partida' || v!.partida_preview?.tipo === 'partida'
+                              ? 'Partida — divisão da bobina'
+                              : 'Passa — o que consome e o que volta'
+                          }
+                        />
+                      ))}
+
+                    {estado === 'ja_saiu' &&
+                    metragem &&
+                    (m.partida_prevista ?? [])
+                      .filter((p) => p.status === 'pendente' && (p.L_n || p.refile || p.sobra))
+                      .map((p) => (
+                        <PartidaDivisaoQuadro
+                          key={`kit-saiu-div-${p.lote_pai_id}-${p.tipo ?? 'p'}`}
+                          preview={{
+                            tipo: p.tipo,
+                            L_p: String(p.L_p ?? ''),
+                            C_p: String(p.C_p ?? ''),
+                            L_n: String(p.L_n ?? ''),
+                            C_u: String(p.C_u_previsto ?? ''),
+                            area_consumida: p.area_consumida,
+                            area_retorno: p.area_retorno,
+                            refile: p.refile,
+                            sobra: p.sobra,
+                          }}
+                          titulo="Divisão da bobina (já saiu)"
+                        />
+                      ))}
 
                     {estado === 'ja_saiu' && metragem ? (
                       <OpRetornoBobinas
