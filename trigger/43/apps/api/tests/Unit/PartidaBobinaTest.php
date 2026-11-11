@@ -103,4 +103,42 @@ class PartidaBobinaTest extends TestCase
         $this->assertSame('7-sobra', $bobinas[0]['chave']);
         $this->assertSame('700.00', $bobinas[0]['comprimento_m']);
     }
+
+    public function test_passa_comprimento_metros_fracionarios_conserva_area(): void
+    {
+        // Caso vivo: 155×1000 · C_u=264,59 → sobra ~735,41 (sem falhar 155,0001≠155).
+        $plano = PartidaBobina::planejarSobraComprimento('155', '1000', '155', '264.59', 11, '264.59');
+
+        $this->assertTrue($plano['aplica'], (string) ($plano['mensagem'] ?? ''));
+        $this->assertSame('155.0000', $plano['area_pai']);
+        $soma = bcadd($plano['area_consumida'], $plano['sobra']['qtde'], 4);
+        $this->assertSame('155.0000', $soma);
+        $this->assertSame('155.00', $plano['sobra']['largura_mm']);
+        $this->assertSame('735.41', $plano['sobra']['comprimento_m']);
+    }
+
+    public function test_passa_comprimento_volume_inteiro_cu_zero(): void
+    {
+        // 2º volume além da necessidade: C_u=0 → bobina inteira volta.
+        $plano = PartidaBobina::planejarSobraComprimento('155', '1000', '155', '264.59', 22, '0');
+
+        $this->assertTrue($plano['aplica'], (string) ($plano['mensagem'] ?? ''));
+        $this->assertSame('0.00', $plano['C_u']);
+        $this->assertSame('0.0000', $plano['area_consumida']);
+        $this->assertSame('155.00', $plano['sobra']['largura_mm']);
+        $this->assertSame('1000.00', $plano['sobra']['comprimento_m']);
+        $this->assertSame('155.0000', $plano['sobra']['qtde']);
+    }
+
+    public function test_partida_cu_zero_refile_mais_sobra_inteira(): void
+    {
+        $plano = PartidaBobina::planejar('180', '1000', '155', '300', 9, '0');
+
+        $this->assertTrue($plano['aplica'], (string) ($plano['mensagem'] ?? ''));
+        $this->assertSame('0.0000', $plano['area_consumida']);
+        $this->assertSame('25.0000', $plano['refile']['qtde']);
+        $this->assertSame('1000.00', $plano['refile']['comprimento_m']);
+        $this->assertSame('155.0000', $plano['sobra']['qtde']);
+        $this->assertSame('1000.00', $plano['sobra']['comprimento_m']);
+    }
 }

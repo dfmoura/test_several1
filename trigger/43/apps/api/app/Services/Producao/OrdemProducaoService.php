@@ -2770,12 +2770,20 @@ class OrdemProducaoService
             return [];
         }
 
+        // BOM/kit do PAPEL passa necessidade em M2 (OpBomDeriver), mesmo se o SKU
+        // estiver cadastrado com unidade_interna M (ex.: MP-FLM-001). Sempre fecha
+        // área → metros pela largura do papel; fallback: já veio em metros.
         $metrosNeed = null;
-        $un = strtoupper(str_replace('²', '2', (string) ($produto->unidade_interna ?? '')));
-        if (in_array($un, ['M2', 'MIL'], true)) {
-            $geoNeed = \App\Support\VolumeGeometria::fechar($larguraPapel, null, $necessidadeM2, 'M2');
-            if ($geoNeed['status'] === \App\Support\VolumeGeometria::STATUS_FECHADO) {
-                $metrosNeed = $geoNeed['comprimento_m'];
+        $geoNeed = VolumeGeometria::fechar($larguraPapel, null, $necessidadeM2, 'M2');
+        if ($geoNeed['status'] === VolumeGeometria::STATUS_FECHADO
+            && $geoNeed['comprimento_m'] !== null
+            && bccomp((string) $geoNeed['comprimento_m'], '0', PadraoDecimal::SCALE_DIM) > 0) {
+            $metrosNeed = (string) $geoNeed['comprimento_m'];
+        } else {
+            $un = strtoupper(str_replace('²', '2', (string) ($produto->unidade_interna ?? '')));
+            if (in_array($un, ['M', 'MT', 'ML'], true)
+                && bccomp($necessidadeM2, '0', PadraoDecimal::SCALE_DIM) > 0) {
+                $metrosNeed = PadraoDecimal::roundHalfUp($necessidadeM2, PadraoDecimal::SCALE_DIM);
             }
         }
         if ($metrosNeed === null) {
@@ -2798,23 +2806,15 @@ class OrdemProducaoService
                 continue;
             }
             $cP = $lote->comprimento_m;
-            $areaVol = isset($row['qtde'])
+            $qtdeVol = isset($row['qtde'])
                 ? PadraoDecimal::roundHalfUp((string) $row['qtde'], PadraoDecimal::SCALE_QTY)
                 : null;
-            // Após SAIDA o writer zera comprimento — reconstitui C a partir da área baixada × L.
+            // Após SAIDA o writer zera comprimento — reconstitui C (M = qtde; M2 = área ÷ L).
             if ($cP === null || $cP === '' || bccomp((string) $cP, '0', 4) <= 0) {
-                if ($areaVol === null
-                    || bccomp($areaVol, '0', PadraoDecimal::SCALE_QTY) <= 0
-                    || $lote->largura_mm === null
-                    || $lote->largura_mm === '') {
+                $cP = $this->comprimentoReconstituidoDoVolume($lote, $produto, $qtdeVol);
+                if ($cP === null) {
                     continue;
                 }
-                $geoRec = VolumeGeometria::fechar($lote->largura_mm, null, $areaVol, 'M2');
-                if ($geoRec['status'] !== VolumeGeometria::STATUS_FECHADO
-                    || $geoRec['comprimento_m'] === null) {
-                    continue;
-                }
-                $cP = (string) $geoRec['comprimento_m'];
             }
             $cP = PadraoDecimal::roundHalfUp((string) $cP, PadraoDecimal::SCALE_DIM);
             if (bccomp($restante, '0', PadraoDecimal::SCALE_DIM) <= 0) {
@@ -2860,6 +2860,32 @@ class OrdemProducaoService
         }
 
         return $planos;
+    }
+
+    /**
+     * C do volume pai após SAIDA (writer zera comprimento): M → qtde; M2 → área ÷ L.
+     */
+    private function comprimentoReconstituidoDoVolume(
+        EstoqueLote $lote,
+        Produto $produto,
+        ?string $qtdeVol,
+    ): ?string {
+        if ($qtdeVol === null || bccomp($qtdeVol, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            return null;
+        }
+        $un = strtoupper(str_replace('²', '2', (string) ($lote->unidade ?: $produto->unidade_interna ?? '')));
+        if (in_array($un, ['M', 'MT', 'ML'], true)) {
+            return PadraoDecimal::roundHalfUp($qtdeVol, PadraoDecimal::SCALE_DIM);
+        }
+        if ($lote->largura_mm === null || $lote->largura_mm === '') {
+            return null;
+        }
+        $geoRec = VolumeGeometria::fechar($lote->largura_mm, null, $qtdeVol, 'M2');
+        if ($geoRec['status'] !== VolumeGeometria::STATUS_FECHADO || $geoRec['comprimento_m'] === null) {
+            return null;
+        }
+
+        return (string) $geoRec['comprimento_m'];
     }
 
     /**

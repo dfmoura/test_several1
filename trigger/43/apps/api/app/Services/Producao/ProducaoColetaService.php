@@ -16,6 +16,7 @@ use App\Support\InsumoEscolhaRelacao;
 use App\Support\PadraoDecimal;
 use App\Support\PartidaBobina;
 use App\Support\ProdutoLotePolitica;
+use App\Support\VolumeGeometria;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -648,6 +649,9 @@ class ProducaoColetaService
             $lote = $item->lote;
             if ($lote) {
                 $linha = $this->volumeToOut($lote, (string) $item->qtde, false, 'BAIXADO', $ordem);
+                // Após SAIDA o writer zera comprimento no lote — reconstitui C da área baixada × L
+                // para a medida do kit («O que sai») não aparecer como «155 mm × 0 m».
+                $linha = $this->reidratarComprimentoBaixado($linha, (string) $item->qtde);
             } else {
                 $linha = [
                     'lote_id' => null,
@@ -675,6 +679,40 @@ class ProducaoColetaService
         }
 
         return $out;
+    }
+
+    /**
+     * Medida histórica da bobina baixada: L × C quando o lote já está qtde 0.
+     * M/MT/ML → qtde do MOV é o metro; M2 → área ÷ L.
+     *
+     * @param  array<string, mixed>  $linha
+     * @return array<string, mixed>
+     */
+    private function reidratarComprimentoBaixado(array $linha, string $qtdeBaixada): array
+    {
+        $c = $linha['comprimento_m'] ?? null;
+        if ($c !== null && $c !== '' && bccomp((string) $c, '0', PadraoDecimal::SCALE_DIM) > 0) {
+            return $linha;
+        }
+        if (bccomp($qtdeBaixada, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            return $linha;
+        }
+        $un = strtoupper(str_replace('²', '2', (string) ($linha['unidade'] ?? '')));
+        if (in_array($un, ['M', 'MT', 'ML'], true)) {
+            $linha['comprimento_m'] = PadraoDecimal::roundHalfUp($qtdeBaixada, PadraoDecimal::SCALE_DIM);
+
+            return $linha;
+        }
+        $l = $linha['largura_mm'] ?? null;
+        if ($l === null || $l === '') {
+            return $linha;
+        }
+        $geo = VolumeGeometria::fechar($l, null, $qtdeBaixada, 'M2');
+        if ($geo['status'] === VolumeGeometria::STATUS_FECHADO && $geo['comprimento_m'] !== null) {
+            $linha['comprimento_m'] = (string) $geo['comprimento_m'];
+        }
+
+        return $linha;
     }
 
     /**

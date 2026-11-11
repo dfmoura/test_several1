@@ -47,8 +47,8 @@ function bobinasDoPlano(m: OrdemProducaoMaterial): BobinaRetorno[] {
 }
 
 /**
- * Fallback só para Passa de comprimento (1 bobina) enquanto a API hidrata.
- * Nunca inventa um único volume agregando refile+sobra de partida.
+ * Fallback só para Passa de comprimento com **1** volume baixado, enquanto a API hidrata.
+ * Com N>1 bobinas físicas nunca agrega Passa numa linha só — aguarda `partida_prevista`.
  */
 function bobinasDoPassa(args: {
   passaM2: number;
@@ -59,11 +59,14 @@ function bobinasDoPassa(args: {
   if (!(args.passaM2 > 1e-4)) return [];
   // Se já há preview de partida no baixado, não colapsar em 1 linha.
   const prev = args.baixados.find((v) => v.partida_preview)?.partida_preview;
-  if (prev?.refile || (prev?.tipo === 'partida')) return [];
-  const pai =
-    args.baixados.find((v) => (v.lote_id ?? 0) > 0 && !v.avariado)?.lote_id ??
-    args.baixados.find((v) => (v.lote_id ?? 0) > 0)?.lote_id ??
-    0;
+  if (prev?.refile || prev?.tipo === 'partida') return [];
+  const pais = args.baixados
+    .filter((v) => (v.lote_id ?? 0) > 0 && !v.avariado)
+    .map((v) => v.lote_id as number);
+  const unicos = [...new Set(pais.length > 0 ? pais : args.baixados.map((v) => v.lote_id).filter(Boolean))];
+  // N volumes → o motor aloca C_u por bobina; fallback agregado enganaria (ex.: 155×1735).
+  if (unicos.length !== 1) return [];
+  const pai = Number(unicos[0]);
   if (!pai) return [];
   const L =
     args.larguraMm > 0

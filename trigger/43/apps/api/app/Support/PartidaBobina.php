@@ -157,56 +157,51 @@ final class PartidaBobina
         if ($geoPai['status'] !== VolumeGeometria::STATUS_FECHADO || $geoPai['qtde'] === null) {
             return ['aplica' => false, 'mensagem' => $geoPai['mensagem'] ?? 'Área do volume pai não fecha.'];
         }
+        $areaPai = PadraoDecimal::roundHalfUp((string) $geoPai['qtde'], PadraoDecimal::SCALE_QTY);
 
-        $geoCons = VolumeGeometria::fechar($lN, $cU, null, 'M2');
-        if ($geoCons['status'] !== VolumeGeometria::STATUS_FECHADO || $geoCons['qtde'] === null) {
-            return ['aplica' => false, 'mensagem' => $geoCons['mensagem'] ?? 'Área consumida não fecha.'];
+        // C_u = 0: nada consumido na faixa do papel — área consumida zero (VolumeGeometria rejeita C≤0).
+        $areaConsumida = '0.0000';
+        if (bccomp($cU, '0', PadraoDecimal::SCALE_DIM) > 0) {
+            $geoCons = VolumeGeometria::fechar($lN, $cU, null, 'M2');
+            if ($geoCons['status'] !== VolumeGeometria::STATUS_FECHADO || $geoCons['qtde'] === null) {
+                return ['aplica' => false, 'mensagem' => $geoCons['mensagem'] ?? 'Área consumida não fecha.'];
+            }
+            $areaConsumida = PadraoDecimal::roundHalfUp((string) $geoCons['qtde'], PadraoDecimal::SCALE_QTY);
         }
 
         $deltaL = PadraoDecimal::roundHalfUp(bcsub($lP, $lN, 6), PadraoDecimal::SCALE_DIM);
         $refile = null;
+        $areaRefile = '0.0000';
         if (bccomp($deltaL, self::LARGURA_TOL_MM, 4) >= 0) {
             $geoRef = VolumeGeometria::fechar($deltaL, $cP, null, 'M2');
             if ($geoRef['status'] !== VolumeGeometria::STATUS_FECHADO || $geoRef['qtde'] === null) {
                 return ['aplica' => false, 'mensagem' => $geoRef['mensagem'] ?? 'Área do refile não fecha.'];
             }
+            $areaRefile = PadraoDecimal::roundHalfUp((string) $geoRef['qtde'], PadraoDecimal::SCALE_QTY);
             $refile = [
                 'largura_mm' => (string) $geoRef['largura_mm'],
                 'comprimento_m' => (string) $geoRef['comprimento_m'],
-                'area_m2' => (string) $geoRef['area_m2'],
-                'qtde' => (string) $geoRef['qtde'],
+                'area_m2' => $areaRefile,
+                'qtde' => $areaRefile,
             ];
         }
 
-        $deltaC = PadraoDecimal::roundHalfUp(bcsub($cP, $cU, 6), PadraoDecimal::SCALE_DIM);
+        // Sobra = residual de área (conservação por construção — evita 0,0001 M2 de arredondamento L×C).
+        $areaSobra = PadraoDecimal::roundHalfUp(
+            bcsub(
+                bcsub($areaPai, $areaConsumida, PadraoDecimal::SCALE_QTY + 4),
+                $areaRefile,
+                PadraoDecimal::SCALE_QTY + 4
+            ),
+            PadraoDecimal::SCALE_QTY
+        );
         $sobra = null;
-        if (bccomp($deltaC, '0', PadraoDecimal::SCALE_DIM) > 0) {
-            $geoSob = VolumeGeometria::fechar($lN, $deltaC, null, 'M2');
-            if ($geoSob['status'] !== VolumeGeometria::STATUS_FECHADO || $geoSob['qtde'] === null) {
-                return ['aplica' => false, 'mensagem' => $geoSob['mensagem'] ?? 'Área da sobra útil não fecha.'];
+        if (bccomp($areaSobra, '0', PadraoDecimal::SCALE_QTY) > 0) {
+            $corpo = self::corpoFromAreaResidual($lN, $areaSobra);
+            if ($corpo === null) {
+                return ['aplica' => false, 'mensagem' => 'Área da sobra útil não fecha.'];
             }
-            $sobra = [
-                'largura_mm' => (string) $geoSob['largura_mm'],
-                'comprimento_m' => (string) $geoSob['comprimento_m'],
-                'area_m2' => (string) $geoSob['area_m2'],
-                'qtde' => (string) $geoSob['qtde'],
-            ];
-        }
-
-        $soma = (string) $geoCons['qtde'];
-        if ($refile !== null) {
-            $soma = bcadd($soma, $refile['qtde'], PadraoDecimal::SCALE_QTY + 4);
-        }
-        if ($sobra !== null) {
-            $soma = bcadd($soma, $sobra['qtde'], PadraoDecimal::SCALE_QTY + 4);
-        }
-        $soma = PadraoDecimal::roundHalfUp($soma, PadraoDecimal::SCALE_QTY);
-        $areaPai = PadraoDecimal::roundHalfUp((string) $geoPai['qtde'], PadraoDecimal::SCALE_QTY);
-        if (bccomp($soma, $areaPai, PadraoDecimal::SCALE_QTY) !== 0) {
-            return [
-                'aplica' => false,
-                'mensagem' => "Conservação de área falhou ({$soma} ≠ {$areaPai} M2).",
-            ];
+            $sobra = $corpo;
         }
 
         return [
@@ -219,7 +214,7 @@ final class PartidaBobina
             'C_n' => $cN,
             'C_u' => $cU,
             'area_pai' => $areaPai,
-            'area_consumida' => PadraoDecimal::roundHalfUp((string) $geoCons['qtde'], PadraoDecimal::SCALE_QTY),
+            'area_consumida' => $areaConsumida,
             'refile' => $refile,
             'sobra' => $sobra,
             'mensagem' => null,
@@ -255,32 +250,63 @@ final class PartidaBobina
         if ($cU === null) {
             return ['aplica' => false, 'mensagem' => 'Metros usados inválidos.'];
         }
+        if (bccomp($cU, '0', PadraoDecimal::SCALE_DIM) < 0) {
+            return ['aplica' => false, 'mensagem' => 'Metros usados negativos.'];
+        }
         if (bccomp($cU, $cP, PadraoDecimal::SCALE_DIM) > 0) {
             return ['aplica' => false, 'mensagem' => 'Metros usados excedem o comprimento do volume.'];
         }
+
+        $geoPai = VolumeGeometria::fechar($lP, $cP, null, 'M2');
+        if ($geoPai['status'] !== VolumeGeometria::STATUS_FECHADO || $geoPai['qtde'] === null) {
+            return ['aplica' => false, 'mensagem' => 'Área da sobra não fecha.'];
+        }
+        $areaPai = PadraoDecimal::roundHalfUp((string) $geoPai['qtde'], PadraoDecimal::SCALE_QTY);
+
+        // Volume além da necessidade (C_u = 0): bobina física inteira volta — 1 VOL:.
+        if (bccomp($cU, '0', PadraoDecimal::SCALE_DIM) === 0) {
+            return [
+                'aplica' => true,
+                'tipo' => self::TIPO_SOBRA_COMPRIMENTO,
+                'lote_pai_id' => $lotePaiId !== null && $lotePaiId > 0 ? $lotePaiId : null,
+                'L_p' => $lP,
+                'C_p' => $cP,
+                'L_n' => $lN,
+                'C_n' => $cN,
+                'C_u' => $cU,
+                'area_pai' => $areaPai,
+                'area_consumida' => '0.0000',
+                'refile' => null,
+                'sobra' => [
+                    'largura_mm' => (string) $geoPai['largura_mm'],
+                    'comprimento_m' => (string) $geoPai['comprimento_m'],
+                    'area_m2' => $areaPai,
+                    'qtde' => $areaPai,
+                ],
+                'mensagem' => null,
+            ];
+        }
+
         $deltaC = PadraoDecimal::roundHalfUp(bcsub($cP, $cU, 6), PadraoDecimal::SCALE_DIM);
         if (bccomp($deltaC, '0', PadraoDecimal::SCALE_DIM) <= 0) {
             return ['aplica' => false, 'mensagem' => 'Sem passa de comprimento.'];
         }
 
-        $geoPai = VolumeGeometria::fechar($lP, $cP, null, 'M2');
         $geoCons = VolumeGeometria::fechar($lN, $cU, null, 'M2');
-        $geoSob = VolumeGeometria::fechar($lN, $deltaC, null, 'M2');
-        if ($geoPai['status'] !== VolumeGeometria::STATUS_FECHADO
-            || $geoCons['status'] !== VolumeGeometria::STATUS_FECHADO
-            || $geoSob['status'] !== VolumeGeometria::STATUS_FECHADO
-            || $geoPai['qtde'] === null
-            || $geoCons['qtde'] === null
-            || $geoSob['qtde'] === null) {
+        if ($geoCons['status'] !== VolumeGeometria::STATUS_FECHADO || $geoCons['qtde'] === null) {
             return ['aplica' => false, 'mensagem' => 'Área da sobra não fecha.'];
         }
-        $soma = PadraoDecimal::roundHalfUp(
-            bcadd((string) $geoCons['qtde'], (string) $geoSob['qtde'], PadraoDecimal::SCALE_QTY + 4),
+        $areaConsumida = PadraoDecimal::roundHalfUp((string) $geoCons['qtde'], PadraoDecimal::SCALE_QTY);
+        $areaSobra = PadraoDecimal::roundHalfUp(
+            bcsub($areaPai, $areaConsumida, PadraoDecimal::SCALE_QTY + 4),
             PadraoDecimal::SCALE_QTY
         );
-        $areaPai = PadraoDecimal::roundHalfUp((string) $geoPai['qtde'], PadraoDecimal::SCALE_QTY);
-        if (bccomp($soma, $areaPai, PadraoDecimal::SCALE_QTY) !== 0) {
-            return ['aplica' => false, 'mensagem' => "Conservação de área falhou ({$soma} ≠ {$areaPai} M2)."];
+        if (bccomp($areaSobra, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            return ['aplica' => false, 'mensagem' => 'Sem passa de comprimento.'];
+        }
+        $corpo = self::corpoFromAreaResidual($lN, $areaSobra);
+        if ($corpo === null) {
+            return ['aplica' => false, 'mensagem' => 'Área da sobra não fecha.'];
         }
 
         return [
@@ -293,15 +319,33 @@ final class PartidaBobina
             'C_n' => $cN,
             'C_u' => $cU,
             'area_pai' => $areaPai,
-            'area_consumida' => PadraoDecimal::roundHalfUp((string) $geoCons['qtde'], PadraoDecimal::SCALE_QTY),
+            'area_consumida' => $areaConsumida,
             'refile' => null,
-            'sobra' => [
-                'largura_mm' => (string) $geoSob['largura_mm'],
-                'comprimento_m' => (string) $geoSob['comprimento_m'],
-                'area_m2' => (string) $geoSob['area_m2'],
-                'qtde' => (string) $geoSob['qtde'],
-            ],
+            'sobra' => $corpo,
             'mensagem' => null,
+        ];
+    }
+
+    /**
+     * Corpo de retorno a partir do residual de área (L + m² → C).
+     * Garante conservação: qtde oficial = residual, não L×C re-arredondado.
+     *
+     * @return array{largura_mm: string, comprimento_m: string, area_m2: string, qtde: string}|null
+     */
+    private static function corpoFromAreaResidual(string $larguraMm, string $areaResidual): ?array
+    {
+        $geo = VolumeGeometria::fechar($larguraMm, null, $areaResidual, 'M2');
+        if ($geo['status'] !== VolumeGeometria::STATUS_FECHADO
+            || $geo['comprimento_m'] === null
+            || $geo['largura_mm'] === null) {
+            return null;
+        }
+
+        return [
+            'largura_mm' => (string) $geo['largura_mm'],
+            'comprimento_m' => (string) $geo['comprimento_m'],
+            'area_m2' => $areaResidual,
+            'qtde' => $areaResidual,
         ];
     }
 

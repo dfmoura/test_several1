@@ -223,4 +223,19 @@ O exemplo de negócio (18×1000 → 15,5×300 + 2,5×1000 + 15,5×700) continua 
 
 Invariantes intactos: um Writer · `ENTRADA_SOBRA` · mesmo SKU · isolamento `empresa_id` · sem segundo saldo.
 
+## Emenda 2026-11-11b — N volumes na medida exata (Passa por bobina)
+
+Quando a baixa traz **N bobinas** da medida do papel e a necessidade cabe em menos que N:
+
+| Decisão | Motivo |
+|---------|--------|
+| **Alocar `C_u` na ordem dos volumes** | 1º cobre a metragem; demais com `C_u=0` voltam inteiros |
+| **1 plano / 1 bobina física** | Nunca agregar Passa em `155×(soma C)` — KPI Passa soma; grade lista N linhas |
+| **Sobra por residual de área** | `qtde_sobra = área_pai − área_consumida` (fecha L+C a partir do residual) — evita falha `155,0001≠155` por arredondamento L×C |
+| **`C_u=0` é plano válido** | VolumeGeometria rejeita C≤0; o motor trata «inteiro volta» sem chamar fechar(C=0) no consumo |
+| **Medida nos baixados** | Após SAIDA o lote tem C=0; API reconstitui C da área do MOV × L (kit não mostra `× 0 m`) |
+| **Fallback FE** | Só 1 volume baixado pode inventar linha provisória; N>1 espera `partida_prevista` |
+
+Exemplo: Precisa 264,59 m · 2× (155 mm × 1000 m) → volta `155×735,41` + `155×1000` (Passa 1.735,40 m / 268,98 m²).
+
 Alterar esta ADR exige decisão explícita (produção + estoque + UX). Sem segundo writer e sem explodir SKU.

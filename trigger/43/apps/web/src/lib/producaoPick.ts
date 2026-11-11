@@ -658,8 +658,21 @@ export function formatLotePick(v: { codigo?: string | null; lote_id?: number | n
 }
 
 export function formatVolumeDimensao(v: OpRetiradaVolume): string | null {
-  const largura = v.largura_mm ? `${formatDecimalBr(Number(v.largura_mm), 0)} mm` : null;
-  const comp = v.comprimento_m ? `${formatDecimalBr(Number(v.comprimento_m), 0)} m` : null;
+  const L = Number(v.largura_mm);
+  let C = Number(v.comprimento_m);
+  // Após SAIDA o lote pode vir com C=0 — reconstitui: M = qtde; M2 = área ÷ L.
+  if ((!Number.isFinite(C) || C <= 1e-9)) {
+    const q = Number(v.qtde_retirar ?? v.qtde_volume);
+    if (Number.isFinite(q) && q > 1e-9) {
+      if (unidadeEhLinear(v.unidade)) {
+        C = q;
+      } else if (Number.isFinite(L) && L > 0) {
+        C = (q * 1000) / L;
+      }
+    }
+  }
+  const largura = Number.isFinite(L) && L > 0 ? `${formatDecimalBr(L, 0)} mm` : null;
+  const comp = Number.isFinite(C) && C > 1e-9 ? `${formatDecimalBr(C, 0)} m` : null;
   if (largura && comp) return `${largura} × ${comp}`;
   return largura || comp;
 }
