@@ -1234,6 +1234,10 @@ class OrdemProducaoService
                 ]);
             }
 
+            // Garante plano «Passa»/partida antes de materializar (OPs antigas / JSON vazio).
+            $this->garantirPartidaPrevistaHidratada($empresa, $op, $mat);
+            $mat->refresh();
+
             $req = PadraoDecimal::roundHalfUp((string) $mat->qtde_requisitada, PadraoDecimal::SCALE_QTY);
             if (bccomp($req, '0', PadraoDecimal::SCALE_QTY) <= 0) {
                 throw ValidationException::withMessages([
@@ -2997,7 +3001,8 @@ class OrdemProducaoService
     }
 
     /**
-     * OPs que saíram antes do plano «Passa»: reconstitui partida_prevista a partir da SAIDA.
+     * OPs que saíram sem plano «Passa»: reconstitui partida_prevista a partir da SAIDA.
+     * Só grava se ainda não houver plano pendente (não reabre o que já foi devolvido).
      */
     private function garantirPartidaPrevistaHidratada(
         Empresa $empresa,
@@ -3011,7 +3016,16 @@ class OrdemProducaoService
             return;
         }
         $atuais = is_array($mat->partida_prevista) ? $mat->partida_prevista : [];
-        if ($atuais !== []) {
+        foreach ($atuais as $plano) {
+            if (($plano['status'] ?? '') === 'pendente') {
+                return;
+            }
+        }
+        // Só «Passa» (saiu mais que a necessidade) — sem engolir OP coberta exacta.
+        $req = PadraoDecimal::roundHalfUp((string) $mat->qtde_requisitada, PadraoDecimal::SCALE_QTY);
+        $plan = PadraoDecimal::roundHalfUp((string) $mat->qtde_planejada, PadraoDecimal::SCALE_QTY);
+        if (bccomp($plan, '0', PadraoDecimal::SCALE_QTY) > 0
+            && bccomp($req, $plan, PadraoDecimal::SCALE_QTY) <= 0) {
             return;
         }
 
@@ -3037,6 +3051,16 @@ class OrdemProducaoService
                 )
                 : $q;
         }
+        // Pais já materializados em filhos — não recriar plano.
+        foreach ($atuais as $plano) {
+            if (($plano['status'] ?? '') !== 'devolvido') {
+                continue;
+            }
+            $pai = (int) ($plano['lote_pai_id'] ?? 0);
+            if ($pai > 0) {
+                unset($agg[$pai]);
+            }
+        }
         if ($agg === []) {
             return;
         }
@@ -3044,9 +3068,9 @@ class OrdemProducaoService
         foreach ($agg as $lid => $q) {
             $volumes[] = ['lote_id' => (int) $lid, 'qtde' => $q];
         }
-        $necessidade = PadraoDecimal::roundHalfUp((string) $mat->qtde_planejada, PadraoDecimal::SCALE_QTY);
+        $necessidade = $plan;
         if (bccomp($necessidade, '0', PadraoDecimal::SCALE_QTY) <= 0) {
-            $necessidade = PadraoDecimal::roundHalfUp((string) $mat->qtde_requisitada, PadraoDecimal::SCALE_QTY);
+            $necessidade = $req;
         }
         $planos = $this->planosPartidaDosVolumes(
             $empresa,
@@ -3058,7 +3082,14 @@ class OrdemProducaoService
         if ($planos === []) {
             return;
         }
-        $mat->partida_prevista = $planos;
+        // Preserva histórico devolvido + acrescenta pendentes novos.
+        $mat->partida_prevista = array_values(array_merge(
+            array_values(array_filter(
+                $atuais,
+                static fn (array $p): bool => ($p['status'] ?? '') === 'devolvido'
+            )),
+            $planos,
+        ));
         $mat->save();
     }
 

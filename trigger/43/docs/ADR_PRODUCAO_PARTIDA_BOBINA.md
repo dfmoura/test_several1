@@ -193,6 +193,17 @@ O balanço **Precisa · Saiu · Passa** deixa de ser só indicador. Se `Passa > 
 | **CTA Imprimir etiquetas** | Reuso `/estoque/lotes/etiquetas?ids=` após materializar |
 | **Hidratação de OP antiga** | Sem `partida_prevista`: reconstitui C do pai pela área da SAIDA × L e grava o plano |
 
+## Emenda 2026-11-10d — «O que volta» nunca some com Passa
+
+No próprio grupo Papel/Acabamento, **após** o balanço Precisa·Saiu·Passa:
+
+| Decisão | Motivo |
+|---------|--------|
+| **Bloco «O que volta ao estoque»** | Mesmo padrão de tabela do kit (medida · m² · m · **Local**) |
+| **Visível se Passa > 0** | Mesmo sem JSON ainda — preview + GET/hidratação; confirmar exige plano oficial |
+| **Local = coluna obrigatória** | Espelha a coluna Local do que saiu; devolver sem local bloqueia |
+| **Hidratação no show e no devolver** | Writer único; sem segundo saldo |
+
 Invariantes intactos: um Writer · `ENTRADA_SOBRA` · mesmo SKU · isolamento `empresa_id` · sem segundo saldo.
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX). Sem segundo writer e sem explodir SKU.

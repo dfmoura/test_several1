@@ -1127,6 +1127,17 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                 const un = unidadeExibicao(m.unidade || m.retirada?.unidade);
                 const peca = unidadeContada(m.unidade || m.retirada?.unidade);
                 const metragem = insumoComMetragem(m);
+                const balancoSaiu =
+                  estado === 'ja_saiu' && metragem
+                    ? balancoMetragem(
+                        m,
+                        op,
+                        baixados.map((vol) => ({
+                          vol,
+                          qtde: parseQtdeDigitada(vol.qtde_retirar || vol.qtde_volume),
+                        })),
+                      )
+                    : null;
                 const polegada = rotuloPolegada(
                   m.origem_texto ?? m.produto?.descricao_comercial ?? m.produto?.descricao_fiscal,
                 );
@@ -1195,19 +1206,6 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                         ) : null}
                       </div>
                     </div>
-                    {estado === 'ja_saiu' ? (
-                      <OpRetornoBobinas
-                        op={op}
-                        material={m}
-                        podeEstoque={podeEstoque}
-                        canWrite={canWrite}
-                        busy={busy}
-                        onBusy={setBusy}
-                        onOp={onOp}
-                        onErr={setErr}
-                      />
-                    ) : null}
-
                     {m.escolher_produto && !volumeDireto && estado !== 'ja_saiu' ? (
                       <div className="form-group" style={{ marginBottom: '0.75rem' }}>
                         <label>
@@ -1259,6 +1257,23 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                                 qtde: qtdeEfetiva(m, linha.lote_id, linha.qtde),
                               }))
                         }
+                      />
+                    ) : null}
+
+                    {estado === 'ja_saiu' && metragem ? (
+                      <OpRetornoBobinas
+                        op={op}
+                        material={m}
+                        passaM2={balancoSaiu?.passaM2 ?? 0}
+                        passaM={balancoSaiu?.passaM ?? null}
+                        larguraMm={larguraMmDoMaterial(m)}
+                        baixados={baixados}
+                        podeEstoque={podeEstoque}
+                        canWrite={canWrite}
+                        busy={busy}
+                        onBusy={setBusy}
+                        onOp={onOp}
+                        onErr={setErr}
                       />
                     ) : null}
 

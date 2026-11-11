@@ -14267,6 +14267,13 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   color: var(--warning);
 }
 
+/* Grade «O que volta ao estoque» — mesma família visual do kit, destaque leve do Passa. */
+.op-insumos .op-insumo-retorno {
+  border-left: 3px solid var(--warning);
+  padding-left: 0.65rem;
+  margin-left: 0;
+}
+
 .op-insumo-balanco__coberto strong {
   color: #2f6b4f;
 }
