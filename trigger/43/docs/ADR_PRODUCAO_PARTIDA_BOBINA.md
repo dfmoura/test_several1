@@ -247,4 +247,12 @@ Exemplo: Precisa 264,59 m · 2× (155 mm × 1000 m) → volta `155×735,41` + `1
 | **Material PAPEL mantém unidade M2 do BOM** | Saída não sobrescreve com `unidade_interna` M do SKU |
 | **CTA «Apontar perda»** | Botão de ação (não status); status de perda continua «Perda» na qtde |
 
+## Emenda 2026-11-11d — C_p real · metragem ≠ m²
+
+| Decisão | Motivo |
+|---------|--------|
+| **SKU M: qtde do MOV = metro** | Nunca `fechar(L, null, 1000)` como m² → C_p fantasma 6.451 m |
+| **C_p do plano ≤ comprimento real do volume** | Hidrata de novo se C_p ≫ qtde (M) ou área÷L (M2) |
+| **planejada ≈ metragem e faixa tem m²** | Corrige `qtde_planejada` para m² da faixa (Precisa 41 m² · 264,59 m, não 264,59 m² · 1.707 m) |
+
 Alterar esta ADR exige decisão explícita (produção + estoque + UX). Sem segundo writer e sem explodir SKU.
