@@ -217,7 +217,9 @@ O exemplo de negócio (18×1000 → 15,5×300 + 2,5×1000 + 15,5×700) continua 
 - Quadro na **escolha** (kit / overlay / pick) e no **retorno**.  
 - **Sem** bobina de prateleira para a faixa de produção.  
 - Etiqueta: face VOL: **sem local** (local no sistema).  
-- Retorno **antes do fecho** (fecho bloqueia pendente).
+- Retorno **antes do fecho** (fecho bloqueia pendente).  
+- KPI **Passa** com N>1 bobinas: copy `N bobinas · Xm²` (não um metro único enganoso).  
+- Devolver no overlay: **1 linha por bobina** (refile / sobra) + local — pai na SAIDA continua 1 volume.
 
 Invariantes intactos: um Writer · `ENTRADA_SOBRA` · mesmo SKU · isolamento `empresa_id` · sem segundo saldo.
 

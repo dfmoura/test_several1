@@ -46,6 +46,8 @@ import {
   parseQtdeDigitada,
 } from '../lib/producaoUi';
 import { PartidaDivisaoQuadro } from './PartidaDivisaoQuadro';
+import { rotuloLocal, type LocalSaldo } from './LocalSaldoCampo';
+import { bobinasRetornoPendentes, rotuloBobinaRetorno } from '../lib/partidaUi';
 
 type Props = {
   op: OrdemProducao;
@@ -134,6 +136,9 @@ export function OpEscolhaOverlay({
       ? 'Passa — devolver sobra ao estoque'
       : '',
   );
+  const bobinasVolta = useMemo(() => bobinasRetornoPendentes(material), [material]);
+  const [locaisBobina, setLocaisBobina] = useState<Record<string, string>>({});
+  const [enderecos, setEnderecos] = useState<LocalSaldo[]>([]);
   const [filtro, setFiltro] = useState<VolumeFiltroEstado>(VOLUME_FILTRO_VAZIO);
   const [qr, setQr] = useState('');
   const peca = unidadeContada(material.unidade);
@@ -212,6 +217,22 @@ export function OpEscolhaOverlay({
     const t = window.setTimeout(() => qrRef.current?.focus(), 40);
     return () => window.clearTimeout(t);
   }, [podeBaixar, modo, material.id]);
+
+  useEffect(() => {
+    if (!podeDevolver || bobinasVolta.length === 0) return;
+    let vivo = true;
+    void api
+      .get<{ data: LocalSaldo[] }>('/estoque/enderecos')
+      .then((res) => {
+        if (vivo) setEnderecos(res.data ?? []);
+      })
+      .catch(() => {
+        if (vivo) setEnderecos([]);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [podeDevolver, bobinasVolta.length]);
 
   const escolhidos = vols.filter((v) => v.lote_id && marcados[v.lote_id]);
   const mesmoSku =
@@ -392,7 +413,14 @@ export function OpEscolhaOverlay({
       setErr('Informe o motivo da devolução (mínimo 3 caracteres).');
       return;
     }
-    if (modo === 'volume') {
+    const usaBobinas = bobinasVolta.length > 0;
+    if (usaBobinas) {
+      const locaisOk = bobinasVolta.every((b) => Number(locaisBobina[b.chave] ?? 0) > 0);
+      if (!locaisOk) {
+        setErr('Informe o local de cada bobina (refile e sobra são volumes separados).');
+        return;
+      }
+    } else if (modo === 'volume') {
       if (volsDevolverEscolhidos.length === 0) {
         setErr('Marque o volume que volta à prateleira.');
         return;
@@ -408,21 +436,44 @@ export function OpEscolhaOverlay({
     setErr(null);
     setMsg(null);
     try {
-      const payload =
-        modo === 'volume'
-          ? {
-              material_id: material.id,
-              motivo: motivoDevolver.trim(),
-              volumes: volsDevolverEscolhidos.map((v) => ({
-                lote_id: v.lote_id as number,
-                qtde: qtdeCanon(parseQtdeDigitada(v.qtde_retirar) || qtdeVolumeTotal(v)),
-              })),
-            }
-          : {
-              material_id: material.id,
-              motivo: motivoDevolver.trim(),
-              qtde: qtdeCanon(parseQtdeDigitada(qtdeDevolver)),
-            };
+      let payload: Record<string, unknown>;
+      if (usaBobinas) {
+        const porPai = new Map<number, number>();
+        for (const b of bobinasVolta) {
+          porPai.set(
+            b.lote_pai_id,
+            (porPai.get(b.lote_pai_id) ?? 0) + parseQtdeDigitada(b.qtde),
+          );
+        }
+        payload = {
+          material_id: material.id,
+          motivo: motivoDevolver.trim(),
+          volumes: [...porPai.entries()].map(([lote_id, qtde]) => ({
+            lote_id,
+            qtde: qtdeCanon(qtde),
+          })),
+          locais: bobinasVolta.map((b) => ({
+            lote_pai_id: b.lote_pai_id,
+            tipo: b.tipo,
+            endereco_id: Number(locaisBobina[b.chave]),
+          })),
+        };
+      } else if (modo === 'volume') {
+        payload = {
+          material_id: material.id,
+          motivo: motivoDevolver.trim(),
+          volumes: volsDevolverEscolhidos.map((v) => ({
+            lote_id: v.lote_id as number,
+            qtde: qtdeCanon(parseQtdeDigitada(v.qtde_retirar) || qtdeVolumeTotal(v)),
+          })),
+        };
+      } else {
+        payload = {
+          material_id: material.id,
+          motivo: motivoDevolver.trim(),
+          qtde: qtdeCanon(parseQtdeDigitada(qtdeDevolver)),
+        };
+      }
       const res = await api.post<{ data: OrdemProducao }>(
         `/estoque/retiradas/${op.id}/devolver`,
         payload,
@@ -572,9 +623,90 @@ export function OpEscolhaOverlay({
               modo === 'volume' ? (
                 <>
                   <p className="muted" style={{ marginTop: 0 }}>
-                    Volumes ainda fora da prateleira nesta OP — só o que ainda serve.
-                    Partida devolve refile + sobra como bobinas novas.
+                    {bobinasVolta.length > 1
+                      ? `${bobinasVolta.length} bobinas a devolver (refile e sobra são volumes separados — local em cada uma).`
+                      : 'Volumes ainda fora da prateleira nesta OP — só o que ainda serve.'}
                   </p>
+                  {bobinasVolta.length > 0 ? (
+                    <div className="table-wrap op-escolha__table-wrap">
+                      {(material.partida_prevista ?? [])
+                        .filter((p) => p.status === 'pendente' && p.L_n)
+                        .map((p) => (
+                          <PartidaDivisaoQuadro
+                            key={`dev-div-${p.lote_pai_id}`}
+                            preview={{
+                              tipo: p.tipo,
+                              L_p: String(p.L_p ?? ''),
+                              C_p: String(p.C_p ?? ''),
+                              L_n: String(p.L_n ?? ''),
+                              C_u: String(p.C_u_previsto ?? ''),
+                              area_consumida: p.area_consumida,
+                              area_retorno: p.area_retorno,
+                              refile: p.refile,
+                              sobra: p.sobra,
+                            }}
+                            titulo="Divisão — o que volta são as linhas abaixo"
+                          />
+                        ))}
+                      <table className="data-table op-escolha__table">
+                        <thead>
+                          <tr>
+                            <th>Bobina</th>
+                            <th>Medida</th>
+                            <th>m²</th>
+                            <th>Local</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bobinasVolta.map((b) => (
+                            <tr key={b.chave}>
+                              <td>
+                                <strong>{rotuloBobinaRetorno(b.tipo)}</strong>
+                              </td>
+                              <td>
+                                {[
+                                  b.largura_mm
+                                    ? `${formatDecimalBr(b.largura_mm, 1, { stripTrailingZeros: true })} mm`
+                                    : '',
+                                  b.comprimento_m
+                                    ? `${formatDecimalBr(b.comprimento_m, 1, { stripTrailingZeros: true })} m`
+                                    : '',
+                                ]
+                                  .filter(Boolean)
+                                  .join(' × ') || '—'}
+                              </td>
+                              <td>
+                                {formatQtdePick(
+                                  parseQtdeDigitada(b.area_m2 || b.qtde),
+                                  'm²',
+                                )}
+                              </td>
+                              <td>
+                                <select
+                                  aria-label={`Local — ${rotuloBobinaRetorno(b.tipo)}`}
+                                  disabled={busy}
+                                  value={locaisBobina[b.chave] ?? ''}
+                                  onChange={(e) =>
+                                    setLocaisBobina((prev) => ({
+                                      ...prev,
+                                      [b.chave]: e.target.value,
+                                    }))
+                                  }
+                                >
+                                  <option value="">Escolher local</option>
+                                  {enderecos.map((l) => (
+                                    <option key={l.id} value={String(l.id)}>
+                                      {rotuloLocal(l) || l.codigo}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
                   <div className="table-wrap op-escolha__table-wrap">
                     <table className="data-table op-escolha__table">
                       <thead>
@@ -596,7 +728,6 @@ export function OpEscolhaOverlay({
                           volsADevolver.map((v) => {
                             const id = v.lote_id as number;
                             const on = Boolean(devolverMarcados[id]);
-                            const prev = v.partida_preview;
                             return (
                               <tr key={id} className={on ? 'is-on' : ''}>
                                 <td className="op-escolha__col-check">
@@ -620,32 +751,12 @@ export function OpEscolhaOverlay({
                                       {formatVolumeDimensao(v)}
                                     </div>
                                   ) : null}
-                                  {isRetornoPrevisto(v) && prev ? (
-                                    <div className="muted" style={{ fontSize: '0.85em' }}>
-                                      {v.faixa === 'sobra' ? 'Passa · volta ' : 'Partida · volta '}
-                                      {[
-                                        prev.refile
-                                          ? `refile ${formatDecimalBr(prev.refile.largura_mm, 1, { stripTrailingZeros: true })} mm × ${formatDecimalBr(prev.refile.comprimento_m, 1, { stripTrailingZeros: true })} m`
-                                          : null,
-                                        prev.sobra
-                                          ? `sobra ${formatDecimalBr(prev.sobra.largura_mm, 1, { stripTrailingZeros: true })} mm × ${formatDecimalBr(prev.sobra.comprimento_m, 1, { stripTrailingZeros: true })} m`
-                                          : null,
-                                      ]
-                                        .filter(Boolean)
-                                        .join(' · ')}
-                                    </div>
-                                  ) : null}
                                 </td>
                                 <td>
-                                  {isRetornoPrevisto(v) && v.qtde_partida_retorno
-                                    ? formatQtdePick(
-                                        parseQtdeDigitada(v.qtde_partida_retorno),
-                                        v.unidade ?? material.unidade,
-                                      )
-                                    : formatQtdePick(
-                                        parseQtdeDigitada(v.qtde_retirar),
-                                        v.unidade ?? material.unidade,
-                                      )}
+                                  {formatQtdePick(
+                                    parseQtdeDigitada(v.qtde_retirar),
+                                    v.unidade ?? material.unidade,
+                                  )}
                                 </td>
                                 <td>{v.endereco?.codigo ?? '—'}</td>
                               </tr>
@@ -654,16 +765,8 @@ export function OpEscolhaOverlay({
                         )}
                       </tbody>
                     </table>
-                    {volsADevolver
-                      .filter((v) => devolverMarcados[v.lote_id as number] && v.partida_preview)
-                      .map((v) => (
-                        <PartidaDivisaoQuadro
-                          key={`dev-div-${v.lote_id}`}
-                          preview={v.partida_preview!}
-                          titulo="O que volta ao estoque (previsto)"
-                        />
-                      ))}
                   </div>
+                  )}
                   <div className="form-group" style={{ marginTop: '0.75rem' }}>
                     <label htmlFor="op-escolha-motivo-dev">Motivo da devolução</label>
                     <input

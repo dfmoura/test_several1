@@ -837,7 +837,14 @@ export type TextoBalancoSaida = {
   tom: 'passa' | 'coberto' | 'falta';
 };
 
-export function textoBalancoSaida(saldo: BalancoMetragem, saiu: boolean): TextoBalancoSaida {
+export function textoBalancoSaida(
+  saldo: BalancoMetragem,
+  saiu: boolean,
+  opts?: {
+    /** Bobinas físicas a devolver (refile + sobra). Evita Passa parecer 1 volume. */
+    retornoBobinas?: number;
+  },
+): TextoBalancoSaida {
   const temEscolha = saldo.escolhidoM2 > 1e-4 || (saldo.escolhidoM ?? 0) > 1e-4;
   const falta =
     saldo.faltaM != null ? saldo.faltaM > 1e-4 : saldo.faltaM2 > 1e-4;
@@ -845,16 +852,26 @@ export function textoBalancoSaida(saldo: BalancoMetragem, saiu: boolean): TextoB
     !falta &&
     (saldo.passaM != null ? saldo.passaM > 1e-4 || saldo.passaM2 > 1e-4 : saldo.passaM2 > 1e-4);
   const coberto = temEscolha && !falta && !passa;
+  const nRetorno = opts?.retornoBobinas ?? 0;
+  let cobertura: string;
+  if (passa) {
+    if (nRetorno > 1) {
+      // Partida: área total das N bobinas — sem metro único enganoso (800 m ≠ refile+sobra).
+      cobertura = `${nRetorno} bobinas · ${formatQtdePick(saldo.passaM2, 'm²')}`;
+    } else {
+      cobertura = textoMetragemSaida(saldo.passaM2, saldo.passaM);
+    }
+  } else if (coberto) {
+    cobertura = 'Coberto';
+  } else {
+    cobertura = textoMetragemSaida(saldo.faltaM2, saldo.faltaM);
+  }
   return {
     precisa: textoMetragemSaida(saldo.precisaM2, saldo.precisaM),
     marcadoRotulo: saiu ? 'Saiu' : 'Escolhido',
     marcado: textoMetragemSaida(saldo.escolhidoM2, saldo.escolhidoM),
     coberturaRotulo: passa ? 'Passa' : 'Falta',
-    cobertura: passa
-      ? textoMetragemSaida(saldo.passaM2, saldo.passaM)
-      : coberto
-        ? 'Coberto'
-        : textoMetragemSaida(saldo.faltaM2, saldo.faltaM),
+    cobertura,
     tom: passa ? 'passa' : coberto ? 'coberto' : 'falta',
   };
 }

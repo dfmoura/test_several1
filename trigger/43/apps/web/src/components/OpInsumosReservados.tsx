@@ -52,6 +52,7 @@ import {
   opKitNome,
   parseQtdeDigitada,
 } from '../lib/producaoUi';
+import { bobinasRetornoPendentes } from '../lib/partidaUi';
 
 type VolumeLinha = { lote_id: number; qtde: string };
 
@@ -186,12 +187,28 @@ function BalancoPapel({
 }) {
   const saldo = balancoMetragem(material, op, linhas);
   if (!saldo) return null;
-  const texto = textoBalancoSaida(saldo, saiu);
+  let nRetorno = bobinasRetornoPendentes(material).length;
+  if (nRetorno <= 0) {
+    // Antes da saída: preview nos volumes escolhidos.
+    for (const { vol } of linhas) {
+      const p = vol?.partida_preview;
+      if (!p) continue;
+      if (p.refile && parseQtdeDigitada(p.refile.qtde) > 0) nRetorno += 1;
+      if (p.sobra && parseQtdeDigitada(p.sobra.qtde) > 0) nRetorno += 1;
+    }
+  }
+  const texto = textoBalancoSaida(saldo, saiu, {
+    retornoBobinas: nRetorno > 0 ? nRetorno : undefined,
+  });
   return (
     <p
       className="op-insumo-balanco"
       aria-live="polite"
-      title="Precisa é a metragem da ordem. Escolhido é a bobina inteira: metro do rolo e área do volume."
+      title={
+        nRetorno > 1
+          ? `Passa = ${nRetorno} bobinas a devolver (refile + sobra). Detalhe em «O que volta ao estoque».`
+          : 'Precisa é a metragem da ordem. Escolhido é a bobina inteira: metro do rolo e área do volume.'
+      }
     >
       <span>
         <em>Precisa</em>

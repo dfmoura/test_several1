@@ -9,6 +9,11 @@ import {
 } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
 import { formatQtdePick } from '../lib/producaoPick';
+import {
+  bobinasRetornoPendentes,
+  rotuloBobinaRetorno,
+  type BobinaRetornoUi,
+} from '../lib/partidaUi';
 import { parseQtdeDigitada } from '../lib/producaoUi';
 import { rotuloLocal, type LocalSaldo } from './LocalSaldoCampo';
 
@@ -16,16 +21,7 @@ function qtdeCanon(n: number): string {
   return n.toFixed(4);
 }
 
-type BobinaRetorno = {
-  chave: string;
-  lote_pai_id: number;
-  tipo: string;
-  largura_mm: string;
-  comprimento_m: string;
-  area_m2: string;
-  qtde: string;
-  status: string;
-  lote_id?: number | null;
+type BobinaRetorno = BobinaRetornoUi & {
   /** Derivada do Passa no cliente — some se a API ainda não hidratou. */
   provisoria?: boolean;
 };
@@ -47,50 +43,13 @@ type Props = {
 };
 
 function bobinasDoPlano(m: OrdemProducaoMaterial): BobinaRetorno[] {
-  const out: BobinaRetorno[] = [];
-  for (const p of m.partida_prevista ?? []) {
-    if (p.status !== 'pendente') continue;
-    const lista = p.bobinas?.length
-      ? p.bobinas
-      : [
-          ...(p.refile
-            ? [
-                {
-                  chave: `${p.lote_pai_id}-refile`,
-                  lote_pai_id: p.lote_pai_id,
-                  tipo: 'refile',
-                  largura_mm: String(p.refile.largura_mm ?? ''),
-                  comprimento_m: String(p.refile.comprimento_m ?? ''),
-                  area_m2: String(p.refile.area_m2 ?? p.refile.qtde ?? ''),
-                  qtde: String(p.refile.qtde ?? ''),
-                  status: p.status,
-                },
-              ]
-            : []),
-          ...(p.sobra
-            ? [
-                {
-                  chave: `${p.lote_pai_id}-sobra`,
-                  lote_pai_id: p.lote_pai_id,
-                  tipo: 'sobra',
-                  largura_mm: String(p.sobra.largura_mm ?? ''),
-                  comprimento_m: String(p.sobra.comprimento_m ?? ''),
-                  area_m2: String(p.sobra.area_m2 ?? p.sobra.qtde ?? ''),
-                  qtde: String(p.sobra.qtde ?? ''),
-                  status: p.status,
-                },
-              ]
-            : []),
-        ];
-    for (const b of lista) {
-      if (parseQtdeDigitada(b.qtde) <= 0) continue;
-      out.push(b as BobinaRetorno);
-    }
-  }
-  return out;
+  return bobinasRetornoPendentes(m);
 }
 
-/** Fallback UX: 1 bobina de sobra a partir do Passa + volume baixado (até a API hidratar). */
+/**
+ * Fallback só para Passa de comprimento (1 bobina) enquanto a API hidrata.
+ * Nunca inventa um único volume agregando refile+sobra de partida.
+ */
 function bobinasDoPassa(args: {
   passaM2: number;
   passaM: number | null;
@@ -98,6 +57,9 @@ function bobinasDoPassa(args: {
   baixados: OpRetiradaVolume[];
 }): BobinaRetorno[] {
   if (!(args.passaM2 > 1e-4)) return [];
+  // Se já há preview de partida no baixado, não colapsar em 1 linha.
+  const prev = args.baixados.find((v) => v.partida_preview)?.partida_preview;
+  if (prev?.refile || (prev?.tipo === 'partida')) return [];
   const pai =
     args.baixados.find((v) => (v.lote_id ?? 0) > 0 && !v.avariado)?.lote_id ??
     args.baixados.find((v) => (v.lote_id ?? 0) > 0)?.lote_id ??
@@ -129,7 +91,7 @@ function bobinasDoPassa(args: {
 }
 
 function rotuloTipo(tipo: string): string {
-  return tipo === 'refile' ? 'Refile' : 'Sobra (Passa)';
+  return rotuloBobinaRetorno(tipo);
 }
 
 type Celula = { key: string; label: string; num?: boolean; node: ReactNode; title?: string };
@@ -381,14 +343,16 @@ export function OpRetornoBobinas({
     <div className="orc-faixas-bloco op-insumo-retorno" style={{ marginTop: '0.5rem' }}>
       <p className="form-hint" style={{ marginTop: 0, marginBottom: '0.35rem' }}>
         <strong>O que volta ao estoque</strong>
-        {temPassa
-          ? ` — área a guardar ${formatQtdePick(passaM2, 'm²')}${
-              passaM != null && passaM > 1e-4 ? ` · ${formatQtdePick(passaM, 'm')} na pista` : ''
-            }`
-          : ''}
-        . A faixa da produção já foi consumida (não vira volume). Aqui só as bobinas que
-        retornam — 1 por largura × metro (mesmo SKU). Informe o <strong>Local</strong>, confirme
-        e imprima a etiqueta (face VOL: sem local; o local fica no sistema).
+        {bobinas.length > 1
+          ? ` — ${bobinas.length} bobinas (${bobinas.map((b) => rotuloTipo(b.tipo)).join(' + ')}) · ${formatQtdePick(passaM2 > 0 ? passaM2 : bobinas.reduce((a, b) => a + parseQtdeDigitada(b.qtde), 0), 'm²')}`
+          : temPassa
+            ? ` — ${formatQtdePick(passaM2, 'm²')}${
+                passaM != null && passaM > 1e-4 ? ` · ${formatQtdePick(passaM, 'm')}` : ''
+              }`
+            : ''}
+        . A faixa da produção já foi consumida (não vira volume). Cada linha abaixo é uma bobina
+        física (mesmo SKU). Informe o <strong>Local</strong> de cada uma, confirme e imprima as
+        etiquetas (face VOL: sem local).
         {hidratando ? ' Atualizando plano…' : ''}
       </p>
 
