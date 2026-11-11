@@ -15,7 +15,7 @@ import {
   formatDecimalBr,
   formatTime,
 } from '../lib/format';
-import { Fragment, useMemo } from 'react';
+import { useMemo } from 'react';
 
 type Props = {
   fat: Faturamento;
@@ -299,187 +299,196 @@ function DanfeLayout({
         </div>
       ) : null}
 
-      <div className="danfe-canhoto">
-        <div className="danfe-canhoto-main">
-          <p className="danfe-canhoto-txt">
-            RECEBEMOS DE {(emit?.nome ?? '').toUpperCase()} OS PRODUTOS E/OU SERVIÇOS CONSTANTES DA
-            NOTA FISCAL ELETRÔNICA INDICADA AO LADO.
-          </p>
-          <p className="danfe-canhoto-meta">
-            EMISSÃO: {comNumeracao ? formatDate(p?.data_emissao) : '—'} · VALOR TOTAL: {money(total)} ·
-            DESTINATÁRIO: {dest?.nome ?? '—'}
-          </p>
-          <div className="danfe-canhoto-sign">
-            <span>DATA DE RECEBIMENTO</span>
-            <span>IDENTIFICAÇÃO E ASSINATURA DO RECEBEDOR</span>
+      {/* Topo fixo da 1ª folha (até transportador). Não se repete na continuação. */}
+      <div className="danfe-topo">
+        <div className="danfe-canhoto">
+          <div className="danfe-canhoto-main">
+            <p className="danfe-canhoto-txt">
+              RECEBEMOS DE {(emit?.nome ?? '').toUpperCase()} OS PRODUTOS E/OU SERVIÇOS CONSTANTES DA
+              NOTA FISCAL ELETRÔNICA INDICADA AO LADO.
+            </p>
+            <p className="danfe-canhoto-meta">
+              EMISSÃO: {comNumeracao ? formatDate(p?.data_emissao) : '—'} · VALOR TOTAL: {money(total)} ·
+              DESTINATÁRIO: {dest?.nome ?? '—'}
+            </p>
+            <div className="danfe-canhoto-sign">
+              <span>DATA DE RECEBIMENTO</span>
+              <span>IDENTIFICAÇÃO E ASSINATURA DO RECEBEDOR</span>
+            </div>
+          </div>
+          <div className="danfe-canhoto-nf">
+            <strong>NF-e</strong>
+            <span>Nº {numero}</span>
+            <span>Série {serie}</span>
           </div>
         </div>
-        <div className="danfe-canhoto-nf">
-          <strong>NF-e</strong>
-          <span>Nº {numero}</span>
-          <span>Série {serie}</span>
+        <div className="danfe-cut">· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·</div>
+
+        <div className="danfe-head">
+          <div className="danfe-emit">
+            <span className="danfe-lbl">Identificação do emitente</span>
+            <img src={BRAND.licensee.logo} alt="" className="danfe-logo" />
+            <strong>{emit?.nome}</strong>
+            <pre className="danfe-addr">{emitLinha || emit?.endereco}</pre>
+          </div>
+          <div className="danfe-title">
+            <strong>DANFE</strong>
+            <span>Documento Auxiliar da Nota Fiscal Eletrônica</span>
+            <span className="danfe-io">0 — ENTRADA</span>
+            <span className="danfe-io is-out">1 — SAÍDA · 1</span>
+            <span>Nº {numero}</span>
+            <span>Série {serie}</span>
+          </div>
+          <DanfeChaveAcessoBlock chave={chave} selo={selo} />
+        </div>
+
+        <div className="danfe-row">
+          <Cell label="Natureza da operação" value={p?.natureza} className="w-58" />
+          <Cell
+            label="Protocolo de autorização de uso"
+            value={comNumeracao && (doc.protocolo || p?.protocolo) ? String(doc.protocolo ?? p?.protocolo) : '—'}
+            className="w-42"
+          />
+        </div>
+        <div className="danfe-row">
+          <Cell label="Inscrição estadual" value={emit?.ie || 'ISENTO'} className="w-34" />
+          <Cell label="Inscr. est. do subst. tributário" value=" " className="w-33" />
+          <Cell label="CNPJ" value={emit?.cnpj ? formatCnpjCpf(emit.cnpj) : ' '} className="w-33" />
+        </div>
+
+        <h3 className="danfe-sec">Destinatário / remetente</h3>
+        <div className="danfe-row danfe-dest">
+          <Cell label="Nome / razão social" value={dest?.nome} className="w-60" />
+          <Cell label="CNPJ / CPF" value={dest?.documento ? formatCnpjCpf(dest.documento) : ' '} className="w-24" />
+          <Cell
+            label="Data da emissão"
+            value={comNumeracao ? formatDate(p?.data_emissao) : '—'}
+            className="danfe-dest-data"
+          />
+        </div>
+        <div className="danfe-row danfe-dest">
+          <Cell label="Endereço" value={dest?.endereco} className="w-48" />
+          <Cell label="Bairro / distrito" value={dest?.bairro} className="w-22" />
+          <Cell label="CEP" value={dest?.cep ? formatCep(dest.cep) : ' '} className="w-14" />
+          <Cell
+            label="Data da saída"
+            value={comNumeracao ? formatDate(p?.data_saida || p?.data_emissao) : '—'}
+            className="danfe-dest-data"
+          />
+        </div>
+        <div className="danfe-row danfe-dest">
+          <Cell label="Município" value={dest?.municipio} className="w-38" />
+          <Cell label="UF" value={dest?.uf} className="w-08" />
+          <Cell label="Fone / fax" value=" " className="w-18" />
+          <Cell label="Inscrição estadual" value={dest?.ie} className="w-20" />
+          <Cell
+            label="Hora da saída"
+            value={comNumeracao ? formatTime(p?.hora_saida) : '—'}
+            className="danfe-dest-data"
+          />
+        </div>
+
+        <h3 className="danfe-sec">Fatura / duplicata</h3>
+        <div className="danfe-dups">
+          {dups.length === 0 ? (
+            <Cell label="Duplicata" value="—" />
+          ) : (
+            dups.slice(0, 4).map((d) => (
+              <div key={d.numero} className="danfe-dup">
+                <span>Num. {d.numero}</span>
+                <span>Venc. {formatDate(d.vencimento)}</span>
+                <strong>Valor {money(d.valor)}</strong>
+              </div>
+            ))
+          )}
+        </div>
+
+        <h3 className="danfe-sec">Cálculo do imposto</h3>
+        <div className="danfe-row danfe-tax">
+          <Cell label="Base cálc. ICMS" value="0,00" />
+          <Cell label="Valor do ICMS" value="0,00" />
+          <Cell label="Base ICMS S.T." value="0,00" />
+          <Cell label="Valor ICMS subst." value="0,00" />
+          <Cell label="V. total produtos" value={money(total)} bold />
+        </div>
+        <div className="danfe-row danfe-tax">
+          <Cell label="Valor do frete" value="0,00" />
+          <Cell label="Valor do seguro" value="0,00" />
+          <Cell label="Desconto" value="0,00" />
+          <Cell label="Outras despesas" value="0,00" />
+          <Cell label="V. total da nota" value={money(total)} bold />
+        </div>
+        <div className="danfe-row danfe-tax">
+          <Cell label="IBS UF" value={money(p?.impostos?.v_ibs_uf)} />
+          <Cell label="IBS município" value={money(p?.impostos?.v_ibs_mun)} />
+          <Cell label="CBS" value={money(p?.impostos?.v_cbs)} />
+          <Cell label="Total c/ IBS e CBS" value={money(p?.impostos?.v_nf_tot ?? total)} bold />
+        </div>
+
+        <h3 className="danfe-sec">Transportador / volumes</h3>
+        <div className="danfe-row">
+          <Cell label="Nome / razão social" value={p?.transporte?.nome} className="w-40" />
+          <Cell label="Frete por conta" value={fretePorConta(p?.transporte)} className="w-20" />
+          <Cell label="Código ANTT" value=" " className="w-12" />
+          <Cell label="Placa" value=" " className="w-08" />
+          <Cell label="UF" value=" " className="w-06" />
+          <Cell
+            label="CNPJ / CPF"
+            value={p?.transporte?.documento ? formatCnpjCpf(p.transporte.documento) : ' '}
+            className="w-14"
+          />
+        </div>
+        <div className="danfe-row">
+          <Cell label="Endereço" value={p?.transporte?.endereco} className="w-48" />
+          <Cell label="Município" value={p?.transporte?.municipio} className="w-24" />
+          <Cell label="UF" value={p?.transporte?.uf} className="w-08" />
+          <Cell label="Inscrição estadual" value={p?.transporte?.ie} className="w-20" />
+        </div>
+        <div className="danfe-row">
+          <Cell label="Quantidade" value={volJunto(p?.volumes, 'quantidade')} className="w-16" />
+          <Cell label="Espécie" value={volJunto(p?.volumes, 'especie')} className="w-20" />
+          <Cell label="Marca" value={volJunto(p?.volumes, 'marca')} className="w-16" />
+          <Cell label="Numeração" value={volJunto(p?.volumes, 'numeracao')} className="w-16" />
+          <Cell label="Peso bruto" value={volPeso(p?.volumes, 'peso_bruto')} className="w-16" />
+          <Cell label="Peso líquido" value={volPeso(p?.volumes, 'peso_liquido')} className="w-16" />
         </div>
       </div>
-      <div className="danfe-cut">· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·</div>
 
-      <div className="danfe-head">
-        <div className="danfe-emit">
-          <span className="danfe-lbl">Identificação do emitente</span>
-          <img src={BRAND.licensee.logo} alt="" className="danfe-logo" />
-          <strong>{emit?.nome}</strong>
-          <pre className="danfe-addr">{emitLinha || emit?.endereco}</pre>
-        </div>
-        <div className="danfe-title">
-          <strong>DANFE</strong>
-          <span>Documento Auxiliar da Nota Fiscal Eletrônica</span>
-          <span className="danfe-io">0 — ENTRADA</span>
-          <span className="danfe-io is-out">1 — SAÍDA · 1</span>
-          <span>Nº {numero}</span>
-          <span>Série {serie}</span>
-        </div>
-        <DanfeChaveAcessoBlock chave={chave} selo={selo} />
-      </div>
-
-      <div className="danfe-row">
-        <Cell label="Natureza da operação" value={p?.natureza} className="w-58" />
-        <Cell
-          label="Protocolo de autorização de uso"
-          value={comNumeracao && (doc.protocolo || p?.protocolo) ? String(doc.protocolo ?? p?.protocolo) : '—'}
-          className="w-42"
-        />
-      </div>
-      <div className="danfe-row">
-        <Cell label="Inscrição estadual" value={emit?.ie || 'ISENTO'} className="w-34" />
-        <Cell label="Inscr. est. do subst. tributário" value=" " className="w-33" />
-        <Cell label="CNPJ" value={emit?.cnpj ? formatCnpjCpf(emit.cnpj) : ' '} className="w-33" />
-      </div>
-
-      <h3 className="danfe-sec">Destinatário / remetente</h3>
-      <div className="danfe-row danfe-dest">
-        <Cell label="Nome / razão social" value={dest?.nome} className="w-60" />
-        <Cell label="CNPJ / CPF" value={dest?.documento ? formatCnpjCpf(dest.documento) : ' '} className="w-24" />
-        <Cell
-          label="Data da emissão"
-          value={comNumeracao ? formatDate(p?.data_emissao) : '—'}
-          className="danfe-dest-data"
-        />
-      </div>
-      <div className="danfe-row danfe-dest">
-        <Cell label="Endereço" value={dest?.endereco} className="w-48" />
-        <Cell label="Bairro / distrito" value={dest?.bairro} className="w-22" />
-        <Cell label="CEP" value={dest?.cep ? formatCep(dest.cep) : ' '} className="w-14" />
-        <Cell
-          label="Data da saída"
-          value={comNumeracao ? formatDate(p?.data_saida || p?.data_emissao) : '—'}
-          className="danfe-dest-data"
-        />
-      </div>
-      <div className="danfe-row danfe-dest">
-        <Cell label="Município" value={dest?.municipio} className="w-38" />
-        <Cell label="UF" value={dest?.uf} className="w-08" />
-        <Cell label="Fone / fax" value=" " className="w-18" />
-        <Cell label="Inscrição estadual" value={dest?.ie} className="w-20" />
-        <Cell
-          label="Hora da saída"
-          value={comNumeracao ? formatTime(p?.hora_saida) : '—'}
-          className="danfe-dest-data"
-        />
-      </div>
-
-      <h3 className="danfe-sec">Fatura / duplicata</h3>
-      <div className="danfe-dups">
-        {dups.length === 0 ? (
-          <Cell label="Duplicata" value="—" />
-        ) : (
-          dups.slice(0, 4).map((d) => (
-            <div key={d.numero} className="danfe-dup">
-              <span>Num. {d.numero}</span>
-              <span>Venc. {formatDate(d.vencimento)}</span>
-              <strong>Valor {money(d.valor)}</strong>
-            </div>
-          ))
-        )}
-      </div>
-
-      <h3 className="danfe-sec">Cálculo do imposto</h3>
-      <div className="danfe-row danfe-tax">
-        <Cell label="Base cálc. ICMS" value="0,00" />
-        <Cell label="Valor do ICMS" value="0,00" />
-        <Cell label="Base ICMS S.T." value="0,00" />
-        <Cell label="Valor ICMS subst." value="0,00" />
-        <Cell label="V. total produtos" value={money(total)} bold />
-      </div>
-      <div className="danfe-row danfe-tax">
-        <Cell label="Valor do frete" value="0,00" />
-        <Cell label="Valor do seguro" value="0,00" />
-        <Cell label="Desconto" value="0,00" />
-        <Cell label="Outras despesas" value="0,00" />
-        <Cell label="V. total da nota" value={money(total)} bold />
-      </div>
-      <div className="danfe-row danfe-tax">
-        <Cell label="IBS UF" value={money(p?.impostos?.v_ibs_uf)} />
-        <Cell label="IBS município" value={money(p?.impostos?.v_ibs_mun)} />
-        <Cell label="CBS" value={money(p?.impostos?.v_cbs)} />
-        <Cell label="Total c/ IBS e CBS" value={money(p?.impostos?.v_nf_tot ?? total)} bold />
-      </div>
-
-      <h3 className="danfe-sec">Transportador / volumes</h3>
-      <div className="danfe-row">
-        <Cell label="Nome / razão social" value={p?.transporte?.nome} className="w-40" />
-        <Cell label="Frete por conta" value={fretePorConta(p?.transporte)} className="w-20" />
-        <Cell label="Código ANTT" value=" " className="w-12" />
-        <Cell label="Placa" value=" " className="w-08" />
-        <Cell label="UF" value=" " className="w-06" />
-        <Cell
-          label="CNPJ / CPF"
-          value={p?.transporte?.documento ? formatCnpjCpf(p.transporte.documento) : ' '}
-          className="w-14"
-        />
-      </div>
-      <div className="danfe-row">
-        <Cell label="Endereço" value={p?.transporte?.endereco} className="w-48" />
-        <Cell label="Município" value={p?.transporte?.municipio} className="w-24" />
-        <Cell label="UF" value={p?.transporte?.uf} className="w-08" />
-        <Cell label="Inscrição estadual" value={p?.transporte?.ie} className="w-20" />
-      </div>
-      <div className="danfe-row">
-        <Cell label="Quantidade" value={volJunto(p?.volumes, 'quantidade')} className="w-16" />
-        <Cell label="Espécie" value={volJunto(p?.volumes, 'especie')} className="w-20" />
-        <Cell label="Marca" value={volJunto(p?.volumes, 'marca')} className="w-16" />
-        <Cell label="Numeração" value={volJunto(p?.volumes, 'numeracao')} className="w-16" />
-        <Cell label="Peso bruto" value={volPeso(p?.volumes, 'peso_bruto')} className="w-16" />
-        <Cell label="Peso líquido" value={volPeso(p?.volumes, 'peso_liquido')} className="w-16" />
-      </div>
-
-      <h3 className="danfe-sec">Dados dos produtos / serviços</h3>
-      <table className="danfe-items">
-        <colgroup>
-          <col className="c-cod" />
-          <col className="c-desc" />
-          <col className="c-ncm" />
-          <col className="c-cst" />
-          <col className="c-cfop" />
-          <col className="c-un" />
-          <col className="c-qtd" />
-          <col className="c-vu" />
-          <col className="c-vt" />
-        </colgroup>
-        <thead>
-          <tr>
-            <th>Cód.</th>
-            <th>Descrição do produto / serviço</th>
-            <th>NCM/SH</th>
-            <th>CST</th>
-            <th>CFOP</th>
-            <th>Un</th>
-            <th>Quant.</th>
-            <th>V. unit.</th>
-            <th>V. total</th>
-          </tr>
-        </thead>
-        <tbody>
+      {/* Miolo expansível: único bloco que continua nas folhas seguintes. */}
+      <div className="danfe-miolo">
+        <h3 className="danfe-sec">Dados dos produtos / serviços</h3>
+        <table className="danfe-items">
+          <colgroup>
+            <col className="c-cod" />
+            <col className="c-desc" />
+            <col className="c-ncm" />
+            <col className="c-cst" />
+            <col className="c-cfop" />
+            <col className="c-un" />
+            <col className="c-qtd" />
+            <col className="c-vu" />
+            <col className="c-vt" />
+          </colgroup>
+          <thead>
+            <tr className="danfe-items-id">
+              <th colSpan={9}>
+                NF-e Nº {numero} · Série {serie}
+              </th>
+            </tr>
+            <tr>
+              <th>Cód.</th>
+              <th>Descrição do produto / serviço</th>
+              <th>NCM/SH</th>
+              <th>CST</th>
+              <th>CFOP</th>
+              <th>Un</th>
+              <th>Quant.</th>
+              <th>V. unit.</th>
+              <th>V. total</th>
+            </tr>
+          </thead>
           {itens.map((it) => (
-            <Fragment key={`${doc.id}-${it.numero}`}>
+            <tbody key={`${doc.id}-${it.numero}`} className="danfe-item-block">
               <tr>
                 <td>{it.codigo || ' '}</td>
                 <td className="desc">{it.descricao}</td>
@@ -501,46 +510,51 @@ function DanfeLayout({
                   <span className="danfe-trib">Tributos: {tributosDoItem(it)}</span>
                 </td>
               </tr>
-            </Fragment>
+            </tbody>
           ))}
-        </tbody>
-      </table>
-
-      <h3 className="danfe-sec">Dados adicionais</h3>
-      <div className="danfe-adic">
-        <div>
-          <span className="danfe-lbl">Informações complementares</span>
-          <p>
-            Inf. contribuinte: {p?.informacoes_adicionais || `Pedido ${p?.pedido ?? fat.pedido?.codigo ?? '—'} · Fatura ${p?.faturamento ?? fat.codigo}`}
-          </p>
-        </div>
-        <div>
-          <span className="danfe-lbl">Reservado ao fisco</span>
-          <p>
-            {cancelada
-              ? 'Evento de cancelamento autorizado na SEFAZ. Consulte a autenticidade no portal nacional da NF-e.'
-              : oficial
-                ? ' '
-                : simulada
-                  ? 'Autorização de teste — sem certificado A1. Sem valor fiscal. Não consultar no portal da NF-e.'
-                  : 'Prévia operacional — ainda sem autorização SEFAZ. Sem valor fiscal. Numeração só da SEFAZ.'}
-          </p>
-        </div>
+        </table>
       </div>
 
-      <footer className="danfe-foot">
-        <span>
-          {cancelada
-            ? 'DANFE · NF-e CANCELADA'
-            : oficial
-              ? 'DANFE'
-              : simulada
-                ? 'DANFE de teste'
-                : 'Prévia DANFE'}{' '}
-          · {fat.codigo} · {emitidoPor} · {emitidoEm.toLocaleString('pt-BR')}
-        </span>
-        <TriggerAttribution variant="print" className="ficha-powered" logoClassName="ficha-trigger" />
-      </footer>
+      {/* Base = rodapé de conteúdo: só no fim (última folha quando há continuação). */}
+      <div className="danfe-base">
+        <h3 className="danfe-sec">Dados adicionais</h3>
+        <div className="danfe-adic">
+          <div>
+            <span className="danfe-lbl">Informações complementares</span>
+            <p>
+              Inf. contribuinte:{' '}
+              {p?.informacoes_adicionais ||
+                `Pedido ${p?.pedido ?? fat.pedido?.codigo ?? '—'} · Fatura ${p?.faturamento ?? fat.codigo}`}
+            </p>
+          </div>
+          <div>
+            <span className="danfe-lbl">Reservado ao fisco</span>
+            <p>
+              {cancelada
+                ? 'Evento de cancelamento autorizado na SEFAZ. Consulte a autenticidade no portal nacional da NF-e.'
+                : oficial
+                  ? ' '
+                  : simulada
+                    ? 'Autorização de teste — sem certificado A1. Sem valor fiscal. Não consultar no portal da NF-e.'
+                    : 'Prévia operacional — ainda sem autorização SEFAZ. Sem valor fiscal. Numeração só da SEFAZ.'}
+            </p>
+          </div>
+        </div>
+
+        <footer className="danfe-foot">
+          <span>
+            {cancelada
+              ? 'DANFE · NF-e CANCELADA'
+              : oficial
+                ? 'DANFE'
+                : simulada
+                  ? 'DANFE de teste'
+                  : 'Prévia DANFE'}{' '}
+            · {fat.codigo} · {emitidoPor} · {emitidoEm.toLocaleString('pt-BR')}
+          </span>
+          <TriggerAttribution variant="print" className="ficha-powered" logoClassName="ficha-trigger" />
+        </footer>
+      </div>
     </article>
   );
 }

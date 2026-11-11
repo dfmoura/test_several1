@@ -9026,6 +9026,32 @@ tr.row-inactive td {
   padding: 4mm 4mm 3mm;
 }
 
+/* NF-e: topo (1ª folha) · miolo (itens) · base (dados adicionais no fim). DANFSe intacta. */
+.danfe-sheet:not(.danfse-sheet):not(.danfse-v2) {
+  display: flex;
+  flex-direction: column;
+  /* ~A4 útil (297mm − margens @page danfe-a4): empurra a base quando a nota cabe em 1 folha */
+  min-height: 277mm;
+}
+
+.danfe-topo {
+  flex: 0 0 auto;
+}
+
+.danfe-miolo {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.danfe-base {
+  flex: 0 0 auto;
+  margin-top: auto;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
 .danfe-watermark {
   position: absolute;
   top: 46%;
@@ -9345,6 +9371,21 @@ tr.row-inactive td {
 
 .danfe-items thead {
   display: table-header-group;
+}
+
+.danfe-items-id th {
+  background: #f7f7f7;
+  font-size: 5.4pt;
+  font-weight: 700;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+/* Um tbody por item: linha + inf. adicionais/tributos não se separam na quebra. */
+.danfe-items tbody.danfe-item-block {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .danfe-items tbody tr {
@@ -12255,6 +12296,13 @@ tr.row-inactive td {
 @page danfe-a4 {
   size: A4 portrait;
   margin: 4mm 5mm 8mm;
+  /* Progressivo: browsers com margin boxes mostram Folha X/Y; demais ignoram. */
+  @bottom-center {
+    content: "Folha " counter(page) " / " counter(pages);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 6.5pt;
+    color: #444;
+  }
 }
 
 /* A4 paisagem — cálculo ORC interno (Excel aba ORÇAMENTO) */
@@ -12313,6 +12361,12 @@ tr.row-inactive td {
     overflow: visible;
   }
 
+  body.ficha-print-mode .ficha-sheet.danfe-sheet:not(.danfse-sheet):not(.danfse-v2) {
+    display: flex;
+    flex-direction: column;
+    min-height: 277mm;
+  }
+
   body.ficha-print-mode .ficha-sheet-cobranca .cobranca-pay,
   body.ficha-print-mode .ficha-sheet-cobranca .cobranca-valores {
     break-inside: avoid;
@@ -12325,6 +12379,11 @@ tr.row-inactive td {
     page-break-inside: avoid;
   }
 
+  body.ficha-print-mode .danfe-miolo {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
   body.ficha-print-mode .danfe-items {
     break-inside: auto;
     page-break-inside: auto;
@@ -12334,15 +12393,23 @@ tr.row-inactive td {
     display: table-header-group;
   }
 
+  body.ficha-print-mode .danfe-items tbody.danfe-item-block,
   body.ficha-print-mode .danfe-items tbody tr {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
+  body.ficha-print-mode .danfe-base,
   body.ficha-print-mode .danfe-adic,
   body.ficha-print-mode .danfe-foot {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  body.ficha-print-mode .danfe-base {
+    break-before: avoid;
+    page-break-before: avoid;
+    margin-top: auto;
   }
 
   body.ficha-print-mode .ficha-sheet.ficha-sheet-orc {
