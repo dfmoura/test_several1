@@ -29,7 +29,7 @@ OP = ficha da etiqueta (herói + jornada + kit)
 | **Sem entidade carrinho** | O kit já é a lista viva. Segundo ledger piora o teste. |
 | **Três portas** | OP entende; Estoque busca; Produção fecha. Sem mega-tela. |
 | **Um CTA** | Só a próxima ação. |
-| **Avaria / perda do volume** | Na **OP**, no registro do volume que saiu: **Perdeu** → marca perda (sem MOV) + escolhe substituto (`SAIDA_PRODUCAO` complementar). |
+| **Avaria / perda do volume** | Na **OP**, no registro do volume que saiu: **Apontar perda** → marca perda (sem MOV) + escolhe substituto (`SAIDA_PRODUCAO` complementar). |
 | **Extra = acrescentar no kit** | Mesmo `materiais[]` + confirmação no estoque. |
 | **1 kit por OP** | Pedido com N etiquetas = N fichas. Onda de separação = ADR futuro. |
 | **Devolver “Já saiu”** | Antes de concluir: `POST /estoque/retiradas/{op}/devolver` → mesmo `ENTRADA_SOBRA` + `EstoqueSaldoWriter`, reduz `qtde_requisitada`, zera `saida_movimento_id` se voltar tudo. UI na porta estoque **e** na OP se o usuário tem `estoque.escrever` (mesmo motor; sem formulário duplicado para quem só tem produção). Sem estorno inventado, sem segundo writer. Avaria da separação é limitada ao que ainda está fora. |
@@ -57,7 +57,7 @@ Estados do kit: **falta pegar · já saiu · sem estoque**.
 | OP | Cabeçalho da ficha do item (formulário + modelos e valores) e, em seguida, os insumos do kit. Acrescenta ou remove volume/unidade **já conhecidos** do estoque, no formulário de faixa do orçamento. Sem busca. Quem tem `estoque.escrever` confirma a saída no mesmo `POST …/confirmar`; quem só lê segue para A buscar. |
 | Estoque · A buscar | Por linha: **Saiu** (FEFO/qtde). Rodapé: **Confirmar saída sugerida (N)** → `POST …/confirmar-pendentes`. |
 | Overlay (A buscar) | **Outro volume** (motivo) ou **Devolver** (bom). Não é o caminho feliz. |
-| OP · volume já saiu | **Perdeu** no registro → perda amarrada ao lote (`avaria_lotes`) + baixa do substituto. |
+| OP · volume já saiu | **Apontar perda** no registro → perda amarrada ao lote (`avaria_lotes`) + baixa do substituto. |
 
 Ficha impressa: link na toolbar. Sem segunda lista embutida na página do chão.
 
@@ -152,7 +152,7 @@ Tentativa de avaria em A buscar. Substituída pela emenda 2026-10-30c (perda no 
 
 ## Emenda 2026-10-30c — Perdeu no volume da OP
 
-Superfície: **Ordens de produção** → kit **O que sai do estoque** → volume **Já saiu** → **Perdeu**.
+Superfície: **Ordens de produção** → kit **O que sai do estoque** → volume **Já saiu** → **Apontar perda** (CTA de ação; status de perda = «Perda» na qtde).
 
 1. `POST /estoque/retiradas/{op}/avaria` com `volumes[{lote_id,qtde}]` + motivo → grava `avaria_lotes` + `qtde_avaria` (sem MOV; saldo já saiu). Avaria só por `qtde` em SKU com lote também amarra FEFO em `avaria_lotes`.
 2. Overlay de escolha → `POST /estoque/retiradas/{op}/confirmar` com `complementar: true` → nova `SAIDA_PRODUCAO` do substituto.

@@ -706,7 +706,12 @@ class OrdemProducaoService
                 $mat->motivo_grupo = $foraDoGrupo ? $motivoGrupo : null;
                 $mat->qtde_requisitada = $qtde;
                 $mat->saida_movimento_id = $mov->id;
-                $mat->unidade = $produto->unidade_interna ?? 'UN';
+                // BOM do papel é M2: não sobrescrever com unidade_interna M do SKU
+                // (quebraria Precisa·Saiu·Passa e a alocação C_u).
+                $unMat = strtoupper(str_replace('²', '2', (string) ($mat->unidade ?? '')));
+                if ($unMat === '' || $unMat === 'UN') {
+                    $mat->unidade = $produto->unidade_interna ?? 'UN';
+                }
                 $mat->partida_prevista = $planosPartida === [] ? null : $planosPartida;
                 $mat->save();
             }
@@ -2864,6 +2869,7 @@ class OrdemProducaoService
 
     /**
      * C do volume pai após SAIDA (writer zera comprimento): M → qtde; M2 → área ÷ L.
+     * Se SKU linear trouxe qtde = área (ex.: 155 com L=155 → bobina 1000 m), trata como M2.
      */
     private function comprimentoReconstituidoDoVolume(
         EstoqueLote $lote,
@@ -2874,13 +2880,34 @@ class OrdemProducaoService
             return null;
         }
         $un = strtoupper(str_replace('²', '2', (string) ($lote->unidade ?: $produto->unidade_interna ?? '')));
+        $l = $lote->largura_mm !== null && $lote->largura_mm !== ''
+            ? (string) $lote->largura_mm
+            : null;
+
         if (in_array($un, ['M', 'MT', 'ML'], true)) {
+            // Área disfarçada de metro: qtde ≈ (L_mm/1000)×C_rolo típico.
+            if ($l !== null) {
+                $geoComoArea = VolumeGeometria::fechar($l, null, $qtdeVol, 'M2');
+                if ($geoComoArea['status'] === VolumeGeometria::STATUS_FECHADO
+                    && $geoComoArea['comprimento_m'] !== null) {
+                    $cFromArea = PadraoDecimal::roundHalfUp(
+                        (string) $geoComoArea['comprimento_m'],
+                        PadraoDecimal::SCALE_DIM
+                    );
+                    // Ex.: 155 m² @ 155 mm → 1000 m (rolo padrão); qtde linear crua seria 155 m.
+                    if (bccomp($cFromArea, $qtdeVol, PadraoDecimal::SCALE_DIM) > 0
+                        && bccomp($cFromArea, '50', PadraoDecimal::SCALE_DIM) >= 0) {
+                        return $cFromArea;
+                    }
+                }
+            }
+
             return PadraoDecimal::roundHalfUp($qtdeVol, PadraoDecimal::SCALE_DIM);
         }
-        if ($lote->largura_mm === null || $lote->largura_mm === '') {
+        if ($l === null) {
             return null;
         }
-        $geoRec = VolumeGeometria::fechar($lote->largura_mm, null, $qtdeVol, 'M2');
+        $geoRec = VolumeGeometria::fechar($l, null, $qtdeVol, 'M2');
         if ($geoRec['status'] !== VolumeGeometria::STATUS_FECHADO || $geoRec['comprimento_m'] === null) {
             return null;
         }
@@ -3027,8 +3054,58 @@ class OrdemProducaoService
     }
 
     /**
+     * Plano pendente coerente com a necessidade (m² → metros): soma C_u ≈ metragem do papel
+     * e há bobina de retorno por volume além do consumo (não engole Passa numa sobra genérica).
+     *
+     * @param  list<array<string, mixed>>  $pendentes
+     */
+    private function partidaPendenteCoerenteComPassa(
+        array $pendentes,
+        string $necessidadeM2,
+        ?string $larguraPapelMm,
+    ): bool {
+        if ($pendentes === [] || $larguraPapelMm === null || $larguraPapelMm === '') {
+            return false;
+        }
+        $geoNeed = VolumeGeometria::fechar($larguraPapelMm, null, $necessidadeM2, 'M2');
+        if ($geoNeed['status'] !== VolumeGeometria::STATUS_FECHADO || $geoNeed['comprimento_m'] === null) {
+            return false;
+        }
+        $metrosNeed = PadraoDecimal::roundHalfUp(
+            (string) $geoNeed['comprimento_m'],
+            PadraoDecimal::SCALE_DIM
+        );
+        $somaCu = '0';
+        $nComSobra = 0;
+        foreach ($pendentes as $p) {
+            $cu = PadraoDecimal::roundHalfUp(
+                (string) ($p['C_u_previsto'] ?? $p['C_u'] ?? '0'),
+                PadraoDecimal::SCALE_DIM
+            );
+            $somaCu = bcadd($somaCu, $cu, PadraoDecimal::SCALE_DIM + 4);
+            if (is_array($p['sobra'] ?? null)
+                && bccomp((string) ($p['sobra']['qtde'] ?? '0'), '0', PadraoDecimal::SCALE_QTY) > 0) {
+                $nComSobra++;
+            }
+        }
+        $somaCu = PadraoDecimal::roundHalfUp($somaCu, PadraoDecimal::SCALE_DIM);
+        $delta = bccomp($somaCu, $metrosNeed, PadraoDecimal::SCALE_DIM) >= 0
+            ? bcsub($somaCu, $metrosNeed, PadraoDecimal::SCALE_DIM + 2)
+            : bcsub($metrosNeed, $somaCu, PadraoDecimal::SCALE_DIM + 2);
+        // Tolerância 0,05 m — evita plano 707 m / 109,59 m² quando a necessidade é 264,59 m.
+        if (bccomp($delta, '0.05', PadraoDecimal::SCALE_DIM) > 0) {
+            return false;
+        }
+        if ($nComSobra < 1) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * OPs que saíram sem plano «Passa»: reconstitui partida_prevista a partir da SAIDA.
-     * Só grava se ainda não houver plano pendente (não reabre o que já foi devolvido).
+     * Só grava se ainda não houver plano pendente coerente (não reabre o que já foi devolvido).
      */
     private function garantirPartidaPrevistaHidratada(
         Empresa $empresa,
@@ -3042,17 +3119,29 @@ class OrdemProducaoService
             return;
         }
         $atuais = is_array($mat->partida_prevista) ? $mat->partida_prevista : [];
-        foreach ($atuais as $plano) {
-            if (($plano['status'] ?? '') === 'pendente') {
-                return;
-            }
-        }
+        $pendentes = array_values(array_filter(
+            $atuais,
+            static fn (array $p): bool => ($p['status'] ?? '') === 'pendente'
+        ));
         // Só «Passa» (saiu mais que a necessidade) — sem engolir OP coberta exacta.
         $req = PadraoDecimal::roundHalfUp((string) $mat->qtde_requisitada, PadraoDecimal::SCALE_QTY);
         $plan = PadraoDecimal::roundHalfUp((string) $mat->qtde_planejada, PadraoDecimal::SCALE_QTY);
         if (bccomp($plan, '0', PadraoDecimal::SCALE_QTY) > 0
             && bccomp($req, $plan, PadraoDecimal::SCALE_QTY) <= 0) {
             return;
+        }
+
+        $op->loadMissing('pedidoItem:id,especificacao');
+        $larguraPapel = self::larguraMmEspecificacao($op->pedidoItem?->especificacao);
+        if ($pendentes !== []) {
+            // Plano stale/errado (ex.: C_u≠necessidade, bobina inteira faltando) → recria.
+            if ($this->partidaPendenteCoerenteComPassa($pendentes, $plan, $larguraPapel)) {
+                return;
+            }
+            $atuais = array_values(array_filter(
+                $atuais,
+                static fn (array $p): bool => ($p['status'] ?? '') === 'devolvido'
+            ));
         }
 
         $agg = [];

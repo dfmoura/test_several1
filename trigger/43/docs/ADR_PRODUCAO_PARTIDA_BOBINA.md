@@ -238,4 +238,13 @@ Quando a baixa traz **N bobinas** da medida do papel e a necessidade cabe em men
 
 Exemplo: Precisa 264,59 m · 2× (155 mm × 1000 m) → volta `155×735,41` + `155×1000` (Passa 1.735,40 m / 268,98 m²).
 
+## Emenda 2026-11-11c — Quadro único · hidratar plano incoerente · CTA perda
+
+| Decisão | Motivo |
+|---------|--------|
+| **Um quadro Passa com N voltas** | Consumo total (`Σ C_u`) + 1 linha por bobina; sem «Produção 0 m» na bobina inteira |
+| **Hidratar se `Σ C_u ≠` necessidade** | Plano stale (ex.: 707 m / 109,59 m²) é recriado no show; preserva `devolvido` |
+| **Material PAPEL mantém unidade M2 do BOM** | Saída não sobrescreve com `unidade_interna` M do SKU |
+| **CTA «Apontar perda»** | Botão de ação (não status); status de perda continua «Perda» na qtde |
+
 Alterar esta ADR exige decisão explícita (produção + estoque + UX). Sem segundo writer e sem explodir SKU.

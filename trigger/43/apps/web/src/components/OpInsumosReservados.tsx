@@ -1295,14 +1295,14 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                         />
                       ))}
 
-                    {estado === 'ja_saiu' &&
-                    metragem &&
-                    (m.partida_prevista ?? [])
-                      .filter((p) => p.status === 'pendente' && (p.L_n || p.refile || p.sobra))
-                      .map((p) => (
-                        <PartidaDivisaoQuadro
-                          key={`kit-saiu-div-${p.lote_pai_id}-${p.tipo ?? 'p'}`}
-                          preview={{
+                    {estado === 'ja_saiu' && metragem
+                      ? (() => {
+                          const pend = (m.partida_prevista ?? []).filter(
+                            (p) =>
+                              p.status === 'pendente' && (p.L_n || p.refile || p.sobra),
+                          );
+                          if (pend.length === 0) return null;
+                          const toPreview = (p: (typeof pend)[number]) => ({
                             tipo: p.tipo,
                             L_p: String(p.L_p ?? ''),
                             C_p: String(p.C_p ?? ''),
@@ -1312,10 +1312,37 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                             area_retorno: p.area_retorno,
                             refile: p.refile,
                             sobra: p.sobra,
-                          }}
-                          titulo="Divisão da bobina (já saiu)"
-                        />
-                      ))}
+                          });
+                          // Medida exata N bobinas: um quadro (consumo total + N voltas).
+                          const passaExata = pend.filter(
+                            (p) =>
+                              (p.tipo === 'sobra_comprimento' || !p.refile) && p.sobra,
+                          );
+                          const partidas = pend.filter((p) => !passaExata.includes(p));
+                          return (
+                            <>
+                              {passaExata.length > 0 ? (
+                                <PartidaDivisaoQuadro
+                                  key={`kit-saiu-passa-${m.id}`}
+                                  previews={passaExata.map(toPreview)}
+                                  titulo={
+                                    passaExata.length > 1
+                                      ? 'Passa — consumo e bobinas que voltam'
+                                      : 'Divisão da bobina (já saiu)'
+                                  }
+                                />
+                              ) : null}
+                              {partidas.map((p) => (
+                                <PartidaDivisaoQuadro
+                                  key={`kit-saiu-div-${p.lote_pai_id}-${p.tipo ?? 'p'}`}
+                                  preview={toPreview(p)}
+                                  titulo="Partida — divisão da bobina (já saiu)"
+                                />
+                              ))}
+                            </>
+                          );
+                        })()
+                      : null}
 
                     {estado === 'ja_saiu' && metragem ? (
                       <OpRetornoBobinas
@@ -1514,6 +1541,8 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                                     type="button"
                                     className="btn btn-secondary btn-sm"
                                     disabled={busy}
+                                    title="Apontar perda deste volume (não é status — só registra se confirmar)"
+                                    aria-label={`Apontar perda — ${formatLotePick(vol)}`}
                                     onClick={() => {
                                       setErr(null);
                                       setMotivoPerda('');
@@ -1526,7 +1555,7 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                                       });
                                     }}
                                   >
-                                    Perdeu
+                                    Apontar perda
                                   </button>
                                 ) : podeSubstituir ? (
                                   <button
