@@ -253,6 +253,20 @@ Exemplo: Precisa 264,59 m · 2× (155 mm × 1000 m) → volta `155×735,41` + `1
 |---------|--------|
 | **SKU M: qtde do MOV = metro** | Nunca `fechar(L, null, 1000)` como m² → C_p fantasma 6.451 m |
 | **C_p do plano ≤ comprimento real do volume** | Hidrata de novo se C_p ≫ qtde (M) ou área÷L (M2) |
-| **planejada ≈ metragem e faixa tem m²** | Corrige `qtde_planejada` para m² da faixa (Precisa 41 m² · 264,59 m, não 264,59 m² · 1.707 m) |
+| **planejada ≈ metragem e faixa tem m²** | Corrige `qtde_planejada` para m² da faixa (só quando vazou metragem no campo de área) |
+
+## Emenda 2026-11-11e — Partida em N bobinas (2 pais → 3 VOL:)
+
+Exemplo: precisa **1.707,04 m** @ 155 mm (**264,59 m²**) · estoque 2× (180×1000):
+
+| Decisão | Motivo |
+|---------|--------|
+| **`C_p ≥ C_u` por volume** | Não exigir `C_p ≥ C_n` total — a ordem pode espalhar em N bobinas |
+| **Vol1 `C_u=1000`** | Consome 155×1000 · volta refile 25×1000 · sem sobra de comprimento |
+| **Vol2 `C_u=707,04`** | Consome 155×707,04 · volta refile 25×1000 + sobra 155×292,96 |
+| **3 VOL: no devolver** | 2 refiles + 1 sobra (consumo não vira estoque) |
+| **Quadro único** | Consumo ΣC_u + cada refile/sobra como linha |
+
+Sem segundo writer · SAIDA do pai inteiro · retorno via `ENTRADA_SOBRA`.
 
 Alterar esta ADR exige decisão explícita (produção + estoque + UX). Sem segundo writer e sem explodir SKU.

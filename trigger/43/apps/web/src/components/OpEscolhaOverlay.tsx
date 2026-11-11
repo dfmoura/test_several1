@@ -629,12 +629,15 @@ export function OpEscolhaOverlay({
                   </p>
                   {bobinasVolta.length > 0 ? (
                     <div className="table-wrap op-escolha__table-wrap">
-                      {(material.partida_prevista ?? [])
-                        .filter((p) => p.status === 'pendente' && p.L_n)
-                        .map((p) => (
+                      {(() => {
+                        const pendDiv = (material.partida_prevista ?? []).filter(
+                          (p) => p.status === 'pendente' && p.L_n,
+                        );
+                        if (pendDiv.length === 0) return null;
+                        return (
                           <PartidaDivisaoQuadro
-                            key={`dev-div-${p.lote_pai_id}`}
-                            preview={{
+                            key="dev-div-consolida"
+                            previews={pendDiv.map((p) => ({
                               tipo: p.tipo,
                               L_p: String(p.L_p ?? ''),
                               C_p: String(p.C_p ?? ''),
@@ -644,10 +647,11 @@ export function OpEscolhaOverlay({
                               area_retorno: p.area_retorno,
                               refile: p.refile,
                               sobra: p.sobra,
-                            }}
+                            }))}
                             titulo="Divisão — o que volta são as linhas abaixo"
                           />
-                        ))}
+                        );
+                      })()}
                       <table className="data-table op-escolha__table">
                         <thead>
                           <tr>

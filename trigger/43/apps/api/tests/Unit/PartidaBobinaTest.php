@@ -50,6 +50,36 @@ class PartidaBobinaTest extends TestCase
         $this->assertStringContainsString('Comprimento', (string) $plano['mensagem']);
     }
 
+    public function test_partida_multi_volume_aloca_cu_por_bobina(): void
+    {
+        // Necessidade 1.707,04 m @ 155 mm · 2× (180×1000) → 2 refiles + 1 sobra.
+        $vol1 = PartidaBobina::planejar('180', '1000', '155', '1707.04', 1, '1000');
+        $vol2 = PartidaBobina::planejar('180', '1000', '155', '1707.04', 2, '707.04');
+
+        $this->assertTrue($vol1['aplica'], (string) ($vol1['mensagem'] ?? ''));
+        $this->assertTrue($vol2['aplica'], (string) ($vol2['mensagem'] ?? ''));
+        $this->assertSame('1000.00', $vol1['C_u']);
+        $this->assertNull($vol1['sobra']);
+        $this->assertSame('25.00', $vol1['refile']['largura_mm']);
+        $this->assertSame('1000.00', $vol1['refile']['comprimento_m']);
+        $this->assertSame('155.0000', $vol1['area_consumida']);
+
+        $this->assertSame('707.04', $vol2['C_u']);
+        $this->assertSame('25.00', $vol2['refile']['largura_mm']);
+        $this->assertSame('1000.00', $vol2['refile']['comprimento_m']);
+        $this->assertSame('155.00', $vol2['sobra']['largura_mm']);
+        $this->assertSame('292.96', $vol2['sobra']['comprimento_m']);
+
+        $bobinas = array_merge(
+            PartidaBobina::bobinasRetorno(PartidaBobina::paraPersistencia($vol1)),
+            PartidaBobina::bobinasRetorno(PartidaBobina::paraPersistencia($vol2)),
+        );
+        $this->assertCount(3, $bobinas);
+        $tipos = array_count_values(array_column($bobinas, 'tipo'));
+        $this->assertSame(2, $tipos['refile']);
+        $this->assertSame(1, $tipos['sobra']);
+    }
+
     public function test_sem_sobra_de_comprimento_quando_usa_tudo(): void
     {
         $plano = PartidaBobina::planejar('180', '300', '155', '300');

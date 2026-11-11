@@ -1313,10 +1313,10 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                             refile: p.refile,
                             sobra: p.sobra,
                           });
-                          // Medida exata N bobinas: um quadro (consumo total + N voltas).
+                          // N planos (Passa exata ou partida): um quadro — consumo total + cada VOL:.
                           const passaExata = pend.filter(
                             (p) =>
-                              (p.tipo === 'sobra_comprimento' || !p.refile) && p.sobra,
+                              (p.tipo === 'sobra_comprimento' || !p.refile) && Boolean(p.sobra),
                           );
                           const partidas = pend.filter((p) => !passaExata.includes(p));
                           return (
@@ -1332,13 +1332,17 @@ export function OpInsumosReservados({ op, podeEstoque, canWrite, onOp }: Props) 
                                   }
                                 />
                               ) : null}
-                              {partidas.map((p) => (
+                              {partidas.length > 0 ? (
                                 <PartidaDivisaoQuadro
-                                  key={`kit-saiu-div-${p.lote_pai_id}-${p.tipo ?? 'p'}`}
-                                  preview={toPreview(p)}
-                                  titulo="Partida — divisão da bobina (já saiu)"
+                                  key={`kit-saiu-partida-${m.id}`}
+                                  previews={partidas.map(toPreview)}
+                                  titulo={
+                                    partidas.length > 1
+                                      ? 'Partida — consumo, refiles e sobras que voltam'
+                                      : 'Partida — divisão da bobina (já saiu)'
+                                  }
                                 />
-                              ))}
+                              ) : null}
                             </>
                           );
                         })()

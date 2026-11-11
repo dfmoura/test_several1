@@ -136,18 +136,20 @@ final class PartidaBobina
         if (! self::ehMaisLarga($lP, $lN)) {
             return ['aplica' => false, 'mensagem' => 'Medida exata — sem partida.'];
         }
-        if (bccomp($cP, $cN, PadraoDecimal::SCALE_DIM) < 0) {
-            return ['aplica' => false, 'mensagem' => 'Comprimento do volume não cobre a metragem da ordem.'];
-        }
 
-        $cU = $metrosUsados !== null && $metrosUsados !== ''
-            ? self::dim($metrosUsados)
-            : $cN;
+        // C_u = metros deste volume (alocação N bobinas). Sem alocação explícita, C_u = C_n
+        // (uma bobina tem de cobrir a ordem sozinha).
+        $alocadoExplicitamente = $metrosUsados !== null && $metrosUsados !== '';
+        $cU = $alocadoExplicitamente ? self::dim($metrosUsados) : $cN;
         if ($cU === null) {
             return ['aplica' => false, 'mensagem' => 'Metros usados inválidos.'];
         }
         if (bccomp($cU, '0', PadraoDecimal::SCALE_DIM) < 0) {
             return ['aplica' => false, 'mensagem' => 'Metros usados negativos.'];
+        }
+        // Sem C_u por volume: uma bobina tem de cobrir a ordem sozinha.
+        if (! $alocadoExplicitamente && bccomp($cP, $cN, PadraoDecimal::SCALE_DIM) < 0) {
+            return ['aplica' => false, 'mensagem' => 'Comprimento do volume não cobre a metragem da ordem.'];
         }
         if (bccomp($cU, $cP, PadraoDecimal::SCALE_DIM) > 0) {
             return ['aplica' => false, 'mensagem' => 'Metros usados excedem o comprimento do volume.'];
