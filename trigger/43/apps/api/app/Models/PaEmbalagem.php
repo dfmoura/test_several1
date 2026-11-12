@@ -138,11 +138,16 @@ class PaEmbalagem extends Model
      */
     public function textoFiscalModoEtiqueta(?array $especOverride = null): string
     {
-        $parts = array_merge(
-            [$this->qtde_bobinas.' BOB'],
-            $this->detalheEspecificacaoFiscalParts($especOverride),
-            [$this->qtde_caixas.' CX'],
-        );
+        // Composição de etiq/rolo primeiro — o que o cliente lê nas Inf. adicionais do item.
+        $parts = [];
+        $comp = $this->composicaoBobinasTexto();
+        if ($comp !== null && $comp !== '') {
+            $parts[] = $comp;
+        }
+        $parts[] = $this->qtde_bobinas.' BOB';
+        $parts = array_merge($parts, $this->detalheEspecificacaoFiscalParts($especOverride), [
+            $this->qtde_caixas.' CX',
+        ]);
         if ($this->tubete) {
             $parts[] = 'tubete '.$this->tubete;
         }
@@ -151,10 +156,6 @@ class PaEmbalagem extends Model
         }
         if ($this->caixa_medida) {
             $parts[] = 'caixa '.$this->caixa_medida;
-        }
-        $comp = $this->composicaoBobinasTexto();
-        if ($comp !== null && $comp !== '') {
-            $parts[] = $comp;
         }
 
         return implode(' · ', $parts);
@@ -165,11 +166,15 @@ class PaEmbalagem extends Model
      */
     public function textoFiscalModoRolo(?array $especOverride = null): string
     {
-        $parts = array_merge(
-            [number_format((float) $this->qtde_etiquetas, 0, ',', '.').' UN'],
-            $this->detalheEspecificacaoFiscalParts($especOverride),
-            [$this->qtde_caixas.' CX'],
-        );
+        $parts = [];
+        $comp = $this->composicaoBobinasTexto();
+        if ($comp !== null && $comp !== '') {
+            $parts[] = $comp;
+        }
+        $parts[] = number_format((float) $this->qtde_etiquetas, 0, ',', '.').' UN';
+        $parts = array_merge($parts, $this->detalheEspecificacaoFiscalParts($especOverride), [
+            $this->qtde_caixas.' CX',
+        ]);
         if ($this->tubete) {
             $parts[] = 'tubete '.$this->tubete;
         }
@@ -178,10 +183,6 @@ class PaEmbalagem extends Model
         }
         if ($this->caixa_medida) {
             $parts[] = 'caixa '.$this->caixa_medida;
-        }
-        $comp = $this->composicaoBobinasTexto();
-        if ($comp !== null && $comp !== '') {
-            $parts[] = $comp;
         }
 
         return implode(' · ', $parts);
@@ -247,29 +248,71 @@ class PaEmbalagem extends Model
     }
 
     /**
-     * Agrega bobinas por qtde de etiquetas — deixa explícito cheio vs resto.
-     * Ex.: "4 rolos × 1000 etiq. + 2 rolos × 500 etiq."
+     * Agrega bobinas por qtde de etiquetas — cheios vs resto, bem legível.
+     * Ex.: "3 rolos com 1000 etiquetas + 1 rolo com 250 etiquetas"
+     * Fonte: bobinas confirmadas; se vazias, etiq_por_rolo do ORC/embalagem.
      */
     public function composicaoBobinasTexto(): ?string
     {
-        $this->loadMissing('bobinas');
-        if ($this->bobinas->isEmpty()) {
+        $grupos = $this->gruposEtiquetasPorRolo();
+        if ($grupos === []) {
             return null;
-        }
-
-        $grupos = [];
-        foreach ($this->bobinas as $b) {
-            $fmt = self::fmtQtdeCurta((string) $b->qtde_etiquetas);
-            $grupos[$fmt] = ($grupos[$fmt] ?? 0) + 1;
         }
 
         $chunks = [];
         foreach ($grupos as $qtde => $n) {
-            $rolo = $n === 1 ? '1 rolo' : $n.' rolos';
-            $chunks[] = $rolo.' × '.$qtde.' etiq.';
+            $rolo = $n === 1 ? '1 rolo com ' : $n.' rolos com ';
+            $chunks[] = $rolo.$qtde.' etiquetas';
         }
 
         return implode(' + ', $chunks);
+    }
+
+    /**
+     * @return array<string, int> qtde etiquetas => quantidade de rolos
+     */
+    private function gruposEtiquetasPorRolo(): array
+    {
+        $this->loadMissing('bobinas');
+        if (! $this->bobinas->isEmpty()) {
+            $grupos = [];
+            foreach ($this->bobinas as $b) {
+                $fmt = self::fmtQtdeCurta((string) $b->qtde_etiquetas);
+                $grupos[$fmt] = ($grupos[$fmt] ?? 0) + 1;
+            }
+
+            return $grupos;
+        }
+
+        // Fallback: mesma lógica do embalar (cheias de etiq_por_rolo + resto).
+        $porRolo = (int) ($this->etiq_por_rolo ?? 0);
+        $total = PadraoDecimal::roundHalfUp((string) ($this->qtde_etiquetas ?? '0'), PadraoDecimal::SCALE_QTY);
+        if ($porRolo < 1 || bccomp($total, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            return [];
+        }
+
+        $por = (string) $porRolo;
+        if (bccomp($total, $por, PadraoDecimal::SCALE_QTY) <= 0) {
+            return [self::fmtQtdeCurta($total) => 1];
+        }
+
+        $nCheias = (int) floor((float) bcdiv($total, $por, 8));
+        $consumido = bcmul((string) $nCheias, $por, PadraoDecimal::SCALE_QTY);
+        $resto = PadraoDecimal::roundHalfUp(
+            bcsub($total, $consumido, PadraoDecimal::SCALE_QTY + 2),
+            PadraoDecimal::SCALE_QTY
+        );
+
+        $grupos = [];
+        if ($nCheias > 0) {
+            $grupos[self::fmtQtdeCurta($por)] = $nCheias;
+        }
+        if (bccomp($resto, '0', PadraoDecimal::SCALE_QTY) > 0) {
+            $fmtResto = self::fmtQtdeCurta($resto);
+            $grupos[$fmtResto] = ($grupos[$fmtResto] ?? 0) + 1;
+        }
+
+        return $grupos;
     }
 
     private static function fmtQtdeCurta(string $qtde): string

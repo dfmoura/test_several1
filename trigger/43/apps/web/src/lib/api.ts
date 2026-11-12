@@ -2917,6 +2917,8 @@ export type DocumentoFiscalPrevia = {
   aviso: string;
   natureza?: string;
   informacoes_adicionais?: string;
+  /** OC / ped. do cliente (infCpl). */
+  pedido_cliente?: string | null;
   impostos?: DocumentoFiscalPreviaImpostos;
   data_emissao?: string;
   /** Data da saída/entrada (DANFE) — Y-m-d. */
@@ -3207,7 +3209,7 @@ export type Faturamento = {
   pode_estornar?: boolean;
   bloqueios_estorno?: string[];
   parceiro?: { id: number; codigo: string; razao_social: string } | null;
-  pedido?: { id: number; codigo: string; status: string } | null;
+  pedido?: { id: number; codigo: string; status: string; pedido_cliente?: string | null } | null;
   orcamento?: { id: number; codigo: string } | null;
   itens?: Array<{
     id: number;

@@ -376,13 +376,13 @@ class FocusPayloadBuilder
     }
 
     /**
-     * infCpl: Pedido · Ped. cliente · Fatura · fiscais.
-     * Detalhe físico (rolos/etiq.) fica no infAdProd do item — não repetir aqui.
+     * infCpl somente: Pedido · Ped. cliente · Fatura · informações fiscais.
+     * Detalhe de rolos/etiq. fica nas Inf. adicionais do item (infAdProd).
      */
     private function infAdicionais(Faturamento $fat): string
     {
-        $fat->loadMissing(['itens', 'pedido']);
-        $ped = $fat->pedido?->codigo ?? '';
+        $fat->loadMissing(['itens', 'pedido', 'empresa']);
+        $ped = trim((string) ($fat->pedido?->codigo ?? ''));
         $crt = (int) ($fat->empresa?->crt ?? 1);
         $parts = array_filter([
             $ped !== '' ? 'Pedido '.$ped : null,
@@ -390,7 +390,7 @@ class FocusPayloadBuilder
             'Fatura '.$fat->codigo,
             $this->temSetup($fat) ? 'Valor inclui matriz/clichê e ferramental do job' : null,
             NfeItemTexto::complementoTributos($crt),
-        ]);
+        ], static fn ($p) => $p !== null && $p !== '');
 
         return implode(' · ', $parts);
     }

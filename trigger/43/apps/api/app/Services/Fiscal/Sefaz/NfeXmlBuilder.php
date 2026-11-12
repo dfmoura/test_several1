@@ -468,12 +468,12 @@ final class NfeXmlBuilder
     }
 
     /**
-     * infCpl: Pedido · Ped. cliente · Fatura · fiscais.
-     * Detalhe físico (rolos/etiq.) fica no infAdProd do item — não repetir aqui.
+     * infCpl somente: Pedido · Ped. cliente · Fatura · informações fiscais.
+     * Detalhe de rolos/etiq. fica nas Inf. adicionais do item (infAdProd).
      */
     private function infAdicionais(Faturamento $fat): string
     {
-        $fat->loadMissing(['itens', 'pedido']);
+        $fat->loadMissing(['itens', 'pedido', 'empresa']);
         $temSetup = false;
         foreach ($fat->itens ?? [] as $i) {
             if (FaturamentoItem::eLinhaDeSetup((string) $i->descricao)) {
@@ -481,7 +481,7 @@ final class NfeXmlBuilder
                 break;
             }
         }
-        $ped = $fat->pedido?->codigo ?? '';
+        $ped = trim((string) ($fat->pedido?->codigo ?? ''));
         $crt = (int) ($fat->empresa?->crt ?? 1);
         $parts = array_filter([
             $ped !== '' ? 'Pedido '.$ped : null,
@@ -489,7 +489,7 @@ final class NfeXmlBuilder
             'Fatura '.$fat->codigo,
             $temSetup ? 'Valor inclui matriz/clichê e ferramental do job' : null,
             NfeItemTexto::complementoTributos($crt),
-        ]);
+        ], static fn ($p) => $p !== null && $p !== '');
 
         return mb_substr(implode(' · ', $parts), 0, 2000);
     }

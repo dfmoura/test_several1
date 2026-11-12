@@ -827,6 +827,8 @@ class EmissaoFiscalSaidaTest extends TestCase
 
         $infAd = $payload['items'][0]['informacoes_adicionais_produto'] ?? null;
         $this->assertIsString($infAd);
+        // Sem bobinas no create: fallback etiq_por_rolo → composição no início.
+        $this->assertStringStartsWith('10 rolos com 1000 etiquetas', $infAd);
         $this->assertStringContainsString('UN', $infAd);
         $this->assertStringContainsString('med 100X50', $infAd);
         $this->assertStringContainsString('Couchê', $infAd);
@@ -842,6 +844,7 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertStringContainsString('Fatura ', $infCpl);
         $this->assertStringNotContainsString('BOB', $infCpl);
         $this->assertStringNotContainsString(' CX', $infCpl);
+        $this->assertStringNotContainsString('etiquetas', $infCpl);
 
         $previaInf = $ok->json('data.documentos_fiscais.0.previa.itens.0.informacoes_adicionais');
         $this->assertIsString($previaInf);

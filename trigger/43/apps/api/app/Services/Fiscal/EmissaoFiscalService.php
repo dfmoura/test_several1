@@ -870,6 +870,7 @@ class EmissaoFiscalService
             'valor_total' => (string) ($payload['valor_total'] ?? $payload['valor_servico'] ?? $d->valor),
             'impostos' => $this->previaImpostos($itens, (string) ($payload['valor_total'] ?? $payload['valor_servico'] ?? $d->valor)),
             'pedido' => $fat->pedido?->codigo,
+            'pedido_cliente' => $fat->pedido?->pedido_cliente,
             'faturamento' => $fat->codigo,
             'danfse' => $nfse ? $this->previaDanfse($d, $payload, $empresa, $parceiro, $emitEnd, $destNome, $destDoc, $destEnd) : null,
         ];

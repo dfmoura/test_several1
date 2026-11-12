@@ -312,8 +312,9 @@ class PaEmbalagemTest extends TestCase
         $this->assertStringContainsString('1 CX', $texto);
         $this->assertStringContainsString('tubete 3"', $texto);
         $this->assertStringContainsString('saida ESQUERDA', $texto);
-        $this->assertStringContainsString('4 rolos × 1000 etiq.', $texto);
-        $this->assertStringContainsString('2 rolos × 500 etiq.', $texto);
+        $this->assertStringContainsString('4 rolos com 1000 etiquetas', $texto);
+        $this->assertStringContainsString('2 rolos com 500 etiquetas', $texto);
+        $this->assertStringStartsWith('4 rolos com 1000 etiquetas', $texto);
         $this->assertStringNotContainsString('comp:', $texto);
 
         $ui = $emb->resumoTexto();
@@ -321,11 +322,11 @@ class PaEmbalagemTest extends TestCase
 
         $rolo = app(PaEmbalagemService::class)->textoFiscalModo($emb, 'ROLO');
         $this->assertNotNull($rolo);
+        $this->assertStringStartsWith('4 rolos com 1000 etiquetas', $rolo);
         $this->assertStringContainsString('5.000 UN', $rolo);
         $this->assertStringContainsString('med 100X50', $rolo);
         $this->assertStringContainsString('modelo Frente A/Verso B', $rolo);
-        $this->assertStringContainsString('4 rolos × 1000 etiq.', $rolo);
-        $this->assertStringContainsString('2 rolos × 500 etiq.', $rolo);
+        $this->assertStringContainsString('2 rolos com 500 etiquetas', $rolo);
         $this->assertStringNotContainsString('BOB', $rolo);
     }
 
@@ -344,8 +345,8 @@ class PaEmbalagemTest extends TestCase
         $texto = app(PaEmbalagemService::class)->textoFiscal($emb);
         $this->assertNotNull($texto);
         $this->assertStringContainsString('4 BOB', $texto);
-        $this->assertStringContainsString('2 rolos × 1000 etiq.', $texto);
-        $this->assertStringContainsString('2 rolos × 600 etiq.', $texto);
+        $this->assertStringContainsString('2 rolos com 1000 etiquetas', $texto);
+        $this->assertStringContainsString('2 rolos com 600 etiquetas', $texto);
     }
 
     public function test_rolos_e_caixas_reais_repartem_a_quantidade_boa(): void

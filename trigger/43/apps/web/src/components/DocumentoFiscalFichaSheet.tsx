@@ -1,6 +1,11 @@
 import { DanfseNacionalSheet } from './DanfseNacionalSheet';
 import { TriggerAttribution } from './TriggerAttribution';
-import type { DocumentoFiscalPreviaItem, DocumentoFiscalSaida, Faturamento } from '../lib/api';
+import type {
+  DocumentoFiscalPrevia,
+  DocumentoFiscalPreviaItem,
+  DocumentoFiscalSaida,
+  Faturamento,
+} from '../lib/api';
 import { BRAND } from '../lib/brand';
 import {
   code128CSvg,
@@ -115,6 +120,25 @@ function nfeNumero(n: number | null | undefined): string {
 function serieFmt(s: number | null | undefined): string {
   if (s == null) return '—';
   return String(s).replace(/\D/g, '').padStart(3, '0') || '—';
+}
+
+/**
+ * Dados adicionais · Inf. contribuinte:
+ * somente Pedido · Ped. cliente · Fatura · fiscais (blob da prévia / fallback).
+ */
+function infContribuinteDanfe(p: DocumentoFiscalPrevia | null | undefined, fat: Faturamento): string {
+  const blob = (p?.informacoes_adicionais ?? '').trim();
+  if (blob !== '') {
+    return blob;
+  }
+  const ped = (p?.pedido ?? fat.pedido?.codigo ?? '').trim();
+  const oc = (p?.pedido_cliente ?? fat.pedido?.pedido_cliente ?? '').trim();
+  const parts = [
+    ped !== '' ? `Pedido ${ped}` : null,
+    oc !== '' ? `Ped. cliente: ${oc}` : null,
+    `Fatura ${p?.faturamento ?? fat.codigo}`,
+  ].filter(Boolean);
+  return parts.join(' · ');
 }
 
 /** Bloco direito do cabeçalho DANFE (MOC): barras → rótulo/chave → portal. */
@@ -521,11 +545,7 @@ function DanfeLayout({
         <div className="danfe-adic">
           <div>
             <span className="danfe-lbl">Informações complementares</span>
-            <p>
-              Inf. contribuinte:{' '}
-              {p?.informacoes_adicionais ||
-                `Pedido ${p?.pedido ?? fat.pedido?.codigo ?? '—'} · Fatura ${p?.faturamento ?? fat.codigo}`}
-            </p>
+            <p>Inf. contribuinte: {infContribuinteDanfe(p, fat)}</p>
           </div>
           <div>
             <span className="danfe-lbl">Reservado ao fisco</span>
