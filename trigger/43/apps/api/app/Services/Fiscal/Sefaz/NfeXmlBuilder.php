@@ -4,7 +4,6 @@ namespace App\Services\Fiscal\Sefaz;
 
 use App\Models\Empresa;
 use App\Models\Faturamento;
-use App\Models\FaturamentoItem;
 use App\Models\Parceiro;
 use App\Models\Pedido;
 use App\Models\Produto;
@@ -473,21 +472,13 @@ final class NfeXmlBuilder
      */
     private function infAdicionais(Faturamento $fat): string
     {
-        $fat->loadMissing(['itens', 'pedido', 'empresa']);
-        $temSetup = false;
-        foreach ($fat->itens ?? [] as $i) {
-            if (FaturamentoItem::eLinhaDeSetup((string) $i->descricao)) {
-                $temSetup = true;
-                break;
-            }
-        }
+        $fat->loadMissing(['pedido', 'empresa']);
         $ped = trim((string) ($fat->pedido?->codigo ?? ''));
         $crt = (int) ($fat->empresa?->crt ?? 1);
         $parts = array_filter([
             $ped !== '' ? 'Pedido '.$ped : null,
             NfeItemTexto::complementoPedidoCliente($fat->pedido?->pedido_cliente),
             'Fatura '.$fat->codigo,
-            $temSetup ? 'Valor inclui matriz/clichê e ferramental do job' : null,
             NfeItemTexto::complementoTributos($crt),
         ], static fn ($p) => $p !== null && $p !== '');
 

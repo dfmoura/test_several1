@@ -9427,6 +9427,7 @@ tr.row-inactive td {
   background: #fafafa;
   font-size: 5.6pt;
   line-height: 1.3;
+  text-align: left; /* Inf. adicionais / Tributos — não centralizar */
 }
 
 .danfe-infad,

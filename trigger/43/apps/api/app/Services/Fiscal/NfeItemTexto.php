@@ -70,7 +70,7 @@ final class NfeItemTexto
         return 'ICMS CST 40 isento'
             .' · PIS CST '.FiscalSaidaDefaults::CST_PIS
             .' · COFINS CST '.FiscalSaidaDefaults::CST_COFINS
-            .' · IBS UF 0,10% · IBS mun 0% · CBS 0,90% (por fora do valor da nota)';
+            .' · IBS UF 0,10% · IBS mun 0% · CBS 0,90%';
     }
 
     /**

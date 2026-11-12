@@ -303,31 +303,19 @@ class PaEmbalagemTest extends TestCase
 
         $texto = app(PaEmbalagemService::class)->textoFiscal($emb);
         $this->assertNotNull($texto);
-        $this->assertStringContainsString('6 BOB', $texto);
-        $this->assertStringContainsString('med 100X50', $texto);
-        $this->assertStringContainsString('Couchê Brilho', $texto);
-        $this->assertStringContainsString('4 cor(es)', $texto);
-        $this->assertStringContainsString('Verniz UV', $texto);
-        $this->assertStringContainsString('modelo Frente A/Verso B', $texto);
-        $this->assertStringContainsString('1 CX', $texto);
-        $this->assertStringContainsString('tubete 3"', $texto);
-        $this->assertStringContainsString('saida ESQUERDA', $texto);
-        $this->assertStringContainsString('4 rolos com 1000 etiquetas', $texto);
-        $this->assertStringContainsString('2 rolos com 500 etiquetas', $texto);
-        $this->assertStringStartsWith('4 rolos com 1000 etiquetas', $texto);
-        $this->assertStringNotContainsString('comp:', $texto);
+        $this->assertSame('4 rolos com 1000 etiquetas + 2 rolos com 500 etiquetas', $texto);
+        $this->assertStringNotContainsString('med ', $texto);
+        $this->assertStringNotContainsString('CX', $texto);
+        $this->assertStringNotContainsString('tubete', $texto);
+        $this->assertStringNotContainsString('saida', $texto);
+        $this->assertStringNotContainsString('BOB', $texto);
 
         $ui = $emb->resumoTexto();
         $this->assertStringContainsString('etiquetas', $ui);
 
         $rolo = app(PaEmbalagemService::class)->textoFiscalModo($emb, 'ROLO');
         $this->assertNotNull($rolo);
-        $this->assertStringStartsWith('4 rolos com 1000 etiquetas', $rolo);
-        $this->assertStringContainsString('5.000 UN', $rolo);
-        $this->assertStringContainsString('med 100X50', $rolo);
-        $this->assertStringContainsString('modelo Frente A/Verso B', $rolo);
-        $this->assertStringContainsString('2 rolos com 500 etiquetas', $rolo);
-        $this->assertStringNotContainsString('BOB', $rolo);
+        $this->assertSame('4 rolos com 1000 etiquetas + 2 rolos com 500 etiquetas', $rolo);
     }
 
     public function test_texto_fiscal_agrega_resto_na_composicao(): void
@@ -344,9 +332,7 @@ class PaEmbalagemTest extends TestCase
         $emb = app(PaEmbalagemService::class)->vigenteDaOp($this->empresa, $this->op->fresh());
         $texto = app(PaEmbalagemService::class)->textoFiscal($emb);
         $this->assertNotNull($texto);
-        $this->assertStringContainsString('4 BOB', $texto);
-        $this->assertStringContainsString('2 rolos com 1000 etiquetas', $texto);
-        $this->assertStringContainsString('2 rolos com 600 etiquetas', $texto);
+        $this->assertSame('2 rolos com 1000 etiquetas + 2 rolos com 600 etiquetas', $texto);
     }
 
     public function test_rolos_e_caixas_reais_repartem_a_quantidade_boa(): void

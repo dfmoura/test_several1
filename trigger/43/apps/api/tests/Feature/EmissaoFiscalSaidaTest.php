@@ -303,10 +303,10 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertCount(1, $previa);
         $this->assertSame('Etiqueta teste', $previa[0]['descricao']);
         $this->assertSame(3840.0, (float) $previa[0]['valor']);
-        $this->assertStringContainsString(
-            'matriz/clichê',
-            (string) $ok->json('data.documentos_fiscais.0.envio_hub.informacoes_adicionais_contribuinte')
-        );
+        $infCplMatriz = (string) $ok->json('data.documentos_fiscais.0.envio_hub.informacoes_adicionais_contribuinte');
+        $this->assertStringContainsString('Fatura ', $infCplMatriz);
+        $this->assertStringNotContainsString('matriz/clichê', $infCplMatriz);
+        $this->assertStringNotContainsString('por fora do valor da nota', $infCplMatriz);
         foreach ($items as $it) {
             $this->assertStringNotContainsString('clichê', mb_strtolower((string) ($it['descricao'] ?? '')));
             $this->assertStringNotContainsString('matriz', mb_strtolower((string) ($it['descricao'] ?? '')));
@@ -827,17 +827,8 @@ class EmissaoFiscalSaidaTest extends TestCase
 
         $infAd = $payload['items'][0]['informacoes_adicionais_produto'] ?? null;
         $this->assertIsString($infAd);
-        // Sem bobinas no create: fallback etiq_por_rolo → composição no início.
-        $this->assertStringStartsWith('10 rolos com 1000 etiquetas', $infAd);
-        $this->assertStringContainsString('UN', $infAd);
-        $this->assertStringContainsString('med 100X50', $infAd);
-        $this->assertStringContainsString('Couchê', $infAd);
-        $this->assertStringContainsString('4 cor(es)', $infAd);
-        $this->assertStringContainsString('modelo Frente/Verso', $infAd);
-        $this->assertStringContainsString('3 CX', $infAd);
-        $this->assertStringContainsString('tubete 3"', $infAd);
-        $this->assertStringContainsString('saida ESQUERDA', $infAd);
-        $this->assertStringNotContainsString('BOB', $infAd);
+        // Sem bobinas no create: fallback etiq_por_rolo → só composição.
+        $this->assertSame('10 rolos com 1000 etiquetas', $infAd);
 
         $infCpl = (string) ($payload['informacoes_adicionais_contribuinte'] ?? '');
         $this->assertStringContainsString('Pedido ', $infCpl);
@@ -845,10 +836,12 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertStringNotContainsString('BOB', $infCpl);
         $this->assertStringNotContainsString(' CX', $infCpl);
         $this->assertStringNotContainsString('etiquetas', $infCpl);
+        $this->assertStringNotContainsString('matriz/clichê', $infCpl);
+        $this->assertStringNotContainsString('por fora do valor da nota', $infCpl);
 
         $previaInf = $ok->json('data.documentos_fiscais.0.previa.itens.0.informacoes_adicionais');
         $this->assertIsString($previaInf);
-        $this->assertStringContainsString('UN', $previaInf);
+        $this->assertSame('10 rolos com 1000 etiquetas', $previaInf);
         $this->assertSame('RL', $ok->json('data.documentos_fiscais.0.previa.itens.0.unidade'));
         $this->assertSame(
             [[

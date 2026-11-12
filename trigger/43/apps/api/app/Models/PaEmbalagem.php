@@ -112,8 +112,7 @@ class PaEmbalagem extends Model
     }
 
     /**
-     * Texto canônico para NF-e item (infAdProd) — bobinas em evidência (modo ETIQUETA).
-     * qCom continua em etiquetas; aqui só o físico (ADR_PA_EMBALAGEM_BOBINA_CAIXA).
+     * Texto canônico para NF-e item (infAdProd) — só etiq/rolo.
      */
     public function textoFiscalItem(): string
     {
@@ -121,10 +120,10 @@ class PaEmbalagem extends Model
     }
 
     /**
-     * Modo ROLO: qCom = bobinas — obs. destaca etiquetas + spec + composição.
-     * Modo ETIQUETA: qCom = etiquetas — obs. destaca bobinas + spec.
+     * infAdProd: composição de rolos (cheios + resto). Spec/CX/tubete fora da nota.
+     * $especOverride mantido na assinatura por compat com chamadores.
      *
-     * @param  array<string, mixed>|null  $especOverride  espec do PED item (linha fiscal); senão usa pedidoItem
+     * @param  array<string, mixed>|null  $especOverride
      */
     public function textoFiscalModo(string $modo, ?array $especOverride = null): string
     {
@@ -138,27 +137,7 @@ class PaEmbalagem extends Model
      */
     public function textoFiscalModoEtiqueta(?array $especOverride = null): string
     {
-        // Composição de etiq/rolo primeiro — o que o cliente lê nas Inf. adicionais do item.
-        $parts = [];
-        $comp = $this->composicaoBobinasTexto();
-        if ($comp !== null && $comp !== '') {
-            $parts[] = $comp;
-        }
-        $parts[] = $this->qtde_bobinas.' BOB';
-        $parts = array_merge($parts, $this->detalheEspecificacaoFiscalParts($especOverride), [
-            $this->qtde_caixas.' CX',
-        ]);
-        if ($this->tubete) {
-            $parts[] = 'tubete '.$this->tubete;
-        }
-        if ($this->saida_etiqueta) {
-            $parts[] = 'saida '.$this->saida_etiqueta;
-        }
-        if ($this->caixa_medida) {
-            $parts[] = 'caixa '.$this->caixa_medida;
-        }
-
-        return implode(' · ', $parts);
+        return $this->composicaoBobinasTexto() ?? '';
     }
 
     /**
@@ -166,30 +145,11 @@ class PaEmbalagem extends Model
      */
     public function textoFiscalModoRolo(?array $especOverride = null): string
     {
-        $parts = [];
-        $comp = $this->composicaoBobinasTexto();
-        if ($comp !== null && $comp !== '') {
-            $parts[] = $comp;
-        }
-        $parts[] = number_format((float) $this->qtde_etiquetas, 0, ',', '.').' UN';
-        $parts = array_merge($parts, $this->detalheEspecificacaoFiscalParts($especOverride), [
-            $this->qtde_caixas.' CX',
-        ]);
-        if ($this->tubete) {
-            $parts[] = 'tubete '.$this->tubete;
-        }
-        if ($this->saida_etiqueta) {
-            $parts[] = 'saida '.$this->saida_etiqueta;
-        }
-        if ($this->caixa_medida) {
-            $parts[] = 'caixa '.$this->caixa_medida;
-        }
-
-        return implode(' · ', $parts);
+        return $this->composicaoBobinasTexto() ?? '';
     }
 
     /**
-     * Medida / material / cores / acabamento / modelos do PED → infAdProd.
+     * Spec do PED (medida/papel/…) — uso interno/UI; não vai mais no infAdProd.
      *
      * @param  array<string, mixed>|null  $especOverride
      * @return list<string>

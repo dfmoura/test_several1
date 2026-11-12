@@ -381,29 +381,17 @@ class FocusPayloadBuilder
      */
     private function infAdicionais(Faturamento $fat): string
     {
-        $fat->loadMissing(['itens', 'pedido', 'empresa']);
+        $fat->loadMissing(['pedido', 'empresa']);
         $ped = trim((string) ($fat->pedido?->codigo ?? ''));
         $crt = (int) ($fat->empresa?->crt ?? 1);
         $parts = array_filter([
             $ped !== '' ? 'Pedido '.$ped : null,
             NfeItemTexto::complementoPedidoCliente($fat->pedido?->pedido_cliente),
             'Fatura '.$fat->codigo,
-            $this->temSetup($fat) ? 'Valor inclui matriz/clichê e ferramental do job' : null,
             NfeItemTexto::complementoTributos($crt),
         ], static fn ($p) => $p !== null && $p !== '');
 
         return implode(' · ', $parts);
-    }
-
-    private function temSetup(Faturamento $fat): bool
-    {
-        foreach ($fat->itens ?? [] as $i) {
-            if ($i instanceof FaturamentoItem && FaturamentoItem::eLinhaDeSetup((string) $i->descricao)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**

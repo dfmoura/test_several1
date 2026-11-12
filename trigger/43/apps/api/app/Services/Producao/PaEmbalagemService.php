@@ -764,8 +764,7 @@ class PaEmbalagemService
     }
 
     /**
-     * Texto para NF-e item (infAdProd) — bobinas + detalhe; ≤500 chars.
-     * Default = modo ETIQUETA (compat). Preferir textoFiscalModo na emissão.
+     * Texto para NF-e item (infAdProd) — só composição etiq/rolo; ≤500 chars.
      */
     public function textoFiscal(?PaEmbalagem $emb): ?string
     {
@@ -781,9 +780,13 @@ class PaEmbalagemService
             return null;
         }
 
-        $emb->loadMissing(['bobinas', 'pedidoItem']);
+        $emb->loadMissing(['bobinas']);
+        $texto = trim($emb->textoFiscalModo($modo, $especOverride));
+        if ($texto === '') {
+            return null;
+        }
 
-        return mb_substr($emb->textoFiscalModo($modo, $especOverride), 0, 500);
+        return mb_substr($texto, 0, 500);
     }
 
     /**
