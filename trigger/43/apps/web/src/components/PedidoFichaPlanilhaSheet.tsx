@@ -450,6 +450,9 @@ export function PedidoFichaPlanilhaSheet({
             <span className="ficha-chip ficha-chip-muted">{prazoEntregaCompleto(p)}</span>
           ) : null}
           <span className="ficha-chip ficha-chip-muted">±{p.tolerancia_qtd_pct}%</span>
+          {p.pedido_cliente ? (
+            <span className="ficha-chip ficha-chip-muted">OC cli.: {p.pedido_cliente}</span>
+          ) : null}
         </div>
       </div>
 

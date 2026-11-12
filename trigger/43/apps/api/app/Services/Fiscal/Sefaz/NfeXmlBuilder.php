@@ -481,6 +481,7 @@ final class NfeXmlBuilder
         $crt = (int) ($fat->empresa?->crt ?? 1);
         $parts = array_filter([
             'FAT '.$fat->codigo,
+            NfeItemTexto::complementoPedidoCliente($fat->pedido?->pedido_cliente),
             NfeItemTexto::complementoItens($fat->itens ?? []),
             $embTexto,
             $temSetup ? 'Valor inclui matriz/clichê e ferramental do job' : null,

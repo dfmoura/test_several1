@@ -61,6 +61,7 @@ class Pedido extends Model
         'prazo_entrega_dias',
         'snapshot',
         'observacao',
+        'pedido_cliente',
     ];
 
     protected function casts(): array

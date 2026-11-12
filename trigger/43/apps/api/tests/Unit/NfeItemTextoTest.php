@@ -40,4 +40,14 @@ class NfeItemTextoTest extends TestCase
             NfeItemTexto::xProd(null, 'Etiqueta promocional', null)
         );
     }
+
+    public function test_complemento_pedido_cliente_so_quando_preenchido(): void
+    {
+        $this->assertNull(NfeItemTexto::complementoPedidoCliente(null));
+        $this->assertNull(NfeItemTexto::complementoPedidoCliente('   '));
+        $this->assertSame(
+            'Ped. cliente: OC 2026/004512',
+            NfeItemTexto::complementoPedidoCliente("  OC 2026/004512  ")
+        );
+    }
 }

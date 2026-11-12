@@ -45,6 +45,9 @@ class FocusPayloadBuilder
         $pedido = $fat->pedido_id
             ? ($fat->pedido ?? Pedido::query()->findOrFail((int) $fat->pedido_id))
             : null;
+        if ($pedido instanceof Pedido) {
+            $fat->setRelation('pedido', $pedido);
+        }
         $embs = $pedido
             ? $this->embalagem->confirmadasDoPedido($empresa, $pedido)
             : collect();
@@ -380,6 +383,7 @@ class FocusPayloadBuilder
         $crt = (int) ($fat->empresa?->crt ?? 1);
         $parts = array_filter([
             $ped !== '' ? 'Pedido '.$ped : null,
+            NfeItemTexto::complementoPedidoCliente($fat->pedido?->pedido_cliente),
             'Fatura '.$fat->codigo,
             NfeItemTexto::complementoItens($fat->itens ?? []),
             $embTexto ?: null,

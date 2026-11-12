@@ -63,7 +63,7 @@ class FaturamentoService
     ): array {
         $query = Faturamento::query()
             ->where('empresa_id', $empresa->id)
-            ->with(['parceiro:id,codigo,razao_social', 'pedido:id,codigo,status', 'orcamento:id,codigo'])
+            ->with(['parceiro:id,codigo,razao_social', 'pedido:id,codigo,status,pedido_cliente', 'orcamento:id,codigo'])
             ->orderByDesc('id');
 
         if ($q) {
@@ -87,7 +87,7 @@ class FaturamentoService
     {
         $faturamento->load([
             'parceiro:id,codigo,razao_social',
-            'pedido:id,codigo,status',
+            'pedido:id,codigo,status,pedido_cliente',
             'orcamento:id,codigo',
             'transportador',
             'itens',
@@ -429,6 +429,7 @@ class FaturamentoService
                 'id' => $f->pedido->id,
                 'codigo' => $f->pedido->codigo,
                 'status' => $f->pedido->status,
+                'pedido_cliente' => $f->pedido->pedido_cliente,
             ] : null,
             'orcamento' => $f->orcamento ? [
                 'id' => $f->orcamento->id,

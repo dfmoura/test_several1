@@ -121,6 +121,24 @@ class PedidoController extends Controller
         ]);
     }
 
+    public function atualizarPedidoCliente(Request $request, Pedido $pedido): JsonResponse
+    {
+        $this->authorizePedidoClienteWrite($request);
+        $this->assertEmpresa($pedido);
+
+        $data = $request->validate([
+            'pedido_cliente' => ['nullable', 'string', 'max:60'],
+        ]);
+
+        return response()->json([
+            'data' => $this->pedidos->atualizarPedidoCliente(
+                $this->empresa(),
+                $pedido,
+                $data['pedido_cliente'] ?? null,
+            ),
+        ]);
+    }
+
     private function authorizeRead(Request $request): void
     {
         if (! $request->user()->can('producao.ler') && ! $request->user()->can('orcamento.ler')) {
@@ -131,6 +149,13 @@ class PedidoController extends Controller
     private function authorizeWrite(Request $request): void
     {
         if (! $request->user()->can('producao.escrever')) {
+            abort(403);
+        }
+    }
+
+    private function authorizePedidoClienteWrite(Request $request): void
+    {
+        if (! $request->user()->can('orcamento.escrever') && ! $request->user()->can('faturamento.escrever')) {
             abort(403);
         }
     }

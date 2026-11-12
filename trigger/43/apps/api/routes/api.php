@@ -411,6 +411,7 @@ Route::prefix('v1')->group(function () {
         // BL-044 — PED / OP / OS
         Route::get('/pedidos', [PedidoController::class, 'index']);
         Route::get('/pedidos/{pedido}', [PedidoController::class, 'show']);
+        Route::patch('/pedidos/{pedido}/pedido-cliente', [PedidoController::class, 'atualizarPedidoCliente']);
         Route::post('/pedidos/{pedido}/abrir-op', [PedidoController::class, 'abrirOp']);
         Route::post('/pedidos/{pedido}/abrir-os', [PedidoController::class, 'abrirOs']);
         Route::post('/pedidos/{pedido}/separar-revenda', [PedidoController::class, 'separarRevenda']);

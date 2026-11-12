@@ -47,6 +47,7 @@ export function PedidoDetailPage() {
   const [motivoEstorno, setMotivoEstorno] = useState('');
   const [modFrete, setModFrete] = useState(MOD_FRETE_CIF);
   const [transportador, setTransportador] = useState<Parceiro | null>(null);
+  const [pedidoClienteEdit, setPedidoClienteEdit] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -54,6 +55,7 @@ export function PedidoDetailPage() {
     try {
       const res = await api.get<{ data: Pedido }>(`/pedidos/${id}`);
       setPedido(res.data);
+      setPedidoClienteEdit(res.data.pedido_cliente ?? '');
       if (
         res.data.status === 'PRODUZIDO' ||
         res.data.status === 'FATURADO' ||
@@ -92,6 +94,29 @@ export function PedidoDetailPage() {
     setMotivoEstorno('');
     void load();
   }, [id]);
+
+  const salvarPedidoCliente = async () => {
+    if (!pedido) return;
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await api.patch<{ data: Pedido }>(`/pedidos/${pedido.id}/pedido-cliente`, {
+        pedido_cliente: pedidoClienteEdit.trim() || null,
+      });
+      setPedido(res.data);
+      setPedidoClienteEdit(res.data.pedido_cliente ?? '');
+      setMsg(
+        res.data.pedido_cliente
+          ? 'Pedido / OC do cliente gravado — entra nos Dados adicionais da NF-e.'
+          : 'Pedido / OC do cliente removido.',
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Falha ao gravar pedido do cliente.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const abrirOrdem = async (itemId: number, necessidade: string) => {
     if (!pedido) return;
@@ -323,6 +348,34 @@ export function PedidoDetailPage() {
                     <strong>{condicaoTexto}</strong>
                   </div>
                 ) : null}
+                <div>
+                  <span>Pedido / OC do cliente</span>
+                  {pedido.pode_editar_pedido_cliente &&
+                  (hasPermission('orcamento.escrever') || hasPermission('faturamento.escrever')) ? (
+                    <div className="btn-row" style={{ marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                      <input
+                        id="ped-pedido-cliente"
+                        className="input"
+                        value={pedidoClienteEdit}
+                        onChange={(e) => setPedidoClienteEdit(e.target.value)}
+                        maxLength={60}
+                        placeholder="Nº da OC / PO do cliente"
+                        disabled={busy}
+                        style={{ minWidth: '12rem', flex: '1 1 12rem' }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        disabled={busy}
+                        onClick={() => void salvarPedidoCliente()}
+                      >
+                        Salvar
+                      </button>
+                    </div>
+                  ) : (
+                    <strong>{pedido.pedido_cliente?.trim() ? pedido.pedido_cliente : '—'}</strong>
+                  )}
+                </div>
                 {pedido.orcamento?.codigo ? (
                   <div>
                     <span>Orçamento</span>
@@ -595,6 +648,12 @@ export function PedidoDetailPage() {
                           {preview.forma_pagamento ? ` · ${preview.forma_pagamento}` : ''}
                         </strong>
                       </div>
+                      {pedido.pedido_cliente?.trim() ? (
+                        <div>
+                          <span>Pedido / OC do cliente</span>
+                          <strong>{pedido.pedido_cliente}</strong>
+                        </div>
+                      ) : null}
                     </div>
                     {preview.parcelas && preview.parcelas.length > 0 ? (
                       <div className="table-wrap" style={{ marginTop: '1rem' }}>

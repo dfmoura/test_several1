@@ -2803,6 +2803,10 @@ export type Pedido = {
   prazo_referencia_em?: string | null;
   data_entrega_prevista?: string | null;
   observacao: string | null;
+  /** PO / OC do cliente (referência externa do comprador). */
+  pedido_cliente?: string | null;
+  /** Presente no GET detalhe — editável até NF-e autorizada/processando. */
+  pode_editar_pedido_cliente?: boolean;
   /** Presente no GET detalhe — ADR_PED_CONFIRMACAO_CLIENTE. */
   empresa?: PedidoEmpresaComercial | null;
   parceiro?: PedidoParceiroComercial | null;

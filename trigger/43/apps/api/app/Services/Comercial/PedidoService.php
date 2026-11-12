@@ -2,7 +2,9 @@
 
 namespace App\Services\Comercial;
 
+use App\Models\DocumentoFiscalSaida;
 use App\Models\Empresa;
+use App\Models\Faturamento;
 use App\Models\Orcamento;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
@@ -11,6 +13,7 @@ use App\Services\Codigo\CodigoGenerator;
 use App\Services\Calendario\DiasUteisService;
 use App\Services\Estoque\CaixaExpedicao;
 use App\Services\Financeiro\AdiantamentoService;
+use App\Services\Fiscal\EmissaoFiscalService;
 use App\Support\CatalogoServicoSaida;
 use App\Support\FacasComposicao;
 use App\Support\ListPeriodo;
@@ -30,6 +33,7 @@ class PedidoService
         private readonly DiasUteisService $diasUteis,
         private readonly OrcamentoContatoFicha $contatoFicha,
         private readonly CaixaExpedicao $caixas,
+        private readonly EmissaoFiscalService $emissao,
     ) {}
 
     /**
@@ -338,6 +342,7 @@ class PedidoService
             $like = '%'.$q.'%';
             $query->where(function ($w) use ($like) {
                 $w->where('codigo', 'like', $like)
+                    ->orWhere('pedido_cliente', 'like', $like)
                     ->orWhereHas('parceiro', function ($p) use ($like) {
                         $p->where('razao_social', 'like', $like)
                             ->orWhere('contato_nome', 'like', $like);
@@ -367,12 +372,75 @@ class PedidoService
             'itens.produtoPa:id,codigo,descricao_fiscal',
             'ordensProducao.materiais',
             'ordensServico',
-            'faturamento',
+            'faturamento.documentosFiscais',
             'entrega:id,pedido_id,codigo,status',
             ...Pedido::userStampWith(),
         ]);
 
         return $this->toOut($pedido, true);
+    }
+
+    /**
+     * Grava a referência externa do comprador (PO / OC do cliente).
+     * Ecoa em Dados adicionais da NF-e enquanto a nota não for oficial.
+     *
+     * @return array<string, mixed>
+     */
+    public function atualizarPedidoCliente(Empresa $empresa, Pedido $pedido, ?string $valor): array
+    {
+        if ((int) $pedido->empresa_id !== (int) $empresa->id) {
+            abort(404);
+        }
+
+        $pedido->loadMissing(['faturamento.documentosFiscais']);
+
+        if (! $this->podeEditarPedidoCliente($pedido)) {
+            throw ValidationException::withMessages([
+                'pedido_cliente' => [
+                    'Pedido / OC do cliente só pode ser alterado enquanto a NF-e não estiver autorizada ou em processamento.',
+                ],
+            ]);
+        }
+
+        $limpo = preg_replace('/\s+/u', ' ', trim((string) $valor)) ?? '';
+        $pedido->pedido_cliente = $limpo !== '' ? mb_substr($limpo, 0, 60) : null;
+        $pedido->save();
+
+        $fat = $pedido->faturamento;
+        if ($fat instanceof Faturamento && $fat->status === Faturamento::STATUS_CONFIRMADO) {
+            $this->emissao->rebuildPrevistas(
+                $empresa,
+                $fat->fresh(['transportador', 'pedido', 'parceiro', 'itens.pedidoItem.produtoPa', 'titulos']),
+            );
+        }
+
+        return $this->show($pedido->fresh());
+    }
+
+    public function podeEditarPedidoCliente(Pedido $pedido): bool
+    {
+        if ($pedido->status === Pedido::STATUS_CANCELADO) {
+            return false;
+        }
+
+        $pedido->loadMissing(['faturamento.documentosFiscais']);
+        $fat = $pedido->faturamento;
+        if (! $fat instanceof Faturamento) {
+            return true;
+        }
+
+        if (in_array($fat->nf_status, [Faturamento::NF_AUTORIZADA, Faturamento::NF_CANCELADA], true)) {
+            return false;
+        }
+
+        foreach ($fat->documentosFiscais as $doc) {
+            if ($doc->status === DocumentoFiscalSaida::STATUS_AUTORIZADO
+                || $doc->status === DocumentoFiscalSaida::STATUS_PROCESSANDO) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -389,6 +457,7 @@ class PedidoService
             'prazo_entrega_dias' => $p->prazo_entrega_dias,
             ...$this->diasUteis->previsaoParaPedido($p),
             'observacao' => $p->observacao,
+            'pedido_cliente' => $p->pedido_cliente,
             'parceiro' => $p->parceiro ? [
                 'id' => $p->parceiro->id,
                 'codigo' => $p->parceiro->codigo,
@@ -465,6 +534,7 @@ class PedidoService
 
         if ($detalhe) {
             $out['snapshot'] = $p->snapshot;
+            $out['pode_editar_pedido_cliente'] = $this->podeEditarPedidoCliente($p);
             $out['criado_por'] = Pedido::userStampFrom($p->criador);
             $out['atualizado_por'] = Pedido::userStampFrom($p->atualizador);
             $out['empresa'] = $this->empresaComercialOut($p);

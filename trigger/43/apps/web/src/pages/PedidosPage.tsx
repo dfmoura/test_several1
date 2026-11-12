@@ -164,7 +164,7 @@ export function PedidosPage() {
               id="pedidos-busca"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="PED, ORC, cliente, contato…"
+              placeholder="PED, ORC, OC do cliente, cliente, contato…"
             />
           </div>
           <PeriodoFiltro
@@ -242,6 +242,11 @@ export function PedidosPage() {
                     >
                       <td>
                         <strong>{p.codigo}</strong>
+                        {p.pedido_cliente ? (
+                          <div className="muted" style={{ fontSize: '0.8em' }}>
+                            OC cli.: {p.pedido_cliente}
+                          </div>
+                        ) : null}
                       </td>
                       <td>
                         {p.parceiro?.razao_social ?? '—'}

@@ -655,6 +655,9 @@ export function PedidoFichaSheet({
             p.vendedor ? `${p.vendedor.codigo} — ${p.vendedor.razao_social}` : '—'
           }
         />
+        {p.pedido_cliente ? (
+          <FichaKv label="Ped. / OC cliente" value={p.pedido_cliente} />
+        ) : null}
         {entregaOps ? <FichaKv label="Entrega" value={entregaOps} /> : null}
       </div>
 

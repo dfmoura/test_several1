@@ -73,6 +73,20 @@ final class NfeItemTexto
             .' · IBS UF 0,10% · IBS mun 0% · CBS 0,90% (por fora do valor da nota)';
     }
 
+    /**
+     * Pedido / OC do cliente (referência externa do comprador) para infCpl.
+     * Não usar <xPed> aqui — limite SEFAZ 15 chars; vai em Dados adicionais.
+     */
+    public static function complementoPedidoCliente(?string $valor): ?string
+    {
+        $limpo = preg_replace('/\s+/u', ' ', trim((string) $valor)) ?? '';
+        if ($limpo === '') {
+            return null;
+        }
+
+        return 'Ped. cliente: '.mb_substr($limpo, 0, 60);
+    }
+
     private static function limparLinha(?string $linha, ?string $codigo): string
     {
         $t = trim((string) $linha);
