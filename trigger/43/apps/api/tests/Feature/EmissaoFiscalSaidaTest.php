@@ -838,7 +838,10 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertStringNotContainsString('BOB', $infAd);
 
         $infCpl = (string) ($payload['informacoes_adicionais_contribuinte'] ?? '');
-        $this->assertStringContainsString('10 BOB · 3 CX', $infCpl);
+        $this->assertStringContainsString('Pedido ', $infCpl);
+        $this->assertStringContainsString('Fatura ', $infCpl);
+        $this->assertStringNotContainsString('BOB', $infCpl);
+        $this->assertStringNotContainsString(' CX', $infCpl);
 
         $previaInf = $ok->json('data.documentos_fiscais.0.previa.itens.0.informacoes_adicionais');
         $this->assertIsString($previaInf);

@@ -9412,8 +9412,14 @@ tr.row-inactive td {
   text-transform: uppercase;
 }
 
+/* Grade DANFE: Cód./NCM/CST/CFOP/Un/qtde/valores centralizados; descrição à esquerda. */
+.danfe-items thead tr:last-child th:not(:nth-child(2)),
+.danfe-items tbody td:not(.desc) {
+  text-align: center;
+}
+
 .danfe-items td.num {
-  text-align: right;
+  text-align: center;
   white-space: nowrap;
 }
 

@@ -81,7 +81,6 @@ final class NfeXmlBuilder
             ? $this->embalagem->volumesTransportePedido($empresa, $pedido)
             : null;
         $modoQtde = $this->qtdeModo->efetivo($fat, $empresa, $pedido instanceof Pedido ? $pedido : null);
-        $ecoCpl = $this->embalagem->textoFiscalEco($embs);
         $modFrete = $this->modFrete($fat);
         $idDest = $ufEmp === $ufDest ? 1 : 2;
         $cMunFG = preg_replace('/\D/', '', (string) $empresa->ibge) ?: '0000000';
@@ -168,7 +167,7 @@ final class NfeXmlBuilder
         $emitXml = $this->emitXml($empresa, $cnpjEmp);
         $transpXml = $this->transpXml($fat, $modFrete, $volTransp);
         $pagXml = $this->pagXml($fat, $valor);
-        $infCpl = $this->infAdicionais($fat, $ecoCpl);
+        $infCpl = $this->infAdicionais($fat);
 
         $infNFe = '<infNFe Id="NFe'.$chave.'" versao="4.00">'
             .'<ide>'
@@ -468,9 +467,13 @@ final class NfeXmlBuilder
         return FiscalSaidaDefaults::MODALIDADE_FRETE_SEM;
     }
 
-    private function infAdicionais(Faturamento $fat, ?string $embTexto): string
+    /**
+     * infCpl: Pedido · Ped. cliente · Fatura · fiscais.
+     * Detalhe físico (rolos/etiq.) fica no infAdProd do item — não repetir aqui.
+     */
+    private function infAdicionais(Faturamento $fat): string
     {
-        $fat->loadMissing('itens');
+        $fat->loadMissing(['itens', 'pedido']);
         $temSetup = false;
         foreach ($fat->itens ?? [] as $i) {
             if (FaturamentoItem::eLinhaDeSetup((string) $i->descricao)) {
@@ -478,17 +481,17 @@ final class NfeXmlBuilder
                 break;
             }
         }
+        $ped = $fat->pedido?->codigo ?? '';
         $crt = (int) ($fat->empresa?->crt ?? 1);
         $parts = array_filter([
-            'FAT '.$fat->codigo,
+            $ped !== '' ? 'Pedido '.$ped : null,
             NfeItemTexto::complementoPedidoCliente($fat->pedido?->pedido_cliente),
-            NfeItemTexto::complementoItens($fat->itens ?? []),
-            $embTexto,
+            'Fatura '.$fat->codigo,
             $temSetup ? 'Valor inclui matriz/clichê e ferramental do job' : null,
             NfeItemTexto::complementoTributos($crt),
         ]);
 
-        return mb_substr(implode(' | ', $parts), 0, 2000);
+        return mb_substr(implode(' · ', $parts), 0, 2000);
     }
 
     /**

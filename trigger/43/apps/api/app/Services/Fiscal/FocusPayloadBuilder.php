@@ -55,7 +55,6 @@ class FocusPayloadBuilder
             ? $this->embalagem->volumesTransportePedido($empresa, $pedido)
             : null;
         $modoQtde = $this->qtdeModo->efetivo($fat, $empresa, $pedido);
-        $ecoCpl = $this->embalagem->textoFiscalEco($embs);
 
         $fat->loadMissing('transportador');
         $modFrete = $this->modalidadeFreteDoFat($fat);
@@ -147,7 +146,7 @@ class FocusPayloadBuilder
             'valor_produtos' => $valor,
             'valor_total' => $valor,
             'modalidade_frete' => $modFrete,
-            'informacoes_adicionais_contribuinte' => $this->infAdicionais($fat, $ecoCpl),
+            'informacoes_adicionais_contribuinte' => $this->infAdicionais($fat),
             'formas_pagamento' => [[
                 'indicador_pagamento' => count($fat->titulos ?? []) > 1 ? 1 : 0,
                 'forma_pagamento' => FiscalSaidaDefaults::formaPagamentoFocus($fat->forma_pagamento, $saldoZero),
@@ -376,17 +375,19 @@ class FocusPayloadBuilder
         return (float) $acc;
     }
 
-    private function infAdicionais(Faturamento $fat, ?string $embTexto = null): string
+    /**
+     * infCpl: Pedido · Ped. cliente · Fatura · fiscais.
+     * Detalhe físico (rolos/etiq.) fica no infAdProd do item — não repetir aqui.
+     */
+    private function infAdicionais(Faturamento $fat): string
     {
-        $fat->loadMissing('itens');
+        $fat->loadMissing(['itens', 'pedido']);
         $ped = $fat->pedido?->codigo ?? '';
         $crt = (int) ($fat->empresa?->crt ?? 1);
         $parts = array_filter([
             $ped !== '' ? 'Pedido '.$ped : null,
             NfeItemTexto::complementoPedidoCliente($fat->pedido?->pedido_cliente),
             'Fatura '.$fat->codigo,
-            NfeItemTexto::complementoItens($fat->itens ?? []),
-            $embTexto ?: null,
             $this->temSetup($fat) ? 'Valor inclui matriz/clichê e ferramental do job' : null,
             NfeItemTexto::complementoTributos($crt),
         ]);

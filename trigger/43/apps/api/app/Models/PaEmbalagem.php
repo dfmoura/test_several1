@@ -154,7 +154,7 @@ class PaEmbalagem extends Model
         }
         $comp = $this->composicaoBobinasTexto();
         if ($comp !== null && $comp !== '') {
-            $parts[] = 'comp: '.$comp;
+            $parts[] = $comp;
         }
 
         return implode(' · ', $parts);
@@ -181,7 +181,7 @@ class PaEmbalagem extends Model
         }
         $comp = $this->composicaoBobinasTexto();
         if ($comp !== null && $comp !== '') {
-            $parts[] = 'comp: '.$comp;
+            $parts[] = $comp;
         }
 
         return implode(' · ', $parts);
@@ -247,7 +247,8 @@ class PaEmbalagem extends Model
     }
 
     /**
-     * Agrega bobinas por qtde (estilo Exact/Thermotag): 8x1000UN+2x500UN.
+     * Agrega bobinas por qtde de etiquetas — deixa explícito cheio vs resto.
+     * Ex.: "4 rolos × 1000 etiq. + 2 rolos × 500 etiq."
      */
     public function composicaoBobinasTexto(): ?string
     {
@@ -264,10 +265,11 @@ class PaEmbalagem extends Model
 
         $chunks = [];
         foreach ($grupos as $qtde => $n) {
-            $chunks[] = $n.'x'.$qtde.'UN';
+            $rolo = $n === 1 ? '1 rolo' : $n.' rolos';
+            $chunks[] = $rolo.' × '.$qtde.' etiq.';
         }
 
-        return implode('+', $chunks);
+        return implode(' + ', $chunks);
     }
 
     private static function fmtQtdeCurta(string $qtde): string
