@@ -2450,17 +2450,34 @@ button.link-vencedor:hover {
   font-weight: 500;
 }
 
-#table-compras .pill-acomp,
-#table-propostas .pill-acomp {
-  display: inline-block;
-  margin-left: 0.35rem;
-  padding: 0.08rem 0.38rem;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--accent, #1a5f4a) 14%, var(--surface-sunk));
-  color: var(--accent, #1a5f4a);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+/* Responsável na grade: ícone fixo (eu × demais) — nome só no tooltip/modal */
+#table-compras .mark-acomp,
+#table-propostas .mark-acomp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.3rem;
+  vertical-align: -0.15em;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+#table-compras .mark-acomp svg,
+#table-propostas .mark-acomp svg {
+  display: block;
+}
+
+#table-compras .mark-acomp--eu,
+#table-propostas .mark-acomp--eu {
+  color: var(--accent-ink, #4d7019);
+}
+
+#table-compras .mark-acomp--outro,
+#table-propostas .mark-acomp--outro {
+  color: var(--text-soft, #566571);
+  opacity: 0.85;
 }
 
 #table-compras tr.compras-row--acomp td.col-num-compra strong,

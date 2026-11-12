@@ -4150,18 +4150,26 @@
     });
   }
 
-  /** Pill do responsável: «Eu» ou username. */
+  /** Marca discreta do responsável na grade: ícone eu × demais (nome no tooltip/modal). */
+  const SVG_RESP_EU =
+    '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">' +
+    '<path fill="currentColor" d="M8 7.75a2.75 2.75 0 1 0 0-5.5 2.75 2.75 0 0 0 0 5.5zm0 1.25c-2.9 0-5.5 1.48-5.5 3.3V14h11v-1.7c0-1.82-2.6-3.3-5.5-3.3z"/>' +
+    "</svg>";
+  const SVG_RESP_OUTRO =
+    '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">' +
+    '<path fill="currentColor" fill-rule="evenodd" d="M8 2.5a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5zM7 4.75a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM8 9c-2.55 0-4.75 1.28-4.75 2.85V13.5h9.5v-1.65C12.75 10.28 10.55 9 8 9zm-3.4 2.85c.22-.7 1.55-1.6 3.4-1.6s3.18.9 3.4 1.6H4.6z"/>' +
+    "</svg>";
+
   function pillResponsavel(obj) {
     const r = obj?.responsavel;
     if (!r || (!r.username && r.id == null)) return "";
     const minha = !!obj.acompanhada_por_mim;
-    const label = minha ? "Eu" : String(r.username || r.id);
     const title = minha
       ? "Você é o responsável"
       : `Responsável: ${r.username || r.id}`;
-    return ` <span class="pill-acomp" title="${escHtml(title)}">${escHtml(
-      label,
-    )}</span>`;
+    const mod = minha ? "mark-acomp--eu" : "mark-acomp--outro";
+    const svg = minha ? SVG_RESP_EU : SVG_RESP_OUTRO;
+    return ` <span class="mark-acomp ${mod}" title="${escHtml(title)}" role="img" aria-label="${escHtml(title)}">${svg}</span>`;
   }
 
   function metaResponsavel(obj) {
